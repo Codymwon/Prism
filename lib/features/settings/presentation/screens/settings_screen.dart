@@ -62,12 +62,6 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () async {
                       await ref.read(tutorialStateProvider.notifier).resetTutorial();
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Interactive walkthrough reset! Returning home to start.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
                         context.go('/notes');
                       }
                     },

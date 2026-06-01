@@ -203,7 +203,8 @@ class NoteRepository {
 
     final noteMaps = await db.rawQuery('''
       SELECT n.id, n.title,
-        (SELECT COUNT(*) FROM note_links WHERE source_id = n.id OR target_id = n.id) as link_count
+        (SELECT COUNT(*) FROM note_links WHERE source_id = n.id OR target_id = n.id) as link_count,
+        (SELECT f.color_hex FROM virtual_folders f JOIN note_folders nf ON nf.folder_id = f.id WHERE nf.note_id = n.id LIMIT 1) as color_hex
       FROM notes n WHERE n.is_ghost = 0
     ''');
 
@@ -214,6 +215,7 @@ class NoteRepository {
               id: m['id'] as String,
               title: m['title'] as String,
               linkCount: (m['link_count'] as int?) ?? 0,
+              colorHex: m['color_hex'] as String?,
             ))
         .toList();
 

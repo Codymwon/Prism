@@ -10,6 +10,8 @@ class DesignPrimaryButton extends StatelessWidget {
   final IconData? icon;
   final Color? backgroundColor;
   final Color? foregroundColor;
+  final double height;
+  final double? fontSize;
 
   const DesignPrimaryButton({
     super.key,
@@ -18,6 +20,8 @@ class DesignPrimaryButton extends StatelessWidget {
     this.icon,
     this.backgroundColor,
     this.foregroundColor,
+    this.height = 50.0,
+    this.fontSize,
   });
 
   @override
@@ -29,7 +33,7 @@ class DesignPrimaryButton extends StatelessWidget {
       onTap: onTap,
       style: TactileFeedbackStyle.highImpact,
       child: Container(
-        height: 50,
+        height: height,
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
@@ -47,14 +51,14 @@ class DesignPrimaryButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 18, color: fg),
-                const SizedBox(width: 8),
+                Icon(icon, size: height * 0.36, color: fg),
+                SizedBox(width: height * 0.16),
               ],
               Text(
                 label,
                 style: DesignTypography.heading(
                   context,
-                  fontSize: 15,
+                  fontSize: fontSize ?? (height > 40 ? 15 : 13),
                   fontWeight: FontWeight.w700,
                   color: fg,
                 ),

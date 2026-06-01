@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../core/theme/app_theme.dart';
 import '../../features/onboarding/data/tutorial_provider.dart';
+import '../design_system/design_system.dart';
 import 'tactile_wrapper.dart';
 import 'tutorial_overlay.dart';
 
@@ -39,7 +39,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasCompletedTutorial = ref.watch(tutorialStateProvider);
 
     final mainScaffold = Scaffold(
@@ -47,6 +46,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         duration: const Duration(milliseconds: 200),
         switchInCurve: Curves.easeInOutCubic,
         switchOutCurve: Curves.easeInOutCubic,
+        layoutBuilder: (currentChild, previousChildren) => currentChild ?? const SizedBox.shrink(),
         transitionBuilder: (Widget child, Animation<double> animation) {
           return FadeTransition(
             opacity: animation,
@@ -66,10 +66,10 @@ class _AppShellState extends ConsumerState<AppShell> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+          color: DesignColors.surface(context),
           border: Border(
             top: BorderSide(
-              color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+              color: DesignColors.border(context),
               width: 0.5,
             ),
           ),
@@ -96,9 +96,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                             size: 22,
                             color: isActive
                                 ? colorScheme.primary
-                                : (isDark
-                                    ? MeridianColors.darkTextTertiary
-                                    : MeridianColors.lightTextTertiary),
+                                : DesignColors.textTertiary(context),
                           ),
                         ).animate(target: isActive ? 1 : 0).scaleXY(
                           begin: 0.9,
@@ -115,9 +113,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                                 isActive ? FontWeight.w600 : FontWeight.w400,
                             color: isActive
                                 ? colorScheme.primary
-                                : (isDark
-                                    ? MeridianColors.darkTextTertiary
-                                    : MeridianColors.lightTextTertiary),
+                                : DesignColors.textTertiary(context),
                           ),
                           child: Text(tab.label),
                         ),

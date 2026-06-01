@@ -5,11 +5,13 @@ import '../../../../shared/design_system/design_system.dart';
 class JournalEmptyIllustration extends StatelessWidget {
   final bool isFuture;
   final ColorScheme colorScheme;
+  final double size;
 
   const JournalEmptyIllustration({
     super.key,
     required this.isFuture,
     required this.colorScheme,
+    this.size = 120.0,
   });
 
   @override
@@ -19,14 +21,14 @@ class JournalEmptyIllustration extends StatelessWidget {
     final accentColor = DesignColors.accentAmber(context);
 
     return SizedBox(
-      width: 120,
-      height: 120,
+      width: size,
+      height: size,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
-            width: 90,
-            height: 90,
+            width: size * 0.75,
+            height: size * 0.75,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
@@ -38,8 +40,8 @@ class JournalEmptyIllustration extends StatelessWidget {
             ),
           ),
           Container(
-            width: 72,
-            height: 72,
+            width: size * 0.6,
+            height: size * 0.6,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -49,8 +51,8 @@ class JournalEmptyIllustration extends StatelessWidget {
             ),
           ),
           Container(
-            width: 60,
-            height: 60,
+            width: size * 0.5,
+            height: size * 0.5,
             decoration: BoxDecoration(
               color: DesignColors.surface(context),
               shape: BoxShape.circle,
@@ -68,7 +70,7 @@ class JournalEmptyIllustration extends StatelessWidget {
             ),
             child: Icon(
               isFuture ? Icons.calendar_month_rounded : Icons.edit_note_rounded,
-              size: 30,
+              size: size * 0.25,
               color: baseColor,
             ),
           ).animate()

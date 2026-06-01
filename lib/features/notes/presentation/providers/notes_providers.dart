@@ -89,6 +89,7 @@ final backlinksProvider = FutureProvider.autoDispose.family<List<Backlink>, Stri
 
 final graphDataProvider = FutureProvider.autoDispose<({List<GraphNode> nodes, List<GraphEdge> edges})>((ref) async {
   ref.watch(notesVersionProvider);
+  ref.watch(foldersVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getGraphData();
 });

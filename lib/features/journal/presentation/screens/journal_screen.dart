@@ -126,7 +126,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         final data = snapshot.data;
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 16, DesignSpacing.screenPadding, 0),
+          padding: EdgeInsets.fromLTRB(DesignSpacing.screenPadding, _showCalendar ? 8 : 16, DesignSpacing.screenPadding, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -143,7 +143,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 ),
                 const SizedBox(height: 8),
                 _buildTemplatesRow(colorScheme),
-                const SizedBox(height: 24),
+                SizedBox(height: _showCalendar ? 12 : 24),
               ],
               
               // Entry state
@@ -217,20 +217,25 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     String dateStr,
   ) {
     final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
+    final double verticalSpacing = _showCalendar ? 12.0 : 24.0;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          JournalEmptyIllustration(
-            isFuture: isFuture,
-            colorScheme: colorScheme,
-          ),
-          const SizedBox(height: 24),
+          if (!_showCalendar) ...[
+            JournalEmptyIllustration(
+              isFuture: isFuture,
+              colorScheme: colorScheme,
+              size: 120.0,
+            ),
+            SizedBox(height: verticalSpacing),
+          ],
           Text(
             isFuture ? 'A future day' : 'No entry yet',
             style: DesignTypography.heading(
               context,
-              fontSize: 18,
+              fontSize: _showCalendar ? 16 : 18,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -241,18 +246,19 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 : 'Tap the button below to start your entry',
             style: DesignTypography.body(
               context,
-              fontSize: 14,
+              fontSize: _showCalendar ? 13 : 14,
               color: DesignColors.textSecondary(context),
             ),
             textAlign: TextAlign.center,
           ),
           if (!isFuture) ...[
-            const SizedBox(height: 24),
+            SizedBox(height: verticalSpacing),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
+              padding: EdgeInsets.symmetric(horizontal: _showCalendar ? 60 : 40),
               child: DesignPrimaryButton(
                 label: 'Start Writing',
                 icon: DesignIcons.add,
+                height: _showCalendar ? 40.0 : 50.0,
                 onTap: () => _createDailyNote(context, dateStr, null),
               ),
             ),

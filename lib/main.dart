@@ -65,6 +65,16 @@ class MeridianApp extends ConsumerWidget {
         darkThemeData = AppTheme.applyFontFamily(AppTheme.blush(), fontFamily);
         mode = ThemeMode.light;
         break;
+      case AppThemeType.midnight:
+        themeData = AppTheme.applyFontFamily(AppTheme.midnight(), fontFamily);
+        darkThemeData = AppTheme.applyFontFamily(AppTheme.midnight(), fontFamily);
+        mode = ThemeMode.dark;
+        break;
+      case AppThemeType.matcha:
+        themeData = AppTheme.applyFontFamily(AppTheme.matcha(), fontFamily);
+        darkThemeData = AppTheme.applyFontFamily(AppTheme.matcha(), fontFamily);
+        mode = ThemeMode.light;
+        break;
       case AppThemeType.system:
         themeData = AppTheme.applyFontFamily(AppTheme.light(), fontFamily);
         darkThemeData = AppTheme.applyFontFamily(AppTheme.dark(), fontFamily);
@@ -78,6 +88,7 @@ class MeridianApp extends ConsumerWidget {
       theme: themeData,
       darkTheme: darkThemeData,
       themeMode: mode,
+      themeAnimationDuration: Duration.zero,
       routerConfig: router,
     );
   }

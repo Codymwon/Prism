@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ─── Theme Type Enum ─────────────────────────────────────────────────────────
-enum AppThemeType { system, light, dark, sepia, forest, slate, arctic, noir, blush }
+enum AppThemeType { system, light, dark, sepia, forest, slate, arctic, noir, blush, midnight, matcha }
 
 // ─── Theme Provider ──────────────────────────────────────────────────────────
 final themeProvider = StateNotifierProvider<ThemeNotifier, AppThemeType>((ref) {
@@ -145,6 +146,36 @@ class MeridianColors {
   static const Color blushTextTertiary = Color(0xFFB89AA0); // Light blush grey
   static const Color blushAccentRose = Color(0xFFB0637A); // Same dusty rose
   static const Color blushAccentGold = Color(0xFFC8966E); // Warm apricot complement
+
+  // Midnight OLED (stealth black)
+  static const Color midnightBackground = Color(0xFF000000);
+  static const Color midnightSurface = Color(0xFF0C0C0C);
+  static const Color midnightSurfaceVariant = Color(0xFF141414);
+  static const Color midnightBorder = Color(0xFF1E1E1E);
+  static const Color midnightPrimary = Color(0xFF6E7681); // Muted Slate-Graphite
+  static const Color midnightPrimaryContainer = Color(0xFF1C1E22);
+  static const Color midnightOnPrimary = Color(0xFFFFFFFF);
+  static const Color midnightText = Color(0xFFE5E7EB);
+  static const Color midnightTextSecondary = Color(0xFF8E95A0);
+  static const Color midnightTextTertiary = Color(0xFF4B525D);
+  static const Color midnightAccentRose = Color(0xFFB85C5C);
+  static const Color midnightAccentGreen = Color(0xFF5C8F73);
+  static const Color midnightAccentAmber = Color(0xFF9E7E4E);
+
+  // Matcha Latte (cream light green)
+  static const Color matchaBackground = Color(0xFFF4F7F4);
+  static const Color matchaSurface = Color(0xFFFAFCFA);
+  static const Color matchaSurfaceVariant = Color(0xFFE6EFE6);
+  static const Color matchaBorder = Color(0xFFD5E2D5);
+  static const Color matchaPrimary = Color(0xFF3D6146); // Matcha Green
+  static const Color matchaPrimaryContainer = Color(0xFFE2EDE4);
+  static const Color matchaOnPrimary = Color(0xFFFFFFFF);
+  static const Color matchaText = Color(0xFF1D2E22);
+  static const Color matchaTextSecondary = Color(0xFF5B7863);
+  static const Color matchaTextTertiary = Color(0xFF96AC9C);
+  static const Color matchaAccentRose = Color(0xFFD97706);
+  static const Color matchaAccentGreen = Color(0xFF3D6146);
+  static const Color matchaAccentAmber = Color(0xFFC29B38);
 }
 
 // ─── Theme Builder ────────────────────────────────────────────────────────────
@@ -162,6 +193,8 @@ class AppTheme {
         onSurface: MeridianColors.darkText,
         outline: MeridianColors.darkBorder,
         error: MeridianColors.darkAccentRose,
+        secondary: MeridianColors.darkAccentGreen,
+        tertiary: MeridianColors.darkAccentAmber,
       ),
       scaffoldBackgroundColor: MeridianColors.darkBackground,
       cardColor: MeridianColors.darkSurface,
@@ -171,6 +204,13 @@ class AppTheme {
         backgroundColor: MeridianColors.darkBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: MeridianColors.darkBackground,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -227,6 +267,8 @@ class AppTheme {
         onSurface: MeridianColors.lightText,
         outline: MeridianColors.lightBorder,
         error: MeridianColors.lightAccentRose,
+        secondary: MeridianColors.lightAccentGreen,
+        tertiary: MeridianColors.lightAccentAmber,
       ),
       scaffoldBackgroundColor: MeridianColors.lightBackground,
       cardColor: MeridianColors.lightSurface,
@@ -236,6 +278,13 @@ class AppTheme {
         backgroundColor: MeridianColors.lightBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemNavigationBarColor: MeridianColors.lightBackground,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -292,6 +341,8 @@ class AppTheme {
         onSurface: MeridianColors.sepiaText,
         outline: MeridianColors.sepiaBorder,
         error: MeridianColors.sepiaAccentRose,
+        secondary: MeridianColors.sepiaAccentGreen,
+        tertiary: MeridianColors.sepiaAccentAmber,
       ),
       scaffoldBackgroundColor: MeridianColors.sepiaBackground,
       cardColor: MeridianColors.sepiaSurface,
@@ -301,6 +352,13 @@ class AppTheme {
         backgroundColor: MeridianColors.sepiaBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemNavigationBarColor: MeridianColors.sepiaBackground,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
         titleTextStyle: GoogleFonts.lora(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -358,6 +416,8 @@ class AppTheme {
         onSurface: MeridianColors.forestText,
         outline: MeridianColors.forestBorder,
         error: MeridianColors.forestAccentRose,
+        secondary: MeridianColors.forestPrimary,
+        tertiary: MeridianColors.forestAccentGold,
       ),
       scaffoldBackgroundColor: MeridianColors.forestBackground,
       cardColor: MeridianColors.forestSurface,
@@ -367,6 +427,13 @@ class AppTheme {
         backgroundColor: MeridianColors.forestBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: MeridianColors.forestBackground,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -423,7 +490,9 @@ class AppTheme {
         onPrimary: MeridianColors.slateOnPrimary,
         onSurface: MeridianColors.slateText,
         outline: MeridianColors.slateBorder,
-        error: MeridianColors.slateAccentCyan,
+        error: MeridianColors.slateAccentIndigo,
+        secondary: MeridianColors.slateAccentCyan,
+        tertiary: MeridianColors.slatePrimary,
       ),
       scaffoldBackgroundColor: MeridianColors.slateBackground,
       cardColor: MeridianColors.slateSurface,
@@ -433,6 +502,13 @@ class AppTheme {
         backgroundColor: MeridianColors.slateBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: MeridianColors.slateBackground,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -489,7 +565,9 @@ class AppTheme {
         onPrimary: MeridianColors.arcticOnPrimary,
         onSurface: MeridianColors.arcticText,
         outline: MeridianColors.arcticBorder,
-        error: Color(0xFFB85C5C),
+        error: MeridianColors.arcticAccentSteel,
+        secondary: MeridianColors.arcticAccentMint,
+        tertiary: MeridianColors.arcticAccentSteel,
       ),
       scaffoldBackgroundColor: MeridianColors.arcticBackground,
       cardColor: MeridianColors.arcticSurface,
@@ -499,6 +577,13 @@ class AppTheme {
         backgroundColor: MeridianColors.arcticBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemNavigationBarColor: MeridianColors.arcticBackground,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -618,6 +703,8 @@ class AppTheme {
         onSurface: MeridianColors.noirText,
         outline: MeridianColors.noirBorder,
         error: MeridianColors.noirAccentRose,
+        secondary: MeridianColors.noirPrimary,
+        tertiary: MeridianColors.noirAccentGold,
       ),
       scaffoldBackgroundColor: MeridianColors.noirBackground,
       cardColor: MeridianColors.noirSurface,
@@ -627,6 +714,13 @@ class AppTheme {
         backgroundColor: MeridianColors.noirBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: MeridianColors.noirBackground,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -683,7 +777,9 @@ class AppTheme {
         onPrimary: MeridianColors.blushOnPrimary,
         onSurface: MeridianColors.blushText,
         outline: MeridianColors.blushBorder,
-        error: Color(0xFFB85C5C),
+        error: MeridianColors.blushAccentRose,
+        secondary: MeridianColors.blushPrimary,
+        tertiary: MeridianColors.blushAccentGold,
       ),
       scaffoldBackgroundColor: MeridianColors.blushBackground,
       cardColor: MeridianColors.blushSurface,
@@ -693,6 +789,13 @@ class AppTheme {
         backgroundColor: MeridianColors.blushBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemNavigationBarColor: MeridianColors.blushBackground,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -731,6 +834,156 @@ class AppTheme {
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: MeridianColors.blushPrimary,
         foregroundColor: MeridianColors.blushOnPrimary,
+        elevation: 4,
+      ),
+    );
+  }
+
+  // ─── Midnight OLED Theme ──────────────────────────────────────────────────────
+  static ThemeData midnight() {
+    final base = ThemeData.dark(useMaterial3: true);
+    return base.copyWith(
+      colorScheme: const ColorScheme.dark(
+        brightness: Brightness.dark,
+        surface: MeridianColors.midnightSurface,
+        surfaceContainerHighest: MeridianColors.midnightSurfaceVariant,
+        primary: MeridianColors.midnightPrimary,
+        primaryContainer: MeridianColors.midnightPrimaryContainer,
+        onPrimary: MeridianColors.midnightOnPrimary,
+        onSurface: MeridianColors.midnightText,
+        outline: MeridianColors.midnightBorder,
+        error: MeridianColors.midnightAccentRose,
+        secondary: MeridianColors.midnightAccentGreen,
+        tertiary: MeridianColors.midnightAccentAmber,
+      ),
+      scaffoldBackgroundColor: MeridianColors.midnightBackground,
+      cardColor: MeridianColors.midnightSurface,
+      dividerColor: MeridianColors.midnightBorder,
+      textTheme: _buildTextTheme(MeridianColors.midnightText, MeridianColors.midnightTextSecondary),
+      appBarTheme: AppBarTheme(
+        backgroundColor: MeridianColors.midnightBackground,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: MeridianColors.midnightBackground,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: MeridianColors.midnightText,
+        ),
+        iconTheme: const IconThemeData(color: MeridianColors.midnightTextSecondary),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: MeridianColors.midnightBackground, // Pure Black background for AMOLED
+        selectedItemColor: MeridianColors.midnightPrimary,
+        unselectedItemColor: MeridianColors.midnightTextTertiary,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: MeridianColors.midnightSurfaceVariant,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: MeridianColors.midnightBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: MeridianColors.midnightBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: MeridianColors.midnightPrimary, width: 1.5),
+        ),
+        hintStyle: GoogleFonts.inter(
+          color: MeridianColors.midnightTextTertiary,
+          fontSize: 14,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: MeridianColors.midnightPrimary,
+        foregroundColor: MeridianColors.midnightOnPrimary,
+        elevation: 4,
+      ),
+    );
+  }
+
+  // ─── Matcha Latte Theme ────────────────────────────────────────────────────────
+  static ThemeData matcha() {
+    final base = ThemeData.light(useMaterial3: true);
+    return base.copyWith(
+      colorScheme: const ColorScheme.light(
+        brightness: Brightness.light,
+        surface: MeridianColors.matchaSurface,
+        surfaceContainerHighest: MeridianColors.matchaSurfaceVariant,
+        primary: MeridianColors.matchaPrimary,
+        primaryContainer: MeridianColors.matchaPrimaryContainer,
+        onPrimary: MeridianColors.matchaOnPrimary,
+        onSurface: MeridianColors.matchaText,
+        outline: MeridianColors.matchaBorder,
+        error: MeridianColors.matchaAccentRose,
+        secondary: MeridianColors.matchaAccentGreen,
+        tertiary: MeridianColors.matchaAccentAmber,
+      ),
+      scaffoldBackgroundColor: MeridianColors.matchaBackground,
+      cardColor: MeridianColors.matchaSurface,
+      dividerColor: MeridianColors.matchaBorder,
+      textTheme: _buildTextTheme(MeridianColors.matchaText, MeridianColors.matchaTextSecondary),
+      appBarTheme: AppBarTheme(
+        backgroundColor: MeridianColors.matchaBackground,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemNavigationBarColor: MeridianColors.matchaBackground,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: MeridianColors.matchaText,
+        ),
+        iconTheme: const IconThemeData(color: MeridianColors.matchaTextSecondary),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: MeridianColors.matchaSurface,
+        selectedItemColor: MeridianColors.matchaPrimary,
+        unselectedItemColor: MeridianColors.matchaTextTertiary,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: MeridianColors.matchaSurfaceVariant,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: MeridianColors.matchaBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: MeridianColors.matchaBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: MeridianColors.matchaPrimary, width: 1.5),
+        ),
+        hintStyle: GoogleFonts.inter(
+          color: MeridianColors.matchaTextTertiary,
+          fontSize: 14,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: MeridianColors.matchaPrimary,
+        foregroundColor: MeridianColors.matchaOnPrimary,
         elevation: 4,
       ),
     );

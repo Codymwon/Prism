@@ -198,30 +198,38 @@ class _AddFolderSheetState extends ConsumerState<AddFolderSheet> {
                               duration: const Duration(milliseconds: 180),
                               width: 28,
                               height: 28,
+                              padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: color,
                                 shape: BoxShape.circle,
-                                border: isSelected
-                                    ? Border.all(
-                                        color: color.withValues(alpha: 0.5),
-                                        width: 3,
-                                      )
-                                    : null,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : Colors.transparent,
+                                  width: 1.5,
+                                ),
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: color.withValues(alpha: 0.5),
-                                          blurRadius: 8,
-                                          spreadRadius: 1,
-                                        )
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
                                       ]
                                     : null,
                               ),
-                              child: isSelected
-                                  ? Icon(Icons.check_rounded,
-                                      size: 14,
-                                      color: Colors.white.withValues(alpha: 0.9))
-                                  : null,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        size: 12,
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
                             ),
                           ),
                         );
@@ -258,7 +266,6 @@ class _AddFolderSheetState extends ConsumerState<AddFolderSheet> {
           // ── Submit ───────────────────────────────────────────────────────
           DesignPrimaryButton(
             label: 'Create Folder',
-            backgroundColor: _selectedColor,
             onTap: () async {
               final name = _nameController.text.trim();
               if (name.isNotEmpty) {

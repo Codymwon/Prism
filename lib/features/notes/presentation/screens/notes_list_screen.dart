@@ -13,6 +13,7 @@ import '../widgets/search_bar_widget.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
+import '../../../folders/data/folder_repository.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../widgets/vault_selector_bottom_sheet.dart';
 import '../widgets/grouped_notes_list.dart';
@@ -59,16 +60,26 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       drawer: const FolderDrawer(),
       body: Column(
         children: [
-          // Search bar
+          // Search bar + Sort Row
           Padding(
             padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 0, DesignSpacing.screenPadding, 8),
-            child: SearchBarWidget(
-              onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
-              onClear: () {
-                ref.read(searchQueryProvider.notifier).state = '';
-                setState(() => _isSearching = false);
-              },
-              onFocused: () => setState(() => _isSearching = true),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SearchBarWidget(
+                    onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
+                    onClear: () {
+                      ref.read(searchQueryProvider.notifier).state = '';
+                      setState(() => _isSearching = false);
+                    },
+                    onFocused: () => setState(() => _isSearching = true),
+                  ),
+                ),
+                if (!_isSearching) ...[
+                  const SizedBox(width: 8),
+                  _buildPremiumSortButton(context, colorScheme),
+                ],
+              ],
             ),
           ),
 
@@ -108,9 +119,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                 ),
               ),
             ).animate().fadeIn(duration: 200.ms),
-
-          // Sort chips (only shown when not searching)
-          if (!_isSearching) _buildSortChips(colorScheme),
 
           // Notes list
           Expanded(
@@ -277,57 +285,190 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
   }
 
-  Widget _buildSortChips(ColorScheme colorScheme) {
-    final sort = ref.watch(noteSortProvider);
-    final chips = [
-      (NoteSort.updated, 'Recent'),
-      (NoteSort.created, 'Created'),
-      (NoteSort.title, 'A–Z'),
-    ];
+  Widget _buildPremiumSortButton(BuildContext context, ColorScheme colorScheme) {
+    return TactileWrapper(
+      style: TactileFeedbackStyle.standard,
+      onTap: () => _showSortBottomSheet(context),
+      child: Container(
+        height: 44,
+        width: 44,
+        decoration: BoxDecoration(
+          color: DesignColors.surfaceVariant(context),
+          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+          border: Border.all(
+            color: DesignColors.border(context),
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          Icons.swap_vert_rounded,
+          size: 20,
+          color: colorScheme.primary,
+        ),
+      ),
+    );
+  }
 
-    return SizedBox(
-      height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: DesignSpacing.screenPadding),
-        children: chips.map((c) {
-          final isSelected = sort == c.$1;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
-            child: TactileWrapper(
-              style: TactileFeedbackStyle.standard,
-              onTap: () => ref.read(noteSortProvider.notifier).state = c.$1,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                alignment: Alignment.center,
+  void _showSortBottomSheet(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: DesignColors.background(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignSpacing.borderRadiusLarge)),
+      ),
+      builder: (ctx) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final activeSort = ref.watch(noteSortProvider);
+
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 8),
+                  const DesignSheetDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Text(
+                      'Sort Order',
+                      style: DesignTypography.heading(
+                        context,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 0.5),
+                  const SizedBox(height: 8),
+                  _buildSortOptionTile(
+                    context: context,
+                    ref: ref,
+                    title: 'Last Updated (Recent)',
+                    description: 'Recently edited notes and folders float to the top',
+                    icon: Icons.access_time_rounded,
+                    value: NoteSort.updated,
+                    isActive: activeSort == NoteSort.updated,
+                    colorScheme: colorScheme,
+                  ),
+                  _buildSortOptionTile(
+                    context: context,
+                    ref: ref,
+                    title: 'Date Created',
+                    description: 'Newest folders and notes listed first',
+                    icon: Icons.calendar_today_rounded,
+                    value: NoteSort.created,
+                    isActive: activeSort == NoteSort.created,
+                    colorScheme: colorScheme,
+                  ),
+                  _buildSortOptionTile(
+                    context: context,
+                    ref: ref,
+                    title: 'Alphabetical (A–Z)',
+                    description: 'Sort notes and folders by name alphabetically',
+                    icon: Icons.sort_by_alpha_rounded,
+                    value: NoteSort.title,
+                    isActive: activeSort == NoteSort.title,
+                    colorScheme: colorScheme,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSortOptionTile({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String title,
+    required String description,
+    required IconData icon,
+    required NoteSort value,
+    required bool isActive,
+    required ColorScheme colorScheme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: TactileWrapper(
+        style: TactileFeedbackStyle.standard,
+        onTap: () {
+          ref.read(noteSortProvider.notifier).state = value;
+          Navigator.pop(context);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive
+                ? colorScheme.primary.withValues(alpha: 0.08)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+            border: Border.all(
+              color: isActive
+                  ? colorScheme.primary.withValues(alpha: 0.3)
+                  : Colors.transparent,
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isSelected
+                  color: isActive
                       ? colorScheme.primary.withValues(alpha: 0.15)
                       : DesignColors.surfaceVariant(context),
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: isSelected
-                        ? colorScheme.primary.withValues(alpha: 0.4)
-                        : DesignColors.border(context),
-                    width: 0.8,
-                  ),
+                  shape: BoxShape.circle,
                 ),
-                child: Text(
-                  c.$2,
-                  style: DesignTypography.heading(
-                    context,
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? colorScheme.primary
-                        : DesignColors.textSecondary(context),
-                  ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isActive ? colorScheme.primary : DesignColors.textSecondary(context),
                 ),
               ),
-            ),
-          );
-        }).toList(),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: DesignTypography.body(
+                        context,
+                        fontSize: 14,
+                        fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                        color: isActive ? colorScheme.primary : DesignColors.text(context),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: DesignTypography.details(
+                        context,
+                        fontSize: 11,
+                        color: DesignColors.textSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isActive)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -409,6 +550,14 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   Future<void> _createNewNote(BuildContext context) async {
     final repo = ref.read(noteRepositoryProvider);
     final note = await repo.createNote();
+
+    // Check if we are currently inside a folder view and associate the new note automatically
+    final selectedFolderId = ref.read(selectedFolderIdProvider);
+    if (selectedFolderId != null) {
+      final folderRepo = ref.read(folderRepositoryProvider);
+      await folderRepo.addNoteToFolder(note.id, selectedFolderId);
+    }
+
     if (context.mounted) {
       context.push('/editor/${note.id}?new=true');
     }

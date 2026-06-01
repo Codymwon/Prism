@@ -1,21 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
-import '../../data/note_repository.dart';
 
 class GroupedEmptyState extends ConsumerWidget {
   const GroupedEmptyState({super.key});
-
-  Future<void> _createQuickNote(BuildContext context, WidgetRef ref) async {
-    final repo = ref.read(noteRepositoryProvider);
-    final note = await repo.createNote();
-    if (context.mounted) {
-      context.push('/editor/${note.id}?new=true');
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,21 +52,11 @@ class GroupedEmptyState extends ConsumerWidget {
             ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
             const SizedBox(height: 36),
             
-            // Clean premium CTA buttons
-            Column(
-              children: [
-                DesignPrimaryButton(
-                  label: 'Create First Folder',
-                  icon: DesignIcons.addFolder,
-                  onTap: () => FolderDrawer.showAddFolderSheet(context, ref),
-                ),
-                const SizedBox(height: 12),
-                DesignSecondaryButton(
-                  label: 'Create Quick Note',
-                  icon: Icons.note_add_outlined,
-                  onTap: () => _createQuickNote(context, ref),
-                ),
-              ],
+            // Clean premium CTA button
+            DesignPrimaryButton(
+              label: 'Create First Folder',
+              icon: DesignIcons.addFolder,
+              onTap: () => FolderDrawer.showAddFolderSheet(context, ref),
             ).animate().fadeIn(delay: 350.ms),
           ],
         ),

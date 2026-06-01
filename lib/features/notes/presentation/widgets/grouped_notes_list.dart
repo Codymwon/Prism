@@ -10,6 +10,7 @@ import '../../../folders/presentation/widgets/folder_icon_display.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
+import '../providers/notes_providers.dart';
 import 'note_card.dart';
 import 'grouped_empty_state.dart';
 
@@ -54,6 +55,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final primaryColor = colorScheme.primary;
+    final sort = ref.watch(noteSortProvider);
 
     // 1. Group Journal notes
     final journalNotes = widget.allNotes.where((n) => n.isDaily).toList();
@@ -62,6 +64,33 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
     final uncategorizedNotes = widget.allNotes
         .where((n) => !n.isDaily && (widget.mappings[n.id] == null || widget.mappings[n.id]!.isEmpty))
         .toList();
+
+    // 3. Dynamically sort custom folders list
+    final sortedFolders = List<VirtualFolder>.from(widget.folders);
+    if (sort == NoteSort.title) {
+      sortedFolders.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    } else if (sort == NoteSort.updated) {
+      sortedFolders.sort((a, b) {
+        final aNotes = widget.allNotes
+            .where((n) => !n.isDaily && (widget.mappings[n.id]?.contains(a.id) ?? false))
+            .toList();
+        final bNotes = widget.allNotes
+            .where((n) => !n.isDaily && (widget.mappings[n.id]?.contains(b.id) ?? false))
+            .toList();
+
+        if (aNotes.isEmpty && bNotes.isEmpty) {
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        }
+        if (aNotes.isEmpty) return 1;
+        if (bNotes.isEmpty) return -1;
+
+        // Since widget.allNotes is already sorted by noteSortProvider (updated DESC),
+        // the first note is the most recently updated note in each folder.
+        return bNotes.first.updatedAt.compareTo(aNotes.first.updatedAt);
+      });
+    } else if (sort == NoteSort.created) {
+      sortedFolders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
 
     if (widget.folders.isEmpty && journalNotes.isEmpty && uncategorizedNotes.isEmpty) {
       return const GroupedEmptyState();
@@ -82,7 +111,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
           ),
 
         // B. Custom Virtual Folders
-        ...widget.folders.map((folder) {
+        ...sortedFolders.map((folder) {
           final folderColor = folder.colorHex.toColor();
 
           final folderNotes = widget.allNotes
@@ -185,7 +214,11 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
                 ],
         ),
         child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          data: Theme.of(context).copyWith(
+            dividerColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+          ),
           child: ExpansionTile(
             key: PageStorageKey(storageKey),
             leading: FolderIconDisplay(
