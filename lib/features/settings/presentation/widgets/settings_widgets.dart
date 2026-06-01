@@ -200,22 +200,22 @@ class _CoreThemeCard extends StatelessWidget {
             ],
           ),
           Container(
-            width: 24,
-            height: 24,
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(
               color: isSelected ? DesignColors.primary(context) : DesignColors.surface(context),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 4,
+                  blurRadius: 3,
                   spreadRadius: 0.5,
                 )
               ],
             ),
             child: Icon(
               Icons.brightness_auto_rounded,
-              size: 13,
+              size: 11,
               color: isSelected ? Colors.white : DesignColors.textSecondary(context),
             ),
           ),
@@ -227,30 +227,30 @@ class _CoreThemeCard extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              top: 6,
-              left: 6,
-              child: Icon(Icons.light_mode_outlined, size: 13, color: isSelected ? const Color(0xFFC8A97E) : Colors.grey),
+              top: 5,
+              left: 5,
+              child: Icon(Icons.light_mode_outlined, size: 11, color: isSelected ? const Color(0xFFC8A97E) : Colors.grey),
             ),
             Positioned(
-              bottom: 8,
-              left: 6,
-              right: 6,
+              bottom: 6,
+              left: 5,
+              right: 5,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 18, height: 2, decoration: BoxDecoration(color: const Color(0xFFECE7DE), borderRadius: BorderRadius.circular(1))),
+                  Container(width: 14, height: 1.5, decoration: BoxDecoration(color: const Color(0xFFECE7DE), borderRadius: BorderRadius.circular(1))),
                   const SizedBox(height: 2),
-                  Container(width: 28, height: 2, decoration: BoxDecoration(color: const Color(0xFFECE7DE), borderRadius: BorderRadius.circular(1))),
+                  Container(width: 22, height: 1.5, decoration: BoxDecoration(color: const Color(0xFFECE7DE), borderRadius: BorderRadius.circular(1))),
                 ],
               ),
             ),
             Positioned(
-              bottom: 8,
-              right: 6,
+              bottom: 6,
+              right: 5,
               child: Container(
-                width: 6,
-                height: 6,
+                width: 5,
+                height: 5,
                 decoration: const BoxDecoration(
                   color: Color(0xFFC8A97E),
                   shape: BoxShape.circle,
@@ -266,30 +266,30 @@ class _CoreThemeCard extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              top: 6,
-              left: 6,
-              child: Icon(Icons.dark_mode_outlined, size: 13, color: isSelected ? const Color(0xFFE07A5F) : Colors.grey),
+              top: 5,
+              left: 5,
+              child: Icon(Icons.dark_mode_outlined, size: 11, color: isSelected ? const Color(0xFFE07A5F) : Colors.grey),
             ),
             Positioned(
-              bottom: 8,
-              left: 6,
-              right: 6,
+              bottom: 6,
+              left: 5,
+              right: 5,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 18, height: 2, decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(1))),
+                  Container(width: 14, height: 1.5, decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(1))),
                   const SizedBox(height: 2),
-                  Container(width: 28, height: 2, decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(1))),
+                  Container(width: 22, height: 1.5, decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(1))),
                 ],
               ),
             ),
             Positioned(
-              bottom: 8,
-              right: 6,
+              bottom: 6,
+              right: 5,
               child: Container(
-                width: 6,
-                height: 6,
+                width: 5,
+                height: 5,
                 decoration: const BoxDecoration(
                   color: Color(0xFFE07A5F),
                   shape: BoxShape.circle,
@@ -313,19 +313,19 @@ class _CoreThemeCard extends StatelessWidget {
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            height: 58,
+            height: 48,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: accentBorderColor,
-                width: isSelected ? 2.0 : 1.2,
+                width: isSelected ? 1.8 : 1.2,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
                         color: DesignColors.primary(context).withValues(alpha: 0.15),
-                        blurRadius: 6,
-                        spreadRadius: 1,
+                        blurRadius: 5,
+                        spreadRadius: 0.5,
                       ),
                     ]
                   : null,
@@ -333,12 +333,12 @@ class _CoreThemeCard extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: mockup,
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(
             title,
             style: DesignTypography.metadata(
               context,
-              fontSize: 10,
+              fontSize: 9.5,
               fontWeight: FontWeight.w600,
               color: isSelected ? DesignColors.primary(context) : DesignColors.textSecondary(context),
             ),
@@ -373,13 +373,13 @@ class _EditorialThemeCard extends StatelessWidget {
     TextStyle textStyle;
     if (fontFamily == 'Lora') {
       textStyle = GoogleFonts.lora(
-        fontSize: 11.5,
+        fontSize: 10.0,
         fontWeight: FontWeight.w700,
         color: textColor,
       );
     } else {
       textStyle = GoogleFonts.inter(
-        fontSize: 11.5,
+        fontSize: 10.0,
         fontWeight: FontWeight.w600,
         color: textColor,
       );
@@ -390,21 +390,21 @@ class _EditorialThemeCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 106,
-        height: 60,
-        padding: const EdgeInsets.all(8),
+        width: 96,
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? primaryColor : DesignColors.border(context),
-            width: isSelected ? 2.0 : 1.2,
+            width: isSelected ? 1.8 : 1.2,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
                     color: primaryColor.withValues(alpha: 0.2),
-                    blurRadius: 6,
+                    blurRadius: 5,
                     spreadRadius: 0.5,
                   ),
                 ]
@@ -423,43 +423,43 @@ class _EditorialThemeCard extends StatelessWidget {
             Align(
               alignment: Alignment.bottomLeft,
               child: SizedBox(
-                height: 10,
-                width: 22,
+                height: 8,
+                width: 18,
                 child: Stack(
                   children: [
                     Positioned(
                       left: 0,
                       child: Container(
-                        width: 9,
-                        height: 9,
+                        width: 7.5,
+                        height: 7.5,
                         decoration: BoxDecoration(
                           color: backgroundColor,
                           shape: BoxShape.circle,
-                          border: Border.all(color: textColor.withValues(alpha: 0.25), width: 0.8),
+                          border: Border.all(color: textColor.withValues(alpha: 0.25), width: 0.6),
                         ),
                       ),
                     ),
                     Positioned(
-                      left: 5,
+                      left: 4.5,
                       child: Container(
-                        width: 9,
-                        height: 9,
+                        width: 7.5,
+                        height: 7.5,
                         decoration: BoxDecoration(
                           color: textColor,
                           shape: BoxShape.circle,
-                          border: Border.all(color: backgroundColor.withValues(alpha: 0.4), width: 0.8),
+                          border: Border.all(color: backgroundColor.withValues(alpha: 0.4), width: 0.6),
                         ),
                       ),
                     ),
                     Positioned(
-                      left: 10,
+                      left: 9.0,
                       child: Container(
-                        width: 9,
-                        height: 9,
+                        width: 7.5,
+                        height: 7.5,
                         decoration: BoxDecoration(
                           color: primaryColor,
                           shape: BoxShape.circle,
-                          border: Border.all(color: backgroundColor.withValues(alpha: 0.4), width: 0.8),
+                          border: Border.all(color: backgroundColor.withValues(alpha: 0.4), width: 0.6),
                         ),
                       ),
                     ),
@@ -471,12 +471,12 @@ class _EditorialThemeCard extends StatelessWidget {
             Align(
               alignment: Alignment.bottomRight,
               child: Container(
-                width: 7,
-                height: 7,
+                width: 5.5,
+                height: 5.5,
                 decoration: BoxDecoration(
                   color: primaryColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 0.8),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 0.6),
                 ),
               ),
             ),
