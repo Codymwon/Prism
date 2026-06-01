@@ -9,15 +9,20 @@ import 'tutorial_overlay.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
+  final String currentPath;
 
-  const AppShell({super.key, required this.child});
+  const AppShell({super.key, required this.child, required this.currentPath});
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _currentIndex = 0;
+  int get _currentIndex {
+    final path = widget.currentPath;
+    final index = _tabs.indexWhere((tab) => path.startsWith(tab.path));
+    return index == -1 ? 0 : index;
+  }
 
   static const _tabs = [
     _TabDef(icon: Icons.article_outlined, activeIcon: Icons.article, label: 'Notes', path: '/notes'),
@@ -28,7 +33,6 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onTabTap(int index) {
     if (index == _currentIndex) return;
-    setState(() => _currentIndex = index);
     context.go(_tabs[index].path);
   }
 
@@ -135,9 +139,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     // Force index back to 0 (Notes page) so that elements are exactly where spotlight expects them to be!
     if (_currentIndex != 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          _currentIndex = 0;
-        });
         context.go('/notes');
       });
     }

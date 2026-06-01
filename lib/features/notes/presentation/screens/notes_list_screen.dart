@@ -115,20 +115,35 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           // Notes list
           Expanded(
             child: selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
-                ? ref.watch(homeScreenDataProvider).when(
+                ? ref.watch(homeScreenDataProvider).maybeWhen(
                     data: (data) => GroupedNotesList(
                       allNotes: data.notes,
                       folders: data.folders,
                       mappings: data.mappings,
                     ),
-                    loading: () => _buildLoadingSkeleton(),
+                    orElse: () {
+                      final data = ref.watch(homeScreenDataProvider).valueOrNull;
+                      if (data != null) {
+                        return GroupedNotesList(
+                          allNotes: data.notes,
+                          folders: data.folders,
+                          mappings: data.mappings,
+                        );
+                      }
+                      return _buildLoadingSkeleton();
+                    },
                     error: (e, s) => Center(
                       child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
                     ),
                   )
-                : notesAsync.when(
+                : notesAsync.maybeWhen(
                     data: (notes) => _buildNotesList(notes),
-                    loading: () => _buildLoadingSkeleton(),
+                    orElse: () {
+                      if (notesAsync.hasValue) {
+                        return _buildNotesList(notesAsync.value!);
+                      }
+                      return _buildLoadingSkeleton();
+                    },
                     error: (e, s) => Center(
                       child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
                     ),
@@ -141,7 +156,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(ColorScheme colorScheme, VirtualFolder? activeFolder) {
-    final activeVaultName = ref.watch(activeVaultNameProvider);
+    // AsyncNotifier — unwrap safely
+    final activeVaultName = ref.watch(activeVaultNameProvider).valueOrNull ?? 'My Vault';
     final folderColor = activeFolder?.colorHex.toColor() ?? const Color(0xFF7C6FF7);
 
     Widget titleWidget = TactileWrapper(
@@ -268,12 +284,27 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         children: chips.map((c) {
           final isSelected = sort == c.$1;
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
             child: TactileWrapper(
               style: TactileFeedbackStyle.standard,
               onTap: () => ref.read(noteSortProvider.notifier).state = c.$1,
-              child: FilterChip(
-                label: Text(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? colorScheme.primary.withValues(alpha: 0.15)
+                      : DesignColors.surfaceVariant(context),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: isSelected
+                        ? colorScheme.primary.withValues(alpha: 0.4)
+                        : DesignColors.border(context),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
                   c.$2,
                   style: DesignTypography.heading(
                     context,
@@ -284,18 +315,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                         : DesignColors.textSecondary(context),
                   ),
                 ),
-                selected: isSelected,
-                onSelected: (_) {},
-                backgroundColor: DesignColors.surfaceVariant(context),
-                selectedColor: colorScheme.primaryContainer,
-                checkmarkColor: colorScheme.primary,
-                side: BorderSide(
-                  color: isSelected
-                      ? colorScheme.primary.withValues(alpha: 0.5)
-                      : DesignColors.border(context),
-                ),
-                showCheckmark: false,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
               ),
             ),
           );

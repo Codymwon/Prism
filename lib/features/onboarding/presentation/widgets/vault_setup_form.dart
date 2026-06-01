@@ -23,10 +23,9 @@ class VaultSetupForm extends ConsumerStatefulWidget {
 }
 
 class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
-  // Path is kept in local state — but it's also stored immediately in prefs
-  // so a re-parent rebuild can re-read it if needed.
   String _customLocationPath = '';
   bool _isPickingFolder = false;
+  bool _isCompleting = false;
   final TextEditingController _vaultNameController =
       TextEditingController(text: 'My Vault');
 
@@ -60,6 +59,8 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   }
 
   Future<void> _completeOnboarding() async {
+    if (_isCompleting) return; // Prevent double-submission
+
     final vaultName = _vaultNameController.text.trim().isEmpty
         ? 'My Vault'
         : _vaultNameController.text.trim();
@@ -75,24 +76,37 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       return;
     }
 
+    setState(() => _isCompleting = true);
     widget.onStartSetup();
+
+    // Capture notifier reference synchronously before any awaits —
+    // the widget may be disposed mid-async-chain (e.g. from a router rebuild),
+    // at which point accessing `ref` directly would throw.
+    final onboardingNotifier = ref.read(onboardingStateProvider.notifier);
 
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('baseVaultsDirectory', _customLocationPath);
       await prefs.setString('activeVaultName', vaultName);
 
-      // Force database helper to close old global DB connection (if any)
+      // Close any existing database connection before re-initialising.
       await DatabaseHelper.instance.closeDatabase();
 
-      // Save onboarding complete state
-      await ref.read(onboardingStateProvider.notifier).completeOnboarding();
+      // Mark onboarding complete — GoRouter's redirect listener automatically
+      // navigates to /notes. Do NOT call onEndSetup on success; calling
+      // setState after the router navigates away rebuilds the form with reset
+      // local state, causing the "screen resets" bug.
+      await onboardingNotifier.completeOnboarding();
     } catch (e) {
       debugPrint('Error during vault initialization: $e');
-      // Fallback: save onboarding state anyway so user is not stuck
-      await ref.read(onboardingStateProvider.notifier).completeOnboarding();
-    } finally {
-      widget.onEndSetup();
+      // On failure: reset loading state so the user can retry.
+      if (mounted) {
+        setState(() => _isCompleting = false);
+        widget.onEndSetup();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Setup failed: $e. Please try again.')),
+        );
+      }
     }
   }
 
@@ -335,7 +349,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             child: DesignPrimaryButton(
               label: 'Confirm & Begin',
               icon: Icons.check_rounded,
-              onTap: locationSelected ? _completeOnboarding : () {},
+              onTap: (locationSelected && !_isCompleting) ? _completeOnboarding : () {},
             ),
           ).animate().fadeIn(delay: 350.ms),
 

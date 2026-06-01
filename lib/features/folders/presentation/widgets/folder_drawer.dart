@@ -9,8 +9,10 @@ import '../../data/folder_model.dart';
 import '../../data/folder_repository.dart';
 import '../providers/folders_providers.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
+import '../../../notes/data/note_model.dart';
 import 'add_folder_sheet.dart';
 import 'edit_folder_sheet.dart';
+import 'folder_icon_display.dart';
 import 'vault_status_panel.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
@@ -24,157 +26,151 @@ class FolderDrawer extends ConsumerWidget {
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
     final selectedTag = ref.watch(selectedTagProvider);
     final foldersAsync = ref.watch(foldersProvider);
+    final recentNotesAsync = ref.watch(notesProvider);
 
     return Drawer(
       backgroundColor: DesignColors.background(context),
       child: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 1. Header status card
-                    const VaultStatusPanel(),
-                    const SizedBox(height: 20),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. Header status card
+              const VaultStatusPanel(),
+              const SizedBox(height: 20),
 
-                    // 2. Command Shortcuts
-                    _buildShortcutsSection(context, ref, selectedFolderId, selectedTag, colorScheme),
-                    const SizedBox(height: 20),
+              // 2. Recent Notes
+              _buildRecentNotesSection(context, ref, recentNotesAsync, colorScheme),
+              const SizedBox(height: 20),
 
-                    // 3. Categories / Folders Section
-                    _buildFoldersSection(context, ref, foldersAsync, selectedFolderId, colorScheme),
-                    const SizedBox(height: 20),
+              // 3. Categories / Folders Section (includes All Notes reset)
+              _buildFoldersSection(context, ref, foldersAsync, selectedFolderId, selectedTag, colorScheme),
+              const SizedBox(height: 20),
 
-                    // 4. Tag Index Section
-                    const TagCloudIndex(),
-                    const SizedBox(height: 20),
+              // 4. Tag Index Section
+              const TagCloudIndex(),
+              const SizedBox(height: 20),
 
-                    // 5. Vault Statistics Section
-                    const VaultStatsBoard(),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-            ),
-
-            // 6. Settings Quick Tile (Bottom Anchored)
-            const Divider(height: 1),
-            _buildSettingsTile(context),
-          ],
+              // 5. Vault Statistics Section
+              const VaultStatsBoard(),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     ).animate().slideX(begin: -0.1, duration: 250.ms, curve: Curves.easeOut);
   }
 
-  Widget _buildShortcutsSection(
+  Widget _buildRecentNotesSection(
     BuildContext context,
     WidgetRef ref,
-    String? selectedFolderId,
-    String? selectedTag,
+    AsyncValue<List<Note>> notesAsync,
     ColorScheme colorScheme,
   ) {
-    final shortcuts = [
-      (
-        'All Notes',
-        Icons.article_outlined,
-        selectedFolderId == null && selectedTag == null,
-        () {
-          ref.read(selectedFolderIdProvider.notifier).state = null;
-          ref.read(selectedTagProvider.notifier).state = null;
-          Navigator.of(context).pop();
-        }
-      ),
-      (
-        'Daily Journal',
-        Icons.calendar_today_outlined,
-        false,
-        () {
-          Navigator.of(context).pop();
-          context.go('/journal');
-        }
-      ),
-      (
-        'Graph Connection',
-        Icons.hub_outlined,
-        false,
-        () {
-          Navigator.of(context).pop();
-          context.go('/graph');
-        }
-      ),
-    ];
+    return notesAsync.when(
+      data: (notes) {
+        // Filter out ghost/daily notes, take top 4 by updatedAt (already sorted)
+        final recent = notes
+            .where((n) => !n.isGhost && !n.isDaily)
+            .take(4)
+            .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 10, bottom: 8),
-          child: Text(
-            'COMMAND SHORTCUTS',
-            style: DesignTypography.metadata(
-              context,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: DesignColors.textTertiary(context),
-            ).copyWith(letterSpacing: 1.0),
-          ),
-        ),
-        Column(
-          children: shortcuts.map((s) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: TactileWrapper(
-                style: TactileFeedbackStyle.standard,
-                onTap: s.$4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: s.$3
-                        ? colorScheme.primary.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: s.$3
-                          ? colorScheme.primary.withValues(alpha: 0.2)
-                          : Colors.transparent,
-                      width: 0.5,
+        if (recent.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 10, bottom: 8),
+              child: Text(
+                'RECENTLY EDITED',
+                style: DesignTypography.metadata(
+                  context,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: DesignColors.textTertiary(context),
+                ).copyWith(letterSpacing: 1.0),
+              ),
+            ),
+            ...recent.map((note) {
+              final timeAgo = _formatTimeAgo(note.updatedAt);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: TactileWrapper(
+                  style: TactileFeedbackStyle.standard,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.push('/editor/${note.id}');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: DesignColors.surfaceVariant(context),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 14,
+                          color: DesignColors.textTertiary(context),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                note.title,
+                                style: DesignTypography.body(
+                                  context,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: DesignColors.text(context),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                timeAgo,
+                                style: DesignTypography.metadata(
+                                  context,
+                                  fontSize: 10,
+                                  color: DesignColors.textTertiary(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 10,
+                          color: DesignColors.textTertiary(context),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        s.$2,
-                        size: 16,
-                        color: s.$3 ? colorScheme.primary : DesignColors.textSecondary(context),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        s.$1,
-                        style: DesignTypography.body(
-                          context,
-                          fontSize: 13,
-                          fontWeight: s.$3 ? FontWeight.w700 : FontWeight.w500,
-                          color: s.$3 ? colorScheme.primary : DesignColors.text(context),
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        size: 14,
-                        color: DesignColors.textTertiary(context),
-                      ),
-                    ],
-                  ),
                 ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
+              );
+            }),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
+  }
+
+  String _formatTimeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${(diff.inDays / 7).floor()}w ago';
   }
 
   Widget _buildFoldersSection(
@@ -182,6 +178,7 @@ class FolderDrawer extends ConsumerWidget {
     WidgetRef ref,
     AsyncValue<List<VirtualFolder>> foldersAsync,
     String? selectedFolderId,
+    String? selectedTag,
     ColorScheme colorScheme,
   ) {
     return Column(
@@ -220,6 +217,63 @@ class FolderDrawer extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        // "All Notes" reset row — clears any active folder / tag filter
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: TactileWrapper(
+            style: TactileFeedbackStyle.standard,
+            onTap: () {
+              ref.read(selectedFolderIdProvider.notifier).state = null;
+              ref.read(selectedTagProvider.notifier).state = null;
+              Navigator.of(context).pop();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: (selectedFolderId == null && selectedTag == null)
+                    ? colorScheme.primary.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (selectedFolderId == null && selectedTag == null)
+                      ? colorScheme.primary.withValues(alpha: 0.2)
+                      : Colors.transparent,
+                  width: 0.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: (selectedFolderId == null && selectedTag == null)
+                          ? colorScheme.primary
+                          : DesignColors.textTertiary(context),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'All Notes',
+                      style: DesignTypography.body(
+                        context,
+                        fontSize: 13,
+                        fontWeight: (selectedFolderId == null && selectedTag == null)
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: (selectedFolderId == null && selectedTag == null)
+                            ? colorScheme.primary
+                            : DesignColors.text(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
         foldersAsync.when(
@@ -271,15 +325,13 @@ class FolderDrawer extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: folderColor,
-                              shape: BoxShape.circle,
-                            ),
+                          FolderIconDisplay(
+                            iconKey: folder.icon,
+                            color: folderColor,
+                            size: 36,
+                            badgeSize: 9,
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               folder.name,
@@ -331,44 +383,7 @@ class FolderDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsTile(BuildContext context) {
-    return TactileWrapper(
-      style: TactileFeedbackStyle.standard,
-      onTap: () {
-        Navigator.of(context).pop();
-        context.go('/settings');
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        color: Colors.transparent,
-        child: Row(
-          children: [
-            Icon(
-              Icons.settings_outlined,
-              size: 18,
-              color: DesignColors.textSecondary(context),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Vault Settings',
-              style: DesignTypography.body(
-                context,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: DesignColors.textSecondary(context),
-              ),
-            ),
-            const Spacer(),
-            Icon(
-              Icons.arrow_forward_rounded,
-              size: 14,
-              color: DesignColors.textTertiary(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   static void showAddFolderSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(

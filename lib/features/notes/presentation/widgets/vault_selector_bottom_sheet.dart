@@ -21,8 +21,9 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
   }
 
   Future<void> _loadVaults() async {
-    final baseDir = ref.read(baseVaultsDirectoryProvider);
-    final activeVault = ref.read(activeVaultNameProvider);
+    // Await the async providers so we get the real loaded values
+    final baseDir = await ref.read(baseVaultsDirectoryProvider.future);
+    final activeVault = await ref.read(activeVaultNameProvider.future);
     final vaults = await ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
     if (mounted) {
       setState(() {
@@ -119,7 +120,8 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
     );
 
     try {
-      final baseDir = ref.read(baseVaultsDirectoryProvider);
+      // Await async provider to get the real loaded value
+      final baseDir = await ref.read(baseVaultsDirectoryProvider.future);
       await ref.read(vaultServiceProvider).createVault(
         vaultName: vaultName,
         baseDir: baseDir,
@@ -145,7 +147,8 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final activeVault = ref.watch(activeVaultNameProvider);
+    // AsyncNotifier — unwrap safely
+    final activeVault = ref.watch(activeVaultNameProvider).valueOrNull ?? '';
 
     return SafeArea(
       child: Column(

@@ -184,10 +184,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final note = noteAsync.valueOrNull;
     final isConflicted = note?.isConflicted ?? false;
 
-    // Watch and retrieve custom settings
-    final fontFamily = ref.watch(fontFamilyProvider);
-    final fontSize = ref.watch(fontSizeProvider);
-    final lineWidth = ref.watch(lineWidthProvider);
+    // AsyncNotifier — unwrap safely with defaults
+    final fontFamily = ref.watch(fontFamilyProvider).valueOrNull ?? 'Inter (Sans)';
+    final fontSize = ref.watch(fontSizeProvider).valueOrNull ?? '16pt';
+    final lineWidth = ref.watch(lineWidthProvider).valueOrNull ?? 'Comfortable';
 
     final sizeVal = double.tryParse(fontSize.replaceAll('pt', '')) ?? 16.0;
     final paddingVal = switch (lineWidth) {

@@ -52,7 +52,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OnboardingScreen(),
       ),
       ShellRoute(
-        builder: (context, state, child) => AppShell(child: child),
+        builder: (context, state, child) => AppShell(
+          currentPath: state.uri.path,
+          child: child,
+        ),
         routes: [
           GoRoute(
             path: '/notes',

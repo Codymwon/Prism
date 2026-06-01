@@ -8,8 +8,9 @@ class VaultStatusPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeVaultName = ref.watch(activeVaultNameProvider);
-    final activeVaultPath = ref.watch(activeVaultPathProvider);
+    // AsyncNotifier — unwrap safely; show placeholder while loading
+    final activeVaultName = ref.watch(activeVaultNameProvider).valueOrNull ?? 'Loading...';
+    final activeVaultPath = ref.watch(activeVaultPathProvider).valueOrNull ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(

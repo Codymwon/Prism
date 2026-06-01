@@ -5,8 +5,12 @@ import 'database_helper.dart';
 import '../../features/settings/presentation/providers/settings_provider.dart';
 
 // ─── Database Connection Provider (Reactive Lifecycle) ────────────────────────
+// Watches activeVaultPathProvider (now a FutureProvider) so it waits for the
+// vault path to be fully loaded from SharedPreferences before opening the DB.
 final databaseProvider = FutureProvider<Database>((ref) async {
-  final vaultPath = ref.watch(activeVaultPathProvider);
+  // Await the full path — this suspends until baseVaultsDirectory and
+  // activeVaultName are both loaded from SharedPreferences.
+  final vaultPath = await ref.watch(activeVaultPathProvider.future);
   if (vaultPath.isEmpty) {
     throw Exception('Active vault path is empty');
   }

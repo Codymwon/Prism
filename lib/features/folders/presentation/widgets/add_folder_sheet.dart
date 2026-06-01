@@ -1,8 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../data/folder_repository.dart';
+import 'folder_icon_display.dart';
+import 'folder_icon_picker.dart';
 import 'hsv_color_picker.dart';
+
+// ── Preset accent swatches ────────────────────────────────────────────────────
+const List<Color> _kSwatches = [
+  Color(0xFF7C6FF7), // Indigo (default)
+  Color(0xFFA855F7), // Violet
+  Color(0xFF3B82F6), // Blue
+  Color(0xFF06B6D4), // Cyan
+  Color(0xFF10B981), // Emerald
+  Color(0xFFF59E0B), // Amber
+  Color(0xFFEF4444), // Rose
+  Color(0xFF64748B), // Slate
+];
 
 class AddFolderSheet extends ConsumerStatefulWidget {
   const AddFolderSheet({super.key});
@@ -13,7 +28,8 @@ class AddFolderSheet extends ConsumerStatefulWidget {
 
 class _AddFolderSheetState extends ConsumerState<AddFolderSheet> {
   final _nameController = TextEditingController();
-  Color _selectedColor = const Color(0xFF7C6FF7);
+  Color _selectedColor = _kSwatches.first;
+  String _selectedIconKey = 'folder';
 
   @override
   void dispose() {
@@ -21,8 +37,38 @@ class _AddFolderSheetState extends ConsumerState<AddFolderSheet> {
     super.dispose();
   }
 
+  Future<void> _openIconPicker() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FolderIconPickerSheet(
+        selectedKey: _selectedIconKey,
+        accentColor: _selectedColor,
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _selectedIconKey = result);
+    }
+  }
+
+  Future<void> _openCustomColorPicker() async {
+    final picked = await showDialog<Color>(
+      context: context,
+      builder: (_) => HsvColorPickerDialog(initialColor: _selectedColor),
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedColor = picked);
+    }
+  }
+
+  String get _colorHex =>
+      '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
@@ -38,99 +84,190 @@ class _AddFolderSheetState extends ConsumerState<AddFolderSheet> {
             title: 'Create Folder',
             onClose: () => Navigator.pop(context),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Name Input
+          // ── Live preview + icon tap ──────────────────────────────────────
+          Center(
+            child: GestureDetector(
+              onTap: _openIconPicker,
+              child: Column(
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, anim) => ScaleTransition(
+                      scale: anim,
+                      child: FadeTransition(opacity: anim, child: child),
+                    ),
+                    child: FolderIconDisplay(
+                      key: ValueKey('$_selectedIconKey-${_selectedColor.toARGB32()}'),
+                      iconKey: _selectedIconKey,
+                      color: _selectedColor,
+                      size: 72,
+                      badgeSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.touch_app_rounded,
+                        size: 12,
+                        color: DesignColors.textTertiary(context),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Tap to change icon',
+                        style: DesignTypography.metadata(
+                          context,
+                          fontSize: 11,
+                          color: DesignColors.textTertiary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Folder name ──────────────────────────────────────────────────
           TextField(
             controller: _nameController,
             autofocus: true,
             style: DesignTypography.body(context, fontSize: 16),
             decoration: InputDecoration(
               hintText: 'Folder name',
-              hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
+              hintStyle: DesignTypography.body(
+                  context, color: DesignColors.textTertiary(context)),
               filled: true,
               fillColor: DesignColors.surfaceVariant(context),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                borderRadius:
+                    BorderRadius.circular(DesignSpacing.borderRadiusMedium),
                 borderSide: BorderSide(color: DesignColors.border(context)),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                borderRadius:
+                    BorderRadius.circular(DesignSpacing.borderRadiusMedium),
                 borderSide: BorderSide(color: DesignColors.border(context)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                borderRadius:
+                    BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                borderSide:
+                    BorderSide(color: colorScheme.primary, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
           const SizedBox(height: 20),
 
-          // Color Display Selector
+          // ── Accent color swatches ────────────────────────────────────────
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: _selectedColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Folder Color',
-                    style: DesignTypography.body(
-                      context,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              TextButton.icon(
-                icon: const Icon(Icons.color_lens_outlined, size: 16),
-                label: Text(
-                  'Change',
-                  style: DesignTypography.body(context, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
+              Text(
+                'Accent',
+                style: DesignTypography.body(
+                  context,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: DesignColors.textSecondary(context),
                 ),
-                onPressed: () async {
-                  final pickedColor = await showDialog<Color>(
-                    context: context,
-                    builder: (dialogCtx) => HsvColorPickerDialog(
-                      initialColor: _selectedColor,
-                    ),
-                  );
-                  if (pickedColor != null) {
-                    setState(() {
-                      _selectedColor = pickedColor;
-                    });
-                  }
-                },
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ..._kSwatches.map((color) {
+                        final isSelected = color.toARGB32() == _selectedColor.toARGB32();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _selectedColor = color);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: isSelected
+                                    ? Border.all(
+                                        color: color.withValues(alpha: 0.5),
+                                        width: 3,
+                                      )
+                                    : null,
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: color.withValues(alpha: 0.5),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              child: isSelected
+                                  ? Icon(Icons.check_rounded,
+                                      size: 14,
+                                      color: Colors.white.withValues(alpha: 0.9))
+                                  : null,
+                            ),
+                          ),
+                        );
+                      }),
+                      // Custom color button
+                      GestureDetector(
+                        onTap: _openCustomColorPicker,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: DesignColors.surfaceVariant(context),
+                            border: Border.all(
+                              color: DesignColors.border(context),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.add_rounded,
+                            size: 16,
+                            color: DesignColors.textSecondary(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 24),
 
-          // Submit Button
+          // ── Submit ───────────────────────────────────────────────────────
           DesignPrimaryButton(
             label: 'Create Folder',
             backgroundColor: _selectedColor,
             onTap: () async {
               final name = _nameController.text.trim();
               if (name.isNotEmpty) {
-                final hex = '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
                 await ref.read(folderRepositoryProvider).createFolder(
                       name,
-                      colorHex: hex,
+                      colorHex: _colorHex,
+                      icon: _selectedIconKey,
                     );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
+                if (context.mounted) Navigator.pop(context);
               }
             },
           ),

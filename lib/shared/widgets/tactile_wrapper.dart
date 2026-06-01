@@ -77,7 +77,7 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
   }
 
   void _triggerHaptic() {
-    final hapticsEnabled = ref.read(hapticsEnabledProvider);
+    final hapticsEnabled = ref.read(hapticsEnabledProvider).valueOrNull ?? true;
     if (!hapticsEnabled) return;
 
     switch (widget.style) {

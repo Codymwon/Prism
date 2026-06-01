@@ -7,6 +7,8 @@ import 'package:graphview/GraphView.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
+import '../../../../shared/widgets/tactile_wrapper.dart';
+
 
 class GraphScreen extends ConsumerStatefulWidget {
   const GraphScreen({super.key});
@@ -19,26 +21,26 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
   final Graph _graph = Graph()..isTree = false;
   final FruchtermanReingoldAlgorithm _algorithm = FruchtermanReingoldAlgorithm(
     FruchtermanReingoldConfiguration(
-      iterations: 300,
-      repulsionRate: 0.5,
-      repulsionPercentage: 0.45,
-      attractionRate: 0.1,
+      iterations: 150,
+      repulsionRate: 0.25,
+      repulsionPercentage: 0.4,
+      attractionRate: 0.15,
     ),
   );
 
-  Map<String, Node> _nodeMap = {};
+  final Map<String, Node> _nodeMap = {};
   bool _isBuilt = false;
   String? _selectedNodeId;
 
   @override
   void initState() {
     super.initState();
-    _buildGraph();
   }
 
-  Future<void> _buildGraph() async {
-    final data = await ref.read(graphDataProvider.future);
-    _nodeMap = {};
+  void _rebuildGraph(({List<GraphNode> nodes, List<GraphEdge> edges}) data) {
+    _graph.nodes.clear();
+    _graph.edges.clear();
+    _nodeMap.clear();
 
     for (final gn in data.nodes) {
       final node = Node.Id(gn.id);
@@ -50,11 +52,19 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
       final src = _nodeMap[edge.sourceId];
       final tgt = _nodeMap[edge.targetId];
       if (src != null && tgt != null) {
-        _graph.addEdge(src, tgt, paint: Paint()..color = Colors.transparent);
+        _graph.addEdge(src, tgt);
       }
     }
 
-    if (mounted) setState(() => _isBuilt = true);
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isBuilt = true;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -62,6 +72,17 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final graphAsync = ref.watch(graphDataProvider);
+
+    ref.listen(
+      graphDataProvider,
+      (previous, next) {
+        next.whenOrNull(
+          data: (data) {
+            _rebuildGraph(data);
+          },
+        );
+      },
+    );
 
     return Scaffold(
       backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
@@ -123,10 +144,7 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
               color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
             ),
             onPressed: () {
-              setState(() => _isBuilt = false);
-              _graph.nodes.clear();
-              _graph.edges.clear();
-              _buildGraph();
+              ref.invalidate(graphDataProvider);
             },
           ),
         ],
@@ -151,8 +169,8 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
         graph: _graph,
         algorithm: _algorithm,
         paint: Paint()
-          ..color = (isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder)
-          ..strokeWidth = 1.0
+          ..color = colorScheme.primary.withValues(alpha: 0.35)
+          ..strokeWidth = 1.5
           ..style = PaintingStyle.stroke,
         builder: (Node node) {
           final id = node.key!.value as String;
@@ -169,7 +187,7 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
           );
         },
       ),
-    ).animate().fadeIn(duration: 500.ms);
+    ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack);
   }
 
   Widget _buildNodeWidget(
@@ -183,7 +201,7 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
   ) {
     final size = (36.0 + (linkCount * 4).clamp(0, 24)).toDouble();
 
-    return GestureDetector(
+    return TactileWrapper(
       onTap: () {
         setState(() => _selectedNodeId = id);
         _showNodeSheet(context, id, title, isDark, colorScheme);

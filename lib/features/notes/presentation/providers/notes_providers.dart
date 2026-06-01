@@ -105,14 +105,28 @@ class HomeScreenData {
   });
 }
 
-final homeScreenDataProvider = FutureProvider.autoDispose<HomeScreenData>((ref) async {
-  final notes = await ref.watch(notesProvider.future);
-  final folders = await ref.watch(foldersProvider.future);
-  final mappings = await ref.watch(noteFolderMappingsProvider.future);
+final homeScreenDataProvider = Provider.autoDispose<AsyncValue<HomeScreenData>>((ref) {
+  final notesAsync = ref.watch(notesProvider);
+  final foldersAsync = ref.watch(foldersProvider);
+  final mappingsAsync = ref.watch(noteFolderMappingsProvider);
 
-  return HomeScreenData(
-    notes: notes,
-    folders: folders,
-    mappings: mappings,
-  );
+  if (notesAsync.hasError) {
+    return AsyncError(notesAsync.error!, notesAsync.stackTrace!);
+  }
+  if (foldersAsync.hasError) {
+    return AsyncError(foldersAsync.error!, foldersAsync.stackTrace!);
+  }
+  if (mappingsAsync.hasError) {
+    return AsyncError(mappingsAsync.error!, mappingsAsync.stackTrace!);
+  }
+
+  if (notesAsync.hasValue && foldersAsync.hasValue && mappingsAsync.hasValue) {
+    return AsyncData(HomeScreenData(
+      notes: notesAsync.value!,
+      folders: foldersAsync.value!,
+      mappings: mappingsAsync.value!,
+    ));
+  }
+
+  return const AsyncLoading<HomeScreenData>();
 });

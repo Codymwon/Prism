@@ -135,6 +135,8 @@ class _DesignSearchBarState extends State<DesignSearchBar> {
               },
               style: DesignTypography.body(context, fontSize: 14),
               decoration: InputDecoration(
+                filled: false,
+                fillColor: Colors.transparent,
                 hintText: widget.hintText,
                 hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
                 border: InputBorder.none,

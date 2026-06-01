@@ -286,7 +286,8 @@ class HapticToggleTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hapticsEnabled = ref.watch(hapticsEnabledProvider);
+    // AsyncNotifier — unwrap safely; default true (haptics on)
+    final hapticsEnabled = ref.watch(hapticsEnabledProvider).valueOrNull ?? true;
 
     return SwitchListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),

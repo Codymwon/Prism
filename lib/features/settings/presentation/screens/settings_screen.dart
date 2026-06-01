@@ -17,11 +17,11 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeType = ref.watch(themeProvider);
 
-    // Watch settings providers
-    final fontFamily = ref.watch(fontFamilyProvider);
-    final fontSize = ref.watch(fontSizeProvider);
-    final lineWidth = ref.watch(lineWidthProvider);
-    final baseVaultsDir = ref.watch(baseVaultsDirectoryProvider);
+    // Watch settings providers (AsyncNotifier — unwrap with valueOrNull + default)
+    final fontFamily = ref.watch(fontFamilyProvider).valueOrNull ?? 'Inter (Sans)';
+    final fontSize = ref.watch(fontSizeProvider).valueOrNull ?? '16pt';
+    final lineWidth = ref.watch(lineWidthProvider).valueOrNull ?? 'Comfortable';
+    final baseVaultsDir = ref.watch(baseVaultsDirectoryProvider).valueOrNull ?? '';
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),

@@ -4,148 +4,130 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 // ─── Base Vaults Directory Provider ──────────────────────────────────────────
-final baseVaultsDirectoryProvider = StateNotifierProvider<BaseVaultsDirectoryNotifier, String>((ref) {
-  return BaseVaultsDirectoryNotifier();
-});
+// Uses AsyncNotifier so consumers can await the initial SharedPreferences load
+// instead of receiving an empty string during the async gap.
+final baseVaultsDirectoryProvider =
+    AsyncNotifierProvider<BaseVaultsDirectoryNotifier, String>(
+        BaseVaultsDirectoryNotifier.new);
 
-class BaseVaultsDirectoryNotifier extends StateNotifier<String> {
-  BaseVaultsDirectoryNotifier() : super('') {
-    _load();
-  }
-
-  Future<void> _load() async {
+class BaseVaultsDirectoryNotifier extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('baseVaultsDirectory');
     if (saved != null && saved.isNotEmpty) {
-      state = saved;
-    } else {
-      final docDir = await getApplicationDocumentsDirectory();
-      state = p.join(docDir.path, 'meridian_vaults');
+      return saved;
     }
+    final docDir = await getApplicationDocumentsDirectory();
+    return p.join(docDir.path, 'meridian_vaults');
   }
 
   Future<void> setDirectory(String path) async {
-    state = path;
+    state = const AsyncLoading();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('baseVaultsDirectory', path);
+    state = AsyncData(path);
   }
 }
 
 // ─── Active Vault Name Provider ──────────────────────────────────────────────
-final activeVaultNameProvider = StateNotifierProvider<ActiveVaultNameNotifier, String>((ref) {
-  return ActiveVaultNameNotifier();
-});
+final activeVaultNameProvider =
+    AsyncNotifierProvider<ActiveVaultNameNotifier, String>(
+        ActiveVaultNameNotifier.new);
 
-class ActiveVaultNameNotifier extends StateNotifier<String> {
-  ActiveVaultNameNotifier() : super('My Vault') {
-    _load();
-  }
-
-  Future<void> _load() async {
+class ActiveVaultNameNotifier extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString('activeVaultName') ?? 'My Vault';
+    return prefs.getString('activeVaultName') ?? 'My Vault';
   }
 
   Future<void> setVaultName(String name) async {
-    state = name;
+    state = const AsyncLoading();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('activeVaultName', name);
+    state = AsyncData(name);
   }
 }
 
-// ─── Active Vault Path Provider (Derived) ──────────────────────────────────
-final activeVaultPathProvider = Provider<String>((ref) {
-  final baseDir = ref.watch(baseVaultsDirectoryProvider);
-  final activeVault = ref.watch(activeVaultNameProvider);
+// ─── Active Vault Path Provider (Derived) ────────────────────────────────────
+// FutureProvider that waits for both async notifiers before computing the path.
+final activeVaultPathProvider = FutureProvider<String>((ref) async {
+  final baseDir = await ref.watch(baseVaultsDirectoryProvider.future);
+  final activeVault = await ref.watch(activeVaultNameProvider.future);
   if (baseDir.isEmpty) return '';
   return p.join(baseDir, activeVault);
 });
 
 // ─── Font Family Provider ────────────────────────────────────────────────────
-final fontFamilyProvider = StateNotifierProvider<FontFamilyNotifier, String>((ref) {
-  return FontFamilyNotifier();
-});
+final fontFamilyProvider =
+    AsyncNotifierProvider<FontFamilyNotifier, String>(FontFamilyNotifier.new);
 
-class FontFamilyNotifier extends StateNotifier<String> {
-  FontFamilyNotifier() : super('Inter (Sans)') {
-    _load();
-  }
-
-  Future<void> _load() async {
+class FontFamilyNotifier extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString('fontFamily') ?? 'Inter (Sans)';
+    return prefs.getString('fontFamily') ?? 'Inter (Sans)';
   }
 
   Future<void> setFontFamily(String family) async {
-    state = family;
+    state = AsyncData(family);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('fontFamily', family);
   }
 }
 
 // ─── Font Size Provider ──────────────────────────────────────────────────────
-final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, String>((ref) {
-  return FontSizeNotifier();
-});
+final fontSizeProvider =
+    AsyncNotifierProvider<FontSizeNotifier, String>(FontSizeNotifier.new);
 
-class FontSizeNotifier extends StateNotifier<String> {
-  FontSizeNotifier() : super('16pt') {
-    _load();
-  }
-
-  Future<void> _load() async {
+class FontSizeNotifier extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString('fontSize') ?? '16pt';
+    return prefs.getString('fontSize') ?? '16pt';
   }
 
   Future<void> setFontSize(String size) async {
-    state = size;
+    state = AsyncData(size);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('fontSize', size);
   }
 }
 
 // ─── Line Width Provider ─────────────────────────────────────────────────────
-final lineWidthProvider = StateNotifierProvider<LineWidthNotifier, String>((ref) {
-  return LineWidthNotifier();
-});
+final lineWidthProvider =
+    AsyncNotifierProvider<LineWidthNotifier, String>(LineWidthNotifier.new);
 
-class LineWidthNotifier extends StateNotifier<String> {
-  LineWidthNotifier() : super('Comfortable') {
-    _load();
-  }
-
-  Future<void> _load() async {
+class LineWidthNotifier extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString('lineWidth') ?? 'Comfortable';
+    return prefs.getString('lineWidth') ?? 'Comfortable';
   }
 
   Future<void> setLineWidth(String width) async {
-    state = width;
+    state = AsyncData(width);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lineWidth', width);
   }
 }
 
 // ─── Haptics Enabled Provider ────────────────────────────────────────────────
-final hapticsEnabledProvider = StateNotifierProvider<HapticsEnabledNotifier, bool>((ref) {
-  return HapticsEnabledNotifier();
-});
+final hapticsEnabledProvider =
+    AsyncNotifierProvider<HapticsEnabledNotifier, bool>(
+        HapticsEnabledNotifier.new);
 
-class HapticsEnabledNotifier extends StateNotifier<bool> {
-  HapticsEnabledNotifier() : super(true) {
-    _load();
-  }
-
-  Future<void> _load() async {
+class HapticsEnabledNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getBool('hapticsEnabled') ?? true;
+    return prefs.getBool('hapticsEnabled') ?? true;
   }
 
   Future<void> setHapticsEnabled(bool enabled) async {
-    state = enabled;
+    state = AsyncData(enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('hapticsEnabled', enabled);
   }
 }
-
