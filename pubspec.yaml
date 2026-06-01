@@ -1,0 +1,71 @@
+name: meridian
+description: "An elegant offline markdown journal and personal notebook"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Storage
+  sqflite: ^2.4.2                   # SQLite database with FTS5
+  path_provider: ^2.1.5             # Device document directory
+  path: ^1.9.1                      # Path utilities
+
+  # Markdown rendering
+  flutter_markdown: ^0.7.6          # Markdown display widget
+  markdown: ^7.3.0                  # Markdown parser
+
+  # State management
+  flutter_riverpod: ^2.6.1          # State management
+  riverpod_annotation: ^2.6.1
+
+  # Navigation
+  go_router: ^15.1.2                # Declarative routing
+
+  # UI & Animations
+  google_fonts: ^6.2.1              # Inter, Merriweather, JetBrains Mono
+  flutter_animate: ^4.5.2           # Smooth micro-animations
+  shimmer: ^3.0.0                   # Loading skeleton shimmer
+  lottie: ^3.1.3                    # Lottie animation support
+  smooth_page_indicator: ^1.2.1     # Onboarding dot indicators
+
+  # Graph / Graph View
+  graphview: ^1.2.1                 # Force-directed graph visualization
+
+  # Date & Time
+  intl: ^0.20.1                     # Date formatting
+  table_calendar: ^3.1.3            # Calendar widget for Journal tab
+
+  # Utilities
+  uuid: ^4.5.1                      # Unique ID generation for notes
+  shared_preferences: ^2.3.5       # Simple key-value persistence (settings)
+  collection: ^1.19.1               # Collection utilities
+  rxdart: ^0.28.0                   # Reactive streams / debounce autosave
+  permission_handler: ^11.4.0       # Android permissions
+  share_plus: ^10.1.4               # Share sheet for exports
+  pdf: ^3.11.3                      # PDF export
+  printing: ^5.14.2                 # PDF rendering/sharing
+  archive: ^4.0.7                   # ZIP archive for vault export
+  file_picker: ^8.3.7               # Import existing vault
+
+  # Icons
+  flutter_svg: ^2.0.15              # SVG icon support
+  material_design_icons_flutter: ^7.0.7296  # Extended icon set
+  cupertino_icons: ^1.0.9
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  riverpod_generator: ^2.6.5
+  json_annotation: ^4.9.0
+  json_serializable: ^6.9.5
+
+flutter:
+  uses-material-design: true
