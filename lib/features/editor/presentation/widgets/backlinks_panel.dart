@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../notes/data/note_repository.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
 
 class BacklinksPanel extends ConsumerStatefulWidget {

@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
-import 'dart:io';
-import 'package:path/path.dart' as p;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
+import '../../../../core/services/vault_service.dart';
 import '../../data/note_repository.dart';
+import '../providers/notes_providers.dart';
 import '../../data/note_model.dart';
 import '../widgets/note_card.dart';
 import '../widgets/search_bar_widget.dart';
-import '../../../folders/data/folder_repository.dart';
+import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
-import '../../../../core/database/database_helper.dart';
+
 enum HomeViewMode { flat, grouped }
 
 final homeViewModeProvider = StateProvider<HomeViewMode>((ref) => HomeViewMode.flat);
@@ -33,7 +33,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final query = ref.watch(searchQueryProvider);
 
@@ -54,14 +53,14 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
-      appBar: _buildAppBar(isDark, colorScheme, activeFolder),
+      backgroundColor: DesignColors.background(context),
+      appBar: _buildAppBar(colorScheme, activeFolder),
       drawer: const FolderDrawer(),
       body: Column(
         children: [
           // Search bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 0, DesignSpacing.screenPadding, 8),
             child: SearchBarWidget(
               onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
               onClear: () {
@@ -73,36 +72,25 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1),
 
           // Sort chips (only shown when not searching)
-          if (!_isSearching) _buildSortChips(isDark, colorScheme),
+          if (!_isSearching) _buildSortChips(colorScheme),
 
           // Notes list
           Expanded(
-            child: notesAsync.when(
-              data: (notes) {
-                final viewMode = ref.watch(homeViewModeProvider);
-                if (selectedFolderId == null && query.trim().isEmpty && viewMode == HomeViewMode.grouped) {
-                  final foldersAsync = ref.watch(foldersProvider);
-                  final mappingsAsync = ref.watch(noteFolderMappingsProvider);
-
-                  return foldersAsync.when(
-                    data: (folders) {
-                      return mappingsAsync.when(
-                        data: (mappings) => _buildGroupedNotesList(notes, folders, mappings, isDark),
-                        loading: () => _buildLoadingSkeleton(isDark),
-                        error: (e, s) => Center(child: Text('Error loading mappings: $e')),
-                      );
-                    },
-                    loading: () => _buildLoadingSkeleton(isDark),
-                    error: (e, s) => Center(child: Text('Error loading folders: $e')),
-                  );
-                }
-                return _buildNotesList(notes, isDark);
-              },
-              loading: () => _buildLoadingSkeleton(isDark),
-              error: (e, s) => Center(
-                child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-              ),
-            ),
+            child: selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
+                ? ref.watch(homeScreenDataProvider).when(
+                    data: (data) => _buildGroupedNotesList(data.notes, data.folders, data.mappings),
+                    loading: () => _buildLoadingSkeleton(),
+                    error: (e, s) => Center(
+                      child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                    ),
+                  )
+                : notesAsync.when(
+                    data: (notes) => _buildNotesList(notes),
+                    loading: () => _buildLoadingSkeleton(),
+                    error: (e, s) => Center(
+                      child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -110,7 +98,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isDark, ColorScheme colorScheme, VirtualFolder? activeFolder) {
+  PreferredSizeWidget _buildAppBar(ColorScheme colorScheme, VirtualFolder? activeFolder) {
     final activeVaultName = ref.watch(activeVaultNameProvider);
     final folderColor = activeFolder?.colorHex.toColor() ?? const Color(0xFF7C6FF7);
 
@@ -123,21 +111,21 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         children: [
           Text(
             'MERIDIAN',
-            style: GoogleFonts.inter(
+            style: DesignTypography.display(
+              context,
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: colorScheme.primary,
-              letterSpacing: 1.5,
-            ),
+            ).copyWith(letterSpacing: 1.5),
           ),
           const SizedBox(height: 2),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
-              color: isDark ? MeridianColors.darkSurfaceVariant : MeridianColors.lightSurfaceVariant,
+              color: DesignColors.surfaceVariant(context),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+                color: DesignColors.border(context),
                 width: 0.5,
               ),
             ),
@@ -152,22 +140,22 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                   ),
                   const SizedBox(width: 6),
                 ] else ...[
-                  Icon(Icons.folder_open_outlined, size: 12, color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                  Icon(DesignIcons.folderOpen, size: 12, color: DesignColors.textSecondary(context)),
                   const SizedBox(width: 4),
                 ],
                 Text(
                   activeFolder != null ? '$activeVaultName / ${activeFolder.name}' : activeVaultName,
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.heading(
+                    context,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                  DesignIcons.arrowDown,
                   size: 14,
-                  color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                  color: DesignColors.textSecondary(context),
                 ),
               ],
             ),
@@ -179,13 +167,14 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     return AppBar(
       leading: Builder(
         builder: (context) => IconButton(
-          icon: const Icon(Icons.menu_rounded),
+          icon: const Icon(DesignIcons.menu),
           onPressed: () => Scaffold.of(context).openDrawer(),
           tooltip: 'Open drawer',
         ),
       ),
       title: Center(child: titleWidget),
       centerTitle: true,
+      backgroundColor: DesignColors.background(context),
       actions: [
         if (activeFolder == null) ...[
           IconButton(
@@ -193,7 +182,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               ref.watch(homeViewModeProvider) == HomeViewMode.grouped
                   ? Icons.view_list_rounded
                   : Icons.grid_view_rounded,
-              color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+              color: DesignColors.textSecondary(context),
             ),
             onPressed: () {
               final current = ref.read(homeViewModeProvider);
@@ -211,37 +200,17 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   }
 
   Future<void> _showVaultSelectorBottomSheet(BuildContext context) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final baseDir = ref.read(baseVaultsDirectoryProvider);
     final activeVault = ref.read(activeVaultNameProvider);
 
-    List<String> vaults = [];
-    try {
-      final dir = Directory(baseDir);
-      if (dir.existsSync()) {
-        vaults = dir.listSync()
-            .whereType<Directory>()
-            .map((d) => p.basename(d.path))
-            .where((name) => !name.startsWith('.'))
-            .toList();
-      }
-    } catch (e) {
-      debugPrint('Error reading vaults: $e');
-    }
-
-    if (vaults.isEmpty) {
-      vaults.add(activeVault);
-    }
-
-    // Sort alphabetically
-    vaults.sort();
+    final vaults = ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
+      backgroundColor: DesignColors.background(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignSpacing.borderRadiusLarge)),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -249,21 +218,14 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 8),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const DesignSheetDragHandle(),
+              const SizedBox(height: 8),
               Text(
                 'Switch Vault',
-                style: GoogleFonts.inter(
+                style: DesignTypography.heading(
+                  context,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
                 ),
               ),
               const SizedBox(height: 8),
@@ -277,17 +239,17 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
                     return ListTile(
                       leading: Icon(
-                        Icons.folder_rounded,
-                        color: isActive ? colorScheme.primary : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                        DesignIcons.folder,
+                        color: isActive ? colorScheme.primary : DesignColors.textSecondary(context),
                       ),
                       title: Text(
                         vaultName,
-                        style: GoogleFonts.inter(
+                        style: DesignTypography.body(
+                          context,
                           fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
                         ),
                       ),
-                      trailing: isActive ? Icon(Icons.check_rounded, color: colorScheme.primary) : null,
+                      trailing: isActive ? Icon(DesignIcons.check, color: colorScheme.primary) : null,
                       onTap: () async {
                         Navigator.pop(ctx);
                         if (!isActive) {
@@ -300,10 +262,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: Icon(Icons.add_rounded, color: colorScheme.primary),
+                leading: Icon(DesignIcons.add, color: colorScheme.primary),
                 title: Text(
                   'Create New Vault',
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.heading(
+                    context,
                     fontWeight: FontWeight.w600,
                     color: colorScheme.primary,
                   ),
@@ -322,7 +285,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   }
 
   Future<void> _switchVault(String vaultName) async {
-    // Show a loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -330,62 +292,54 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
 
     try {
-      // 1. Close current DB helper connection
-      await DatabaseHelper.instance.closeDatabase();
-
-      // 2. Set new active vault name provider (this saves to SharedPreferences)
-      await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
+      await ref.read(vaultServiceProvider).switchVault(vaultName: vaultName, ref: ref);
 
       if (!mounted) return;
-
-      // 3. Invalidate providers
-      ref.read(selectedFolderIdProvider.notifier).state = null;
-      ref.invalidate(notesProvider);
-      ref.invalidate(foldersProvider);
-
-      // Dismiss loading dialog
       Navigator.pop(context);
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Switched to vault: $vaultName')),
+        SnackBar(content: Text('Switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
       );
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error switching vault: $e')),
+        SnackBar(content: Text('Error switching vault: $e', style: DesignTypography.body(context, color: Colors.white))),
       );
     }
   }
 
   void _showCreateVaultDialog() {
     final controller = TextEditingController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+          backgroundColor: DesignColors.surface(context),
           title: Text(
             'Create New Vault',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            style: DesignTypography.heading(context, fontWeight: FontWeight.w700),
           ),
           content: TextField(
             controller: controller,
             autofocus: true,
-            style: GoogleFonts.inter(color: isDark ? MeridianColors.darkText : MeridianColors.lightText),
+            style: DesignTypography.body(context),
             decoration: InputDecoration(
               hintText: 'Vault Name',
-              hintStyle: GoogleFonts.inter(color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary),
+              hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
               filled: true,
-              fillColor: isDark ? MeridianColors.darkSurfaceVariant : MeridianColors.lightSurfaceVariant,
+              fillColor: DesignColors.surfaceVariant(context),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                borderSide: BorderSide(color: DesignColors.border(context)),
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: GoogleFonts.inter()),
+              child: Text('Cancel', style: DesignTypography.details(context)),
             ),
             TextButton(
               onPressed: () async {
@@ -394,7 +348,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                 Navigator.pop(ctx);
                 await _createNewVault(name);
               },
-              child: Text('Create', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+              child: Text('Create', style: DesignTypography.details(context, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -411,47 +365,28 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
     try {
       final baseDir = ref.read(baseVaultsDirectoryProvider);
-      final newVaultPath = p.join(baseDir, vaultName);
-      final dir = Directory(newVaultPath);
-      if (!dir.existsSync()) {
-        dir.createSync(recursive: true);
-      }
-
-      // Close current DB helper connection
-      await DatabaseHelper.instance.closeDatabase();
-
-      // Set new active vault
-      await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
-
-      // Initialize with a welcome note since it's a completely empty vault
-      final repo = ref.read(noteRepositoryProvider);
-      await repo.createNote(
-        title: 'Welcome to your new Vault',
-        initialContent: '# Welcome to $vaultName\n\nThis is a brand new workspace. Start linking notes using `[[wikilinks]]`!',
+      await ref.read(vaultServiceProvider).createVault(
+        vaultName: vaultName,
+        baseDir: baseDir,
+        ref: ref,
       );
 
       if (!mounted) return;
-
-      // Invalidate providers
-      ref.read(selectedFolderIdProvider.notifier).state = null;
-      ref.invalidate(notesProvider);
-      ref.invalidate(foldersProvider);
-
       Navigator.pop(context); // Dismiss loading dialog
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Created and switched to vault: $vaultName')),
+        SnackBar(content: Text('Created and switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
       );
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating vault: $e')),
+        SnackBar(content: Text('Error creating vault: $e', style: DesignTypography.body(context, color: Colors.white))),
       );
     }
   }
 
-  Widget _buildSortChips(bool isDark, ColorScheme colorScheme) {
+  Widget _buildSortChips(ColorScheme colorScheme) {
     final sort = ref.watch(noteSortProvider);
     final chips = [
       (NoteSort.updated, 'Recent'),
@@ -463,7 +398,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: DesignSpacing.screenPadding),
         children: chips.map((c) {
           final isSelected = sort == c.$1;
           return Padding(
@@ -474,25 +409,24 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               child: FilterChip(
                 label: Text(
                   c.$2,
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.heading(
+                    context,
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     color: isSelected
                         ? colorScheme.primary
-                        : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                        : DesignColors.textSecondary(context),
                   ),
                 ),
                 selected: isSelected,
                 onSelected: (_) {},
-                backgroundColor: isDark
-                    ? MeridianColors.darkSurfaceVariant
-                    : MeridianColors.lightSurfaceVariant,
+                backgroundColor: DesignColors.surfaceVariant(context),
                 selectedColor: colorScheme.primaryContainer,
                 checkmarkColor: colorScheme.primary,
                 side: BorderSide(
                   color: isSelected
                       ? colorScheme.primary.withValues(alpha: 0.5)
-                      : (isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder),
+                      : DesignColors.border(context),
                 ),
                 showCheckmark: false,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -504,13 +438,13 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     ).animate().fadeIn(duration: 250.ms);
   }
 
-  Widget _buildNotesList(List<Note> notes, bool isDark) {
+  Widget _buildNotesList(List<Note> notes) {
     if (notes.isEmpty) {
-      return _buildEmptyState(isDark);
+      return _buildEmptyState();
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
       itemCount: notes.length,
       itemBuilder: (context, i) {
         return NoteCard(
@@ -526,7 +460,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     List<Note> allNotes,
     List<VirtualFolder> folders,
     Map<String, List<String>> mappings,
-    bool isDark,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     final primaryColor = colorScheme.primary;
@@ -540,7 +473,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         .toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
       children: [
         // A. Journal Logs System Folder (only if there are journal notes)
         if (journalNotes.isNotEmpty)
@@ -549,9 +482,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             title: 'Journal Logs',
             notes: journalNotes,
             folderColor: primaryColor,
-            folderIcon: Icons.edit_calendar_rounded,
+            folderIcon: DesignIcons.journal,
             storageKey: 'system-journals',
-            isDark: isDark,
           ).animate().fadeIn(duration: 350.ms),
 
         // B. Custom Virtual Folders
@@ -559,17 +491,16 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           final folderColor = folder.colorHex.toColor();
 
           final folderNotes = allNotes
-              .where((n) => !n.isDaily && (mappings[n.id]?.contains(folder.id) ?? false))
-              .toList();
+               .where((n) => !n.isDaily && (mappings[n.id]?.contains(folder.id) ?? false))
+               .toList();
 
           return _buildAccordionCard(
             context: context,
             title: folder.name,
             notes: folderNotes,
             folderColor: folderColor,
-            folderIcon: Icons.folder_rounded,
+            folderIcon: DesignIcons.folder,
             storageKey: 'folder-${folder.id}',
-            isDark: isDark,
             folderId: folder.id,
             folder: folder,
           ).animate().fadeIn(duration: 400.ms);
@@ -581,10 +512,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             context: context,
             title: 'Uncategorized Notes',
             notes: uncategorizedNotes,
-            folderColor: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+            folderColor: DesignColors.textSecondary(context),
             folderIcon: Icons.category_rounded,
             storageKey: 'system-uncategorized',
-            isDark: isDark,
           ).animate().fadeIn(duration: 450.ms),
 
         // D. Create New Folder quick button
@@ -596,10 +526,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () {},
-              icon: Icon(Icons.create_new_folder_outlined, size: 18, color: colorScheme.primary),
+              icon: Icon(DesignIcons.addFolder, size: 18, color: colorScheme.primary),
               label: Text(
                 'Create New Folder',
-                style: GoogleFonts.inter(
+                style: DesignTypography.heading(
+                  context,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: colorScheme.primary,
@@ -612,9 +543,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                   width: 1,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
                 ),
-                backgroundColor: colorScheme.primary.withValues(alpha: isDark ? 0.05 : 0.03),
+                backgroundColor: colorScheme.primary.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.05 : 0.03),
               ),
             ),
           ),
@@ -630,17 +561,18 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     required Color folderColor,
     required IconData folderIcon,
     required String storageKey,
-    required bool isDark,
     String? folderId,
     VirtualFolder? folder,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onLongPress: folder != null ? () => FolderDrawer.showFolderOptions(context, ref, folder) : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
-          borderRadius: BorderRadius.circular(14),
+          color: DesignColors.surface(context),
+          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
           border: Border.all(
             color: folderColor.withValues(alpha: isDark ? 0.3 : 0.4),
             width: 0.8,
@@ -674,10 +606,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             ),
             title: Text(
               title,
-              style: GoogleFonts.inter(
+              style: DesignTypography.heading(
+                context,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
               ),
             ),
             trailing: Row(
@@ -690,7 +622,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                       ref.read(selectedFolderIdProvider.notifier).state = folderId;
                     },
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                      icon: const Icon(DesignIcons.forward, size: 16),
                       color: folderColor,
                       onPressed: () {},
                       tooltip: 'Focus folder',
@@ -708,17 +640,16 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                   ),
                   child: Text(
                     '${notes.length}',
-                    style: GoogleFonts.robotoMono(
+                    style: DesignTypography.mono(
                       fontSize: 10,
-                      fontWeight: FontWeight.w700,
                       color: folderColor,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                  DesignIcons.arrowDown,
+                  color: DesignColors.textSecondary(context),
                 ),
               ],
             ),
@@ -729,11 +660,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12.0),
                       child: Text(
                         'No notes in this category.',
-                        style: GoogleFonts.inter(
+                        style: DesignTypography.body(
+                          context,
                           fontSize: 12,
-                          color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
-                          fontStyle: FontStyle.italic,
-                        ),
+                          color: DesignColors.textSecondary(context),
+                        ).copyWith(fontStyle: FontStyle.italic),
                       ),
                     ),
                   ]
@@ -750,7 +681,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState() {
     final isSearching = ref.watch(searchQueryProvider).isNotEmpty;
     return Center(
       child: Padding(
@@ -759,19 +690,17 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isSearching ? Icons.search_off_rounded : Icons.note_add_outlined,
+              isSearching ? DesignIcons.searchOff : Icons.note_add_outlined,
               size: 64,
-              color: isDark
-                  ? MeridianColors.darkTextTertiary
-                  : MeridianColors.lightTextTertiary,
+              color: DesignColors.textTertiary(context),
             ),
             const SizedBox(height: 16),
             Text(
               isSearching ? 'No notes found' : 'Your workspace awaits',
-              style: GoogleFonts.inter(
+              style: DesignTypography.heading(
+                context,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
               ),
             ),
             const SizedBox(height: 8),
@@ -779,11 +708,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               isSearching
                   ? 'Try a different search term'
                   : 'Tap + to create your first note',
-              style: GoogleFonts.inter(
+              style: DesignTypography.body(
+                context,
                 fontSize: 14,
-                color: isDark
-                    ? MeridianColors.darkTextSecondary
-                    : MeridianColors.lightTextSecondary,
+                color: DesignColors.textSecondary(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -793,28 +721,19 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.95, 0.95));
   }
 
-  Widget _buildLoadingSkeleton(bool isDark) {
+  Widget _buildLoadingSkeleton() {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
       itemCount: 6,
-      itemBuilder: (context, i) => _SkeletonNoteCard(isDark: isDark),
+      itemBuilder: (context, i) => const _SkeletonNoteCard(),
     );
   }
 
   Widget _buildFAB(BuildContext context, ColorScheme colorScheme) {
-    return TactileWrapper(
-      style: TactileFeedbackStyle.highImpact,
+    return DesignFloatingActionButton(
+      label: 'New Note',
+      icon: DesignIcons.add,
       onTap: () => _createNewNote(context),
-      child: FloatingActionButton.extended(
-        onPressed: () {},
-        icon: const Icon(Icons.add_rounded),
-        label: Text(
-          'New Note',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
-        ),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-      ),
     ).animate().scale(begin: const Offset(0.8, 0.8), duration: 300.ms, curve: Curves.elasticOut);
   }
 
@@ -830,20 +749,19 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete note?'),
-        content: const Text('This will permanently delete the note and its file.'),
+        title: Text('Delete note?', style: DesignTypography.heading(context, fontWeight: FontWeight.bold)),
+        content: Text('This will permanently delete the note and its file.', style: DesignTypography.body(context)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: DesignTypography.details(context))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text('Delete', style: DesignTypography.details(context, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
     );
     if (confirmed == true) {
       await ref.read(noteRepositoryProvider).deleteNote(id);
-      ref.invalidate(notesProvider);
     }
   }
 }
@@ -851,20 +769,19 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 // ─── Skeleton loading card ────────────────────────────────────────────────────
 
 class _SkeletonNoteCard extends StatelessWidget {
-  final bool isDark;
-  const _SkeletonNoteCard({required this.isDark});
+  const _SkeletonNoteCard();
 
   @override
   Widget build(BuildContext context) {
-    final bg = isDark ? MeridianColors.darkSurfaceVariant : MeridianColors.lightSurfaceVariant;
+    final bg = DesignColors.surfaceVariant(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(DesignSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
-        borderRadius: BorderRadius.circular(12),
+        color: DesignColors.surface(context),
+        borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
         border: Border.all(
-          color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+          color: DesignColors.border(context),
         ),
       ),
       child: Column(

@@ -25,8 +25,7 @@ class DatabaseHelper {
     }
   }
 
-  Future<Database> _initDb() async {
-    final vaultPath = await getVaultPath();
+  Future<Database> openDatabaseForPath(String vaultPath) async {
     final path = join(vaultPath, _dbName);
     final db = await openDatabase(
       path,
@@ -45,6 +44,11 @@ class DatabaseHelper {
     await _syncVaultFiles(db, vaultPath);
 
     return db;
+  }
+
+  Future<Database> _initDb() async {
+    final vaultPath = await getVaultPath();
+    return openDatabaseForPath(vaultPath);
   }
 
   Future<void> _syncVaultFiles(Database db, String vaultPath) async {

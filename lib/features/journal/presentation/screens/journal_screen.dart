@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/data/note_model.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
+import '../../../../core/database/database_providers.dart';
 
 final _selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -25,30 +28,29 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final selectedDay = ref.watch(_selectedDayProvider);
 
     return Scaffold(
-      backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
+      backgroundColor: DesignColors.background(context),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(isDark, colorScheme, selectedDay),
-            if (_showCalendar) _buildCalendar(isDark, colorScheme, selectedDay),
-            Expanded(child: _buildJournalContent(isDark, colorScheme, selectedDay)),
+            _buildHeader(colorScheme, selectedDay),
+            if (_showCalendar) _buildCalendar(colorScheme, selectedDay),
+            Expanded(child: _buildJournalContent(colorScheme, selectedDay)),
           ],
         ),
       ),
-      floatingActionButton: _buildTodayFAB(context, isDark, colorScheme),
+      floatingActionButton: _buildTodayFAB(context, colorScheme),
     );
   }
 
-  Widget _buildHeader(bool isDark, ColorScheme colorScheme, DateTime selectedDay) {
+  Widget _buildHeader(ColorScheme colorScheme, DateTime selectedDay) {
     final isToday_ = isToday(formatDailyDate(selectedDay));
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding + 2, 16, DesignSpacing.screenPadding, 8),
       child: Row(
         children: [
           Column(
@@ -56,18 +58,18 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             children: [
               Text(
                 'Journal',
-                style: GoogleFonts.inter(
+                style: DesignTypography.display(
+                  context,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
-                  letterSpacing: -0.5,
                 ),
               ),
               Text(
                 isToday_ ? 'Today' : DateFormat('EEEE, MMMM d').format(selectedDay),
-                style: GoogleFonts.inter(
+                style: DesignTypography.body(
+                  context,
                   fontSize: 14,
-                  color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                  color: DesignColors.textSecondary(context),
                 ),
               ),
             ],
@@ -82,7 +84,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 size: 22,
                 color: _showCalendar
                     ? colorScheme.primary
-                    : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                    : DesignColors.textSecondary(context),
               ),
             ),
             onPressed: () => setState(() => _showCalendar = !_showCalendar),
@@ -92,7 +94,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
-  Widget _buildCalendar(bool isDark, ColorScheme colorScheme, DateTime selectedDay) {
+  Widget _buildCalendar(ColorScheme colorScheme, DateTime selectedDay) {
     return TableCalendar(
       firstDay: DateTime(2020),
       lastDay: DateTime(2030),
@@ -102,18 +104,18 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       headerStyle: HeaderStyle(
         formatButtonVisible: false,
         titleCentered: true,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: DesignTypography.heading(
+          context,
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
         ),
         leftChevronIcon: Icon(
-          Icons.chevron_left_rounded,
-          color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+          DesignIcons.back,
+          color: DesignColors.textSecondary(context),
         ),
         rightChevronIcon: Icon(
-          Icons.chevron_right_rounded,
-          color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+          DesignIcons.chevronRight,
+          color: DesignColors.textSecondary(context),
         ),
       ),
       calendarStyle: CalendarStyle(
@@ -121,7 +123,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           color: colorScheme.primary.withValues(alpha: 0.2),
           shape: BoxShape.circle,
         ),
-        todayTextStyle: GoogleFonts.inter(
+        todayTextStyle: DesignTypography.body(
+          context,
           color: colorScheme.primary,
           fontWeight: FontWeight.w600,
         ),
@@ -129,30 +132,35 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           color: colorScheme.primary,
           shape: BoxShape.circle,
         ),
-        selectedTextStyle: GoogleFonts.inter(
-          color: colorScheme.onPrimary,
+        selectedTextStyle: DesignTypography.body(
+          context,
+          color: Colors.white,
           fontWeight: FontWeight.w600,
         ),
-        defaultTextStyle: GoogleFonts.inter(
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+        defaultTextStyle: DesignTypography.body(
+          context,
         ),
-        weekendTextStyle: GoogleFonts.inter(
-          color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+        weekendTextStyle: DesignTypography.body(
+          context,
+          color: DesignColors.textSecondary(context),
         ),
-        outsideTextStyle: GoogleFonts.inter(
-          color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+        outsideTextStyle: DesignTypography.body(
+          context,
+          color: DesignColors.textTertiary(context),
         ),
       ),
       daysOfWeekStyle: DaysOfWeekStyle(
-        weekdayStyle: GoogleFonts.inter(
+        weekdayStyle: DesignTypography.body(
+          context,
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+          color: DesignColors.textSecondary(context),
         ),
-        weekendStyle: GoogleFonts.inter(
+        weekendStyle: DesignTypography.body(
+          context,
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+          color: DesignColors.textTertiary(context),
         ),
       ),
       onDaySelected: (selected, focused) {
@@ -161,11 +169,14 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05);
   }
 
-  Widget _buildJournalContent(bool isDark, ColorScheme colorScheme, DateTime selectedDay) {
+  Widget _buildJournalContent(ColorScheme colorScheme, DateTime selectedDay) {
     final dateStr = formatDailyDate(selectedDay);
     final dailyNoteAsync = ref.watch(
       FutureProvider.autoDispose(
-        (ref) => ref.read(noteRepositoryProvider).getDailyNote(dateStr),
+        (ref) {
+          ref.watch(notesVersionProvider); // React to version updates reactively
+          return ref.read(noteRepositoryProvider).getDailyNote(dateStr);
+        },
       ).future,
     );
 
@@ -175,17 +186,17 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         final note = snapshot.data;
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 16, DesignSpacing.screenPadding, 0),
           child: Column(
             children: [
               // Templates row
-              _buildTemplatesRow(isDark, colorScheme),
+              _buildTemplatesRow(colorScheme),
               const SizedBox(height: 16),
               // Entry state
               Expanded(
                 child: note != null
-                    ? _buildExistingEntry(context, isDark, colorScheme, note)
-                    : _buildEmptyDay(context, isDark, colorScheme, dateStr),
+                    ? _buildExistingEntry(context, colorScheme, note)
+                    : _buildEmptyDay(context, colorScheme, dateStr),
               ),
             ],
           ),
@@ -194,28 +205,28 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
-  Widget _buildTemplatesRow(bool isDark, ColorScheme colorScheme) {
+  Widget _buildTemplatesRow(ColorScheme colorScheme) {
     final templates = [
       const _TemplateItem(
-        icon: Icons.favorite_rounded,
+        icon: DesignIcons.gratitude,
         label: 'Gratitude',
         emoji: '🙏',
         baseColor: MeridianColors.darkAccentRose,
       ),
       const _TemplateItem(
-        icon: Icons.checklist_rounded,
+        icon: DesignIcons.dailyPlan,
         label: 'Daily Plan',
         emoji: '📋',
         baseColor: MeridianColors.darkAccentGreen,
       ),
       const _TemplateItem(
-        icon: Icons.self_improvement_rounded,
+        icon: DesignIcons.reflection,
         label: 'Reflection',
         emoji: '💭',
         baseColor: MeridianColors.darkAccentAmber,
       ),
       const _TemplateItem(
-        icon: Icons.track_changes_rounded,
+        icon: DesignIcons.goals,
         label: 'Goals',
         emoji: '🎯',
         baseColor: Color(0xFF8AB4F8),
@@ -236,7 +247,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
               onTap: () => _createWithTemplate(t.emoji, t.label),
               child: _JournalTemplateButton(
                 template: t,
-                isDark: isDark,
               ),
             ),
           );
@@ -247,7 +257,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
   Widget _buildExistingEntry(
     BuildContext context,
-    bool isDark,
     ColorScheme colorScheme,
     Note note,
   ) {
@@ -257,8 +266,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
-          borderRadius: BorderRadius.circular(14),
+          color: DesignColors.surface(context),
+          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
           border: Border.all(
             color: colorScheme.primary.withValues(alpha: 0.3),
             width: 1,
@@ -273,7 +282,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 const SizedBox(width: 6),
                 Text(
                   'Entry written',
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.heading(
+                    context,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: colorScheme.primary,
@@ -282,21 +292,18 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 const Spacer(),
                 Text(
                   '${note.wordCount} words',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
-                  ),
+                  style: DesignTypography.metadata(context),
                 ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
               'Tap to continue writing…',
-              style: GoogleFonts.inter(
+              style: DesignTypography.body(
+                context,
                 fontSize: 14,
-                color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
-                fontStyle: FontStyle.italic,
-              ),
+                color: DesignColors.textSecondary(context),
+              ).copyWith(fontStyle: FontStyle.italic),
             ),
           ],
         ),
@@ -306,7 +313,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
   Widget _buildEmptyDay(
     BuildContext context,
-    bool isDark,
     ColorScheme colorScheme,
     String dateStr,
   ) {
@@ -318,15 +324,14 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           _EmptyStateIllustration(
             isFuture: isFuture,
             colorScheme: colorScheme,
-            isDark: isDark,
           ),
           const SizedBox(height: 24),
           Text(
             isFuture ? 'A future day' : 'No entry yet',
-            style: GoogleFonts.inter(
+            style: DesignTypography.heading(
+              context,
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
             ),
           ),
           const SizedBox(height: 8),
@@ -334,26 +339,21 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             isFuture
                 ? 'Come back on this day to start writing'
                 : 'Tap the button below to start your entry',
-            style: GoogleFonts.inter(
+            style: DesignTypography.body(
+              context,
               fontSize: 14,
-              color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+              color: DesignColors.textSecondary(context),
             ),
             textAlign: TextAlign.center,
           ),
           if (!isFuture) ...[
             const SizedBox(height: 24),
-            TactileWrapper(
-              style: TactileFeedbackStyle.highImpact,
-              onTap: () => _createDailyNote(context, dateStr, null),
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.add_rounded),
-                label: Text('Start Writing', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: DesignPrimaryButton(
+                label: 'Start Writing',
+                icon: DesignIcons.add,
+                onTap: () => _createDailyNote(context, dateStr, null),
               ),
             ),
           ],
@@ -362,20 +362,14 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     ).animate().fadeIn(duration: 400.ms);
   }
 
-  Widget _buildTodayFAB(BuildContext context, bool isDark, ColorScheme colorScheme) {
+  Widget _buildTodayFAB(BuildContext context, ColorScheme colorScheme) {
     final isToday_ = isToday(formatDailyDate(ref.watch(_selectedDayProvider)));
     if (!isToday_) return const SizedBox.shrink();
 
-    return TactileWrapper(
-      style: TactileFeedbackStyle.highImpact,
+    return DesignFloatingActionButton(
+      label: "Today's Entry",
+      icon: DesignIcons.edit,
       onTap: () => _openOrCreateToday(context),
-      child: FloatingActionButton.extended(
-        onPressed: () {},
-        icon: const Icon(Icons.edit_rounded),
-        label: Text("Today's Entry", style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14)),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-      ),
     ).animate().scale(begin: const Offset(0.8, 0.8), duration: 300.ms, curve: Curves.elasticOut);
   }
 
@@ -419,8 +413,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   }
 }
 
-// ─── Beautiful Premium Icons & Animations for Emojis ──────────────────────────
-
 class _TemplateItem {
   final IconData icon;
   final String label;
@@ -435,21 +427,18 @@ class _TemplateItem {
   });
 }
 
-// Removed redundant _InteractiveJournalButton class in favor of reusable TactileWrapper
-
 class _JournalTemplateButton extends StatelessWidget {
   final _TemplateItem template;
-  final bool isDark;
 
   const _JournalTemplateButton({
     required this.template,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final baseBgColor = isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface;
-    final baseBorderColor = isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseBgColor = DesignColors.surface(context);
+    final baseBorderColor = DesignColors.border(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -486,10 +475,10 @@ class _JournalTemplateButton extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             template.label,
-            style: GoogleFonts.inter(
+            style: DesignTypography.heading(
+              context,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
             ),
           ),
         ],
@@ -501,18 +490,17 @@ class _JournalTemplateButton extends StatelessWidget {
 class _EmptyStateIllustration extends StatelessWidget {
   final bool isFuture;
   final ColorScheme colorScheme;
-  final bool isDark;
 
   const _EmptyStateIllustration({
     required this.isFuture,
     required this.colorScheme,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = colorScheme.primary;
-    final accentColor = isDark ? MeridianColors.darkAccentAmber : MeridianColors.lightAccentAmber;
+    final accentColor = DesignColors.accentAmber(context);
 
     return SizedBox(
       width: 120,
@@ -520,7 +508,6 @@ class _EmptyStateIllustration extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Background soft glowing circle (Static, premium glow)
           Container(
             width: 90,
             height: 90,
@@ -534,8 +521,6 @@ class _EmptyStateIllustration extends StatelessWidget {
               ),
             ),
           ),
-
-          // Secondary floating decorative ring (Static, elegant border)
           Container(
             width: 72,
             height: 72,
@@ -547,16 +532,14 @@ class _EmptyStateIllustration extends StatelessWidget {
               ),
             ),
           ),
-
-          // Central decorative container
           Container(
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+              color: DesignColors.surface(context),
               shape: BoxShape.circle,
               border: Border.all(
-                color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+                color: DesignColors.border(context),
                 width: 1.5,
               ),
               boxShadow: [

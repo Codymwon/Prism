@@ -1,44 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
-import '../../../core/database/database_helper.dart';
+import '../../../core/database/database_providers.dart';
 import '../../../core/utils/utils.dart';
 import '../../notes/data/note_model.dart';
-import '../../notes/data/note_repository.dart';
 import 'folder_model.dart';
-
-// ─── Selected Folder Provider ────────────────────────────────────────────────
-final selectedFolderIdProvider = StateProvider<String?>((ref) => null);
 
 // ─── Repository Provider ──────────────────────────────────────────────────────
 final folderRepositoryProvider = Provider<FolderRepository>((ref) {
-  return FolderRepository(DatabaseHelper.instance);
-});
-
-// ─── Folders Provider ─────────────────────────────────────────────────────────
-final foldersProvider = FutureProvider.autoDispose<List<VirtualFolder>>((ref) async {
-  final repo = ref.watch(folderRepositoryProvider);
-  return repo.getAllFolders();
-});
-
-// ─── Folders for Note Provider ────────────────────────────────────────────────
-final foldersForNoteProvider = FutureProvider.autoDispose.family<List<VirtualFolder>, String>((ref, noteId) async {
-  final repo = ref.watch(folderRepositoryProvider);
-  return repo.getFoldersForNote(noteId);
-});
-
-// ─── Note-Folder Mappings Provider ────────────────────────────────────────────
-final noteFolderMappingsProvider = FutureProvider.autoDispose<Map<String, List<String>>>((ref) async {
-  final repo = ref.watch(folderRepositoryProvider);
-  return repo.getNoteFolderMappings();
+  return FolderRepository(ref);
 });
 
 // ─── Repository ───────────────────────────────────────────────────────────────
 class FolderRepository {
-  final DatabaseHelper _dbHelper;
+  final Ref _ref;
 
-  FolderRepository(this._dbHelper);
+  FolderRepository(this._ref);
 
-  Future<Database> get _db => _dbHelper.database;
+  Future<Database> get _db => _ref.read(databaseProvider.future);
 
   // ── READ ──────────────────────────────────────────────────────────────────
   Future<Map<String, List<String>>> getNoteFolderMappings() async {
@@ -113,6 +91,7 @@ class FolderRepository {
     );
 
     await db.insert('virtual_folders', folder.toMap());
+    _ref.read(foldersVersionProvider.notifier).state++;
     return folder;
   }
 
@@ -129,12 +108,14 @@ class FolderRepository {
       where: 'id = ?',
       whereArgs: [id],
     );
+    _ref.read(foldersVersionProvider.notifier).state++;
   }
 
   // ── DELETE ────────────────────────────────────────────────────────────────
   Future<void> deleteFolder(String id) async {
     final db = await _db;
     await db.delete('virtual_folders', where: 'id = ?', whereArgs: [id]);
+    _ref.read(foldersVersionProvider.notifier).state++;
   }
 
   // ── RELATIONS (NOTE <-> FOLDER) ──────────────────────────────────────────
@@ -145,6 +126,7 @@ class FolderRepository {
       {'note_id': noteId, 'folder_id': folderId},
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
+    _ref.read(foldersVersionProvider.notifier).state++;
   }
 
   Future<void> removeNoteFromFolder(String noteId, String folderId) async {
@@ -154,6 +136,7 @@ class FolderRepository {
       where: 'note_id = ? AND folder_id = ?',
       whereArgs: [noteId, folderId],
     );
+    _ref.read(foldersVersionProvider.notifier).state++;
   }
 
   Future<void> setNoteFolders(String noteId, List<String> folderIds) async {
@@ -168,5 +151,6 @@ class FolderRepository {
         );
       }
     });
+    _ref.read(foldersVersionProvider.notifier).state++;
   }
 }

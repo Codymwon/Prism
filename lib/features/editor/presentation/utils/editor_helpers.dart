@@ -16,10 +16,7 @@ Future<void> handleWikilinkTap({
     final targetTitle = Uri.decodeComponent(encodedTitle);
     final repo = ref.read(noteRepositoryProvider);
     var targetNote = await repo.getNoteByTitle(targetTitle);
-    if (targetNote == null) {
-      targetNote = await repo.createNote(title: targetTitle);
-      ref.invalidate(notesProvider);
-    }
+    targetNote ??= await repo.createNote(title: targetTitle);
     if (context.mounted) {
       context.push('/editor/${targetNote.id}');
     }

@@ -6,18 +6,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
 import '../../../notes/data/note_repository.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
 import '../widgets/wikilink_autocomplete.dart';
 import '../widgets/backlinks_panel.dart';
 import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
-
-
-// ─── Editor Mode ──────────────────────────────────────────────────────────────
 
 enum EditorMode { write, preview }
 
@@ -200,8 +199,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     };
 
     return Scaffold(
-      backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
-      appBar: _buildAppBar(isDark, colorScheme, mode, noteAsync),
+      backgroundColor: DesignColors.background(context),
+      appBar: _buildAppBar(colorScheme, mode, noteAsync),
       body: Stack(
         children: [
           if (!_isLoaded)
@@ -246,12 +245,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: isDark ? Colors.orange[300] : Colors.orange[800], size: 20),
+          Icon(DesignIcons.warning, color: isDark ? Colors.orange[300] : Colors.orange[800], size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Conflicted Copy: Review and resolve changes.',
-              style: GoogleFonts.inter(
+              style: DesignTypography.heading(
+                context,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: isDark ? Colors.orange[200] : Colors.orange[900],
@@ -270,14 +270,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               children: [
                 Text(
                   'Resolve',
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.heading(
+                    context,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: isDark ? Colors.orange[200] : Colors.orange[900],
                   ),
                 ),
                 const SizedBox(width: 4),
-                Icon(Icons.chevron_right_rounded, size: 14, color: isDark ? Colors.orange[200] : Colors.orange[900]),
+                Icon(DesignIcons.chevronRight, size: 14, color: isDark ? Colors.orange[200] : Colors.orange[900]),
               ],
             ),
           ),
@@ -286,31 +287,29 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     ).animate().fadeIn().slideY(begin: -0.1);
   }
 
-
   PreferredSizeWidget _buildAppBar(
-    bool isDark,
     ColorScheme colorScheme,
     EditorMode mode,
     AsyncValue<Note?> noteAsync,
   ) {
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded),
+        icon: const Icon(DesignIcons.back),
         onPressed: () {
-          ref.invalidate(notesProvider);
           Navigator.of(context).pop();
         },
       ),
+      backgroundColor: DesignColors.background(context),
       title: Row(
         children: [
           Expanded(
             child: noteAsync.when(
               data: (note) => Text(
                 note?.title ?? '',
-                style: GoogleFonts.inter(
+                style: DesignTypography.heading(
+                  context,
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+                  fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -342,9 +341,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 const SizedBox(width: 4),
                 Text(
                   'Saving',
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.metadata(
+                    context,
                     fontSize: 11,
-                    color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
                   ),
                 ),
               ],
@@ -353,7 +352,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         // Organize note folder assignment button
         IconButton(
-          icon: const Icon(Icons.folder_open_outlined, size: 20),
+          icon: const Icon(DesignIcons.folderOpen, size: 20),
           onPressed: () {
             showModalBottomSheet(
               context: context,
@@ -367,7 +366,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // Toggle write/preview
         IconButton(
           icon: Icon(
-            mode == EditorMode.write ? Icons.visibility_outlined : Icons.edit_outlined,
+            mode == EditorMode.write ? DesignIcons.preview : DesignIcons.edit,
             size: 20,
           ),
           onPressed: () => ref.read(editorModeProvider.notifier).state =
@@ -394,14 +393,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           family,
           fontSize: size,
           height: 1.7,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: DesignColors.text(context),
         ),
         decoration: InputDecoration(
           hintText: 'Start writing… use # for headings, [[note]] for links, #tag for tags',
           hintStyle: _getFont(
             family,
             fontSize: size - 1.0,
-            color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+            color: DesignColors.textTertiary(context),
           ),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
@@ -430,30 +429,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           family,
           fontSize: size * 1.625,
           fontWeight: FontWeight.w700,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: DesignColors.text(context),
         ),
         h2: _getFont(
           family,
           fontSize: size * 1.25,
           fontWeight: FontWeight.w600,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: DesignColors.text(context),
         ),
         h3: _getFont(
           family,
           fontSize: size * 1.0625,
           fontWeight: FontWeight.w600,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: DesignColors.text(context),
         ),
         p: _getFont(
           family,
           fontSize: size,
           height: 1.7,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: DesignColors.text(context),
         ),
         code: GoogleFonts.robotoMono(
           fontSize: size * 0.8125,
-          color: isDark ? MeridianColors.darkAccentGreen : MeridianColors.lightAccentGreen,
-          backgroundColor: isDark ? MeridianColors.darkSurfaceVariant : MeridianColors.lightSurfaceVariant,
+          color: DesignColors.accentGreen(context),
+          backgroundColor: DesignColors.surfaceVariant(context),
         ),
         a: _getFont(
           family,
@@ -465,7 +464,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         blockquoteDecoration: BoxDecoration(
           border: Border(
             left: BorderSide(
-              color: isDark ? MeridianColors.darkPrimary : MeridianColors.lightPrimary,
+              color: colorScheme.primary,
               width: 3,
             ),
           ),

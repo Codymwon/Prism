@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/utils.dart';
+import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../../../../core/utils/utils.dart';
 import '../../data/folder_model.dart';
 import '../../data/folder_repository.dart';
+import '../providers/folders_providers.dart';
 import 'hsv_color_picker.dart';
 
 class FolderDrawer extends ConsumerWidget {
@@ -16,12 +16,12 @@ class FolderDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
     final foldersAsync = ref.watch(foldersProvider);
 
     return Drawer(
-      backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
+      backgroundColor: DesignColors.background(context),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -34,11 +34,11 @@ class FolderDrawer extends ConsumerWidget {
                 children: [
                   Text(
                     'Vault Folders',
-                    style: GoogleFonts.inter(
+                    style: DesignTypography.display(
+                      context,
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
-                      letterSpacing: -0.5,
+                      color: DesignColors.text(context),
                     ),
                   ),
                   IconButton(
@@ -52,9 +52,9 @@ class FolderDrawer extends ConsumerWidget {
                 ],
               ),
             ),
-            
-            const Divider(height: 1, indent: 20, endIndent: 20),
-            
+
+            Divider(height: 1, indent: 20, endIndent: 20, color: DesignColors.border(context)),
+
             // List of Folders
             Expanded(
               child: foldersAsync.when(
@@ -70,7 +70,7 @@ class FolderDrawer extends ConsumerWidget {
                 error: (err, _) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
-                    child: Text('Error loading folders: $err', style: const TextStyle(color: Colors.red)),
+                    child: Text('Error loading folders: $err', style: TextStyle(color: colorScheme.error)),
                   ),
                 ),
               ),
@@ -99,7 +99,7 @@ class FolderDrawer extends ConsumerWidget {
           color: colorScheme.primary,
           icon: Icons.notes_rounded,
           isSelected: selectedFolderId == null,
-          noteCount: null, // NoteRepository has notes list count
+          noteCount: null,
           isDark: isDark,
           onTap: () {
             ref.read(selectedFolderIdProvider.notifier).state = null;
@@ -107,16 +107,16 @@ class FolderDrawer extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 12),
-        
+
         Padding(
           padding: const EdgeInsets.only(left: 10, bottom: 6),
           child: Text(
             'CATEGORIES',
-            style: GoogleFonts.inter(
+            style: DesignTypography.metadata(
+              context,
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              letterSpacing: 1,
-              color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+              color: DesignColors.textTertiary(context),
             ),
           ),
         ),
@@ -126,10 +126,10 @@ class FolderDrawer extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
             child: Text(
               'No virtual folders created yet. Tap the top icon to organize your files.',
-              style: GoogleFonts.inter(
+              style: DesignTypography.details(
+                context,
                 fontSize: 12,
-                color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
-                height: 1.5,
+                color: DesignColors.textTertiary(context),
               ),
             ),
           )
@@ -137,7 +137,7 @@ class FolderDrawer extends ConsumerWidget {
           ...folders.map((folder) {
             final isSelected = selectedFolderId == folder.id;
             final folderColor = folder.colorHex.toColor();
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 6.0),
               child: _buildFolderTile(
@@ -171,8 +171,8 @@ class FolderDrawer extends ConsumerWidget {
     required VoidCallback onTap,
     VoidCallback? onLongPress,
   }) {
-    final activeTextColor = isDark ? Colors.white : Colors.black;
-    final inactiveTextColor = isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary;
+    final activeTextColor = DesignColors.text(context);
+    final inactiveTextColor = DesignColors.textSecondary(context);
 
     return TactileWrapper(
       onTap: onTap,
@@ -183,7 +183,7 @@ class FolderDrawer extends ConsumerWidget {
           color: isSelected
               ? color.withValues(alpha: isDark ? 0.15 : 0.1)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
           border: Border.all(
             color: isSelected ? color.withValues(alpha: 0.3) : Colors.transparent,
             width: 0.5,
@@ -197,27 +197,28 @@ class FolderDrawer extends ConsumerWidget {
               icon == Icons.notes_rounded
                   ? Icon(icon, size: 18, color: color)
                   : Container(
-                      width: 14,
-                      height: 14,
+                      width: 12,
+                      height: 12,
                       decoration: BoxDecoration(
                         color: color,
                         shape: BoxShape.circle,
                       ),
                     ),
               const SizedBox(width: 16),
-              
+
               // Name
               Expanded(
                 child: Text(
                   name,
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.body(
+                    context,
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected ? activeTextColor : inactiveTextColor,
                   ),
                 ),
               ),
-              
+
               // Note Count Badge
               if (noteCount != null)
                 Container(
@@ -225,14 +226,13 @@ class FolderDrawer extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? color.withValues(alpha: isDark ? 0.25 : 0.2)
-                        : (isDark ? MeridianColors.darkSurfaceVariant : MeridianColors.lightSurfaceVariant),
+                        : DesignColors.surfaceVariant(context),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '$noteCount',
-                    style: GoogleFonts.robotoMono(
+                    style: DesignTypography.mono(
                       fontSize: 10,
-                      fontWeight: FontWeight.w700,
                       color: isSelected ? color : inactiveTextColor,
                     ),
                   ),
@@ -246,14 +246,12 @@ class FolderDrawer extends ConsumerWidget {
 
   static void showAddFolderSheet(BuildContext context, WidgetRef ref) {
     final nameController = TextEditingController();
-    Color selectedColor = const Color(0xFF7C6FF7); // default Bear terracottaish color
+    Color selectedColor = const Color(0xFF7C6FF7);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF262628)
-          : const Color(0xFFFDFBFA),
+      backgroundColor: DesignColors.background(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -270,35 +268,36 @@ class FolderDrawer extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Create Folder',
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(sheetContext),
-                    ),
-                  ],
+                DesignSheetHeader(
+                  title: 'Create Folder',
+                  onClose: () => Navigator.pop(sheetContext),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Name Input
                 TextField(
                   controller: nameController,
                   autofocus: true,
-                  decoration: const InputDecoration(
+                  style: DesignTypography.body(context, fontSize: 16),
+                  decoration: InputDecoration(
                     hintText: 'Folder name',
-                    fillColor: Colors.transparent,
-                    filled: false,
-                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
+                    filled: true,
+                    fillColor: DesignColors.surfaceVariant(context),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                      borderSide: BorderSide(color: DesignColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                      borderSide: BorderSide(color: DesignColors.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  style: GoogleFonts.inter(fontSize: 16),
                 ),
                 const SizedBox(height: 20),
 
@@ -319,7 +318,8 @@ class FolderDrawer extends ConsumerWidget {
                         const SizedBox(width: 10),
                         Text(
                           'Folder Color',
-                          style: GoogleFonts.inter(
+                          style: DesignTypography.body(
+                            context,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -330,7 +330,7 @@ class FolderDrawer extends ConsumerWidget {
                       icon: const Icon(Icons.color_lens_outlined, size: 16),
                       label: Text(
                         'Change',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        style: DesignTypography.body(context, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
                       ),
                       onPressed: () async {
                         final pickedColor = await showDialog<Color>(
@@ -351,8 +351,10 @@ class FolderDrawer extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Submit Button
-                ElevatedButton(
-                  onPressed: () async {
+                DesignPrimaryButton(
+                  label: 'Create Folder',
+                  backgroundColor: selectedColor,
+                  onTap: () async {
                     final name = nameController.text.trim();
                     if (name.isNotEmpty) {
                       final hex = '#${selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
@@ -360,25 +362,11 @@ class FolderDrawer extends ConsumerWidget {
                             name,
                             colorHex: hex,
                           );
-                      ref.invalidate(foldersProvider);
                       if (sheetContext.mounted) {
                         Navigator.pop(sheetContext);
                       }
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: selectedColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(
-                    'Create Folder',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -391,26 +379,22 @@ class FolderDrawer extends ConsumerWidget {
   static void showFolderOptions(BuildContext context, WidgetRef ref, VirtualFolder folder) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: DesignColors.background(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 8),
+            const DesignSheetDragHandle(),
             
             // Header
             ListTile(
               title: Text(
                 'Folder: ${folder.name}',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -418,7 +402,7 @@ class FolderDrawer extends ConsumerWidget {
             // Edit
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: Text('Edit details', style: GoogleFonts.inter()),
+              title: Text('Edit details', style: DesignTypography.body(context)),
               onTap: () {
                 Navigator.pop(ctx);
                 showEditFolderSheet(context, ref, folder);
@@ -427,37 +411,23 @@ class FolderDrawer extends ConsumerWidget {
 
             // Delete
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-              title: Text('Delete folder', style: GoogleFonts.inter(color: Colors.redAccent)),
+              leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
+              title: Text('Delete folder', style: DesignTypography.body(context, color: Theme.of(context).colorScheme.error)),
               onTap: () async {
                 Navigator.pop(ctx);
-                final confirmed = await showDialog<bool>(
+                DesignDialogs.showSimpleConfirmDialog(
                   context: context,
-                  builder: (confirmCtx) => AlertDialog(
-                    title: const Text('Delete Folder?'),
-                    content: Text(
-                      'This will delete the "${folder.name}" category organization. None of the physical markdown files will be deleted.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(confirmCtx, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(confirmCtx, true),
-                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
+                  title: 'Delete Folder?',
+                  content: 'This will delete the "${folder.name}" category organization. None of the physical markdown files will be deleted.',
+                  confirmText: 'Delete',
+                  onConfirm: () async {
+                    // If deleted folder was active, clear filter
+                    if (ref.read(selectedFolderIdProvider) == folder.id) {
+                      ref.read(selectedFolderIdProvider.notifier).state = null;
+                    }
+                    await ref.read(folderRepositoryProvider).deleteFolder(folder.id);
+                  },
                 );
-                if (confirmed == true) {
-                  // If deleted folder was active, clear filter
-                  if (ref.read(selectedFolderIdProvider) == folder.id) {
-                    ref.read(selectedFolderIdProvider.notifier).state = null;
-                  }
-                  await ref.read(folderRepositoryProvider).deleteFolder(folder.id);
-                  ref.invalidate(foldersProvider);
-                }
               },
             ),
             const SizedBox(height: 8),
@@ -474,9 +444,7 @@ class FolderDrawer extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF262628)
-          : const Color(0xFFFDFBFA),
+      backgroundColor: DesignColors.background(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -493,35 +461,36 @@ class FolderDrawer extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Edit Folder',
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(sheetContext),
-                    ),
-                  ],
+                DesignSheetHeader(
+                  title: 'Edit Folder',
+                  onClose: () => Navigator.pop(sheetContext),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Name Input
                 TextField(
                   controller: nameController,
                   autofocus: true,
-                  decoration: const InputDecoration(
+                  style: DesignTypography.body(context, fontSize: 16),
+                  decoration: InputDecoration(
                     hintText: 'Folder name',
-                    fillColor: Colors.transparent,
-                    filled: false,
-                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
+                    filled: true,
+                    fillColor: DesignColors.surfaceVariant(context),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                      borderSide: BorderSide(color: DesignColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                      borderSide: BorderSide(color: DesignColors.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  style: GoogleFonts.inter(fontSize: 16),
                 ),
                 const SizedBox(height: 20),
 
@@ -542,7 +511,8 @@ class FolderDrawer extends ConsumerWidget {
                         const SizedBox(width: 10),
                         Text(
                           'Folder Color',
-                          style: GoogleFonts.inter(
+                          style: DesignTypography.body(
+                            context,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -553,7 +523,7 @@ class FolderDrawer extends ConsumerWidget {
                       icon: const Icon(Icons.color_lens_outlined, size: 16),
                       label: Text(
                         'Change',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        style: DesignTypography.body(context, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
                       ),
                       onPressed: () async {
                         final pickedColor = await showDialog<Color>(
@@ -574,8 +544,10 @@ class FolderDrawer extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Submit Button
-                ElevatedButton(
-                  onPressed: () async {
+                DesignPrimaryButton(
+                  label: 'Save Changes',
+                  backgroundColor: selectedColor,
+                  onTap: () async {
                     final name = nameController.text.trim();
                     if (name.isNotEmpty) {
                       final hex = '#${selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
@@ -585,25 +557,11 @@ class FolderDrawer extends ConsumerWidget {
                             hex,
                             folder.icon,
                           );
-                      ref.invalidate(foldersProvider);
                       if (sheetContext.mounted) {
                         Navigator.pop(sheetContext);
                       }
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: selectedColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(
-                    'Save Changes',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
                 ),
               ],
             ),

@@ -2,69 +2,24 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
-import '../../../core/database/database_helper.dart';
+import '../../../core/database/database_providers.dart';
 import '../../../core/utils/utils.dart';
-import '../../folders/data/folder_repository.dart';
 import 'note_model.dart';
 
 // ─── Repository Provider ──────────────────────────────────────────────────────
 
 final noteRepositoryProvider = Provider<NoteRepository>((ref) {
-  return NoteRepository(DatabaseHelper.instance);
-});
-
-// ─── Notes List Providers ─────────────────────────────────────────────────────
-
-enum NoteSort { updated, created, title }
-
-final noteSortProvider = StateProvider<NoteSort>((ref) => NoteSort.updated);
-
-final notesProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
-  final repo = ref.watch(noteRepositoryProvider);
-  final sort = ref.watch(noteSortProvider);
-  
-  final folderId = ref.watch(selectedFolderIdProvider);
-  if (folderId != null) {
-    final folderRepo = ref.watch(folderRepositoryProvider);
-    return folderRepo.getNotesInFolder(folderId, sort: sort);
-  }
-  
-  return repo.getAllNotes(sort: sort);
-});
-
-
-final searchQueryProvider = StateProvider<String>((ref) => '');
-
-final searchResultsProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
-  final query = ref.watch(searchQueryProvider);
-  final repo = ref.watch(noteRepositoryProvider);
-  if (query.trim().isEmpty) return [];
-  return repo.searchNotes(query);
-});
-
-final noteByIdProvider = FutureProvider.autoDispose.family<Note?, String>((ref, id) async {
-  final repo = ref.watch(noteRepositoryProvider);
-  return repo.getNoteById(id);
-});
-
-final backlinksProvider = FutureProvider.autoDispose.family<List<Backlink>, String>((ref, noteId) async {
-  final repo = ref.watch(noteRepositoryProvider);
-  return repo.getBacklinks(noteId);
-});
-
-final graphDataProvider = FutureProvider.autoDispose<({List<GraphNode> nodes, List<GraphEdge> edges})>((ref) async {
-  final repo = ref.watch(noteRepositoryProvider);
-  return repo.getGraphData();
+  return NoteRepository(ref);
 });
 
 // ─── Repository ───────────────────────────────────────────────────────────────
 
 class NoteRepository {
-  final DatabaseHelper _dbHelper;
+  final Ref _ref;
 
-  NoteRepository(this._dbHelper);
+  NoteRepository(this._ref);
 
-  Future<Database> get _db => _dbHelper.database;
+  Future<Database> get _db => _ref.read(databaseProvider.future);
 
   // ── CREATE ────────────────────────────────────────────────────────────────
 
@@ -102,6 +57,7 @@ class NoteRepository {
     );
 
     await db.insert('notes', note.toMap());
+    _ref.read(notesVersionProvider.notifier).state++;
     return note;
   }
 
@@ -126,6 +82,7 @@ class NoteRepository {
 
     final db = await _db;
     await db.insert('notes', note.toMap());
+    _ref.read(notesVersionProvider.notifier).state++;
     return note;
   }
 
@@ -351,6 +308,7 @@ class NoteRepository {
         );
       }
     });
+    _ref.read(notesVersionProvider.notifier).state++;
   }
 
   // ── DELETE ────────────────────────────────────────────────────────────────
@@ -365,5 +323,6 @@ class NoteRepository {
 
     final db = await _db;
     await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+    _ref.read(notesVersionProvider.notifier).state++;
   }
 }

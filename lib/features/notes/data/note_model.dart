@@ -1,3 +1,6 @@
+/// Sorting order for retrieving notes from the database.
+enum NoteSort { updated, created, title }
+
 /// Note model representing a single .md file entry in the SQLite index.
 class Note {
   final String id;

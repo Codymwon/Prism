@@ -111,8 +111,6 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       final repo = ref.read(noteRepositoryProvider);
       await repo.deleteNote(_conflictNote!.id);
       
-      ref.invalidate(notesProvider);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -145,8 +143,6 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
 
       // Delete conflict copy
       await repo.deleteNote(_conflictNote!.id);
-
-      ref.invalidate(notesProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -189,8 +185,6 @@ $_conflictContent
 
       // Delete conflict copy
       await repo.deleteNote(_conflictNote!.id);
-
-      ref.invalidate(notesProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

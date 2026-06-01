@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/database/database_helper.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../data/onboarding_provider.dart';
@@ -126,16 +125,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
+      backgroundColor: DesignColors.background(context),
       body: SafeArea(
         child: _isSettingUp
-            ? _buildSetupLoading(colorScheme, isDark)
+            ? _buildSetupLoading(colorScheme)
             : _showVaultSetup
-                ? _buildVaultSetupStep(colorScheme, isDark)
+                ? _buildVaultSetupStep(colorScheme)
                 : Column(
                     children: [
                       // Upper Top Skip Button
@@ -147,8 +145,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             onPressed: () => setState(() => _showVaultSetup = true),
                             child: Text(
                               'Skip',
-                              style: GoogleFonts.inter(
-                                color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                              style: DesignTypography.body(
+                                context,
+                                color: DesignColors.textSecondary(context),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -162,7 +161,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           controller: _pageController,
                           onPageChanged: (idx) => setState(() => _currentPage = idx),
                           itemCount: _slides.length,
-                          itemBuilder: (context, idx) => _buildSlide(_slides[idx], isDark),
+                          itemBuilder: (context, idx) => _buildSlide(_slides[idx]),
                         ),
                       ),
 
@@ -177,9 +176,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               controller: _pageController,
                               count: _slides.length,
                               effect: ExpandingDotsEffect(
-                                dotColor: isDark
-                                    ? MeridianColors.darkBorder.withValues(alpha: 0.5)
-                                    : MeridianColors.lightBorder.withValues(alpha: 0.5),
+                                dotColor: DesignColors.border(context).withValues(alpha: 0.5),
                                 activeDotColor: colorScheme.primary,
                                 dotHeight: 8,
                                 dotWidth: 8,
@@ -205,14 +202,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         onPressed: () {},
                                         label: Text(
                                           'Start Writing',
-                                          style: GoogleFonts.inter(
+                                          style: DesignTypography.heading(
+                                            context,
                                             fontWeight: FontWeight.w600,
                                             fontSize: 14,
+                                            color: Colors.white,
                                           ),
                                         ),
                                         icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                                         backgroundColor: colorScheme.primary,
-                                        foregroundColor: colorScheme.onPrimary,
+                                        foregroundColor: Colors.white,
                                       ),
                                     )
                                   : TactileWrapper(
@@ -224,9 +223,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       ),
                                       child: FloatingActionButton(
                                         onPressed: () {},
-                                        backgroundColor: isDark
-                                            ? MeridianColors.darkSurface
-                                            : MeridianColors.lightSurface,
+                                        backgroundColor: DesignColors.surface(context),
                                         foregroundColor: colorScheme.primary,
                                         elevation: 1,
                                         shape: const CircleBorder(),
@@ -243,7 +240,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildSlide(OnboardingSlide slide, bool isDark) {
+  Widget _buildSlide(OnboardingSlide slide) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Column(
@@ -279,11 +276,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // Subtitle (curated sub-brand)
           Text(
             slide.subtitle.toUpperCase(),
-            style: GoogleFonts.inter(
+            style: DesignTypography.metadata(
+              context,
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-              color: isDark ? MeridianColors.darkPrimary : MeridianColors.lightPrimary,
+              color: DesignColors.primary(context),
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
@@ -292,11 +289,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // Main Title
           Text(
             slide.title,
-            style: GoogleFonts.inter(
+            style: DesignTypography.display(
+              context,
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
-              letterSpacing: -0.5,
+              color: DesignColors.text(context),
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
@@ -305,10 +302,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // Description
           Text(
             slide.description,
-            style: GoogleFonts.inter(
+            style: DesignTypography.body(
+              context,
               fontSize: 14,
               height: 1.6,
-              color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+              color: DesignColors.textSecondary(context),
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
@@ -317,11 +315,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildVaultSetupStep(ColorScheme colorScheme, bool isDark) {
-    final cardBg = isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface;
-    final cardBorder = isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder;
-    final textStyle = isDark ? MeridianColors.darkText : MeridianColors.lightText;
-    final textSecStyle = isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary;
+  Widget _buildVaultSetupStep(ColorScheme colorScheme) {
+    final cardBg = DesignColors.surface(context);
+    final cardBorder = DesignColors.border(context);
+    final textStyle = DesignColors.text(context);
+    final textSecStyle = DesignColors.textSecondary(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
@@ -331,27 +329,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // Elegant Header
           Text(
             'CREATE YOUR WORKSPACE',
-            style: GoogleFonts.inter(
+            style: DesignTypography.metadata(
+              context,
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
               color: colorScheme.primary,
             ),
           ).animate().fadeIn().slideY(begin: 0.2),
           const SizedBox(height: 8),
           Text(
             'Configure Vault Location',
-            style: GoogleFonts.inter(
+            style: DesignTypography.display(
+              context,
               fontSize: 26,
               fontWeight: FontWeight.w800,
               color: textStyle,
-              letterSpacing: -0.5,
             ),
           ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
           const SizedBox(height: 12),
           Text(
             'Meridian stores all your notes directly on your device. Choose where your vault folder lives. You can create and switch between multiple vaults later.',
-            style: GoogleFonts.inter(
+            style: DesignTypography.body(
+              context,
               fontSize: 14,
               height: 1.6,
               color: textSecStyle,
@@ -362,7 +361,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // Vault Name input
           Text(
             'Initial Vault Name',
-            style: GoogleFonts.inter(
+            style: DesignTypography.body(
+              context,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: textStyle,
@@ -371,15 +371,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _vaultNameController,
-            style: GoogleFonts.inter(fontSize: 14, color: textStyle),
+            style: DesignTypography.body(context, fontSize: 14, color: textStyle),
             decoration: InputDecoration(
               filled: true,
-              fillColor: isDark ? MeridianColors.darkSurfaceVariant : MeridianColors.lightSurfaceVariant,
+              fillColor: DesignColors.surfaceVariant(context),
               hintText: 'e.g. My Vault, Personal, Research',
-              hintStyle: GoogleFonts.inter(color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary),
+              hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
                 borderSide: BorderSide(color: cardBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                borderSide: BorderSide(color: cardBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
               prefixIcon: Icon(Icons.drive_file_rename_outline_rounded, size: 18, color: colorScheme.primary),
             ),
@@ -388,7 +396,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           Text(
             'Storage Directory Location',
-            style: GoogleFonts.inter(
+            style: DesignTypography.body(
+              context,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: textStyle,
@@ -431,12 +440,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           children: [
                             Text(
                               'Default Storage (Recommended)',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
+                              style: DesignTypography.body(context, fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Recommended. Kept safe in the app\'s internal documents sandbox folder.',
-                              style: GoogleFonts.inter(fontSize: 12, color: textSecStyle),
+                              style: DesignTypography.details(context, fontSize: 12, color: textSecStyle),
                             ),
                           ],
                         ),
@@ -488,14 +497,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               children: [
                                 Text(
                                   'Custom Local Folder',
-                                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
+                                  style: DesignTypography.body(context, fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
                                 ),
                                 if (!_useDefaultLocation)
                                   GestureDetector(
                                     onTap: _pickCustomLocation,
                                     child: Text(
                                       'Change',
-                                      style: GoogleFonts.inter(fontSize: 12, color: colorScheme.primary, fontWeight: FontWeight.bold),
+                                      style: DesignTypography.body(context, fontSize: 12, color: colorScheme.primary, fontWeight: FontWeight.bold),
                                     ),
                                   ),
                               ],
@@ -505,7 +514,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               !_useDefaultLocation && _customLocationPath.isNotEmpty
                                   ? _customLocationPath
                                   : 'Select any local folder (perfect for syncing with Obsidian, Syncthing, etc.)',
-                              style: GoogleFonts.inter(fontSize: 12, color: textSecStyle),
+                              style: DesignTypography.details(context, fontSize: 12, color: textSecStyle),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -521,49 +530,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 40),
 
           // Confirm Action Button
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: TactileWrapper(
-              style: TactileFeedbackStyle.highImpact,
-              onTap: (!_useDefaultLocation && _customLocationPath.isEmpty)
-                  ? _pickCustomLocation
-                  : () {
-                      if (_vaultNameController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter a valid name for your vault.')),
-                        );
-                        return;
-                      }
-                      _completeOnboarding();
-                    },
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 2,
-                ),
-                child: Text(
-                  (!_useDefaultLocation && _customLocationPath.isEmpty)
-                      ? 'Select Custom Directory'
-                      : 'Confirm & Initialize Workspace',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
-            ),
+          DesignPrimaryButton(
+            label: (!_useDefaultLocation && _customLocationPath.isEmpty)
+                ? 'Select Custom Directory'
+                : 'Confirm & Initialize Workspace',
+            onTap: (!_useDefaultLocation && _customLocationPath.isEmpty)
+                ? _pickCustomLocation
+                : () {
+                    if (_vaultNameController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a valid name for your vault.')),
+                      );
+                      return;
+                    }
+                    _completeOnboarding();
+                  },
           ).animate().fadeIn(delay: 350.ms),
         ],
       ),
     );
   }
 
-  Widget _buildSetupLoading(ColorScheme colorScheme, bool isDark) {
+  Widget _buildSetupLoading(ColorScheme colorScheme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -579,18 +567,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 24),
           Text(
             'Setting up Meridian…',
-            style: GoogleFonts.inter(
+            style: DesignTypography.heading(
+              context,
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+              color: DesignColors.text(context),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Preparing onboarding guides and setting up workspace.',
-            style: GoogleFonts.inter(
+            style: DesignTypography.details(
+              context,
               fontSize: 12,
-              color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+              color: DesignColors.textSecondary(context),
             ),
           ),
         ],
