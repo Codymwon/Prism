@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../notes/data/note_repository.dart';
-import '../../../notes/data/note_model.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 
 class WikilinkAutocomplete extends ConsumerWidget {
   final String query;
@@ -22,8 +21,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    final repo = ref.read(noteRepositoryProvider);
-    final suggestionsFuture = repo.getTitleSuggestions(query);
+    final suggestionsAsync = ref.watch(autocompleteSuggestionsProvider(query));
 
     return Positioned(
       left: 16,
@@ -31,10 +29,8 @@ class WikilinkAutocomplete extends ConsumerWidget {
       bottom: 60 + MediaQuery.of(context).viewInsets.bottom,
       child: Material(
         color: Colors.transparent,
-        child: FutureBuilder<List<Note>>(
-          future: suggestionsFuture,
-          builder: (context, snapshot) {
-            final notes = snapshot.data ?? [];
+        child: suggestionsAsync.when(
+          data: (notes) {
             final showCreate = notes.isEmpty ||
                 !notes.any((n) => n.title.toLowerCase() == query.toLowerCase());
 
@@ -130,6 +126,31 @@ class WikilinkAutocomplete extends ConsumerWidget {
               ),
             ).animate().fadeIn(duration: 150.ms).slideY(begin: 0.1);
           },
+          loading: () => Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+          error: (err, stack) => const SizedBox.shrink(),
         ),
       ),
     );

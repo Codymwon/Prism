@@ -32,7 +32,28 @@ final searchResultsProvider = FutureProvider.autoDispose<List<Note>>((ref) async
   final query = ref.watch(searchQueryProvider);
   final repo = ref.watch(noteRepositoryProvider);
   if (query.trim().isEmpty) return [];
+  
+  bool didDispose = false;
+  ref.onDispose(() => didDispose = true);
+  
+  await Future.delayed(const Duration(milliseconds: 250));
+  if (didDispose) return [];
+  
   return repo.searchNotes(query);
+});
+
+final autocompleteSuggestionsProvider = FutureProvider.autoDispose.family<List<Note>, String>((ref, query) async {
+  ref.watch(notesVersionProvider);
+  final repo = ref.watch(noteRepositoryProvider);
+  if (query.trim().isEmpty) return [];
+  
+  bool didDispose = false;
+  ref.onDispose(() => didDispose = true);
+  
+  await Future.delayed(const Duration(milliseconds: 150));
+  if (didDispose) return [];
+  
+  return repo.getTitleSuggestions(query);
 });
 
 final noteByIdProvider = FutureProvider.autoDispose.family<Note?, String>((ref, id) async {

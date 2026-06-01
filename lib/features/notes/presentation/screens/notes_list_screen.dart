@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../data/note_repository.dart';
@@ -204,7 +203,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final baseDir = ref.read(baseVaultsDirectoryProvider);
     final activeVault = ref.read(activeVaultNameProvider);
 
-    final vaults = ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
+    final vaults = await ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
+    if (!context.mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -345,6 +345,13 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               onPressed: () async {
                 final name = controller.text.trim();
                 if (name.isEmpty) return;
+                final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+                if (!safePattern.hasMatch(name)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
+                  );
+                  return;
+                }
                 Navigator.pop(ctx);
                 await _createNewVault(name);
               },
@@ -654,27 +661,12 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               ],
             ),
             childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            children: notes.isEmpty
-                ? [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12.0),
-                      child: Text(
-                        'No notes in this category.',
-                        style: DesignTypography.body(
-                          context,
-                          fontSize: 12,
-                          color: DesignColors.textSecondary(context),
-                        ).copyWith(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  ]
-                : notes.map((note) {
-                    return NoteCard(
-                      note: note,
-                      onTap: () => context.push('/editor/${note.id}'),
-                      onDelete: () => _deleteNote(note.id),
-                    );
-                  }).toList(),
+            children: [
+              _AccordionNotesList(
+                notes: notes,
+                onDelete: _deleteNote,
+              ),
+            ],
           ),
         ),
       ),
@@ -795,5 +787,42 @@ class _SkeletonNoteCard extends StatelessWidget {
         ],
       ),
     ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1200.ms, color: bg.withValues(alpha: 0.5));
+  }
+}
+
+class _AccordionNotesList extends StatelessWidget {
+  final List<Note> notes;
+  final Function(String) onDelete;
+
+  const _AccordionNotesList({
+    required this.notes,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (notes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Text(
+          'No notes in this category.',
+          style: DesignTypography.body(
+            context,
+            fontSize: 12,
+            color: DesignColors.textSecondary(context),
+          ).copyWith(fontStyle: FontStyle.italic),
+        ),
+      );
+    }
+
+    return Column(
+      children: notes.map((note) {
+        return NoteCard(
+          note: note,
+          onTap: () => context.push('/editor/${note.id}'),
+          onDelete: () => onDelete(note.id),
+        );
+      }).toList(),
+    );
   }
 }

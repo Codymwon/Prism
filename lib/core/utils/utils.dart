@@ -21,7 +21,9 @@ Future<String> getVaultPath() async {
   final activeVault = prefs.getString('activeVaultName') ?? 'My Vault';
   final vaultPath = p.join(baseDir, activeVault);
   final vault = Directory(vaultPath);
-  if (!vault.existsSync()) vault.createSync(recursive: true);
+  if (!await vault.exists()) {
+    await vault.create(recursive: true);
+  }
   return vault.path;
 }
 

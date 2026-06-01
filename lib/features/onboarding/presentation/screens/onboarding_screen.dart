@@ -537,9 +537,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             onTap: (!_useDefaultLocation && _customLocationPath.isEmpty)
                 ? _pickCustomLocation
                 : () {
-                    if (_vaultNameController.text.trim().isEmpty) {
+                    final vaultName = _vaultNameController.text.trim();
+                    if (vaultName.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Please enter a valid name for your vault.')),
+                      );
+                      return;
+                    }
+                    final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+                    if (!safePattern.hasMatch(vaultName)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
                       );
                       return;
                     }

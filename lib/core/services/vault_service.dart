@@ -11,13 +11,14 @@ final vaultServiceProvider = Provider<VaultService>((ref) {
 });
 
 class VaultService {
-  /// Scans subdirectories in base directory to list available vaults
-  List<String> getAvailableVaults(String baseDir, String activeVault) {
+  /// Scans subdirectories in base directory to list available vaults asynchronously
+  Future<List<String>> getAvailableVaults(String baseDir, String activeVault) async {
     List<String> vaults = [];
     try {
       final dir = Directory(baseDir);
-      if (dir.existsSync()) {
-        vaults = dir.listSync()
+      if (await dir.exists()) {
+        final list = await dir.list().toList();
+        vaults = list
             .whereType<Directory>()
             .map((d) => p.basename(d.path))
             .where((name) => !name.startsWith('.'))
@@ -47,16 +48,20 @@ class VaultService {
     ref.read(selectedFolderIdProvider.notifier).state = null;
   }
 
-  /// Creates a physical directory for a vault and initializes it with a welcome note
+  /// Creates a physical directory for a vault and initializes it with a welcome note asynchronously
   Future<void> createVault({
     required String vaultName,
     required String baseDir,
     required WidgetRef ref,
   }) async {
+    final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+    if (!safePattern.hasMatch(vaultName)) {
+      throw ArgumentError('Invalid vault name: only letters, numbers, spaces, hyphens, and underscores are allowed.');
+    }
     final newVaultPath = p.join(baseDir, vaultName);
     final dir = Directory(newVaultPath);
-    if (!dir.existsSync()) {
-      dir.createSync(recursive: true);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
     }
 
     // Set new active vault (saves to SharedPreferences)
@@ -73,7 +78,7 @@ class VaultService {
     ref.read(selectedFolderIdProvider.notifier).state = null;
   }
 
-  /// Safely relocates base vaults directory path and loads/creates active vaults inside
+  /// Safely relocates base vaults directory path and loads/creates active vaults inside asynchronously
   Future<void> changeBaseDirectory({
     required String newPath,
     required WidgetRef ref,
@@ -81,11 +86,12 @@ class VaultService {
     // Update base vaults directory provider (saves to SharedPreferences)
     await ref.read(baseVaultsDirectoryProvider.notifier).setDirectory(newPath);
 
-    // Find if there are existing vaults
+    // Find if there are existing vaults asynchronously
     final dir = Directory(newPath);
     List<String> vaults = [];
-    if (dir.existsSync()) {
-      vaults = dir.listSync()
+    if (await dir.exists()) {
+      final list = await dir.list().toList();
+      vaults = list
           .whereType<Directory>()
           .map((d) => p.basename(d.path))
           .where((name) => !name.startsWith('.'))
@@ -96,10 +102,10 @@ class VaultService {
     if (vaults.isNotEmpty) {
       activeVault = vaults.first;
     } else {
-      // Create a default vault folder inside the new directory
+      // Create a default vault folder inside the new directory asynchronously
       final newVaultPath = p.join(newPath, activeVault);
       final vaultDir = Directory(newVaultPath);
-      if (!vaultDir.existsSync()) vaultDir.createSync(recursive: true);
+      if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
 
       // Initialize starter notes inside it
       final welcomeFile = File(p.join(newVaultPath, 'welcome.md'));

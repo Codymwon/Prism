@@ -130,6 +130,10 @@ class NoteRepository {
   }
 
   Future<List<Note>> searchNotes(String query) async {
+    // Strip FTS special control characters to avoid syntax error crashes
+    final sanitizedQuery = query.replaceAll(RegExp(r'[^\w\s\-]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (sanitizedQuery.isEmpty) return [];
+
     final db = await _db;
     // Use FTS4 for full-text search
     final maps = await db.rawQuery(
@@ -140,7 +144,7 @@ class NoteRepository {
       ORDER BY n.updated_at DESC
       LIMIT 50
       ''',
-      ['$query*'],
+      ['$sanitizedQuery*'],
     );
     return maps.map(Note.fromMap).toList();
   }
@@ -317,9 +321,11 @@ class NoteRepository {
     final note = await getNoteById(id);
     if (note == null) return;
 
-    // Delete file from disk
+    // Delete file from disk asynchronously
     final file = File(note.filePath);
-    if (file.existsSync()) file.deleteSync();
+    if (await file.exists()) {
+      await file.delete();
+    }
 
     final db = await _db;
     await db.delete('notes', where: 'id = ?', whereArgs: [id]);

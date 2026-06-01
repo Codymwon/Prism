@@ -74,16 +74,16 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
         return;
       }
 
-      // Read contents from files
+      // Read contents from files asynchronously
       String conflictText = '';
       final conflictFile = File(conflict.filePath);
-      if (conflictFile.existsSync()) {
+      if (await conflictFile.exists()) {
         conflictText = await conflictFile.readAsString();
       }
 
       String originalText = '';
       final originalFile = File(original.filePath);
-      if (originalFile.existsSync()) {
+      if (await originalFile.exists()) {
         originalText = await originalFile.readAsString();
       }
 

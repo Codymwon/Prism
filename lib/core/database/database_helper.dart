@@ -54,42 +54,53 @@ class DatabaseHelper {
   Future<void> _syncVaultFiles(Database db, String vaultPath) async {
     try {
       final dir = Directory(vaultPath);
-      if (!dir.existsSync()) return;
+      if (!await dir.exists()) return;
 
-      final files = dir.listSync()
+      final fileList = await dir.list().toList();
+      final files = fileList
           .whereType<File>()
           .where((f) => f.path.endsWith('.md'))
           .toList();
 
-      for (final file in files) {
-        final filePath = file.path;
-        final existing = await db.query(
-          'notes',
-          columns: ['id'],
-          where: 'file_path = ?',
-          whereArgs: [filePath],
-        );
-        if (existing.isEmpty) {
-          final content = await file.readAsString();
-          final title = extractTitle(content);
-          final wordCount = countWords(content);
-          final now = file.lastModifiedSync();
-          final noteId = generateId();
+      if (files.isEmpty) return;
 
-          await db.insert('notes', {
-            'id': noteId,
-            'title': title,
-            'file_path': filePath,
-            'word_count': wordCount,
-            'created_at': now.millisecondsSinceEpoch,
-            'updated_at': now.millisecondsSinceEpoch,
-            'is_ghost': 0,
-            'is_daily': 0,
-            'daily_date': null,
-            'is_conflicted': 0,
-            'original_note_id': null,
-          });
+      // Query all existing file paths at once to avoid N individual database select roundtrips
+      final existingNotes = await db.query('notes', columns: ['file_path']);
+      final existingPaths = existingNotes.map((n) => n['file_path'] as String).toSet();
+
+      final List<File> filesToSync = [];
+      for (final file in files) {
+        if (!existingPaths.contains(file.path)) {
+          filesToSync.add(file);
         }
+      }
+
+      if (filesToSync.isNotEmpty) {
+        // Conduct bulk insertions inside a single transaction to minimize sqlite disk-sync overhead
+        await db.transaction((txn) async {
+          for (final file in filesToSync) {
+            final filePath = file.path;
+            final content = await file.readAsString();
+            final title = extractTitle(content);
+            final wordCount = countWords(content);
+            final lastMod = await file.lastModified();
+            final noteId = generateId();
+
+            await txn.insert('notes', {
+              'id': noteId,
+              'title': title,
+              'file_path': filePath,
+              'word_count': wordCount,
+              'created_at': lastMod.millisecondsSinceEpoch,
+              'updated_at': lastMod.millisecondsSinceEpoch,
+              'is_ghost': 0,
+              'is_daily': 0,
+              'daily_date': null,
+              'is_conflicted': 0,
+              'original_note_id': null,
+            });
+          }
+        });
       }
     } catch (e) {
       // Safely ignore errors during scan so the app doesn't crash

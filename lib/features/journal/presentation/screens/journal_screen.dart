@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
@@ -11,7 +10,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/data/note_model.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../../core/database/database_providers.dart';
 
 final _selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());

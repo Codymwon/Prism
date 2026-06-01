@@ -7,7 +7,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
 import '../../../notes/data/note_repository.dart';
@@ -74,8 +73,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     String content = '';
     final file = File(note.filePath);
-    if (file.existsSync()) {
-      content = file.readAsStringSync();
+    if (await file.exists()) {
+      content = await file.readAsString();
     } else {
       content = '# ${note.title}\n\n';
     }
