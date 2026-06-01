@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
+import '../../../../core/utils/utils.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
@@ -15,6 +16,7 @@ final noteSortProvider = StateProvider<NoteSort>((ref) => NoteSort.updated);
 final selectedTagProvider = StateProvider<String?>((ref) => null);
 
 final notesProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
@@ -35,12 +37,14 @@ final notesProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
 });
 
 final uniqueTagsProvider = FutureProvider.autoDispose<List<String>>((ref) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getUniqueTags();
 });
 
 final vaultStatsProvider = FutureProvider.autoDispose<({int totalNotes, int totalWords, int totalLinks})>((ref) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getVaultStats();
@@ -49,6 +53,7 @@ final vaultStatsProvider = FutureProvider.autoDispose<({int totalNotes, int tota
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
 final searchResultsProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final query = ref.watch(searchQueryProvider);
   final repo = ref.watch(noteRepositoryProvider);
@@ -64,6 +69,7 @@ final searchResultsProvider = FutureProvider.autoDispose<List<Note>>((ref) async
 });
 
 final autocompleteSuggestionsProvider = FutureProvider.autoDispose.family<List<Note>, String>((ref, query) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   if (query.trim().isEmpty) return [];
@@ -78,18 +84,21 @@ final autocompleteSuggestionsProvider = FutureProvider.autoDispose.family<List<N
 });
 
 final noteByIdProvider = FutureProvider.autoDispose.family<Note?, String>((ref, id) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getNoteById(id);
 });
 
 final backlinksProvider = FutureProvider.autoDispose.family<List<Backlink>, String>((ref, noteId) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getBacklinks(noteId);
 });
 
 final graphDataProvider = FutureProvider.autoDispose<({List<GraphNode> nodes, List<GraphEdge> edges})>((ref) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
@@ -135,6 +144,7 @@ final homeScreenDataProvider = Provider.autoDispose<AsyncValue<HomeScreenData>>(
 });
 
 final noteDetailsProvider = FutureProvider.autoDispose.family<({List<String> tags, String snippet}), Note>((ref, note) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   
@@ -175,3 +185,70 @@ String _getCleanSnippet(String content) {
   }
   return clean;
 }
+
+// ─── Daily Journal Log & Streak Providers ─────────────────────────────────────
+
+final allDailyDatesProvider = FutureProvider.autoDispose<Set<String>>((ref) async {
+  await ref.watch(databaseProvider.future);
+  ref.watch(notesVersionProvider);
+  
+  final db = await ref.watch(databaseProvider.future);
+  final maps = await db.query(
+    'notes',
+    columns: ['daily_date'],
+    where: 'is_daily = 1 AND is_ghost = 0',
+  );
+  return maps
+      .map((m) => m['daily_date'] as String?)
+      .where((d) => d != null && d.isNotEmpty)
+      .cast<String>()
+      .toSet();
+});
+
+final journalStreakProvider = FutureProvider.autoDispose<({int streak, int totalCount})>((ref) async {
+  final datesSet = await ref.watch(allDailyDatesProvider.future);
+  if (datesSet.isEmpty) {
+    return (streak: 0, totalCount: 0);
+  }
+
+  // Compute current consecutive writing streak
+  int streak = 0;
+  DateTime checkDate = DateTime.now();
+  String checkStr = formatDailyDate(checkDate);
+
+  // If no entry for today, check starting from yesterday to allow today's entry to be pending
+  if (!datesSet.contains(checkStr)) {
+    checkDate = checkDate.subtract(const Duration(days: 1));
+    checkStr = formatDailyDate(checkDate);
+  }
+
+  while (datesSet.contains(checkStr)) {
+    streak++;
+    checkDate = checkDate.subtract(const Duration(days: 1));
+    checkStr = formatDailyDate(checkDate);
+  }
+
+  return (streak: streak, totalCount: datesSet.length);
+});
+
+// ─── Daily Note Content Provider (family by date string) ──────────────────────
+// Properly named family provider — avoids the inline FutureProvider anti-pattern
+// which creates a new provider instance on every build() call causing flicker.
+final dailyNoteProvider = FutureProvider.autoDispose.family<({Note note, String content})?, String>((ref, dateStr) async {
+  await ref.watch(databaseProvider.future);
+  ref.watch(notesVersionProvider);
+
+  final repo = ref.watch(noteRepositoryProvider);
+  final note = await repo.getDailyNote(dateStr);
+  if (note == null) return null;
+
+  String content = '';
+  try {
+    final file = File(note.filePath);
+    if (await file.exists()) {
+      content = await file.readAsString();
+    }
+  } catch (_) {}
+
+  return (note: note, content: content);
+});

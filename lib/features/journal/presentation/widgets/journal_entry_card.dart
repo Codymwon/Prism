@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
+import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../notes/data/note_model.dart';
 
 class JournalEntryCard extends StatelessWidget {
@@ -17,22 +17,28 @@ class JournalEntryCard extends StatelessWidget {
   String _getCleanPreview(String content) {
     final lines = content.split('\n');
     final previewLines = <String>[];
+    bool isFirstH1 = true;
+    
     for (var line in lines) {
       final trimmed = line.trim();
       if (trimmed.isEmpty) continue;
-      if (trimmed.startsWith('#')) continue; // Skip titles / headers
+      
+      // Skip the very first H1 title (usually the date, e.g. "# 2026-06-01") since it's redundant with the screen header
+      if (trimmed.startsWith('# ') && isFirstH1) {
+        isFirstH1 = false;
+        continue;
+      }
       
       var cleanLine = trimmed;
-      if (cleanLine.startsWith('- ')) {
-        cleanLine = cleanLine.substring(2);
-      } else if (cleanLine.startsWith('* ')) {
-        cleanLine = cleanLine.substring(2);
+      if (cleanLine.startsWith('#')) {
+        // Strip out the leading # symbols but keep the clean heading text
+        cleanLine = cleanLine.replaceFirst(RegExp(r'^#+\s*'), '');
       }
       
       if (cleanLine.isNotEmpty) {
         previewLines.add(cleanLine);
       }
-      if (previewLines.length >= 3) break; // Fetch up to 3 content lines
+      if (previewLines.length >= 6) break; // Fetch up to 6 lines for a premium, complete reflection preview
     }
     
     if (previewLines.isEmpty) {
@@ -46,7 +52,8 @@ class JournalEntryCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final previewText = _getCleanPreview(content);
 
-    return GestureDetector(
+    return TactileWrapper(
+      style: TactileFeedbackStyle.highImpact,
       onTap: () => context.push('/editor/${note.id}'),
       child: Container(
         width: double.infinity,
@@ -109,7 +116,7 @@ class JournalEntryCard extends StatelessWidget {
                   color: DesignColors.textSecondary(context),
                   height: 1.5,
                 ).copyWith(fontStyle: previewText.startsWith('No text') ? FontStyle.italic : FontStyle.normal),
-                maxLines: 3,
+                maxLines: 6,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -137,6 +144,6 @@ class JournalEntryCard extends StatelessWidget {
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.97, 0.97));
+    );
   }
 }

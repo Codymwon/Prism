@@ -330,26 +330,69 @@ class _AppMockupPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Center aligned App Bar Title
+        // Center aligned App Bar Title matching real screen
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Icon(Icons.menu_rounded, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-            Text(
-              'MERIDIAN',
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-                color: primaryColor,
-                fontSize: 9,
-              ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'MERIDIAN',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                    color: primaryColor,
+                    fontSize: 7.5,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                      width: 0.3,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.folder_open_outlined,
+                        size: 7,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(width: 2.5),
+                      Text(
+                        'My Vault',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 6.5,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 8,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Icon(Icons.view_headline_rounded, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+            Icon(Icons.view_list_rounded, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
 
-        // Search Bar mockup
+        // Search Bar + Sort Button Row matching real screen
         Row(
           children: [
             Expanded(
@@ -391,19 +434,7 @@ class _AppMockupPreview extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // Folders pills row
-        Row(
-          children: [
-            _buildMockPill(context, 'Inbox (4)', primaryColor, isSelected: true),
-            const SizedBox(width: 5),
-            _buildMockPill(context, '#Design', theme.colorScheme.onSurface.withValues(alpha: 0.5), isSelected: false),
-            const SizedBox(width: 5),
-            _buildMockPill(context, '#Journal', theme.colorScheme.onSurface.withValues(alpha: 0.5), isSelected: false),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        // Note Card item
+        // Note Card item 1
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -417,18 +448,12 @@ class _AppMockupPreview extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Color & Visual Fatigue',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                    ),
-                  ),
-                  Icon(Icons.push_pin_rounded, size: 10, color: primaryColor.withValues(alpha: 0.6)),
-                ],
+              Text(
+                'Color & Visual Fatigue',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
+                ),
               ),
               const SizedBox(height: 3),
               Text(
@@ -445,11 +470,59 @@ class _AppMockupPreview extends StatelessWidget {
               Row(
                 children: [
                   _buildMockTag(context, '#Editorial', primaryColor),
-                  const SizedBox(width: 4),
-                  _buildMockTag(context, '10 min ago', theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                  const Spacer(),
+                  Text(
+                    '10 min ago • 120 words',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 7.5,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
                 ],
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 6),
+
+        // Partially visible Note Card item 2 to indicate scrollable list
+        Expanded(
+          child: Opacity(
+            opacity: 0.5,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.25),
+                  width: 0.8,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Workspace Setup',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Organizing physical and digital workspaces for maximum concentration and minimal visual...',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 8.5,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      height: 1.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -461,18 +534,18 @@ class _AppMockupPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Editor app bar
+        // Editor App Bar matching real screen
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                Icon(Icons.chevron_left_rounded, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-                const SizedBox(width: 4),
+                Icon(Icons.arrow_back_rounded, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                const SizedBox(width: 6),
                 Text(
                   'Creative Design',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 9.5,
                   ),
                 ),
@@ -480,16 +553,16 @@ class _AppMockupPreview extends StatelessWidget {
             ),
             Row(
               children: [
-                Icon(Icons.folder_open_rounded, size: 13, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                Icon(Icons.folder_open_outlined, size: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                 const SizedBox(width: 10),
-                Icon(Icons.menu_book_rounded, size: 13, color: primaryColor), // Preview active
+                Icon(Icons.edit_outlined, size: 12, color: primaryColor), // Preview mode toggled back
               ],
             ),
           ],
         ),
-        const Divider(height: 14, thickness: 0.5),
+        const Divider(height: 12, thickness: 0.5),
 
-        // Editor typography markdown view
+        // Editor typography markdown view matching real screen
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,8 +571,8 @@ class _AppMockupPreview extends StatelessWidget {
                 'Creative Design & Endurance',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  letterSpacing: -0.4,
+                  fontSize: 13,
+                  letterSpacing: -0.3,
                 ),
               ),
               const SizedBox(height: 6),
@@ -508,7 +581,7 @@ class _AppMockupPreview extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 9.5,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-                    height: 1.45,
+                    height: 1.4,
                   ),
                   children: [
                     const TextSpan(text: 'Selecting curated palettes like '),
@@ -533,7 +606,7 @@ class _AppMockupPreview extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 2.5,
+                    width: 2.0,
                     height: 18,
                     color: primaryColor,
                   ),
@@ -542,7 +615,7 @@ class _AppMockupPreview extends StatelessWidget {
                     child: Text(
                       'Parchment tones minimize ocular stress compared to harsh pure white backgrounds.',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 9,
+                        fontSize: 8.5,
                         color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         fontStyle: FontStyle.italic,
                       ),
@@ -554,22 +627,33 @@ class _AppMockupPreview extends StatelessWidget {
           ),
         ),
 
-        // Formatting Toolbar mockup at bottom
+        // Backlinks Panel Mockup matching real screen
         Container(
-          height: 18,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(4),
+            color: theme.colorScheme.surface,
+            border: Border(
+              top: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.25), width: 0.5),
+            ),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildToolbarIcon(Icons.format_bold_rounded, theme),
-              _buildToolbarIcon(Icons.format_italic_rounded, theme),
-              _buildToolbarIcon(Icons.format_size_rounded, theme),
-              _buildToolbarIcon(Icons.link_rounded, theme),
-              _buildToolbarIcon(Icons.format_list_bulleted_rounded, theme),
+              Icon(Icons.link_rounded, size: 10, color: primaryColor),
+              const SizedBox(width: 4),
+              Text(
+                '2 backlinks',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w600,
+                  color: primaryColor,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.expand_less_rounded,
+                size: 11,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),
@@ -579,10 +663,13 @@ class _AppMockupPreview extends StatelessWidget {
 
   // 3. GRAPH MAP SCREEN MOCKUP
   Widget _buildGraphMockup(BuildContext context, ThemeData theme, Color primaryColor) {
+    final isDark = theme.brightness == Brightness.dark;
+    final nodeColor = isDark ? Colors.grey[400]! : Colors.grey[600]!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Graph View Header
+        // Graph View Header matching real screen
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -590,14 +677,14 @@ class _AppMockupPreview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Graph Map',
+                  'Graph View',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 10,
+                    fontSize: 12,
                   ),
                 ),
                 Text(
-                  'Connected vault index',
+                  'Your connected ideas',
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontSize: 7.5,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
@@ -609,7 +696,7 @@ class _AppMockupPreview extends StatelessWidget {
               children: [
                 Icon(Icons.refresh_rounded, size: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                 const SizedBox(width: 8),
-                Icon(Icons.tune_rounded, size: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                Icon(Icons.settings_outlined, size: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
               ],
             ),
           ],
@@ -620,7 +707,7 @@ class _AppMockupPreview extends StatelessWidget {
         Expanded(
           child: Stack(
             children: [
-              // Interconnecting lines
+              // Interconnecting lines matching real screen
               Positioned.fill(
                 child: CustomPaint(
                   painter: _MockLinksPainter(
@@ -630,21 +717,21 @@ class _AppMockupPreview extends StatelessWidget {
                 ),
               ),
 
-              // Pinned connected nodes
-              _buildGraphNode(const Offset(90, 55), 'Endurance', primaryColor, isSelected: true),
-              _buildGraphNode(const Offset(35, 30), 'Sepia', theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-              _buildGraphNode(const Offset(30, 85), 'Blush', theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-              _buildGraphNode(const Offset(155, 35), 'Slate Navy', theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-              _buildGraphNode(const Offset(160, 90), 'Matcha', theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+              // Pinned connected nodes matching real screen
+              _buildGraphNode(context, theme, const Offset(90, 55), 'Endurance', primaryColor, isSelected: true),
+              _buildGraphNode(context, theme, const Offset(35, 30), 'Sepia', nodeColor),
+              _buildGraphNode(context, theme, const Offset(30, 85), 'Blush', nodeColor),
+              _buildGraphNode(context, theme, const Offset(155, 35), 'Slate Navy', nodeColor),
+              _buildGraphNode(context, theme, const Offset(160, 90), 'Matcha', nodeColor),
 
-              // Zoom center button mockup
+              // Floating Focus/Center button mockup matching real screen
               Positioned(
                 bottom: 4,
                 right: 4,
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: theme.cardColor,
+                    color: theme.colorScheme.surface,
                     shape: BoxShape.circle,
                     border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.25), width: 0.5),
                   ),
@@ -658,7 +745,7 @@ class _AppMockupPreview extends StatelessWidget {
     );
   }
 
-  Widget _buildGraphNode(Offset position, String title, Color color, {bool isSelected = false}) {
+  Widget _buildGraphNode(BuildContext context, ThemeData theme, Offset position, String title, Color color, {bool isSelected = false}) {
     return Positioned(
       left: position.dx,
       top: position.dy,
@@ -696,35 +783,7 @@ class _AppMockupPreview extends StatelessWidget {
     );
   }
 
-  Widget _buildToolbarIcon(IconData icon, ThemeData theme) {
-    return Icon(icon, size: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.5));
-  }
-
-  Widget _buildMockPill(BuildContext context, String text, Color color, {required bool isSelected}) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isSelected ? color.withValues(alpha: 0.3) : theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: isSelected ? color : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          fontSize: 8,
-        ),
-      ),
-    );
-  }
-
   Widget _buildMockTag(BuildContext context, String text, Color color) {
-    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
       decoration: BoxDecoration(
@@ -733,7 +792,7 @@ class _AppMockupPreview extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: theme.textTheme.labelSmall?.copyWith(
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.bold,
           fontSize: 7.5,

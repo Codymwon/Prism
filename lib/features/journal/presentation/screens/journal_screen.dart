@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,8 +8,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
-import '../../../notes/data/note_model.dart';
-import '../../../../core/database/database_providers.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../widgets/journal_template_button.dart';
 import '../widgets/journal_empty_illustration.dart';
 import '../widgets/journal_calendar.dart';
@@ -45,6 +43,12 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 selectedDay: selectedDay,
                 selectedDayProvider: _selectedDayProvider,
               ),
+            // 7-day quick-navigation strip (visible only when calendar is closed)
+            if (!_showCalendar)
+              _buildWeekStrip(colorScheme, selectedDay)
+                  .animate()
+                  .fadeIn(duration: 250.ms)
+                  .slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic),
             Expanded(child: _buildJournalContent(colorScheme, selectedDay)),
           ],
         ),
@@ -52,34 +56,125 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
+  // ─── Header with streak badge + total count ──────────────────────────────────
   Widget _buildHeader(ColorScheme colorScheme, DateTime selectedDay) {
     final isToday_ = isToday(formatDailyDate(selectedDay));
+    final streakAsync = ref.watch(journalStreakProvider);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding + 2, 16, DesignSpacing.screenPadding, 8),
+      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding + 2, 16, DesignSpacing.screenPadding, 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Journal',
-                style: DesignTypography.display(
-                  context,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Journal',
+                  style: DesignTypography.display(
+                    context,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              Text(
-                isToday_ ? 'Today' : DateFormat('EEEE, MMMM d').format(selectedDay),
-                style: DesignTypography.body(
-                  context,
-                  fontSize: 14,
-                  color: DesignColors.textSecondary(context),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      isToday_ ? 'Today' : DateFormat('EEEE, MMMM d').format(selectedDay),
+                      style: DesignTypography.body(
+                        context,
+                        fontSize: 14,
+                        color: DesignColors.textSecondary(context),
+                      ),
+                    ),
+                    streakAsync.maybeWhen(
+                      data: (stats) {
+                        if (stats.totalCount == 0) return const SizedBox.shrink();
+                        return Row(
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 7),
+                              width: 3,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: DesignColors.textTertiary(context),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Icon(Icons.history_edu_rounded, size: 13, color: DesignColors.textSecondary(context)),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${stats.totalCount} entries',
+                              style: DesignTypography.body(
+                                context,
+                                fontSize: 13,
+                                color: DesignColors.textSecondary(context),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      orElse: () => const SizedBox.shrink(),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const Spacer(),
+          // Interactive themed streak pill placed next to calendar button
+          streakAsync.maybeWhen(
+            data: (stats) {
+              if (stats.streak == 0) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(right: 6.0),
+                child: TactileWrapper(
+                  style: TactileFeedbackStyle.highImpact,
+                  onTap: () => _showStreakDialog(context, stats.streak, stats.totalCount),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          colorScheme.primary.withValues(alpha: 0.15),
+                          colorScheme.tertiary.withValues(alpha: 0.08),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.whatshot_rounded,
+                          size: 13,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${stats.streak}d streak',
+                          style: DesignTypography.metadata(
+                            context,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.elasticOut),
+                ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             icon: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
@@ -87,9 +182,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 _showCalendar ? Icons.calendar_today : Icons.calendar_month_outlined,
                 key: ValueKey(_showCalendar),
                 size: 22,
-                color: _showCalendar
-                    ? colorScheme.primary
-                    : DesignColors.textSecondary(context),
+                color: _showCalendar ? colorScheme.primary : DesignColors.textSecondary(context),
               ),
             ),
             onPressed: () => setState(() => _showCalendar = !_showCalendar),
@@ -99,39 +192,141 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
+  // ─── 7-Day Week Strip (Perfectly responsive, zero scroll) ───────────────────
+  Widget _buildWeekStrip(ColorScheme colorScheme, DateTime selectedDay) {
+    final today = DateTime.now();
+    final writtenDates = ref.watch(allDailyDatesProvider).valueOrNull ?? const <String>{};
 
+    // Show today + 6 days back
+    final days = List.generate(7, (i) => today.subtract(Duration(days: 6 - i)));
 
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DesignSpacing.screenPadding, vertical: 8),
+      child: Row(
+        children: List.generate(days.length, (i) {
+          final day = days[i];
+          final dateStr = formatDailyDate(day);
+          final isSelected = isSameDay(day, selectedDay);
+          final isToday_ = isSameDay(day, today);
+          final hasEntry = writtenDates.contains(dateStr);
+          final isFuture = day.isAfter(today);
+
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i == days.length - 1 ? 0 : 5),
+              child: TactileWrapper(
+                style: TactileFeedbackStyle.standard,
+                onTap: isFuture ? null : () {
+                  ref.read(_selectedDayProvider.notifier).state = day;
+                  if (_showCalendar) setState(() => _showCalendar = false);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? colorScheme.primary
+                        : DesignColors.surface(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? colorScheme.primary
+                          : isToday_
+                              ? colorScheme.primary.withValues(alpha: 0.4)
+                              : DesignColors.border(context),
+                      width: isToday_ && !isSelected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        DateFormat('E').format(day).substring(0, 1), // M, T, W…
+                        style: DesignTypography.metadata(
+                          context,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white.withValues(alpha: 0.75)
+                              : DesignColors.textTertiary(context),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${day.day}',
+                        style: DesignTypography.heading(
+                          context,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected
+                              ? Colors.white
+                              : isToday_
+                                  ? colorScheme.primary
+                                  : DesignColors.text(context),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      // Entry dot indicator
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: hasEntry
+                              ? (isSelected ? Colors.white : colorScheme.primary)
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ─── Main journal content ────────────────────────────────────────────────────
   Widget _buildJournalContent(ColorScheme colorScheme, DateTime selectedDay) {
     final dateStr = formatDailyDate(selectedDay);
-    final dailyNoteAsync = ref.watch(
-      FutureProvider.autoDispose(
-        (ref) async {
-          ref.watch(notesVersionProvider); // React to version updates reactively
-          final note = await ref.read(noteRepositoryProvider).getDailyNote(dateStr);
-          if (note == null) return null;
+    // Use a proper named family provider — no inline anti-pattern
+    final dailyAsync = ref.watch(dailyNoteProvider(dateStr));
 
-          final file = File(note.filePath);
-          String content = '';
-          if (await file.exists()) {
-            content = await file.readAsString();
-          }
-          return (note: note, content: content);
-        },
-      ).future,
-    );
-
-    return FutureBuilder<({Note note, String content})?>(
-      future: dailyNoteAsync,
-      builder: (context, snapshot) {
-        final data = snapshot.data;
-
-        return Padding(
-          padding: EdgeInsets.fromLTRB(DesignSpacing.screenPadding, _showCalendar ? 8 : 16, DesignSpacing.screenPadding, 0),
+    return dailyAsync.when(
+      loading: () => const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (e, _) => Center(
+        child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+      ),
+      data: (data) {
+        final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            DesignSpacing.screenPadding,
+            _showCalendar ? 8 : 12,
+            DesignSpacing.screenPadding,
+            100,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (data == null) ...[
-                // Uppercase contextual header for templates
+              if (data != null) ...[
+                // ── Word Count Progress Bar ──────────────────────────────────
+                _buildWordCountProgress(colorScheme, data.note.wordCount),
+                const SizedBox(height: 12),
+                // ── Entry card (scrollable content preview) ──────────────────
+                JournalEntryCard(note: data.note, content: data.content),
+              ] else if (!isFuture) ...[
+                // ── Template picker (no entry yet) ───────────────────────────
                 Text(
                   'START WITH A TEMPLATE',
                   style: DesignTypography.metadata(
@@ -143,15 +338,12 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 ),
                 const SizedBox(height: 8),
                 _buildTemplatesRow(colorScheme),
-                SizedBox(height: _showCalendar ? 12 : 24),
+                const SizedBox(height: 32),
+                _buildEmptyDay(context, colorScheme, dateStr),
+              ] else ...[
+                // ── Future day ───────────────────────────────────────────────
+                _buildEmptyDay(context, colorScheme, dateStr),
               ],
-              
-              // Entry state
-              data != null
-                  ? JournalEntryCard(note: data.note, content: data.content)
-                  : Expanded(
-                      child: _buildEmptyDay(context, colorScheme, dateStr),
-                    ),
             ],
           ),
         );
@@ -159,6 +351,127 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
+  // ─── Word Count Progress Bar (toward 250-word daily goal) ───────────────────
+  Widget _buildWordCountProgress(ColorScheme colorScheme, int wordCount) {
+    const goal = 250;
+    final progress = (wordCount / goal).clamp(0.0, 1.0);
+    final isDone = wordCount >= goal;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: DesignColors.surface(context),
+        borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+        border: Border.all(color: DesignColors.border(context)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isDone ? Icons.check_circle_rounded : Icons.edit_rounded,
+            size: 14,
+            color: isDone ? Colors.green : colorScheme.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      isDone ? 'Daily goal reached!' : '$wordCount / $goal words',
+                      style: DesignTypography.body(
+                        context,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDone ? Colors.green : DesignColors.text(context),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      isDone ? '✓ $wordCount words' : '${(goal - wordCount).clamp(0, goal)} to go',
+                      style: DesignTypography.metadata(
+                        context,
+                        fontSize: 10,
+                        color: DesignColors.textTertiary(context),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 4,
+                    backgroundColor: DesignColors.surfaceVariant(context),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isDone ? Colors.green : colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Empty day state ─────────────────────────────────────────────────────────
+  Widget _buildEmptyDay(BuildContext context, ColorScheme colorScheme, String dateStr) {
+    final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!_showCalendar) ...[
+            JournalEmptyIllustration(
+              isFuture: isFuture,
+              colorScheme: colorScheme,
+              size: 110.0,
+            ),
+            const SizedBox(height: 20),
+          ],
+          Text(
+            isFuture ? 'A future day' : 'No entry yet',
+            style: DesignTypography.heading(
+              context,
+              fontSize: _showCalendar ? 16 : 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isFuture
+                ? 'Come back on this day to start writing'
+                : 'Tap below to start your entry for today',
+            style: DesignTypography.body(
+              context,
+              fontSize: _showCalendar ? 13 : 14,
+              color: DesignColors.textSecondary(context),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (!isFuture) ...[
+            const SizedBox(height: 24),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: _showCalendar ? 40.0 : 20.0),
+              child: DesignPrimaryButton(
+                label: 'Start Writing',
+                icon: DesignIcons.add,
+                height: _showCalendar ? 44.0 : 52.0,
+                onTap: () => _createDailyNote(context, dateStr, null),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ).animate().fadeIn(duration: 350.ms);
+  }
+
+  // ─── Template strip ──────────────────────────────────────────────────────────
   Widget _buildTemplatesRow(ColorScheme colorScheme) {
     final templates = [
       const JournalTemplateItem(
@@ -199,9 +512,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             child: TactileWrapper(
               style: TactileFeedbackStyle.highImpact,
               onTap: () => _createWithTemplate(t.emoji, t.label),
-              child: JournalTemplateButton(
-                template: t,
-              ),
+              child: JournalTemplateButton(template: t),
             ),
           );
         },
@@ -209,65 +520,9 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
-
-
-  Widget _buildEmptyDay(
-    BuildContext context,
-    ColorScheme colorScheme,
-    String dateStr,
-  ) {
-    final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
-    final double verticalSpacing = _showCalendar ? 12.0 : 24.0;
-
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!_showCalendar) ...[
-            JournalEmptyIllustration(
-              isFuture: isFuture,
-              colorScheme: colorScheme,
-              size: 120.0,
-            ),
-            SizedBox(height: verticalSpacing),
-          ],
-          Text(
-            isFuture ? 'A future day' : 'No entry yet',
-            style: DesignTypography.heading(
-              context,
-              fontSize: _showCalendar ? 16 : 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isFuture
-                ? 'Come back on this day to start writing'
-                : 'Tap the button below to start your entry',
-            style: DesignTypography.body(
-              context,
-              fontSize: _showCalendar ? 13 : 14,
-              color: DesignColors.textSecondary(context),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (!isFuture) ...[
-            SizedBox(height: verticalSpacing),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: _showCalendar ? 60 : 40),
-              child: DesignPrimaryButton(
-                label: 'Start Writing',
-                icon: DesignIcons.add,
-                height: _showCalendar ? 40.0 : 50.0,
-                onTap: () => _createDailyNote(context, dateStr, null),
-              ),
-            ),
-          ],
-        ],
-      ),
-    ).animate().fadeIn(duration: 400.ms);
-  }
-
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  bool isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   Future<void> _createDailyNote(
     BuildContext context,
@@ -294,5 +549,143 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       'Goals': '# $dateStr\n\n## 🎯 Goals Check-in\n\n### Progress on current goals\n\n\n### New goal ideas\n\n\n### Blockers\n\n',
     };
     _createDailyNote(context, dateStr, templates[templateName]);
+  }
+
+  void _showStreakDialog(BuildContext context, int streak, int totalCount) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    String encouragement;
+    if (streak <= 2) {
+      encouragement = 'Off to a fantastic start! Keep writing daily to build a powerful self-reflection habit.';
+    } else if (streak <= 5) {
+      encouragement = 'Incredible dedication! You are forming a powerful ritual. Every word is a step inward.';
+    } else {
+      encouragement = 'A legendary writing habit! You are unstoppable. Keep exploring your thoughts daily.';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: DesignColors.surface(context),
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const DesignSheetDragHandle(),
+                const SizedBox(height: 8),
+                // Pulsing themed fire icon
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.whatshot_rounded,
+                    size: 48,
+                    color: colorScheme.primary,
+                  ),
+                ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+                 .scale(end: const Offset(1.1, 1.1), duration: 1000.ms, curve: Curves.easeInOut),
+                const SizedBox(height: 20),
+                Text(
+                  '$streak-Day Writing Streak!',
+                  style: DesignTypography.heading(
+                    context,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  encouragement,
+                  style: DesignTypography.body(
+                    context,
+                    fontSize: 14,
+                    color: DesignColors.textSecondary(context),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // Stats breakdown cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: DesignColors.surfaceVariant(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: DesignColors.border(context)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '$streak Days',
+                              style: DesignTypography.heading(
+                                context,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Active Streak',
+                              style: DesignTypography.details(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: DesignColors.surfaceVariant(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: DesignColors.border(context)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '$totalCount',
+                              style: DesignTypography.heading(
+                                context,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total Entries',
+                              style: DesignTypography.details(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                DesignPrimaryButton(
+                  label: 'Keep it going!',
+                  onTap: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

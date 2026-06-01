@@ -13,7 +13,6 @@ import '../../../notes/data/note_model.dart';
 import 'add_folder_sheet.dart';
 import 'edit_folder_sheet.dart';
 import 'folder_icon_display.dart';
-import 'vault_status_panel.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
 
@@ -36,11 +35,7 @@ class FolderDrawer extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Header status card
-              const VaultStatusPanel(),
-              const SizedBox(height: 20),
-
-              // 2. Recent Notes
+              // 1. Recent Notes
               _buildRecentNotesSection(context, ref, recentNotesAsync, colorScheme),
               const SizedBox(height: 20),
 

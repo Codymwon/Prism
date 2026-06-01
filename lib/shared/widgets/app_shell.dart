@@ -151,7 +151,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       ),
       TutorialStep(
         title: 'Daily Reflection Logs',
-        description: 'Access today\'s dedicated calendar note immediately. jot down raw thoughts, tasks, and structured daily reflections.',
+        description: 'Access today\'s dedicated calendar note immediately. Jot down reflections with templates (Gratitude, Reflection, Goals), hit word count targets, and grow your daily writing streak.',
         icon: Icons.calendar_today_rounded,
         getTargetRect: (size) {
           final bottomPadding = MediaQuery.of(context).padding.bottom;

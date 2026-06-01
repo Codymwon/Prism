@@ -50,6 +50,19 @@ class SettingsScreen extends ConsumerWidget {
                   // ── Appearance ───────────────────────────────────────────
                   const SettingsSectionHeader(title: 'Appearance'),
                   ThemeSelector(themeType: themeType, ref: ref),
+                  SettingsTile(
+                    icon: Icons.text_fields_rounded,
+                    title: 'Font family',
+                    subtitle: fontFamily,
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => _showOptionSelector(
+                      context: context,
+                      title: 'Select Font Family',
+                      options: ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)'],
+                      currentValue: fontFamily,
+                      onSelected: (val) => ref.read(fontFamilyProvider.notifier).setFontFamily(val),
+                    ),
+                  ),
 
                   // ── Gestures & Feedback ──────────────────────────────────
                   const SettingsSectionHeader(title: 'Gestures & Feedback'),
@@ -69,19 +82,6 @@ class SettingsScreen extends ConsumerWidget {
 
                   // ── Editor ────────────────────────────────────────────────
                   const SettingsSectionHeader(title: 'Editor'),
-                  SettingsTile(
-                    icon: Icons.text_fields_rounded,
-                    title: 'Font family',
-                    subtitle: fontFamily,
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => _showOptionSelector(
-                      context: context,
-                      title: 'Select Font Family',
-                      options: ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)'],
-                      currentValue: fontFamily,
-                      onSelected: (val) => ref.read(fontFamilyProvider.notifier).setFontFamily(val),
-                    ),
-                  ),
                   SettingsTile(
                     icon: Icons.format_size_rounded,
                     title: 'Font size',

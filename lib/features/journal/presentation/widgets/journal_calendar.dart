@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
+import '../../../../core/utils/utils.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 
 class JournalCalendar extends ConsumerWidget {
   final DateTime selectedDay;
@@ -17,6 +19,7 @@ class JournalCalendar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+    final writtenDates = ref.watch(allDailyDatesProvider).valueOrNull ?? const <String>{};
 
     return TableCalendar(
       firstDay: DateTime(2020),
@@ -85,6 +88,25 @@ class JournalCalendar extends ConsumerWidget {
           fontWeight: FontWeight.w500,
           color: DesignColors.textTertiary(context),
         ),
+      ),
+      calendarBuilders: CalendarBuilders(
+        markerBuilder: (context, day, events) {
+          final dateStr = formatDailyDate(day);
+          if (writtenDates.contains(dateStr)) {
+            return Positioned(
+              bottom: 4,
+              child: Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            );
+          }
+          return null;
+        },
       ),
       onDaySelected: (selected, focused) {
         ref.read(selectedDayProvider.notifier).state = selected;

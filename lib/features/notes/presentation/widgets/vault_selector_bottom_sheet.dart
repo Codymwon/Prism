@@ -33,27 +33,18 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
   }
 
   Future<void> _switchVault(String vaultName) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context); // Dismiss bottom sheet immediately
 
     try {
       await ref.read(vaultServiceProvider).switchVault(vaultName: vaultName, ref: ref);
 
-      if (!mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog
-      Navigator.pop(context); // Dismiss bottom sheet
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
+      messenger.showSnackBar(
+        SnackBar(content: Text('Switched to vault: $vaultName', style: const TextStyle(color: Colors.white))),
       );
     } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error switching vault: $e', style: DesignTypography.body(context, color: Colors.white))),
+      messenger.showSnackBar(
+        SnackBar(content: Text('Error switching vault: $e', style: const TextStyle(color: Colors.white))),
       );
     }
   }
@@ -113,11 +104,8 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
   }
 
   Future<void> _createNewVault(String vaultName) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context); // Dismiss bottom sheet immediately
 
     try {
       // Await async provider to get the real loaded value
@@ -128,18 +116,12 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
         ref: ref,
       );
 
-      if (!mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog
-      Navigator.pop(context); // Dismiss bottom sheet
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Created and switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
+      messenger.showSnackBar(
+        SnackBar(content: Text('Created and switched to vault: $vaultName', style: const TextStyle(color: Colors.white))),
       );
     } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating vault: $e', style: DesignTypography.body(context, color: Colors.white))),
+      messenger.showSnackBar(
+        SnackBar(content: Text('Error creating vault: $e', style: const TextStyle(color: Colors.white))),
       );
     }
   }

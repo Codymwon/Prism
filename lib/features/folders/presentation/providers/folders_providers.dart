@@ -8,6 +8,7 @@ final selectedFolderIdProvider = StateProvider<String?>((ref) => null);
 
 // ─── Folders Provider ─────────────────────────────────────────────────────────
 final foldersProvider = FutureProvider.autoDispose<List<VirtualFolder>>((ref) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(folderRepositoryProvider);
   return repo.getAllFolders();
@@ -15,6 +16,7 @@ final foldersProvider = FutureProvider.autoDispose<List<VirtualFolder>>((ref) as
 
 // ─── Folders for Note Provider ────────────────────────────────────────────────
 final foldersForNoteProvider = FutureProvider.autoDispose.family<List<VirtualFolder>, String>((ref, noteId) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(folderRepositoryProvider);
   return repo.getFoldersForNote(noteId);
@@ -22,6 +24,7 @@ final foldersForNoteProvider = FutureProvider.autoDispose.family<List<VirtualFol
 
 // ─── Note-Folder Mappings Provider ────────────────────────────────────────────
 final noteFolderMappingsProvider = FutureProvider.autoDispose<Map<String, List<String>>>((ref) async {
+  await ref.watch(databaseProvider.future);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(folderRepositoryProvider);
   return repo.getNoteFolderMappings();
