@@ -40,72 +40,108 @@ class ThemeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = [
-      (AppThemeType.system, Icons.brightness_auto_rounded, 'System'),
-      (AppThemeType.light, Icons.light_mode_outlined, 'Paper'),
-      (AppThemeType.dark, Icons.dark_mode_outlined, 'OLED'),
-      (AppThemeType.sepia, Icons.auto_stories_outlined, 'Sepia'),
+      (AppThemeType.system, Icons.brightness_auto_rounded, 'System', const Color(0xFF888888)),
+      (AppThemeType.light, Icons.light_mode_outlined, 'Paper', const Color(0xFFC8A97E)),
+      (AppThemeType.dark, Icons.dark_mode_outlined, 'Dusk', const Color(0xFFE07A5F)),
+      (AppThemeType.sepia, Icons.auto_stories_outlined, 'Sepia', const Color(0xFF5C3D2E)),
+      (AppThemeType.forest, Icons.forest_outlined, 'Forest', const Color(0xFF81B29A)),
+      (AppThemeType.slate, Icons.water_outlined, 'Slate', const Color(0xFF7DAFE8)),
+      (AppThemeType.arctic, Icons.ac_unit_outlined, 'Arctic', const Color(0xFF3A8FA8)),
+      (AppThemeType.noir, Icons.movie_creation_outlined, 'Noir', const Color(0xFFC9A84C)),
+      (AppThemeType.blush, Icons.favorite_border_rounded, 'Blush', const Color(0xFFB0637A)),
     ];
+
+    // Split into three rows of 3
+    final rows = [
+      options.sublist(0, 3),
+      options.sublist(3, 6),
+      options.sublist(6, 9),
+    ];
+
+    Widget buildChip(
+      (AppThemeType, IconData, String, Color) opt,
+    ) {
+      final isSelected = themeType == opt.$1;
+      final primaryColor = DesignColors.primary(context);
+      final accentColor = opt.$4;
+
+      return TactileWrapper(
+        style: TactileFeedbackStyle.standard,
+        onTap: () => ref.read(themeProvider.notifier).setTheme(opt.$1),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? primaryColor : DesignColors.surface(context),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? primaryColor : DesignColors.border(context),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.white.withValues(alpha: 0.7) : accentColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    opt.$2,
+                    size: 15,
+                    color: isSelected ? Colors.white : DesignColors.textSecondary(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 5),
+              Text(
+                opt.$3,
+                style: DesignTypography.metadata(
+                  context,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : DesignColors.textSecondary(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Row(
-        children: options.map((opt) {
-          final isSelected = themeType == opt.$1;
-          final primaryColor = DesignColors.primary(context);
-          final textStyle = DesignTypography.metadata(
-            context,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? Colors.white
-                : DesignColors.textSecondary(context),
-          );
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: TactileWrapper(
-                style: TactileFeedbackStyle.standard,
-                onTap: () => ref.read(themeProvider.notifier).setTheme(opt.$1),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? primaryColor
-                        : DesignColors.surface(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? primaryColor
-                          : DesignColors.border(context),
-                    ),
+      child: Column(
+        children: rows.asMap().entries.map((rowEntry) {
+          final isLastRow = rowEntry.key == rows.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(bottom: isLastRow ? 0 : 6),
+            child: Row(
+              children: rowEntry.value.asMap().entries.map((cellEntry) {
+                final isLastCell = cellEntry.key == rowEntry.value.length - 1;
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: isLastCell ? 0 : 6),
+                    child: buildChip(cellEntry.value),
                   ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        opt.$2,
-                        size: 18,
-                        color: isSelected
-                            ? Colors.white
-                            : DesignColors.textSecondary(context),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        opt.$3,
-                        style: textStyle,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                );
+              }).toList(),
             ),
           );
         }).toList(),
       ),
     );
+
   }
 }
+
 
 class SettingsTile extends StatelessWidget {
   final IconData icon;

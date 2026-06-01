@@ -11,21 +11,38 @@ import '../../features/onboarding/data/onboarding_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 
+// ── Router Notifier ──────────────────────────────────────────────────────────
+// A ChangeNotifier that bridges Riverpod state → GoRouter's refreshListenable.
+// This allows the router to re-run its redirect when onboardingStateProvider
+// changes WITHOUT recreating the GoRouter instance itself.
+class _RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  _RouterNotifier(this._ref) {
+    // Listen to onboarding state; notify router to re-evaluate redirect when it changes
+    _ref.listen<bool>(onboardingStateProvider, (_, _) => notifyListeners());
+  }
+
+  bool get hasOnboarded => _ref.read(onboardingStateProvider);
+}
+
+final _routerNotifierProvider = Provider<_RouterNotifier>((ref) {
+  return _RouterNotifier(ref);
+});
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final hasOnboarded = ref.watch(onboardingStateProvider);
+  final notifier = ref.watch(_routerNotifierProvider);
 
   return GoRouter(
-    initialLocation: hasOnboarded ? '/notes' : '/onboarding',
+    initialLocation: notifier.hasOnboarded ? '/notes' : '/onboarding',
+    refreshListenable: notifier,
     redirect: (context, state) {
+      final hasOnboarded = notifier.hasOnboarded;
       final isGoingToOnboarding = state.uri.path == '/onboarding';
       if (!hasOnboarded) {
-        if (!isGoingToOnboarding) {
-          return '/onboarding';
-        }
+        if (!isGoingToOnboarding) return '/onboarding';
       } else {
-        if (isGoingToOnboarding) {
-          return '/notes';
-        }
+        if (isGoingToOnboarding) return '/notes';
       }
       return null;
     },
@@ -69,7 +86,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final noteId = state.pathParameters['id']!;
           final isNew = state.uri.queryParameters['new'] == 'true';
           final dailyDate = state.uri.queryParameters['date'];
-          
+
           return CustomTransitionPage(
             key: state.pageKey,
             child: EditorScreen(noteId: noteId, isNew: isNew, dailyDate: dailyDate),
@@ -78,7 +95,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
                 child: SlideTransition(
                   position: Tween<Offset>(
-                    begin: const Offset(0.08, 0.0), // Subtle slide from right
+                    begin: const Offset(0.08, 0.0),
                     end: Offset.zero,
                   ).animate(CurvedAnimation(
                     parent: animation,
@@ -105,7 +122,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
                 child: SlideTransition(
                   position: Tween<Offset>(
-                    begin: const Offset(0.08, 0.0), // Subtle slide from right
+                    begin: const Offset(0.08, 0.0),
                     end: Offset.zero,
                   ).animate(CurvedAnimation(
                     parent: animation,
@@ -123,4 +140,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-

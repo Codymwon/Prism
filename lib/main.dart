@@ -36,7 +36,32 @@ class MeridianApp extends ConsumerWidget {
       case AppThemeType.sepia:
         themeData = AppTheme.sepia();
         darkThemeData = AppTheme.sepia();
-        mode = ThemeMode.light; // fallback to light mode rules in system
+        mode = ThemeMode.light;
+        break;
+      case AppThemeType.forest:
+        themeData = AppTheme.forest();
+        darkThemeData = AppTheme.forest();
+        mode = ThemeMode.dark;
+        break;
+      case AppThemeType.slate:
+        themeData = AppTheme.slate();
+        darkThemeData = AppTheme.slate();
+        mode = ThemeMode.dark;
+        break;
+      case AppThemeType.arctic:
+        themeData = AppTheme.arctic();
+        darkThemeData = AppTheme.arctic();
+        mode = ThemeMode.light;
+        break;
+      case AppThemeType.noir:
+        themeData = AppTheme.noir();
+        darkThemeData = AppTheme.noir();
+        mode = ThemeMode.dark;
+        break;
+      case AppThemeType.blush:
+        themeData = AppTheme.blush();
+        darkThemeData = AppTheme.blush();
+        mode = ThemeMode.light;
         break;
       case AppThemeType.system:
         themeData = AppTheme.light();
