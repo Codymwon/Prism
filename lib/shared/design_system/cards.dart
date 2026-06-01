@@ -13,19 +13,24 @@ class DesignNoteCard extends ConsumerWidget {
   final Note note;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  /// Optional override for the card background. Use this when the card is
+  /// rendered inside a container that shares the default surface color, so
+  /// there is clear visual separation (e.g. folder accordion).
+  final Color? backgroundColor;
 
   const DesignNoteCard({
     super.key,
     required this.note,
     required this.onTap,
     required this.onLongPress,
+    this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bg = DesignColors.surface(context);
-    final border = DesignColors.border(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = backgroundColor ?? DesignColors.surface(context);
+    final border = DesignColors.border(context);
 
     return TactileWrapper(
       onTap: onTap,
@@ -130,6 +135,11 @@ class DesignNoteCard extends ConsumerWidget {
                       if (details.tags.isNotEmpty)
                         Expanded(
                           child: SingleChildScrollView(
+                            // PageStorageKey prevents key collision with the
+                            // parent ExpansionTile, which also writes to
+                            // PageStorage (as bool). Without this, the scroll
+                            // view reads the tile's bool as double? → crash.
+                            key: PageStorageKey<String>('tags_${note.id}'),
                             scrollDirection: Axis.horizontal,
                             physics: const BouncingScrollPhysics(),
                             child: Row(

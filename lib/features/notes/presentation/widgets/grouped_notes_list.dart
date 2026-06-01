@@ -317,10 +317,21 @@ class _AccordionNotesList extends StatelessWidget {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Use a recessed background so note cards visually "sit inside" the folder.
+    // Dark: surfaceVariant gives the right depth. Light: a very faint neutral overlay.
+    final cardBg = isDark
+        ? DesignColors.surfaceVariant(context)
+        : Color.alphaBlend(
+            Colors.black.withValues(alpha: 0.03),
+            DesignColors.surface(context),
+          );
+
     return Column(
       children: notes.map((note) {
         return NoteCard(
           note: note,
+          backgroundColor: cardBg,
           onTap: () => context.push('/editor/${note.id}'),
           onDelete: () => onDelete(note.id),
         );

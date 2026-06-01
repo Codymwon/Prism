@@ -7,12 +7,14 @@ class NoteCard extends StatelessWidget {
   final Note note;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final Color? backgroundColor;
 
   const NoteCard({
     super.key,
     required this.note,
     required this.onTap,
     required this.onDelete,
+    this.backgroundColor,
   });
 
   @override
@@ -21,6 +23,7 @@ class NoteCard extends StatelessWidget {
       note: note,
       onTap: onTap,
       onLongPress: () => _showContextMenu(context),
+      backgroundColor: backgroundColor,
     );
   }
 

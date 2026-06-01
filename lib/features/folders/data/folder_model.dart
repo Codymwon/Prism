@@ -18,14 +18,24 @@ class VirtualFolder {
   });
 
   factory VirtualFolder.fromMap(Map<String, dynamic> map) {
+    // getAllFolders() uses rawQuery with LEFT JOIN — sqflite on Android can
+    // return INTEGER columns as double or bool (0 → false) from JOIN queries.
+    int safeInt(dynamic v, {int fallback = 0}) {
+      if (v == null) return fallback;
+      if (v is int) return v;
+      if (v is double) return v.toInt();
+      if (v is bool) return v ? 1 : 0;
+      return int.tryParse(v.toString()) ?? fallback;
+    }
+
     return VirtualFolder(
       id: map['id'] as String,
       name: map['name'] as String,
       colorHex: map['color_hex'] as String? ?? '#7C6FF7',
       icon: map['icon'] as String? ?? 'folder',
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
-      sortOrder: map['sort_order'] as int? ?? 0,
-      noteCount: map['note_count'] as int? ?? 0,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(safeInt(map['created_at'])),
+      sortOrder: safeInt(map['sort_order']),
+      noteCount: safeInt(map['note_count']),
     );
   }
 

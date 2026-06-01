@@ -211,12 +211,20 @@ class NoteRepository {
     final edgeMaps = await db.query('note_links');
 
     final nodes = noteMaps
-        .map((m) => GraphNode(
-              id: m['id'] as String,
-              title: m['title'] as String,
-              linkCount: (m['link_count'] as int?) ?? 0,
-              colorHex: m['color_hex'] as String?,
-            ))
+        .map((m) {
+          final rawCount = m['link_count'];
+          final linkCount = rawCount == null ? 0
+              : rawCount is int ? rawCount
+              : rawCount is double ? rawCount.toInt()
+              : rawCount is bool ? (rawCount ? 1 : 0)
+              : int.tryParse(rawCount.toString()) ?? 0;
+          return GraphNode(
+            id: m['id'] as String,
+            title: m['title'] as String,
+            linkCount: linkCount,
+            colorHex: m['color_hex'] as String?,
+          );
+        })
         .toList();
 
     final edges = edgeMaps
@@ -356,11 +364,21 @@ class NoteRepository {
     final db = await _db;
     final noteRes = await db.rawQuery('SELECT COUNT(*), SUM(word_count) FROM notes WHERE is_ghost = 0');
     final linkRes = await db.rawQuery('SELECT COUNT(*) FROM note_links');
-    
-    final notes = (noteRes.first['COUNT(*)'] as int?) ?? 0;
-    final words = (noteRes.first['SUM(word_count)'] as int?) ?? 0;
-    final links = (linkRes.first['COUNT(*)'] as int?) ?? 0;
-    
+
+    // sqflite on Android can return COUNT/SUM as int, double, or even bool —
+    // use a safe helper that handles all variants.
+    int toInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is double) return v.toInt();
+      if (v is bool) return v ? 1 : 0;
+      return int.tryParse(v.toString()) ?? 0;
+    }
+
+    final notes = toInt(noteRes.first['COUNT(*)']);
+    final words = toInt(noteRes.first['SUM(word_count)']);
+    final links = toInt(linkRes.first['COUNT(*)']);
+
     return (totalNotes: notes, totalWords: words, totalLinks: links);
   }
 }

@@ -162,8 +162,8 @@ String _getCleanSnippet(String content) {
   // 2. Remove other markdown formatting
   clean = clean.replaceAll(RegExp(r'#+\s+'), ''); // headings
   clean = clean.replaceAll(RegExp(r'\*\*|\*|__|_|`'), ''); // bold, italic, code
-  clean = clean.replaceAll(RegExp(r'\[\[(.*?)\]\]'), r'$1'); // wikilinks: remove brackets
-  clean = clean.replaceAll(RegExp(r'\[(.*?)\]\((.*?)\)'), r'$1'); // standard links
+  clean = clean.replaceAllMapped(RegExp(r'\[\[(.*?)\]\]'), (match) => match[1] ?? ''); // wikilinks: remove brackets
+  clean = clean.replaceAllMapped(RegExp(r'\[(.*?)\]\((.*?)\)'), (match) => match[1] ?? ''); // standard links
   clean = clean.replaceAll(RegExp(r'#\w+'), ''); // inline tags
   
   // Clean up whitespace

@@ -79,7 +79,12 @@ class FolderRepository {
     // Get highest sort order to append
     final db = await _db;
     final maxSortMap = await db.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
-    final maxSort = (maxSortMap.first['max_sort'] as int?) ?? 0;
+    final rawMax = maxSortMap.first['max_sort'];
+    final maxSort = rawMax == null ? 0
+        : rawMax is int ? rawMax
+        : rawMax is double ? rawMax.toInt()
+        : rawMax is bool ? (rawMax ? 1 : 0)
+        : int.tryParse(rawMax.toString()) ?? 0;
 
     final folder = VirtualFolder(
       id: id,

@@ -30,17 +30,28 @@ class Note {
   });
 
   factory Note.fromMap(Map<String, dynamic> map) {
+    // sqflite rawQuery JOINs (e.g. getNotesInFolder) can return INTEGER columns
+    // as double or bool depending on the Android sqflite version. Use safe helpers
+    // for every numeric field to prevent runtime type-cast crashes.
+    int safeInt(dynamic v, {int fallback = 0}) {
+      if (v == null) return fallback;
+      if (v is int) return v;
+      if (v is double) return v.toInt();
+      if (v is bool) return v ? 1 : 0;
+      return int.tryParse(v.toString()) ?? fallback;
+    }
+
     return Note(
       id: map['id'] as String,
       title: map['title'] as String,
       filePath: map['file_path'] as String,
-      wordCount: map['word_count'] as int? ?? 0,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
-      isGhost: (map['is_ghost'] as int? ?? 0) == 1,
-      isDaily: (map['is_daily'] as int? ?? 0) == 1,
+      wordCount: safeInt(map['word_count']),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(safeInt(map['created_at'])),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(safeInt(map['updated_at'])),
+      isGhost: map['is_ghost'] == 1 || map['is_ghost'] == true,
+      isDaily: map['is_daily'] == 1 || map['is_daily'] == true,
       dailyDate: map['daily_date'] as String?,
-      isConflicted: (map['is_conflicted'] as int? ?? 0) == 1,
+      isConflicted: map['is_conflicted'] == 1 || map['is_conflicted'] == true,
       originalNoteId: map['original_note_id'] as String?,
     );
   }
