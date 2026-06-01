@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/utils/utils.dart';
-import '../../../../core/services/vault_service.dart';
 import '../../data/note_repository.dart';
 import '../providers/notes_providers.dart';
 import '../../data/note_model.dart';
@@ -15,6 +14,8 @@ import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../widgets/vault_selector_bottom_sheet.dart';
+import '../widgets/grouped_notes_list.dart';
 
 enum HomeViewMode { flat, grouped }
 
@@ -77,7 +78,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           Expanded(
             child: selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
                 ? ref.watch(homeScreenDataProvider).when(
-                    data: (data) => _buildGroupedNotesList(data.notes, data.folders, data.mappings),
+                    data: (data) => GroupedNotesList(
+                      allNotes: data.notes,
+                      folders: data.folders,
+                      mappings: data.mappings,
+                    ),
                     loading: () => _buildLoadingSkeleton(),
                     error: (e, s) => Center(
                       child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
@@ -199,198 +204,14 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   }
 
   Future<void> _showVaultSelectorBottomSheet(BuildContext context) async {
-    final colorScheme = Theme.of(context).colorScheme;
-    final baseDir = ref.read(baseVaultsDirectoryProvider);
-    final activeVault = ref.read(activeVaultNameProvider);
-
-    final vaults = await ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
-    if (!context.mounted) return;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: DesignColors.background(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(DesignSpacing.borderRadiusLarge)),
       ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              const DesignSheetDragHandle(),
-              const SizedBox(height: 8),
-              Text(
-                'Switch Vault',
-                style: DesignTypography.heading(
-                  context,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: vaults.length,
-                  itemBuilder: (c, idx) {
-                    final vaultName = vaults[idx];
-                    final isActive = vaultName == activeVault;
-
-                    return ListTile(
-                      leading: Icon(
-                        DesignIcons.folder,
-                        color: isActive ? colorScheme.primary : DesignColors.textSecondary(context),
-                      ),
-                      title: Text(
-                        vaultName,
-                        style: DesignTypography.body(
-                          context,
-                          fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                      trailing: isActive ? Icon(DesignIcons.check, color: colorScheme.primary) : null,
-                      onTap: () async {
-                        Navigator.pop(ctx);
-                        if (!isActive) {
-                          await _switchVault(vaultName);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: Icon(DesignIcons.add, color: colorScheme.primary),
-                title: Text(
-                  'Create New Vault',
-                  style: DesignTypography.heading(
-                    context,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.primary,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showCreateVaultDialog();
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
+      builder: (ctx) => const VaultSelectorBottomSheet(),
     );
-  }
-
-  Future<void> _switchVault(String vaultName) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      await ref.read(vaultServiceProvider).switchVault(vaultName: vaultName, ref: ref);
-
-      if (!mounted) return;
-      Navigator.pop(context);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error switching vault: $e', style: DesignTypography.body(context, color: Colors.white))),
-      );
-    }
-  }
-
-  void _showCreateVaultDialog() {
-    final controller = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: DesignColors.surface(context),
-          title: Text(
-            'Create New Vault',
-            style: DesignTypography.heading(context, fontWeight: FontWeight.w700),
-          ),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            style: DesignTypography.body(context),
-            decoration: InputDecoration(
-              hintText: 'Vault Name',
-              hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
-              filled: true,
-              fillColor: DesignColors.surfaceVariant(context),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: DesignColors.border(context)),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: DesignTypography.details(context)),
-            ),
-            TextButton(
-              onPressed: () async {
-                final name = controller.text.trim();
-                if (name.isEmpty) return;
-                final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
-                if (!safePattern.hasMatch(name)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
-                  );
-                  return;
-                }
-                Navigator.pop(ctx);
-                await _createNewVault(name);
-              },
-              child: Text('Create', style: DesignTypography.details(context, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _createNewVault(String vaultName) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final baseDir = ref.read(baseVaultsDirectoryProvider);
-      await ref.read(vaultServiceProvider).createVault(
-        vaultName: vaultName,
-        baseDir: baseDir,
-        ref: ref,
-      );
-
-      if (!mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Created and switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating vault: $e', style: DesignTypography.body(context, color: Colors.white))),
-      );
-    }
   }
 
   Widget _buildSortChips(ColorScheme colorScheme) {
@@ -460,216 +281,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           onDelete: () => _deleteNote(notes[i].id),
         ).animate().fadeIn(duration: 100.ms).slideY(begin: 0.02, duration: 100.ms);
       },
-    );
-  }
-
-  Widget _buildGroupedNotesList(
-    List<Note> allNotes,
-    List<VirtualFolder> folders,
-    Map<String, List<String>> mappings,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final primaryColor = colorScheme.primary;
-
-    // 1. Group Journal notes
-    final journalNotes = allNotes.where((n) => n.isDaily).toList();
-
-    // 2. Group Uncategorized notes (non-daily and not in any virtual folder)
-    final uncategorizedNotes = allNotes
-        .where((n) => !n.isDaily && (mappings[n.id] == null || mappings[n.id]!.isEmpty))
-        .toList();
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
-      children: [
-        // A. Journal Logs System Folder (only if there are journal notes)
-        if (journalNotes.isNotEmpty)
-          _buildAccordionCard(
-            context: context,
-            title: 'Journal Logs',
-            notes: journalNotes,
-            folderColor: primaryColor,
-            folderIcon: DesignIcons.journal,
-            storageKey: 'system-journals',
-          ).animate().fadeIn(duration: 350.ms),
-
-        // B. Custom Virtual Folders
-        ...folders.map((folder) {
-          final folderColor = folder.colorHex.toColor();
-
-          final folderNotes = allNotes
-               .where((n) => !n.isDaily && (mappings[n.id]?.contains(folder.id) ?? false))
-               .toList();
-
-          return _buildAccordionCard(
-            context: context,
-            title: folder.name,
-            notes: folderNotes,
-            folderColor: folderColor,
-            folderIcon: DesignIcons.folder,
-            storageKey: 'folder-${folder.id}',
-            folderId: folder.id,
-            folder: folder,
-          ).animate().fadeIn(duration: 400.ms);
-        }),
-
-        // C. Uncategorized Notes System Folder (only if there are uncategorized notes)
-        if (uncategorizedNotes.isNotEmpty)
-          _buildAccordionCard(
-            context: context,
-            title: 'Uncategorized Notes',
-            notes: uncategorizedNotes,
-            folderColor: DesignColors.textSecondary(context),
-            folderIcon: Icons.category_rounded,
-            storageKey: 'system-uncategorized',
-          ).animate().fadeIn(duration: 450.ms),
-
-        // D. Create New Folder quick button
-        TactileWrapper(
-          style: TactileFeedbackStyle.highImpact,
-          onTap: () => FolderDrawer.showAddFolderSheet(context, ref),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 24, top: 12),
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {},
-              icon: Icon(DesignIcons.addFolder, size: 18, color: colorScheme.primary),
-              label: Text(
-                'Create New Folder',
-                style: DesignTypography.heading(
-                  context,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.primary,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                side: BorderSide(
-                  color: colorScheme.primary.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
-                ),
-                backgroundColor: colorScheme.primary.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.05 : 0.03),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAccordionCard({
-    required BuildContext context,
-    required String title,
-    required List<Note> notes,
-    required Color folderColor,
-    required IconData folderIcon,
-    required String storageKey,
-    String? folderId,
-    VirtualFolder? folder,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GestureDetector(
-      onLongPress: folder != null ? () => FolderDrawer.showFolderOptions(context, ref, folder) : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: DesignColors.surface(context),
-          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
-          border: Border.all(
-            color: folderColor.withValues(alpha: isDark ? 0.3 : 0.4),
-            width: 0.8,
-          ),
-          boxShadow: isDark
-              ? null
-              : [
-                  BoxShadow(
-                    color: folderColor.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-        ),
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            key: PageStorageKey(storageKey),
-            leading: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: folderColor.withValues(alpha: isDark ? 0.15 : 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                folderIcon,
-                size: 16,
-                color: folderColor,
-              ),
-            ),
-            title: Text(
-              title,
-              style: DesignTypography.heading(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (folderId != null) ...[
-                  TactileWrapper(
-                    style: TactileFeedbackStyle.standard,
-                    onTap: () {
-                      ref.read(selectedFolderIdProvider.notifier).state = folderId;
-                    },
-                    child: IconButton(
-                      icon: const Icon(DesignIcons.forward, size: 16),
-                      color: folderColor,
-                      onPressed: () {},
-                      tooltip: 'Focus folder',
-                      constraints: const BoxConstraints(),
-                      padding: const EdgeInsets.all(4),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: folderColor.withValues(alpha: isDark ? 0.25 : 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${notes.length}',
-                    style: DesignTypography.mono(
-                      fontSize: 10,
-                      color: folderColor,
-                    ).copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  DesignIcons.arrowDown,
-                  color: DesignColors.textSecondary(context),
-                ),
-              ],
-            ),
-            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            children: [
-              _AccordionNotesList(
-                notes: notes,
-                onDelete: _deleteNote,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -787,42 +398,5 @@ class _SkeletonNoteCard extends StatelessWidget {
         ],
       ),
     ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1200.ms, color: bg.withValues(alpha: 0.5));
-  }
-}
-
-class _AccordionNotesList extends StatelessWidget {
-  final List<Note> notes;
-  final Function(String) onDelete;
-
-  const _AccordionNotesList({
-    required this.notes,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (notes.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
-        child: Text(
-          'No notes in this category.',
-          style: DesignTypography.body(
-            context,
-            fontSize: 12,
-            color: DesignColors.textSecondary(context),
-          ).copyWith(fontStyle: FontStyle.italic),
-        ),
-      );
-    }
-
-    return Column(
-      children: notes.map((note) {
-        return NoteCard(
-          note: note,
-          onTap: () => context.push('/editor/${note.id}'),
-          onDelete: () => onDelete(note.id),
-        );
-      }).toList(),
-    );
   }
 }

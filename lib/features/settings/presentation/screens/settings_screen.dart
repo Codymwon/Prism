@@ -7,6 +7,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/vault_service.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/settings_widgets.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -50,16 +51,16 @@ class SettingsScreen extends ConsumerWidget {
               child: ListView(
                 children: [
                   // ── Appearance ───────────────────────────────────────────
-                  const _SectionHeader(title: 'Appearance'),
-                  _ThemeSelector(themeType: themeType, ref: ref),
+                  const SettingsSectionHeader(title: 'Appearance'),
+                  ThemeSelector(themeType: themeType, ref: ref),
 
                   // ── Gestures & Feedback ──────────────────────────────────
-                  const _SectionHeader(title: 'Gestures & Feedback'),
-                  const _HapticToggleTile(),
+                  const SettingsSectionHeader(title: 'Gestures & Feedback'),
+                  const HapticToggleTile(),
 
                   // ── Editor ────────────────────────────────────────────────
-                  const _SectionHeader(title: 'Editor'),
-                  _SettingsTile(
+                  const SettingsSectionHeader(title: 'Editor'),
+                  SettingsTile(
                     icon: Icons.text_fields_rounded,
                     title: 'Font family',
                     subtitle: fontFamily,
@@ -72,7 +73,7 @@ class SettingsScreen extends ConsumerWidget {
                       onSelected: (val) => ref.read(fontFamilyProvider.notifier).setFontFamily(val),
                     ),
                   ),
-                  _SettingsTile(
+                  SettingsTile(
                     icon: Icons.format_size_rounded,
                     title: 'Font size',
                     subtitle: fontSize,
@@ -85,7 +86,7 @@ class SettingsScreen extends ConsumerWidget {
                       onSelected: (val) => ref.read(fontSizeProvider.notifier).setFontSize(val),
                     ),
                   ),
-                  _SettingsTile(
+                  SettingsTile(
                     icon: Icons.wrap_text_rounded,
                     title: 'Line width',
                     subtitle: lineWidth,
@@ -100,21 +101,21 @@ class SettingsScreen extends ConsumerWidget {
                   ),
 
                   // ── Sync ────────────────────────────────────────────────
-                  const _SectionHeader(title: 'Sync'),
-                  const _ProGateTile(
+                  const SettingsSectionHeader(title: 'Sync'),
+                  const ProGateTile(
                     icon: Icons.cloud_upload_outlined,
                     title: 'Google Drive Sync',
                     subtitle: 'Sync your vault to Google Drive',
                   ),
 
                   // ── Data ─────────────────────────────────────────────────
-                  const _SectionHeader(title: 'Data'),
-                  const _ProGateTile(
+                  const SettingsSectionHeader(title: 'Data'),
+                  const ProGateTile(
                     icon: Icons.file_download_outlined,
                     title: 'Export vault',
                     subtitle: 'Download all notes as ZIP or PDF',
                   ),
-                  _SettingsTile(
+                  SettingsTile(
                     icon: Icons.folder_open_outlined,
                     title: 'Base Vaults Location',
                     subtitle: baseVaultsDir.isEmpty ? 'Loading...' : baseVaultsDir,
@@ -122,8 +123,8 @@ class SettingsScreen extends ConsumerWidget {
                   ),
 
                   // ── About ──────────────────────────────────────────────
-                  const _SectionHeader(title: 'About'),
-                  _SettingsTile(
+                  const SettingsSectionHeader(title: 'About'),
+                  SettingsTile(
                     icon: Icons.info_outline_rounded,
                     title: 'Version',
                     subtitle: '1.0.0',
@@ -134,7 +135,7 @@ class SettingsScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  _SettingsTile(
+                  SettingsTile(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy policy',
                     subtitle: 'All data stays on your device',
@@ -246,286 +247,3 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 }
-
-// ─── Sub-widgets ─────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
-      child: Text(
-        title.toUpperCase(),
-        style: DesignTypography.metadata(
-          context,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: DesignColors.textTertiary(context),
-        ),
-      ),
-    );
-  }
-}
-
-class _ThemeSelector extends StatelessWidget {
-  final AppThemeType themeType;
-  final WidgetRef ref;
-
-  const _ThemeSelector({
-    required this.themeType,
-    required this.ref,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final options = [
-      (AppThemeType.system, Icons.brightness_auto_rounded, 'System'),
-      (AppThemeType.light, Icons.light_mode_outlined, 'Paper'),
-      (AppThemeType.dark, Icons.dark_mode_outlined, 'OLED'),
-      (AppThemeType.sepia, Icons.auto_stories_outlined, 'Sepia'),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Row(
-        children: options.map((opt) {
-          final isSelected = themeType == opt.$1;
-          final primaryColor = DesignColors.primary(context);
-          final textStyle = DesignTypography.metadata(
-            context,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? Colors.white
-                : DesignColors.textSecondary(context),
-          );
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: TactileWrapper(
-                style: TactileFeedbackStyle.standard,
-                onTap: () => ref.read(themeProvider.notifier).setTheme(opt.$1),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? primaryColor
-                        : DesignColors.surface(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? primaryColor
-                          : DesignColors.border(context),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        opt.$2,
-                        size: 18,
-                        color: isSelected
-                            ? Colors.white
-                            : DesignColors.textSecondary(context),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        opt.$3,
-                        style: textStyle,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.trailing,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TactileWrapper(
-      style: TactileFeedbackStyle.standard,
-      onTap: onTap,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-        leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: DesignColors.surfaceVariant(context),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: DesignColors.textSecondary(context),
-          ),
-        ),
-        title: Text(
-          title,
-          style: DesignTypography.body(
-            context,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: DesignTypography.details(context),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: trailing ?? const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
-      ),
-    );
-  }
-}
-
-class _ProGateTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _ProGateTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryColor = DesignColors.primary(context);
-
-    return TactileWrapper(
-      style: TactileFeedbackStyle.standard,
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Start your 14-day free trial to unlock this feature',
-              style: DesignTypography.body(context, color: Colors.white),
-            ),
-            action: SnackBarAction(
-              label: 'Try Pro',
-              onPressed: () {},
-            ),
-          ),
-        );
-      },
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-        leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 18, color: primaryColor),
-        ),
-        title: Row(
-          children: [
-            Text(
-              title,
-              style: DesignTypography.body(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: primaryColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'PRO',
-                style: DesignTypography.metadata(
-                  context,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  color: primaryColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Text(
-          subtitle,
-          style: DesignTypography.details(context),
-        ),
-        trailing: const Icon(Icons.lock_outline_rounded, size: 18, color: Colors.grey),
-      ),
-    );
-  }
-}
-
-class _HapticToggleTile extends ConsumerWidget {
-  const _HapticToggleTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hapticsEnabled = ref.watch(hapticsEnabledProvider);
-
-    return SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-      secondary: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: DesignColors.surfaceVariant(context),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          hapticsEnabled ? Icons.vibration_rounded : Icons.portable_wifi_off_rounded,
-          size: 18,
-          color: DesignColors.textSecondary(context),
-        ),
-      ),
-      title: Text(
-        'Haptic Feedback',
-        style: DesignTypography.body(
-          context,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(
-        'Vibrate on satisfying button presses and interactions',
-        style: DesignTypography.details(context),
-      ),
-      value: hapticsEnabled,
-      activeThumbColor: DesignColors.primary(context),
-      onChanged: (val) {
-        ref.read(hapticsEnabledProvider.notifier).setHapticsEnabled(val);
-      },
-    );
-  }
-}
-

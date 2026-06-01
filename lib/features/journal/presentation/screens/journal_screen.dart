@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../../shared/design_system/design_system.dart';
-import '../../../../shared/widgets/tactile_wrapper.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import '../../../../shared/design_system/design_system.dart';
+import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../../core/database/database_providers.dart';
+import '../widgets/journal_template_button.dart';
+import '../widgets/journal_empty_illustration.dart';
 
 final _selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -205,25 +207,25 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
   Widget _buildTemplatesRow(ColorScheme colorScheme) {
     final templates = [
-      const _TemplateItem(
+      const JournalTemplateItem(
         icon: DesignIcons.gratitude,
         label: 'Gratitude',
         emoji: '🙏',
         baseColor: MeridianColors.darkAccentRose,
       ),
-      const _TemplateItem(
+      const JournalTemplateItem(
         icon: DesignIcons.dailyPlan,
         label: 'Daily Plan',
         emoji: '📋',
         baseColor: MeridianColors.darkAccentGreen,
       ),
-      const _TemplateItem(
+      const JournalTemplateItem(
         icon: DesignIcons.reflection,
         label: 'Reflection',
         emoji: '💭',
         baseColor: MeridianColors.darkAccentAmber,
       ),
-      const _TemplateItem(
+      const JournalTemplateItem(
         icon: DesignIcons.goals,
         label: 'Goals',
         emoji: '🎯',
@@ -243,7 +245,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             child: TactileWrapper(
               style: TactileFeedbackStyle.highImpact,
               onTap: () => _createWithTemplate(t.emoji, t.label),
-              child: _JournalTemplateButton(
+              child: JournalTemplateButton(
                 template: t,
               ),
             ),
@@ -319,7 +321,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _EmptyStateIllustration(
+          JournalEmptyIllustration(
             isFuture: isFuture,
             colorScheme: colorScheme,
           ),
@@ -408,161 +410,5 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       'Goals': '# $dateStr\n\n## 🎯 Goals Check-in\n\n### Progress on current goals\n\n\n### New goal ideas\n\n\n### Blockers\n\n',
     };
     _createDailyNote(context, dateStr, templates[templateName]);
-  }
-}
-
-class _TemplateItem {
-  final IconData icon;
-  final String label;
-  final String emoji;
-  final Color baseColor;
-
-  const _TemplateItem({
-    required this.icon,
-    required this.label,
-    required this.emoji,
-    required this.baseColor,
-  });
-}
-
-class _JournalTemplateButton extends StatelessWidget {
-  final _TemplateItem template;
-
-  const _JournalTemplateButton({
-    required this.template,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseBgColor = DesignColors.surface(context);
-    final baseBorderColor = DesignColors.border(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: baseBgColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: baseBorderColor,
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: template.baseColor.withValues(alpha: isDark ? 0.04 : 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: template.baseColor.withValues(alpha: isDark ? 0.15 : 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              template.icon,
-              size: 13,
-              color: template.baseColor,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            template.label,
-            style: DesignTypography.heading(
-              context,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyStateIllustration extends StatelessWidget {
-  final bool isFuture;
-  final ColorScheme colorScheme;
-
-  const _EmptyStateIllustration({
-    required this.isFuture,
-    required this.colorScheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = colorScheme.primary;
-    final accentColor = DesignColors.accentAmber(context);
-
-    return SizedBox(
-      width: 120,
-      height: 120,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  baseColor.withValues(alpha: 0.12),
-                  baseColor.withValues(alpha: 0.0),
-                ],
-              ),
-            ),
-          ),
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: accentColor.withValues(alpha: isDark ? 0.15 : 0.25),
-                width: 1.2,
-              ),
-            ),
-          ),
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: DesignColors.surface(context),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: DesignColors.border(context),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: baseColor.withValues(alpha: isDark ? 0.15 : 0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(
-              isFuture ? Icons.calendar_month_rounded : Icons.edit_note_rounded,
-              size: 30,
-              color: baseColor,
-            ),
-          ).animate()
-            .fadeIn(duration: 400.ms)
-            .slideY(
-              begin: 0.1,
-              end: 0,
-              duration: 400.ms,
-              curve: Curves.easeOutBack,
-            ),
-        ],
-      ),
-    );
   }
 }

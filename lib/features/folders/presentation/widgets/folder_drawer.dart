@@ -7,7 +7,8 @@ import '../../../../core/utils/utils.dart';
 import '../../data/folder_model.dart';
 import '../../data/folder_repository.dart';
 import '../providers/folders_providers.dart';
-import 'hsv_color_picker.dart';
+import 'add_folder_sheet.dart';
+import 'edit_folder_sheet.dart';
 
 class FolderDrawer extends ConsumerWidget {
   const FolderDrawer({super.key});
@@ -245,9 +246,6 @@ class FolderDrawer extends ConsumerWidget {
   }
 
   static void showAddFolderSheet(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    Color selectedColor = const Color(0xFF7C6FF7);
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -255,124 +253,7 @@ class FolderDrawer extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (stateContext, setSheetState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-              left: 20,
-              right: 20,
-              top: 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DesignSheetHeader(
-                  title: 'Create Folder',
-                  onClose: () => Navigator.pop(sheetContext),
-                ),
-                const SizedBox(height: 16),
-
-                // Name Input
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  style: DesignTypography.body(context, fontSize: 16),
-                  decoration: InputDecoration(
-                    hintText: 'Folder name',
-                    hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
-                    filled: true,
-                    fillColor: DesignColors.surfaceVariant(context),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                      borderSide: BorderSide(color: DesignColors.border(context)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                      borderSide: BorderSide(color: DesignColors.border(context)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Color Display Selector
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: selectedColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Folder Color',
-                          style: DesignTypography.body(
-                            context,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.color_lens_outlined, size: 16),
-                      label: Text(
-                        'Change',
-                        style: DesignTypography.body(context, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
-                      ),
-                      onPressed: () async {
-                        final pickedColor = await showDialog<Color>(
-                          context: sheetContext,
-                          builder: (dialogCtx) => HsvColorPickerDialog(
-                            initialColor: selectedColor,
-                          ),
-                        );
-                        if (pickedColor != null) {
-                          setSheetState(() {
-                            selectedColor = pickedColor;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Submit Button
-                DesignPrimaryButton(
-                  label: 'Create Folder',
-                  backgroundColor: selectedColor,
-                  onTap: () async {
-                    final name = nameController.text.trim();
-                    if (name.isNotEmpty) {
-                      final hex = '#${selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-                      await ref.read(folderRepositoryProvider).createFolder(
-                            name,
-                            colorHex: hex,
-                          );
-                      if (sheetContext.mounted) {
-                        Navigator.pop(sheetContext);
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      builder: (sheetContext) => const AddFolderSheet(),
     );
   }
 
@@ -438,9 +319,6 @@ class FolderDrawer extends ConsumerWidget {
   }
 
   static void showEditFolderSheet(BuildContext context, WidgetRef ref, VirtualFolder folder) {
-    final nameController = TextEditingController(text: folder.name);
-    Color selectedColor = folder.colorHex.toColor();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -448,126 +326,7 @@ class FolderDrawer extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (stateContext, setSheetState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-              left: 20,
-              right: 20,
-              top: 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DesignSheetHeader(
-                  title: 'Edit Folder',
-                  onClose: () => Navigator.pop(sheetContext),
-                ),
-                const SizedBox(height: 16),
-
-                // Name Input
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  style: DesignTypography.body(context, fontSize: 16),
-                  decoration: InputDecoration(
-                    hintText: 'Folder name',
-                    hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
-                    filled: true,
-                    fillColor: DesignColors.surfaceVariant(context),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                      borderSide: BorderSide(color: DesignColors.border(context)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                      borderSide: BorderSide(color: DesignColors.border(context)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Color Display Selector
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: selectedColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Folder Color',
-                          style: DesignTypography.body(
-                            context,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.color_lens_outlined, size: 16),
-                      label: Text(
-                        'Change',
-                        style: DesignTypography.body(context, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
-                      ),
-                      onPressed: () async {
-                        final pickedColor = await showDialog<Color>(
-                          context: sheetContext,
-                          builder: (dialogCtx) => HsvColorPickerDialog(
-                            initialColor: selectedColor,
-                          ),
-                        );
-                        if (pickedColor != null) {
-                          setSheetState(() {
-                            selectedColor = pickedColor;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Submit Button
-                DesignPrimaryButton(
-                  label: 'Save Changes',
-                  backgroundColor: selectedColor,
-                  onTap: () async {
-                    final name = nameController.text.trim();
-                    if (name.isNotEmpty) {
-                      final hex = '#${selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-                      await ref.read(folderRepositoryProvider).updateFolder(
-                            folder.id,
-                            name,
-                            hex,
-                            folder.icon,
-                          );
-                      if (sheetContext.mounted) {
-                        Navigator.pop(sheetContext);
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      builder: (sheetContext) => EditFolderSheet(folder: folder),
     );
   }
 }

@@ -1,0 +1,220 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/design_system/design_system.dart';
+import '../../../../core/services/vault_service.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
+
+class VaultSelectorBottomSheet extends ConsumerStatefulWidget {
+  const VaultSelectorBottomSheet({super.key});
+
+  @override
+  ConsumerState<VaultSelectorBottomSheet> createState() => _VaultSelectorBottomSheetState();
+}
+
+class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSheet> {
+  List<String> _vaults = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVaults();
+  }
+
+  Future<void> _loadVaults() async {
+    final baseDir = ref.read(baseVaultsDirectoryProvider);
+    final activeVault = ref.read(activeVaultNameProvider);
+    final vaults = await ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
+    if (mounted) {
+      setState(() {
+        _vaults = vaults;
+      });
+    }
+  }
+
+  Future<void> _switchVault(String vaultName) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await ref.read(vaultServiceProvider).switchVault(vaultName: vaultName, ref: ref);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      Navigator.pop(context); // Dismiss bottom sheet
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error switching vault: $e', style: DesignTypography.body(context, color: Colors.white))),
+      );
+    }
+  }
+
+  void _showCreateVaultDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: DesignColors.surface(context),
+          title: Text(
+            'Create New Vault',
+            style: DesignTypography.heading(context, fontWeight: FontWeight.w700),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: DesignTypography.body(context),
+            decoration: InputDecoration(
+              hintText: 'Vault Name',
+              hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
+              filled: true,
+              fillColor: DesignColors.surfaceVariant(context),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                borderSide: BorderSide(color: DesignColors.border(context)),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: DesignTypography.details(context)),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isEmpty) return;
+                final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+                if (!safePattern.hasMatch(name)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                await _createNewVault(name);
+              },
+              child: Text('Create', style: DesignTypography.details(context, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _createNewVault(String vaultName) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final baseDir = ref.read(baseVaultsDirectoryProvider);
+      await ref.read(vaultServiceProvider).createVault(
+        vaultName: vaultName,
+        baseDir: baseDir,
+        ref: ref,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      Navigator.pop(context); // Dismiss bottom sheet
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Created and switched to vault: $vaultName', style: DesignTypography.body(context, color: Colors.white))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating vault: $e', style: DesignTypography.body(context, color: Colors.white))),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final activeVault = ref.watch(activeVaultNameProvider);
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          const DesignSheetDragHandle(),
+          const SizedBox(height: 8),
+          Text(
+            'Switch Vault',
+            style: DesignTypography.heading(
+              context,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _vaults.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _vaults.length,
+                    itemBuilder: (c, idx) {
+                      final vaultName = _vaults[idx];
+                      final isActive = vaultName == activeVault;
+
+                      return ListTile(
+                        leading: Icon(
+                          DesignIcons.folder,
+                          color: isActive ? colorScheme.primary : DesignColors.textSecondary(context),
+                        ),
+                        title: Text(
+                          vaultName,
+                          style: DesignTypography.body(
+                            context,
+                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                          ),
+                        ),
+                        trailing: isActive ? Icon(DesignIcons.check, color: colorScheme.primary) : null,
+                        onTap: () async {
+                          if (!isActive) {
+                            await _switchVault(vaultName);
+                          } else {
+                            Navigator.pop(context);
+                          }
+                        },
+                      );
+                    },
+                  ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(DesignIcons.add, color: colorScheme.primary),
+            title: Text(
+              'Create New Vault',
+              style: DesignTypography.heading(
+                context,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.primary,
+              ),
+            ),
+            onTap: () {
+              _showCreateVaultDialog();
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}

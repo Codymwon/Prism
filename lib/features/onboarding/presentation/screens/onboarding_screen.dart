@@ -4,11 +4,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/database/database_helper.dart';
-import '../../../notes/data/note_repository.dart';
-import '../../data/onboarding_provider.dart';
+import '../widgets/vault_setup_form.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,12 +17,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   bool _isSettingUp = false;
-
-  // Vault Setup state
   bool _showVaultSetup = false;
-  bool _useDefaultLocation = true;
-  String _customLocationPath = '';
-  final TextEditingController _vaultNameController = TextEditingController(text: 'My Vault');
 
   final List<OnboardingSlide> _slides = [
     OnboardingSlide(
@@ -34,93 +25,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       subtitle: 'Privacy-First Notebook',
       description: 'Your notes live completely private on your device in standard Markdown. No accounts, no tracking, pure offline speed.',
       icon: Icons.shield_outlined,
-      gradientColors: [Color(0xFFE07A5F), Color(0xFFF2CC8F)],
+      gradientColors: [const Color(0xFFE07A5F), const Color(0xFFF2CC8F)],
     ),
     OnboardingSlide(
       title: 'Wikilinks & Backlinks',
       subtitle: 'Visual Relational Thinking',
       description: 'Connect thoughts effortlessly using [[wikilinks]]. Explore relationships dynamically with automatic backlink indexes.',
       icon: Icons.hub_outlined,
-      gradientColors: [Color(0xFF81B29A), Color(0xFF3D5A80)],
+      gradientColors: [const Color(0xFF81B29A), const Color(0xFF3D5A80)],
     ),
     OnboardingSlide(
       title: 'Warm Editorial Theme',
       subtitle: 'Friction-Free Interface',
       description: 'Crafted with premium typography and beautiful palettes—Clean Paper, Midnight OLED, and the warm Sepia theme.',
       icon: Icons.auto_stories_outlined,
-      gradientColors: [Color(0xFFC8A97E), Color(0xFF5C3D2E)],
+      gradientColors: [const Color(0xFFC8A97E), const Color(0xFF5C3D2E)],
     ),
   ];
 
   @override
   void dispose() {
     _pageController.dispose();
-    _vaultNameController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickCustomLocation() async {
-    try {
-      final path = await FilePicker.platform.getDirectoryPath();
-      if (path != null) {
-        setState(() {
-          _customLocationPath = path;
-          _useDefaultLocation = false;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open folder picker: $e')),
-      );
-    }
-  }
-
-  Future<void> _completeOnboarding() async {
-    setState(() => _isSettingUp = true);
-
-    try {
-      final baseDir = _useDefaultLocation ? '' : _customLocationPath;
-      final vaultName = _vaultNameController.text.trim().isEmpty 
-          ? 'My Vault' 
-          : _vaultNameController.text.trim();
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('baseVaultsDirectory', baseDir);
-      await prefs.setString('activeVaultName', vaultName);
-
-      // Force database helper to close old global DB connection (if any)
-      await DatabaseHelper.instance.closeDatabase();
-
-      final repo = ref.read(noteRepositoryProvider);
-
-      // Create starter notes inside the new vault directory
-      await repo.createNote(
-        title: 'Welcome to Meridian',
-        initialContent: _welcomeNoteContent,
-      );
-
-      await repo.createNote(
-        title: 'Getting Started with Wikilinks',
-        initialContent: _wikilinksNoteContent,
-      );
-
-      await repo.createNote(
-        title: 'The Magic of Daily Journaling',
-        initialContent: _journalNoteContent,
-      );
-
-      // Save onboarding complete state
-      await ref.read(onboardingStateProvider.notifier).completeOnboarding();
-    } catch (e) {
-      debugPrint('Error creating starter notes: $e');
-      // Fallback: save onboarding state anyway so user is not stuck
-      await ref.read(onboardingStateProvider.notifier).completeOnboarding();
-    } finally {
-      if (mounted) {
-        setState(() => _isSettingUp = false);
-      }
-    }
   }
 
   @override
@@ -133,7 +59,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: _isSettingUp
             ? _buildSetupLoading(colorScheme)
             : _showVaultSetup
-                ? _buildVaultSetupStep(colorScheme)
+                ? VaultSetupForm(
+                    onStartSetup: () => setState(() => _isSettingUp = true),
+                    onEndSetup: () {
+                      if (mounted) {
+                        setState(() => _isSettingUp = false);
+                      }
+                    },
+                  )
                 : Column(
                     children: [
                       // Upper Top Skip Button
@@ -315,250 +248,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildVaultSetupStep(ColorScheme colorScheme) {
-    final cardBg = DesignColors.surface(context);
-    final cardBorder = DesignColors.border(context);
-    final textStyle = DesignColors.text(context);
-    final textSecStyle = DesignColors.textSecondary(context);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Elegant Header
-          Text(
-            'CREATE YOUR WORKSPACE',
-            style: DesignTypography.metadata(
-              context,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: colorScheme.primary,
-            ),
-          ).animate().fadeIn().slideY(begin: 0.2),
-          const SizedBox(height: 8),
-          Text(
-            'Configure Vault Location',
-            style: DesignTypography.display(
-              context,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: textStyle,
-            ),
-          ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
-          const SizedBox(height: 12),
-          Text(
-            'Meridian stores all your notes directly on your device. Choose where your vault folder lives. You can create and switch between multiple vaults later.',
-            style: DesignTypography.body(
-              context,
-              fontSize: 14,
-              height: 1.6,
-              color: textSecStyle,
-            ),
-          ).animate().fadeIn(delay: 200.ms),
-          const SizedBox(height: 32),
-
-          // Vault Name input
-          Text(
-            'Initial Vault Name',
-            style: DesignTypography.body(
-              context,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: textStyle,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _vaultNameController,
-            style: DesignTypography.body(context, fontSize: 14, color: textStyle),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: DesignColors.surfaceVariant(context),
-              hintText: 'e.g. My Vault, Personal, Research',
-              hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: cardBorder),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: cardBorder),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: colorScheme.primary, width: 2),
-              ),
-              prefixIcon: Icon(Icons.drive_file_rename_outline_rounded, size: 18, color: colorScheme.primary),
-            ),
-          ).animate().fadeIn(delay: 250.ms),
-          const SizedBox(height: 28),
-
-          Text(
-            'Storage Directory Location',
-            style: DesignTypography.body(
-              context,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: textStyle,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Selection Cards
-          Column(
-            children: [
-              // Card 1: Default
-              TactileWrapper(
-                style: TactileFeedbackStyle.standard,
-                onTap: () => setState(() => _useDefaultLocation = true),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: _useDefaultLocation ? colorScheme.primary : cardBorder,
-                      width: _useDefaultLocation ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: _useDefaultLocation ? colorScheme.primaryContainer : cardBorder.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.offline_pin_outlined, color: _useDefaultLocation ? colorScheme.primary : textSecStyle, size: 22),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Default Storage (Recommended)',
-                              style: DesignTypography.body(context, fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Recommended. Kept safe in the app\'s internal documents sandbox folder.',
-                              style: DesignTypography.details(context, fontSize: 12, color: textSecStyle),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Card 2: Custom
-              TactileWrapper(
-                style: TactileFeedbackStyle.standard,
-                onTap: () async {
-                  if (_useDefaultLocation) {
-                    await _pickCustomLocation();
-                  } else {
-                    setState(() => _useDefaultLocation = false);
-                  }
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: !_useDefaultLocation ? colorScheme.primary : cardBorder,
-                      width: !_useDefaultLocation ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: !_useDefaultLocation ? colorScheme.primaryContainer : cardBorder.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.create_new_folder_outlined, color: !_useDefaultLocation ? colorScheme.primary : textSecStyle, size: 22),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Custom Local Folder',
-                                  style: DesignTypography.body(context, fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
-                                ),
-                                if (!_useDefaultLocation)
-                                  GestureDetector(
-                                    onTap: _pickCustomLocation,
-                                    child: Text(
-                                      'Change',
-                                      style: DesignTypography.body(context, fontSize: 12, color: colorScheme.primary, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              !_useDefaultLocation && _customLocationPath.isNotEmpty
-                                  ? _customLocationPath
-                                  : 'Select any local folder (perfect for syncing with Obsidian, Syncthing, etc.)',
-                              style: DesignTypography.details(context, fontSize: 12, color: textSecStyle),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ).animate().fadeIn(delay: 300.ms),
-          const SizedBox(height: 40),
-
-          // Confirm Action Button
-          DesignPrimaryButton(
-            label: (!_useDefaultLocation && _customLocationPath.isEmpty)
-                ? 'Select Custom Directory'
-                : 'Confirm & Initialize Workspace',
-            onTap: (!_useDefaultLocation && _customLocationPath.isEmpty)
-                ? _pickCustomLocation
-                : () {
-                    final vaultName = _vaultNameController.text.trim();
-                    if (vaultName.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a valid name for your vault.')),
-                      );
-                      return;
-                    }
-                    final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
-                    if (!safePattern.hasMatch(vaultName)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
-                      );
-                      return;
-                    }
-                    _completeOnboarding();
-                  },
-          ).animate().fadeIn(delay: 350.ms),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSetupLoading(ColorScheme colorScheme) {
     return Center(
       child: Column(
@@ -595,56 +284,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
     );
   }
-
-  // --- Starter Notes Content ---
-
-  static const String _welcomeNoteContent = '''# Welcome to Meridian
-
-Meridian is a private, offline-first personal workspace for your thoughts and journals. All notes are saved as standard Markdown files directly on your device, giving you complete ownership and security.
-1. **Absolute Privacy**: All notes live on your device as standard Markdown files.
-2. **Wikilink Relationships**: Connect your notes dynamically using `[[` links.
-3. **Immersive Aesthetics**: Beautiful themes designed to let you focus on writing.
-
-## What is Meridian?
-Meridian is designed to be a quiet space for your thoughts. Unlike traditional linear note-taking apps, it allows you to connect ideas together to form an interconnected network of your thoughts.
-
-## Next Steps
-- Try exploring [[Getting Started with Wikilinks]] to learn how to connect thoughts.
-- Check out [[The Magic of Daily Journaling]] to learn about calendar logs.
-
-#notes #welcome''';
-
-  static const String _wikilinksNoteContent = '''# Getting Started with Wikilinks
-
-Wikilinks are the foundation of relational thinking in Meridian. They allow you to build connections between ideas effortlessly.
-
-## How to Create a Link
-1. While typing, open two square brackets: `[[`
-2. Type the name of another note.
-3. Close the brackets: `]]`
-
-For example, this link points back to [[Welcome to Meridian]].
-
-## Backlinks and Ghost Notes
-- **Backlinks**: Open the panel at the bottom of the editor to see all other notes that link to the current note.
-- **Ghost Notes**: If you link to a note that doesn't exist yet, Meridian creates a "ghost placeholder" for it. It will fully blossom once you open and write in it!
-
-#wikilinks #tutorial''';
-
-  static const String _journalNoteContent = '''# The Magic of Daily Journaling
-
-Daily Journaling is a structured habit of reflection. Meridian integrates your daily logs directly into your notes.
-
-## Daily Note Habits
-- Use the **Journal** tab to open today's dedicated calendar note.
-- Jot down raw thoughts, tasks, and bookmarks.
-- Tag your entries with #journal or #reflection to organize them.
-
-## Connect Your Thoughts
-Don't let your daily reflections stay isolated! Link today's journal entry to other notes in your system. For instance:
-- "Today I spent time writing and connecting thoughts in [[Welcome to Meridian]]."
-
-#journal #productivity''';
 }
 
 class OnboardingSlide {
