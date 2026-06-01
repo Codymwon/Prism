@@ -334,6 +334,18 @@ class NoteRepository {
     _ref.read(notesVersionProvider.notifier).state++;
   }
 
+  Future<List<String>> getTagsForNote(String noteId) async {
+    final db = await _db;
+    final maps = await db.query(
+      'note_tags',
+      columns: ['tag'],
+      where: 'note_id = ?',
+      whereArgs: [noteId],
+      orderBy: 'tag ASC',
+    );
+    return maps.map((m) => m['tag'] as String).toList();
+  }
+
   Future<List<String>> getUniqueTags() async {
     final db = await _db;
     final maps = await db.rawQuery('SELECT DISTINCT tag FROM note_tags ORDER BY tag ASC');

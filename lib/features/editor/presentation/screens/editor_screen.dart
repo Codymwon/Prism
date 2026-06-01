@@ -16,6 +16,7 @@ import '../widgets/wikilink_autocomplete.dart';
 import '../widgets/backlinks_panel.dart';
 import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../../../shared/widgets/tactile_wrapper.dart';
 
 enum EditorMode { write, preview }
 
@@ -210,7 +211,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 if (isConflicted) _buildConflictBanner(context, colorScheme, isDark),
                 Expanded(
                   child: mode == EditorMode.write
-                      ? _buildWriteMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal)
+                      ? Column(
+                          children: [
+                            Expanded(
+                              child: _buildWriteMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
+                            ),
+                            _buildFormattingToolbar(context, colorScheme),
+                          ],
+                        )
                       : _buildPreviewMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
                 ),
                 // Backlinks panel
@@ -534,5 +542,121 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       default:
         return GoogleFonts.inter(fontSize: fontSize, height: height, color: color, fontWeight: fontWeight, decoration: decoration);
     }
+  }
+
+  void _insertFormatting(String prefix, [String suffix = '']) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    
+    if (!selection.isValid) {
+      final newText = text + prefix + suffix;
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length - suffix.length),
+      );
+      return;
+    }
+    
+    final start = selection.start;
+    final end = selection.end;
+    final selectedText = text.substring(start, end);
+    
+    final newSelectedText = prefix + selectedText + suffix;
+    final newText = text.replaceRange(start, end, newSelectedText);
+    
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection(
+        baseOffset: start + prefix.length,
+        extentOffset: start + prefix.length + selectedText.length,
+      ),
+    );
+    
+    _focusNode.requestFocus();
+  }
+
+  Widget _buildFormattingToolbar(BuildContext context, ColorScheme colorScheme) {
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: DesignColors.surfaceVariant(context),
+        border: Border(
+          top: BorderSide(color: DesignColors.border(context), width: 0.5),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            _buildFormattingButton(
+              icon: Icons.format_bold_rounded,
+              tooltip: 'Bold',
+              onTap: () => _insertFormatting('**', '**'),
+            ),
+            _buildFormattingButton(
+              icon: Icons.format_italic_rounded,
+              tooltip: 'Italic',
+              onTap: () => _insertFormatting('*', '*'),
+            ),
+            _buildFormattingButton(
+              icon: Icons.format_size_rounded,
+              tooltip: 'Heading',
+              onTap: () => _insertFormatting('# '),
+            ),
+            _buildFormattingButton(
+              icon: Icons.link_rounded,
+              tooltip: 'Wikilink',
+              onTap: () => _insertFormatting('[[', ']]'),
+            ),
+            _buildFormattingButton(
+              icon: Icons.label_outline_rounded,
+              tooltip: 'Tag',
+              onTap: () => _insertFormatting('#'),
+            ),
+            _buildFormattingButton(
+              icon: Icons.format_list_bulleted_rounded,
+              tooltip: 'Bullet List',
+              onTap: () => _insertFormatting('\n- '),
+            ),
+            _buildFormattingButton(
+              icon: Icons.code_rounded,
+              tooltip: 'Code',
+              onTap: () => _insertFormatting('`', '`'),
+            ),
+            _buildFormattingButton(
+              icon: Icons.format_quote_rounded,
+              tooltip: 'Blockquote',
+              onTap: () => _insertFormatting('\n> '),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormattingButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return TactileWrapper(
+      style: TactileFeedbackStyle.standard,
+      onTap: onTap,
+      child: Tooltip(
+        message: tooltip,
+        child: Container(
+          height: 38,
+          width: 38,
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            size: 18,
+            color: DesignColors.textSecondary(context),
+          ),
+        ),
+      ),
+    );
   }
 }

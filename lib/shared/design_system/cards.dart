@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../widgets/tactile_wrapper.dart';
 import '../../features/notes/data/note_model.dart';
+import '../../features/notes/presentation/providers/notes_providers.dart';
 import 'colors.dart';
 import 'typography.dart';
 import 'spacing.dart';
 import 'icons.dart';
 
-class DesignNoteCard extends StatelessWidget {
+class DesignNoteCard extends ConsumerWidget {
   final Note note;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -20,7 +22,7 @@ class DesignNoteCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bg = DesignColors.surface(context);
     final border = DesignColors.border(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -101,22 +103,87 @@ class DesignNoteCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _formatDate(note.updatedAt),
-                    style: DesignTypography.metadata(context),
+                ],
+              ),
+
+              // Rich note details from Riverpod (Snippet & Tags)
+              ...ref.watch(noteDetailsProvider(note)).maybeWhen(
+                data: (details) => [
+                  if (details.snippet.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      details.snippet,
+                      style: DesignTypography.body(
+                        context,
+                        fontSize: 12,
+                        color: DesignColors.textSecondary(context),
+                        height: 1.45,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (details.tags.isNotEmpty)
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              children: details.tags.map((t) => _buildTagBadge(context, t)).toList(),
+                            ),
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_formatDate(note.updatedAt)}${note.wordCount > 0 ? " • ${note.wordCount} words" : ""}',
+                        style: DesignTypography.metadata(context),
+                      ),
+                    ],
+                  ),
+                ],
+                orElse: () => [
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Spacer(),
+                      Text(
+                        '${_formatDate(note.updatedAt)}${note.wordCount > 0 ? " • ${note.wordCount} words" : ""}',
+                        style: DesignTypography.metadata(context),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              if (note.wordCount > 0) ...[
-                const SizedBox(height: 6),
-                Text(
-                  '${note.wordCount} words',
-                  style: DesignTypography.metadata(context),
-                ),
-              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTagBadge(BuildContext context, String tag) {
+    final primary = DesignColors.primary(context);
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        '#$tag',
+        style: DesignTypography.metadata(
+          context,
+          fontSize: 9.5,
+          fontWeight: FontWeight.bold,
+          color: primary,
         ),
       ),
     );
