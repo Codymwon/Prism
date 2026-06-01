@@ -1,8 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
@@ -13,6 +13,8 @@ import '../../../notes/data/note_model.dart';
 import '../../../../core/database/database_providers.dart';
 import '../widgets/journal_template_button.dart';
 import '../widgets/journal_empty_illustration.dart';
+import '../widgets/journal_calendar.dart';
+import '../widgets/journal_entry_card.dart';
 
 final _selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -38,12 +40,15 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(colorScheme, selectedDay),
-            if (_showCalendar) _buildCalendar(colorScheme, selectedDay),
+            if (_showCalendar)
+              JournalCalendar(
+                selectedDay: selectedDay,
+                selectedDayProvider: _selectedDayProvider,
+              ),
             Expanded(child: _buildJournalContent(colorScheme, selectedDay)),
           ],
         ),
       ),
-      floatingActionButton: _buildTodayFAB(context, colorScheme),
     );
   }
 
@@ -73,7 +78,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 ),
               ),
             ],
-          ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.05),
+          ),
           const Spacer(),
           IconButton(
             icon: AnimatedSwitcher(
@@ -94,110 +99,59 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
-  Widget _buildCalendar(ColorScheme colorScheme, DateTime selectedDay) {
-    return TableCalendar(
-      firstDay: DateTime(2020),
-      lastDay: DateTime(2030),
-      focusedDay: selectedDay,
-      selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-      calendarFormat: CalendarFormat.month,
-      headerStyle: HeaderStyle(
-        formatButtonVisible: false,
-        titleCentered: true,
-        titleTextStyle: DesignTypography.heading(
-          context,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-        leftChevronIcon: Icon(
-          DesignIcons.back,
-          color: DesignColors.textSecondary(context),
-        ),
-        rightChevronIcon: Icon(
-          DesignIcons.chevronRight,
-          color: DesignColors.textSecondary(context),
-        ),
-      ),
-      calendarStyle: CalendarStyle(
-        todayDecoration: BoxDecoration(
-          color: colorScheme.primary.withValues(alpha: 0.2),
-          shape: BoxShape.circle,
-        ),
-        todayTextStyle: DesignTypography.body(
-          context,
-          color: colorScheme.primary,
-          fontWeight: FontWeight.w600,
-        ),
-        selectedDecoration: BoxDecoration(
-          color: colorScheme.primary,
-          shape: BoxShape.circle,
-        ),
-        selectedTextStyle: DesignTypography.body(
-          context,
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
-        defaultTextStyle: DesignTypography.body(
-          context,
-        ),
-        weekendTextStyle: DesignTypography.body(
-          context,
-          color: DesignColors.textSecondary(context),
-        ),
-        outsideTextStyle: DesignTypography.body(
-          context,
-          color: DesignColors.textTertiary(context),
-        ),
-      ),
-      daysOfWeekStyle: DaysOfWeekStyle(
-        weekdayStyle: DesignTypography.body(
-          context,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: DesignColors.textSecondary(context),
-        ),
-        weekendStyle: DesignTypography.body(
-          context,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: DesignColors.textTertiary(context),
-        ),
-      ),
-      onDaySelected: (selected, focused) {
-        ref.read(_selectedDayProvider.notifier).state = selected;
-      },
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05);
-  }
+
 
   Widget _buildJournalContent(ColorScheme colorScheme, DateTime selectedDay) {
     final dateStr = formatDailyDate(selectedDay);
     final dailyNoteAsync = ref.watch(
       FutureProvider.autoDispose(
-        (ref) {
+        (ref) async {
           ref.watch(notesVersionProvider); // React to version updates reactively
-          return ref.read(noteRepositoryProvider).getDailyNote(dateStr);
+          final note = await ref.read(noteRepositoryProvider).getDailyNote(dateStr);
+          if (note == null) return null;
+
+          final file = File(note.filePath);
+          String content = '';
+          if (await file.exists()) {
+            content = await file.readAsString();
+          }
+          return (note: note, content: content);
         },
       ).future,
     );
 
-    return FutureBuilder<Note?>(
+    return FutureBuilder<({Note note, String content})?>(
       future: dailyNoteAsync,
       builder: (context, snapshot) {
-        final note = snapshot.data;
+        final data = snapshot.data;
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 16, DesignSpacing.screenPadding, 0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Templates row
-              _buildTemplatesRow(colorScheme),
-              const SizedBox(height: 16),
+              if (data == null) ...[
+                // Uppercase contextual header for templates
+                Text(
+                  'START WITH A TEMPLATE',
+                  style: DesignTypography.metadata(
+                    context,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildTemplatesRow(colorScheme),
+                const SizedBox(height: 24),
+              ],
+              
               // Entry state
-              Expanded(
-                child: note != null
-                    ? _buildExistingEntry(context, colorScheme, note)
-                    : _buildEmptyDay(context, colorScheme, dateStr),
-              ),
+              data != null
+                  ? JournalEntryCard(note: data.note, content: data.content)
+                  : Expanded(
+                      child: _buildEmptyDay(context, colorScheme, dateStr),
+                    ),
             ],
           ),
         );
@@ -255,61 +209,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     );
   }
 
-  Widget _buildExistingEntry(
-    BuildContext context,
-    ColorScheme colorScheme,
-    Note note,
-  ) {
-    return GestureDetector(
-      onTap: () => context.push('/editor/${note.id}'),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: DesignColors.surface(context),
-          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
-          border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.check_circle_outline_rounded, size: 16, color: colorScheme.primary),
-                const SizedBox(width: 6),
-                Text(
-                  'Entry written',
-                  style: DesignTypography.heading(
-                    context,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${note.wordCount} words',
-                  style: DesignTypography.metadata(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Tap to continue writing…',
-              style: DesignTypography.body(
-                context,
-                fontSize: 14,
-                color: DesignColors.textSecondary(context),
-              ).copyWith(fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.97, 0.97));
-  }
+
 
   Widget _buildEmptyDay(
     BuildContext context,
@@ -362,28 +262,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     ).animate().fadeIn(duration: 400.ms);
   }
 
-  Widget _buildTodayFAB(BuildContext context, ColorScheme colorScheme) {
-    final isToday_ = isToday(formatDailyDate(ref.watch(_selectedDayProvider)));
-    if (!isToday_) return const SizedBox.shrink();
-
-    return DesignFloatingActionButton(
-      label: "Today's Entry",
-      icon: DesignIcons.edit,
-      onTap: () => _openOrCreateToday(context),
-    ).animate().scale(begin: const Offset(0.8, 0.8), duration: 300.ms, curve: Curves.elasticOut);
-  }
-
-  Future<void> _openOrCreateToday(BuildContext context) async {
-    final today = formatDailyDate(DateTime.now());
-    final repo = ref.read(noteRepositoryProvider);
-    var note = await repo.getDailyNote(today);
-    note ??= await repo.createNote(
-      title: today,
-      isDaily: true,
-      dailyDate: today,
-    );
-    if (context.mounted) context.push('/editor/${note.id}?date=$today');
-  }
 
   Future<void> _createDailyNote(
     BuildContext context,

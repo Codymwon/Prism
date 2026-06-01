@@ -10,11 +10,18 @@ import '../../../folders/data/folder_model.dart';
 
 final noteSortProvider = StateProvider<NoteSort>((ref) => NoteSort.updated);
 
+final selectedTagProvider = StateProvider<String?>((ref) => null);
+
 final notesProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
   ref.watch(notesVersionProvider);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   final sort = ref.watch(noteSortProvider);
+  
+  final tag = ref.watch(selectedTagProvider);
+  if (tag != null) {
+    return repo.getNotesByTag(tag);
+  }
   
   final folderId = ref.watch(selectedFolderIdProvider);
   if (folderId != null) {
@@ -23,6 +30,18 @@ final notesProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
   }
   
   return repo.getAllNotes(sort: sort);
+});
+
+final uniqueTagsProvider = FutureProvider.autoDispose<List<String>>((ref) async {
+  ref.watch(notesVersionProvider);
+  final repo = ref.watch(noteRepositoryProvider);
+  return repo.getUniqueTags();
+});
+
+final vaultStatsProvider = FutureProvider.autoDispose<({int totalNotes, int totalWords, int totalLinks})>((ref) async {
+  ref.watch(notesVersionProvider);
+  final repo = ref.watch(noteRepositoryProvider);
+  return repo.getVaultStats();
 });
 
 final searchQueryProvider = StateProvider<String>((ref) => '');

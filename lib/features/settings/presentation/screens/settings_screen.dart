@@ -8,6 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/vault_service.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
+import '../../../onboarding/data/tutorial_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -57,6 +58,24 @@ class SettingsScreen extends ConsumerWidget {
                   // ── Gestures & Feedback ──────────────────────────────────
                   const SettingsSectionHeader(title: 'Gestures & Feedback'),
                   const HapticToggleTile(),
+                  SettingsTile(
+                    icon: Icons.explore_outlined,
+                    title: 'Replay interactive tutorial',
+                    subtitle: 'Walk through the core features of Meridian',
+                    trailing: const Icon(Icons.refresh_rounded, size: 20),
+                    onTap: () async {
+                      await ref.read(tutorialStateProvider.notifier).resetTutorial();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Interactive walkthrough reset! Returning home to start.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
 
                   // ── Editor ────────────────────────────────────────────────
                   const SettingsSectionHeader(title: 'Editor'),

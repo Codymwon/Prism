@@ -331,4 +331,22 @@ class NoteRepository {
     await db.delete('notes', where: 'id = ?', whereArgs: [id]);
     _ref.read(notesVersionProvider.notifier).state++;
   }
+
+  Future<List<String>> getUniqueTags() async {
+    final db = await _db;
+    final maps = await db.rawQuery('SELECT DISTINCT tag FROM note_tags ORDER BY tag ASC');
+    return maps.map((m) => m['tag'] as String).toList();
+  }
+
+  Future<({int totalNotes, int totalWords, int totalLinks})> getVaultStats() async {
+    final db = await _db;
+    final noteRes = await db.rawQuery('SELECT COUNT(*), SUM(word_count) FROM notes WHERE is_ghost = 0');
+    final linkRes = await db.rawQuery('SELECT COUNT(*) FROM note_links');
+    
+    final notes = (noteRes.first['COUNT(*)'] as int?) ?? 0;
+    final words = (noteRes.first['SUM(word_count)'] as int?) ?? 0;
+    final links = (linkRes.first['COUNT(*)'] as int?) ?? 0;
+    
+    return (totalNotes: notes, totalWords: words, totalLinks: links);
+  }
 }

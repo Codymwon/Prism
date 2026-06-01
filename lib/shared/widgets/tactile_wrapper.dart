@@ -138,7 +138,9 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
 
     Widget resultWidget = ScaleTransition(
       scale: _scaleAnimation,
-      child: widget.child,
+      child: IgnorePointer(
+        child: widget.child,
+      ),
     );
 
     // Apply specific enhancements for specific states

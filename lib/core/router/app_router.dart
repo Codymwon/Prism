@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/notes/presentation/screens/notes_list_screen.dart';
@@ -64,18 +65,59 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/editor/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final noteId = state.pathParameters['id']!;
           final isNew = state.uri.queryParameters['new'] == 'true';
           final dailyDate = state.uri.queryParameters['date'];
-          return EditorScreen(noteId: noteId, isNew: isNew, dailyDate: dailyDate);
+          
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: EditorScreen(noteId: noteId, isNew: isNew, dailyDate: dailyDate),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.08, 0.0), // Subtle slide from right
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  )),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 280),
+            reverseTransitionDuration: const Duration(milliseconds: 240),
+          );
         },
       ),
       GoRoute(
         path: '/editor/:id/merge',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final noteId = state.pathParameters['id']!;
-          return MergeComparisonScreen(noteId: noteId);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: MergeComparisonScreen(noteId: noteId),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.08, 0.0), // Subtle slide from right
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  )),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 280),
+            reverseTransitionDuration: const Duration(milliseconds: 240),
+          );
         },
       ),
     ],

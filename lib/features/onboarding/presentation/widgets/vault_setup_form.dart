@@ -6,9 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/database/database_helper.dart';
-import '../../../notes/data/note_repository.dart';
 import '../../data/onboarding_provider.dart';
-import '../../data/starter_notes.dart';
 
 class VaultSetupForm extends ConsumerStatefulWidget {
   final VoidCallback onStartSetup;
@@ -25,7 +23,6 @@ class VaultSetupForm extends ConsumerStatefulWidget {
 }
 
 class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
-  bool _useDefaultLocation = true;
   String _customLocationPath = '';
   final TextEditingController _vaultNameController = TextEditingController(text: 'My Vault');
 
@@ -41,7 +38,6 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (path != null) {
         setState(() {
           _customLocationPath = path;
-          _useDefaultLocation = false;
         });
       }
     } catch (e) {
@@ -56,7 +52,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     widget.onStartSetup();
 
     try {
-      final baseDir = _useDefaultLocation ? '' : _customLocationPath;
+      final baseDir = _customLocationPath;
       final vaultName = _vaultNameController.text.trim().isEmpty 
           ? 'My Vault' 
           : _vaultNameController.text.trim();
@@ -68,28 +64,10 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       // Force database helper to close old global DB connection (if any)
       await DatabaseHelper.instance.closeDatabase();
 
-      final repo = ref.read(noteRepositoryProvider);
-
-      // Create starter notes inside the new vault directory
-      await repo.createNote(
-        title: 'Welcome to Meridian',
-        initialContent: StarterNotes.welcomeNoteContent,
-      );
-
-      await repo.createNote(
-        title: 'Getting Started with Wikilinks',
-        initialContent: StarterNotes.wikilinksNoteContent,
-      );
-
-      await repo.createNote(
-        title: 'The Magic of Daily Journaling',
-        initialContent: StarterNotes.journalNoteContent,
-      );
-
       // Save onboarding complete state
       await ref.read(onboardingStateProvider.notifier).completeOnboarding();
     } catch (e) {
-      debugPrint('Error creating starter notes: $e');
+      debugPrint('Error during vault initialization: $e');
       // Fallback: save onboarding state anyway so user is not stuck
       await ref.read(onboardingStateProvider.notifier).completeOnboarding();
     } finally {
@@ -189,136 +167,109 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ),
           const SizedBox(height: 12),
 
-          // Selection Cards
-          Column(
-            children: [
-              // Card 1: Default
-              TactileWrapper(
-                style: TactileFeedbackStyle.standard,
-                onTap: () => setState(() => _useDefaultLocation = true),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: _useDefaultLocation ? colorScheme.primary : cardBorder,
-                      width: _useDefaultLocation ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: _useDefaultLocation ? colorScheme.primaryContainer : cardBorder.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.offline_pin_outlined, color: _useDefaultLocation ? colorScheme.primary : textSecStyle, size: 22),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Default Storage (Recommended)',
-                              style: DesignTypography.body(context, fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Recommended. Kept safe in the app\'s internal documents sandbox folder.',
-                              style: DesignTypography.details(context, fontSize: 12, color: textSecStyle),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+          // High-fidelity Folder Picker Card
+          TactileWrapper(
+            style: TactileFeedbackStyle.standard,
+            onTap: _pickCustomLocation,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _customLocationPath.isNotEmpty ? colorScheme.primary : cardBorder,
+                  width: _customLocationPath.isNotEmpty ? 2 : 1,
                 ),
+                boxShadow: _customLocationPath.isNotEmpty
+                    ? [
+                        BoxShadow(
+                          color: colorScheme.primary.withValues(alpha: 0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
-              const SizedBox(height: 12),
-
-              // Card 2: Custom
-              TactileWrapper(
-                style: TactileFeedbackStyle.standard,
-                onTap: () async {
-                  if (_useDefaultLocation) {
-                    await _pickCustomLocation();
-                  } else {
-                    setState(() => _useDefaultLocation = false);
-                  }
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: !_useDefaultLocation ? colorScheme.primary : cardBorder,
-                      width: !_useDefaultLocation ? 2 : 1,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _customLocationPath.isNotEmpty
+                          ? colorScheme.primaryContainer
+                          : cardBorder.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      _customLocationPath.isNotEmpty
+                          ? Icons.folder_rounded
+                          : Icons.create_new_folder_outlined,
+                      color: _customLocationPath.isNotEmpty
+                          ? colorScheme.primary
+                          : textSecStyle,
+                      size: 26,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: !_useDefaultLocation ? colorScheme.primaryContainer : cardBorder.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.create_new_folder_outlined, color: !_useDefaultLocation ? colorScheme.primary : textSecStyle, size: 22),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Custom Local Folder',
-                                  style: DesignTypography.body(context, fontWeight: FontWeight.w600, fontSize: 14, color: textStyle),
+                            Text(
+                              _customLocationPath.isNotEmpty
+                                  ? 'Storage Location Configured'
+                                  : 'Select Storage Folder',
+                              style: DesignTypography.body(
+                                context,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: textStyle,
+                              ),
+                            ),
+                            if (_customLocationPath.isNotEmpty)
+                              Text(
+                                'Change',
+                                style: DesignTypography.body(
+                                  context,
+                                  fontSize: 12,
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                if (!_useDefaultLocation)
-                                  GestureDetector(
-                                    onTap: _pickCustomLocation,
-                                    child: Text(
-                                      'Change',
-                                      style: DesignTypography.body(context, fontSize: 12, color: colorScheme.primary, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              !_useDefaultLocation && _customLocationPath.isNotEmpty
-                                  ? _customLocationPath
-                                  : 'Select any local folder (perfect for syncing with Obsidian, Syncthing, etc.)',
-                              style: DesignTypography.details(context, fontSize: 12, color: textSecStyle),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          _customLocationPath.isNotEmpty
+                              ? _customLocationPath
+                              : 'Tap to choose where your vault folder lives on your device. Meridian will store all notes here.',
+                          style: DesignTypography.details(
+                            context,
+                            fontSize: 13,
+                            color: _customLocationPath.isNotEmpty ? textStyle : textSecStyle,
+                          ).copyWith(height: 1.4),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ).animate().fadeIn(delay: 300.ms),
           const SizedBox(height: 40),
 
           // Confirm Action Button
           DesignPrimaryButton(
-            label: (!_useDefaultLocation && _customLocationPath.isEmpty)
-                ? 'Select Custom Directory'
+            label: _customLocationPath.isEmpty
+                ? 'Select Storage Folder'
                 : 'Confirm & Initialize Workspace',
-            onTap: (!_useDefaultLocation && _customLocationPath.isEmpty)
+            onTap: _customLocationPath.isEmpty
                 ? _pickCustomLocation
                 : () {
                     final vaultName = _vaultNameController.text.trim();

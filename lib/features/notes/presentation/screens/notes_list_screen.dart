@@ -19,7 +19,7 @@ import '../widgets/grouped_notes_list.dart';
 
 enum HomeViewMode { flat, grouped }
 
-final homeViewModeProvider = StateProvider<HomeViewMode>((ref) => HomeViewMode.flat);
+final homeViewModeProvider = StateProvider<HomeViewMode>((ref) => HomeViewMode.grouped);
 
 class NotesListScreen extends ConsumerStatefulWidget {
   const NotesListScreen({super.key});
@@ -41,6 +41,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         : ref.watch(searchResultsProvider);
 
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
+    final selectedTag = ref.watch(selectedTagProvider);
     final foldersAsync = ref.watch(foldersProvider);
     
     VirtualFolder? activeFolder;
@@ -69,7 +70,44 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               },
               onFocused: () => setState(() => _isSearching = true),
             ),
-          ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1),
+          ),
+
+          // Tag Filter Banner
+          if (selectedTag != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 0, DesignSpacing.screenPadding, 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.2),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.label_outline_rounded, size: 16, color: colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Filtered by tag: #$selectedTag',
+                      style: DesignTypography.heading(
+                        context,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => ref.read(selectedTagProvider.notifier).state = null,
+                      child: Icon(Icons.close_rounded, size: 16, color: colorScheme.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ).animate().fadeIn(duration: 200.ms),
 
           // Sort chips (only shown when not searching)
           if (!_isSearching) _buildSortChips(colorScheme),
@@ -263,7 +301,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           );
         }).toList(),
       ),
-    ).animate().fadeIn(duration: 250.ms);
+    );
   }
 
   Widget _buildNotesList(List<Note> notes) {
@@ -279,7 +317,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           note: notes[i],
           onTap: () => context.push('/editor/${notes[i].id}'),
           onDelete: () => _deleteNote(notes[i].id),
-        ).animate().fadeIn(duration: 100.ms).slideY(begin: 0.02, duration: 100.ms);
+        );
       },
     );
   }

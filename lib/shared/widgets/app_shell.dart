@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/onboarding/data/tutorial_provider.dart';
 import 'tactile_wrapper.dart';
+import 'tutorial_overlay.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -34,9 +36,30 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasCompletedTutorial = ref.watch(tutorialStateProvider);
 
-    return Scaffold(
-      body: widget.child,
+    final mainScaffold = Scaffold(
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        switchInCurve: Curves.easeInOutCubic,
+        switchOutCurve: Curves.easeInOutCubic,
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 0.015), // Subtle lift up
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: Container(
+          key: ValueKey(_currentIndex),
+          child: widget.child,
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
@@ -103,6 +126,78 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         ),
       ),
+    );
+
+    if (hasCompletedTutorial) {
+      return mainScaffold;
+    }
+
+    // Force index back to 0 (Notes page) so that elements are exactly where spotlight expects them to be!
+    if (_currentIndex != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _currentIndex = 0;
+        });
+        context.go('/notes');
+      });
+    }
+
+    final tutorialSteps = [
+      TutorialStep(
+        title: 'Virtual Folders & Tags',
+        description: 'Open the sidebar navigation drawer to organize your notes into virtual folders or browse tag indexes across your vault.',
+        icon: Icons.folder_open_rounded,
+        getTargetRect: (size) {
+          final topPadding = MediaQuery.of(context).padding.top;
+          return Rect.fromLTWH(6, topPadding + 4, 48, 48);
+        },
+      ),
+      TutorialStep(
+        title: 'Daily Reflection Logs',
+        description: 'Access today\'s dedicated calendar note immediately. jot down raw thoughts, tasks, and structured daily reflections.',
+        icon: Icons.calendar_today_rounded,
+        getTargetRect: (size) {
+          final bottomPadding = MediaQuery.of(context).padding.bottom;
+          final tabWidth = size.width / 4;
+          final left = tabWidth * 1 + (tabWidth / 2) - 26;
+          final top = size.height - 60 - bottomPadding + 6;
+          return Rect.fromLTWH(left, top, 52, 48);
+        },
+      ),
+      TutorialStep(
+        title: 'Mindmap Thought Graph',
+        description: 'Explore your connected mind network. Watch notes become nodes and wikilinks become edges in a dynamic 2D graph layout.',
+        icon: Icons.hub_outlined,
+        getTargetRect: (size) {
+          final bottomPadding = MediaQuery.of(context).padding.bottom;
+          final tabWidth = size.width / 4;
+          final left = tabWidth * 2 + (tabWidth / 2) - 26;
+          final top = size.height - 60 - bottomPadding + 6;
+          return Rect.fromLTWH(left, top, 52, 48);
+        },
+      ),
+      TutorialStep(
+        title: 'Create & Link Notes',
+        description: 'Write your private thoughts! Within any note, simply type double brackets [[like this]] to link ideas together and expand your brain.',
+        icon: Icons.add_circle_outline_rounded,
+        getTargetRect: (size) {
+          final bottomPadding = MediaQuery.of(context).padding.bottom;
+          final left = size.width - 150;
+          final top = size.height - 60 - bottomPadding - 16 - 54;
+          return Rect.fromLTWH(left, top, 134, 52);
+        },
+      ),
+    ];
+
+    return Stack(
+      children: [
+        mainScaffold,
+        SpotlightTutorialOverlay(
+          steps: tutorialSteps,
+          onCompleted: () => ref.read(tutorialStateProvider.notifier).completeTutorial(),
+          onSkipped: () => ref.read(tutorialStateProvider.notifier).completeTutorial(),
+        ),
+      ],
     );
   }
 }

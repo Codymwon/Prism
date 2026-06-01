@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/utils/utils.dart';
@@ -11,6 +10,7 @@ import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
 import 'note_card.dart';
+import 'grouped_empty_state.dart';
 
 class GroupedNotesList extends ConsumerStatefulWidget {
   final List<Note> allNotes;
@@ -62,6 +62,10 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
         .where((n) => !n.isDaily && (widget.mappings[n.id] == null || widget.mappings[n.id]!.isEmpty))
         .toList();
 
+    if (widget.folders.isEmpty && journalNotes.isEmpty && uncategorizedNotes.isEmpty) {
+      return const GroupedEmptyState();
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
       children: [
@@ -74,7 +78,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
             folderColor: primaryColor,
             folderIcon: DesignIcons.journal,
             storageKey: 'system-journals',
-          ).animate().fadeIn(duration: 350.ms),
+          ),
 
         // B. Custom Virtual Folders
         ...widget.folders.map((folder) {
@@ -93,7 +97,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
             storageKey: 'folder-${folder.id}',
             folderId: folder.id,
             folder: folder,
-          ).animate().fadeIn(duration: 400.ms);
+          );
         }),
 
         // C. Uncategorized Notes System Folder (only if there are uncategorized notes)
@@ -105,7 +109,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
             folderColor: DesignColors.textSecondary(context),
             folderIcon: Icons.category_rounded,
             storageKey: 'system-uncategorized',
-          ).animate().fadeIn(duration: 450.ms),
+          ),
 
         // D. Create New Folder quick button
         TactileWrapper(
@@ -255,6 +259,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
       ),
     );
   }
+
 }
 
 class _AccordionNotesList extends StatelessWidget {

@@ -1,0 +1,94 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../shared/design_system/design_system.dart';
+
+class JournalCalendar extends ConsumerWidget {
+  final DateTime selectedDay;
+  final StateProvider<DateTime> selectedDayProvider;
+
+  const JournalCalendar({
+    super.key,
+    required this.selectedDay,
+    required this.selectedDayProvider,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return TableCalendar(
+      firstDay: DateTime(2020),
+      lastDay: DateTime(2030),
+      focusedDay: selectedDay,
+      selectedDayPredicate: (day) => isSameDay(day, selectedDay),
+      calendarFormat: CalendarFormat.month,
+      headerStyle: HeaderStyle(
+        formatButtonVisible: false,
+        titleCentered: true,
+        titleTextStyle: DesignTypography.heading(
+          context,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+        leftChevronIcon: Icon(
+          DesignIcons.back,
+          color: DesignColors.textSecondary(context),
+        ),
+        rightChevronIcon: Icon(
+          DesignIcons.chevronRight,
+          color: DesignColors.textSecondary(context),
+        ),
+      ),
+      calendarStyle: CalendarStyle(
+        todayDecoration: BoxDecoration(
+          color: colorScheme.primary.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        todayTextStyle: DesignTypography.body(
+          context,
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w600,
+        ),
+        selectedDecoration: BoxDecoration(
+          color: colorScheme.primary,
+          shape: BoxShape.circle,
+        ),
+        selectedTextStyle: DesignTypography.body(
+          context,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        defaultTextStyle: DesignTypography.body(
+          context,
+        ),
+        weekendTextStyle: DesignTypography.body(
+          context,
+          color: DesignColors.textSecondary(context),
+        ),
+        outsideTextStyle: DesignTypography.body(
+          context,
+          color: DesignColors.textTertiary(context),
+        ),
+      ),
+      daysOfWeekStyle: DaysOfWeekStyle(
+        weekdayStyle: DesignTypography.body(
+          context,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: DesignColors.textSecondary(context),
+        ),
+        weekendStyle: DesignTypography.body(
+          context,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: DesignColors.textTertiary(context),
+        ),
+      ),
+      onDaySelected: (selected, focused) {
+        ref.read(selectedDayProvider.notifier).state = selected;
+      },
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05);
+  }
+}
