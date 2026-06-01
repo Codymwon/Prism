@@ -296,7 +296,7 @@ class AppTheme {
       scaffoldBackgroundColor: MeridianColors.sepiaBackground,
       cardColor: MeridianColors.sepiaSurface,
       dividerColor: MeridianColors.sepiaBorder,
-      textTheme: _buildSepiaTextTheme(MeridianColors.sepiaText, MeridianColors.sepiaTextSecondary),
+      textTheme: _buildTextTheme(MeridianColors.sepiaText, MeridianColors.sepiaTextSecondary),
       appBarTheme: AppBarTheme(
         backgroundColor: MeridianColors.sepiaBackground,
         surfaceTintColor: Colors.transparent,
@@ -542,41 +542,65 @@ class AppTheme {
     );
   }
 
-  static TextTheme _buildTextTheme(Color primary, Color secondary) {
+  static TextTheme _buildTextTheme(Color primary, Color secondary, [String fontFamily = 'Inter (Sans)']) {
+    TextStyle getStyle(double fontSize, FontWeight fontWeight, Color color) {
+      return _getThemeFont(fontFamily, fontSize: fontSize, fontWeight: fontWeight, color: color);
+    }
     return TextTheme(
-      displayLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w700, color: primary),
-      displayMedium: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w600, color: primary),
-      headlineLarge: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w600, color: primary),
-      headlineMedium: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, color: primary),
-      headlineSmall: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: primary),
-      titleLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, color: primary),
-      titleMedium: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: primary),
-      titleSmall: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: secondary),
-      bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w400, color: primary),
-      bodyMedium: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w400, color: primary),
-      bodySmall: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w400, color: secondary),
-      labelLarge: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: primary),
-      labelMedium: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: secondary),
-      labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: secondary),
+      displayLarge: getStyle(32, FontWeight.w700, primary),
+      displayMedium: getStyle(26, FontWeight.w600, primary),
+      headlineLarge: getStyle(22, FontWeight.w600, primary),
+      headlineMedium: getStyle(18, FontWeight.w600, primary),
+      headlineSmall: getStyle(16, FontWeight.w600, primary),
+      titleLarge: getStyle(16, FontWeight.w500, primary),
+      titleMedium: getStyle(14, FontWeight.w500, primary),
+      titleSmall: getStyle(13, FontWeight.w500, secondary),
+      bodyLarge: getStyle(16, FontWeight.w400, primary),
+      bodyMedium: getStyle(14, FontWeight.w400, primary),
+      bodySmall: getStyle(12, FontWeight.w400, secondary),
+      labelLarge: getStyle(13, FontWeight.w600, primary),
+      labelMedium: getStyle(12, FontWeight.w500, secondary),
+      labelSmall: getStyle(11, FontWeight.w500, secondary),
     );
   }
 
-  static TextTheme _buildSepiaTextTheme(Color primary, Color secondary) {
-    return TextTheme(
-      displayLarge: GoogleFonts.lora(fontSize: 32, fontWeight: FontWeight.w700, color: primary),
-      displayMedium: GoogleFonts.lora(fontSize: 26, fontWeight: FontWeight.w600, color: primary),
-      headlineLarge: GoogleFonts.lora(fontSize: 22, fontWeight: FontWeight.w600, color: primary),
-      headlineMedium: GoogleFonts.lora(fontSize: 18, fontWeight: FontWeight.w600, color: primary),
-      headlineSmall: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.w600, color: primary),
-      titleLarge: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.w500, color: primary),
-      titleMedium: GoogleFonts.lora(fontSize: 14, fontWeight: FontWeight.w500, color: primary),
-      titleSmall: GoogleFonts.lora(fontSize: 13, fontWeight: FontWeight.w500, color: secondary),
-      bodyLarge: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.w400, color: primary),
-      bodyMedium: GoogleFonts.merriweather(fontSize: 14, fontWeight: FontWeight.w400, color: primary),
-      bodySmall: GoogleFonts.merriweather(fontSize: 12, fontWeight: FontWeight.w400, color: secondary),
-      labelLarge: GoogleFonts.merriweather(fontSize: 13, fontWeight: FontWeight.w600, color: primary),
-      labelMedium: GoogleFonts.merriweather(fontSize: 12, fontWeight: FontWeight.w500, color: secondary),
-      labelSmall: GoogleFonts.merriweather(fontSize: 11, fontWeight: FontWeight.w500, color: secondary),
+  static TextStyle _getThemeFont(String family, {double? fontSize, FontWeight? fontWeight, Color? color, double? height}) {
+    switch (family) {
+      case 'Roboto Mono (Mono)':
+        return GoogleFonts.robotoMono(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+      case 'Lora (Serif)':
+        return GoogleFonts.lora(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+      case 'Merriweather (Serif)':
+        return GoogleFonts.merriweather(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+      case 'Inter (Sans)':
+      default:
+        return GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+    }
+  }
+
+  static ThemeData applyFontFamily(ThemeData baseTheme, String fontFamily) {
+    final textTheme = _buildTextTheme(
+      baseTheme.colorScheme.onSurface,
+      baseTheme.colorScheme.onSurface.withValues(alpha: 0.7),
+      fontFamily,
+    );
+    return baseTheme.copyWith(
+      textTheme: textTheme,
+      appBarTheme: baseTheme.appBarTheme.copyWith(
+        titleTextStyle: _getThemeFont(
+          fontFamily,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: baseTheme.appBarTheme.titleTextStyle?.color ?? baseTheme.colorScheme.onSurface,
+        ),
+      ),
+      inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
+        hintStyle: _getThemeFont(
+          fontFamily,
+          color: baseTheme.inputDecorationTheme.hintStyle?.color ?? baseTheme.colorScheme.onSurface.withValues(alpha: 0.5),
+          fontSize: 14,
+        ),
+      ),
     );
   }
 

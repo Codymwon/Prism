@@ -190,6 +190,13 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
     ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack);
   }
 
+  String _pruneTitle(String title) {
+    if (title.length > 15) {
+      return '${title.substring(0, 12)}...';
+    }
+    return title;
+  }
+
   Widget _buildNodeWidget(
     BuildContext context,
     String id,
@@ -199,46 +206,55 @@ class _GraphScreenState extends ConsumerState<GraphScreen> {
     ColorScheme colorScheme,
     bool isSelected,
   ) {
-    final size = (36.0 + (linkCount * 4).clamp(0, 24)).toDouble();
+    final dotSize = (8.0 + (linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
 
     return TactileWrapper(
       onTap: () {
         setState(() => _selectedNodeId = id);
         _showNodeSheet(context, id, title, isDark, colorScheme);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary : colorScheme.primary.withValues(alpha: 0.15),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: colorScheme.primary,
-            width: isSelected ? 2.5 : 1.5,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: colorScheme.primary.withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            title.isNotEmpty ? title[0].toUpperCase() : '?',
-            style: GoogleFonts.inter(
-              fontSize: (size * 0.38).clamp(10, 16),
-              fontWeight: FontWeight.w700,
-              color: isSelected
-                  ? colorScheme.onPrimary
-                  : colorScheme.primary,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: dotSize,
+            height: dotSize,
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? colorScheme.primary 
+                  : (isDark ? Colors.grey[400] : Colors.grey[600]),
+              shape: BoxShape.circle,
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(alpha: 0.5),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
             ),
           ),
-        ),
+          const SizedBox(height: 5),
+          Container(
+            constraints: const BoxConstraints(maxWidth: 80),
+            child: Text(
+              _pruneTitle(title),
+              style: GoogleFonts.inter(
+                fontSize: 9,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected 
+                    ? colorScheme.primary 
+                    : (isDark ? colorScheme.onSurface.withValues(alpha: 0.7) : colorScheme.onSurface.withValues(alpha: 0.8)),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

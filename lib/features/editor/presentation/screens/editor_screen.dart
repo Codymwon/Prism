@@ -442,10 +442,60 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           fontWeight: FontWeight.w600,
           color: DesignColors.text(context),
         ),
+        h4: _getFont(
+          family,
+          fontSize: size * 0.95,
+          fontWeight: FontWeight.w600,
+          color: DesignColors.text(context),
+        ),
+        h5: _getFont(
+          family,
+          fontSize: size * 0.88,
+          fontWeight: FontWeight.w600,
+          color: DesignColors.text(context),
+        ),
+        h6: _getFont(
+          family,
+          fontSize: size * 0.81,
+          fontWeight: FontWeight.w600,
+          color: DesignColors.text(context),
+        ),
         p: _getFont(
           family,
           fontSize: size,
           height: 1.7,
+          color: DesignColors.text(context),
+        ),
+        strong: _getFont(
+          family,
+          fontSize: size,
+          fontWeight: FontWeight.bold,
+          color: DesignColors.text(context),
+        ),
+        em: _getFont(
+          family,
+          fontSize: size,
+          color: DesignColors.text(context),
+        ).copyWith(fontStyle: FontStyle.italic),
+        listBullet: _getFont(
+          family,
+          fontSize: size,
+          color: DesignColors.text(context),
+        ),
+        blockquote: _getFont(
+          family,
+          fontSize: size,
+          color: DesignColors.textSecondary(context),
+        ),
+        tableHead: _getFont(
+          family,
+          fontSize: size,
+          fontWeight: FontWeight.bold,
+          color: DesignColors.text(context),
+        ),
+        tableBody: _getFont(
+          family,
+          fontSize: size,
           color: DesignColors.text(context),
         ),
         code: GoogleFonts.robotoMono(

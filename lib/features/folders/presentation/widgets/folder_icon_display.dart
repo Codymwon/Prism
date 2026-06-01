@@ -12,6 +12,7 @@ class FolderIconDisplay extends StatelessWidget {
   final Color color;
   final double size;
   final double badgeSize;
+  final bool useThemedIcon;
 
   const FolderIconDisplay({
     super.key,
@@ -19,12 +20,14 @@ class FolderIconDisplay extends StatelessWidget {
     required this.color,
     this.size = 44,
     this.badgeSize = 10,
+    this.useThemedIcon = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final iconData = DesignIcons.resolveFolder(iconKey);
     final iconSize = size * 0.52;
+    final displayColor = useThemedIcon ? Theme.of(context).colorScheme.primary : color;
 
     return SizedBox(
       width: size,
@@ -37,42 +40,43 @@ class FolderIconDisplay extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.13),
+              color: displayColor.withValues(alpha: 0.13),
               borderRadius: BorderRadius.circular(size * 0.28),
             ),
             child: Center(
               child: Icon(
                 iconData,
                 size: iconSize,
-                color: color.withValues(alpha: 0.85),
+                color: displayColor.withValues(alpha: 0.85),
               ),
             ),
           ),
 
           // ── Color badge dot (bottom-right) ───────────────────────────────
-          Positioned(
-            right: -badgeSize * 0.15,
-            bottom: -badgeSize * 0.15,
-            child: Container(
-              width: badgeSize,
-              height: badgeSize,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.4),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+          if (badgeSize > 0)
+            Positioned(
+              right: -badgeSize * 0.15,
+              bottom: -badgeSize * 0.15,
+              child: Container(
+                width: badgeSize,
+                height: badgeSize,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1.5,
                   ),
-                ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.4),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

@@ -133,6 +133,7 @@ class _FolderIconPickerSheetState extends State<FolderIconPickerSheet> {
                                       : DesignColors.textTertiary(context),
                                   size: 48,
                                   badgeSize: 0, // hide badge in picker
+                                  useThemedIcon: false,
                                 ),
                               ),
                             );

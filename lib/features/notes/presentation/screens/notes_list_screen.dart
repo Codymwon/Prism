@@ -223,13 +223,21 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
 
     return AppBar(
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(DesignIcons.menu),
-          onPressed: () => Scaffold.of(context).openDrawer(),
-          tooltip: 'Open drawer',
-        ),
-      ),
+      leading: activeFolder != null
+          ? IconButton(
+              icon: const Icon(DesignIcons.back),
+              onPressed: () {
+                ref.read(selectedFolderIdProvider.notifier).state = null;
+              },
+              tooltip: 'All Notes',
+            )
+          : Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(DesignIcons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                tooltip: 'Open drawer',
+              ),
+            ),
       title: Center(child: titleWidget),
       centerTitle: true,
       backgroundColor: DesignColors.background(context),
@@ -252,7 +260,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                 : 'Switch to folder grouped view',
           ),
           const SizedBox(width: 4),
-        ],
+        ] else
+          const SizedBox(width: 48), // Balanced invisible placeholder to keep title centered!
       ],
     );
   }

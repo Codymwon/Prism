@@ -6,6 +6,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../folders/data/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
+import '../../../folders/presentation/widgets/folder_icon_display.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
@@ -76,7 +77,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
             title: 'Journal Logs',
             notes: journalNotes,
             folderColor: primaryColor,
-            folderIcon: DesignIcons.journal,
+            iconKey: 'auto_stories',
             storageKey: 'system-journals',
           ),
 
@@ -93,7 +94,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
             title: folder.name,
             notes: folderNotes,
             folderColor: folderColor,
-            folderIcon: DesignIcons.folder,
+            iconKey: folder.icon,
             storageKey: 'folder-${folder.id}',
             folderId: folder.id,
             folder: folder,
@@ -107,7 +108,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
             title: 'Uncategorized Notes',
             notes: uncategorizedNotes,
             folderColor: DesignColors.textSecondary(context),
-            folderIcon: Icons.category_rounded,
+            iconKey: 'inbox',
             storageKey: 'system-uncategorized',
           ),
 
@@ -153,12 +154,14 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
     required String title,
     required List<Note> notes,
     required Color folderColor,
-    required IconData folderIcon,
+    required String iconKey,
     required String storageKey,
     String? folderId,
     VirtualFolder? folder,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final themeColor = colorScheme.primary;
 
     return GestureDetector(
       onLongPress: folder != null ? () => FolderDrawer.showFolderOptions(context, ref, folder) : null,
@@ -168,14 +171,14 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
           color: DesignColors.surface(context),
           borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
           border: Border.all(
-            color: folderColor.withValues(alpha: isDark ? 0.3 : 0.4),
+            color: themeColor.withValues(alpha: isDark ? 0.2 : 0.3),
             width: 0.8,
           ),
           boxShadow: isDark
               ? null
               : [
                   BoxShadow(
-                    color: folderColor.withValues(alpha: 0.04),
+                    color: themeColor.withValues(alpha: 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -185,18 +188,12 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             key: PageStorageKey(storageKey),
-            leading: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: folderColor.withValues(alpha: isDark ? 0.15 : 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                folderIcon,
-                size: 16,
-                color: folderColor,
-              ),
+            leading: FolderIconDisplay(
+              iconKey: iconKey,
+              color: folderColor,
+              size: 32,
+              badgeSize: folder != null ? 8 : 0,
+              useThemedIcon: true,
             ),
             title: Text(
               title,
@@ -217,7 +214,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
                     },
                     child: IconButton(
                       icon: const Icon(DesignIcons.forward, size: 16),
-                      color: folderColor,
+                      color: themeColor,
                       onPressed: () {},
                       tooltip: 'Focus folder',
                       constraints: const BoxConstraints(),
@@ -229,14 +226,14 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: folderColor.withValues(alpha: isDark ? 0.25 : 0.15),
+                    color: themeColor.withValues(alpha: isDark ? 0.25 : 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${notes.length}',
                     style: DesignTypography.mono(
                       fontSize: 10,
-                      color: folderColor,
+                      color: themeColor,
                     ).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),

@@ -275,7 +275,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       isDaily: true,
       dailyDate: dateStr,
     );
-    if (context.mounted) context.push('/editor/${note.id}?date=$dateStr');
+    if (context.mounted) context.push('/editor/${note.id}?date=$dateStr&new=true');
   }
 
   void _createWithTemplate(String emoji, String templateName) {
