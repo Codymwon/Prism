@@ -124,6 +124,7 @@ class SettingsScreen extends ConsumerWidget {
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/settings/custom-macros'),
                   ),
+                  const VoiceRecordingsToggleTile(),
 
                   // ── Sync ────────────────────────────────────────────────
                   const SettingsSectionHeader(title: 'Sync'),

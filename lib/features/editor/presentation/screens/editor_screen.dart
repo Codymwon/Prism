@@ -6,6 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:record/record.dart';
+import 'package:path/path.dart' as p;
+import 'package:audioplayers/audioplayers.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
@@ -18,6 +22,7 @@ import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../../settings/presentation/providers/custom_macro_provider.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+
 
 enum EditorMode { write, preview }
 
@@ -52,6 +57,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // Wikilink autocomplete state
   bool _showWikilinkPopup = false;
   String _wikilinkQuery = '';
+
+  // Dictation & Audio State
+  final SpeechToText _speechToText = SpeechToText();
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  bool _isDictating = false;
+  bool _speechInitialized = false;
+  int _dictationStartOffset = 0;
+  String _dictationPreSpeechText = '';
+  String _dictationAudioPath = '';
+  String _currentWords = '';
+  String _dictationSessionId = '';
 
   @override
   void initState() {
@@ -175,6 +191,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _scrollController.dispose();
     _focusNode.dispose();
     _isSavingNotifier.dispose();
+    
+    // Dispose dictation utilities
+    _audioRecorder.dispose();
+    
     super.dispose();
   }
 
@@ -218,7 +238,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             Expanded(
                               child: _buildWriteMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
                             ),
-                            _buildFormattingToolbar(context, colorScheme),
+                            _isDictating
+                                ? _buildDictationOverlay(context, colorScheme)
+                                : _buildFormattingToolbar(context, colorScheme),
                           ],
                         )
                       : _buildPreviewMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
@@ -432,11 +454,39 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return Markdown(
       controller: _scrollController,
       data: processedData,
-      onTapLink: (text, href, title) => handleWikilinkTap(
-        href: href,
-        ref: ref,
-        context: context,
-      ),
+      onTapLink: (text, href, title) async {
+        if (href != null && (href.endsWith('.m4a') || href.endsWith('.mp3') || href.contains('attachments/'))) {
+          try {
+            final vaultPath = await getVaultPath();
+            final fullPath = p.join(vaultPath, href);
+            final file = File(fullPath);
+            if (!mounted) return;
+            if (await file.exists()) {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (ctx) => _AudioPlayerBottomSheet(
+                  filePath: fullPath,
+                  fileName: p.basename(fullPath),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Audio file does not exist on disk.')),
+              );
+            }
+          } catch (e) {
+            debugPrint('Error opening audio player: $e');
+          }
+        } else {
+          handleWikilinkTap(
+            href: href,
+            ref: ref,
+            context: context,
+          );
+        }
+      },
       padding: EdgeInsets.fromLTRB(paddingHorizontal, 12, paddingHorizontal, 100),
       styleSheet: MarkdownStyleSheet(
         h1: _getFont(
@@ -685,6 +735,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               tooltip: 'Divider',
               onTap: () => _insertFormatting('\n---\n'),
             ),
+            if (Platform.isAndroid)
+              _buildFormattingButton(
+                icon: Icons.mic_none_rounded,
+                tooltip: 'Dictate (Voice-to-Text)',
+                onTap: () => _toggleDictation(context),
+              ),
 
             // Vertical Divider separating standard actions and custom macros
             if (customMacros.isNotEmpty) ...[
@@ -773,4 +829,462 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
     );
   }
+
+  // ── Dictation Actions & Overlay ──────────────────────────────────────────
+
+  Future<void> _toggleDictation(BuildContext context) async {
+    if (_isDictating) {
+      _stopDictation(commit: true);
+      return;
+    }
+
+    try {
+      if (!_speechInitialized) {
+        bool available = await _speechToText.initialize(
+          onStatus: (status) {
+            if (status == 'notListening' && _isDictating) {
+              if (_isDictating) {
+                _startListening();
+              }
+            }
+          },
+          onError: (error) {
+            debugPrint('Speech error: $error');
+          },
+        );
+        if (!mounted) return;
+        if (!available) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Speech recognition is not available on this device.')),
+          );
+          return;
+        }
+        _speechInitialized = true;
+      }
+
+      final hasAudioPermission = await _audioRecorder.hasPermission();
+      if (!mounted) return;
+      if (hasAudioPermission) {
+        _startListening();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Microphone permission is required for dictation.')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error starting dictation: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to start dictation: $e')),
+      );
+    }
+  }
+
+  void _startListening() async {
+    final selection = _controller.selection;
+    _dictationStartOffset = selection.isValid ? selection.baseOffset : _controller.text.length;
+    _dictationPreSpeechText = _controller.text;
+    _currentWords = '';
+
+    setState(() {
+      _isDictating = true;
+    });
+
+    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? true;
+    if (keepVoice) {
+      try {
+        final vaultPath = await getVaultPath();
+        final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
+        if (!await attachmentsDir.exists()) {
+          await attachmentsDir.create(recursive: true);
+        }
+
+        _dictationSessionId = generateId().substring(0, 8);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final audioPath = p.join(attachmentsDir.path, 'audio_${timestamp}_$_dictationSessionId.m4a');
+        _dictationAudioPath = audioPath;
+
+        await _audioRecorder.start(
+          const RecordConfig(encoder: AudioEncoder.aacLc),
+          path: audioPath,
+        );
+      } catch (e) {
+        debugPrint('Audio recording error: $e');
+      }
+    }
+
+    await _speechToText.listen(
+      onResult: (result) {
+        if (!mounted || !_isDictating) return;
+
+        final newWords = result.recognizedWords;
+        _currentWords = newWords;
+
+        final before = _dictationPreSpeechText.substring(0, _dictationStartOffset);
+        final after = _dictationPreSpeechText.substring(_dictationStartOffset);
+
+        _controller.value = TextEditingValue(
+          text: before + newWords + after,
+          selection: TextSelection.collapsed(offset: _dictationStartOffset + newWords.length),
+        );
+      },
+      listenFor: const Duration(minutes: 10),
+      pauseFor: const Duration(seconds: 15),
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        listenMode: ListenMode.dictation,
+      ),
+    );
+  }
+
+  Future<void> _stopDictation({required bool commit}) async {
+    if (!_isDictating) return;
+
+    setState(() {
+      _isDictating = false;
+    });
+
+    await _speechToText.stop();
+    final audioPath = await _audioRecorder.stop();
+
+    if (!commit) {
+      _controller.value = TextEditingValue(
+        text: _dictationPreSpeechText,
+        selection: TextSelection.collapsed(offset: _dictationStartOffset),
+      );
+
+      if (_dictationAudioPath.isNotEmpty) {
+        final file = File(_dictationAudioPath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    } else {
+      final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? true;
+      if (keepVoice && audioPath != null && _dictationAudioPath.isNotEmpty) {
+        final filename = p.basename(_dictationAudioPath);
+        
+        final text = _controller.text;
+        final cursor = _controller.selection.baseOffset;
+        final before = text.substring(0, cursor);
+        final after = text.substring(cursor);
+
+        final audioLink = '\n\n[Audio Note](attachments/$filename)\n';
+        _controller.value = TextEditingValue(
+          text: before + audioLink + after,
+          selection: TextSelection.collapsed(offset: cursor + audioLink.length),
+        );
+      }
+    }
+
+    _dictationAudioPath = '';
+    _currentWords = '';
+    _focusNode.requestFocus();
+  }
+
+  Widget _buildDictationOverlay(BuildContext context, ColorScheme colorScheme) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      height: 50,
+      decoration: BoxDecoration(
+        color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: DesignColors.border(context), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            TactileWrapper(
+              style: TactileFeedbackStyle.standard,
+              onTap: () => _stopDictation(commit: false),
+              child: const Tooltip(
+                message: 'Cancel & Discard',
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const _SubtlePulseIcon(),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _currentWords.isEmpty ? 'Listening...' : _currentWords,
+                style: DesignTypography.body(
+                  context,
+                  fontSize: 13,
+                  color: DesignColors.text(context),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            TactileWrapper(
+              style: TactileFeedbackStyle.standard,
+              onTap: () => _stopDictation(commit: true),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  color: colorScheme.primary,
+                  size: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+
+// ── Dictation UI Helper Widgets ──────────────────────────────────────────────
+
+class _SubtlePulseIcon extends StatefulWidget {
+  const _SubtlePulseIcon();
+
+  @override
+  State<_SubtlePulseIcon> createState() => _SubtlePulseIconState();
+}
+
+class _SubtlePulseIconState extends State<_SubtlePulseIcon> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.3, end: 1.0).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+      ),
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: const BoxDecoration(
+          color: Colors.redAccent,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+class _AudioPlayerBottomSheet extends StatefulWidget {
+  final String filePath;
+  final String fileName;
+
+  const _AudioPlayerBottomSheet({
+    required this.filePath,
+    required this.fileName,
+  });
+
+  @override
+  State<_AudioPlayerBottomSheet> createState() => _AudioPlayerBottomSheetState();
+}
+
+class _AudioPlayerBottomSheetState extends State<_AudioPlayerBottomSheet> {
+  late final AudioPlayer _player;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+  bool _isPlaying = false;
+  StreamSubscription? _durationSubscription;
+  StreamSubscription? _positionSubscription;
+  StreamSubscription? _playerStateSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _player = AudioPlayer();
+    _initPlayer();
+  }
+
+  void _initPlayer() async {
+    try {
+      await _player.setSource(DeviceFileSource(widget.filePath));
+      
+      _durationSubscription = _player.onDurationChanged.listen((d) {
+        setState(() => _duration = d);
+      });
+      _positionSubscription = _player.onPositionChanged.listen((p) {
+        setState(() => _position = p);
+      });
+      _playerStateSubscription = _player.onPlayerStateChanged.listen((state) {
+        setState(() => _isPlaying = state == PlayerState.playing);
+      });
+
+      await _player.play(DeviceFileSource(widget.filePath));
+    } catch (e) {
+      debugPrint('Audio player initialization error: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _durationSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _playerStateSubscription?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      decoration: BoxDecoration(
+        color: DesignColors.background(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DesignSheetDragHandle(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.audiotrack_rounded, color: colorScheme.primary, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Voice Recording',
+                        style: DesignTypography.heading(
+                          context,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.fileName,
+                        style: DesignTypography.details(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+              ),
+              child: Slider(
+                value: _position.inMilliseconds.toDouble().clamp(0.0, _duration.inMilliseconds.toDouble()),
+                max: _duration.inMilliseconds > 0 ? _duration.inMilliseconds.toDouble() : 1.0,
+                onChanged: (val) async {
+                  await _player.seek(Duration(milliseconds: val.toInt()));
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(_position), style: DesignTypography.metadata(context, fontSize: 11)),
+                  Text(_formatDuration(_duration), style: DesignTypography.metadata(context, fontSize: 11)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.replay_10_rounded, size: 28),
+                  onPressed: () async {
+                    final newPos = _position - const Duration(seconds: 10);
+                    await _player.seek(newPos < Duration.zero ? Duration.zero : newPos);
+                  },
+                ),
+                const SizedBox(width: 16),
+                TactileWrapper(
+                  style: TactileFeedbackStyle.standard,
+                  onTap: () async {
+                    if (_isPlaying) {
+                      await _player.pause();
+                    } else {
+                      await _player.resume();
+                    }
+                  },
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: colorScheme.onPrimary,
+                      size: 32,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.forward_10_rounded, size: 28),
+                  onPressed: () async {
+                    final newPos = _position + const Duration(seconds: 10);
+                    await _player.seek(newPos > _duration ? _duration : newPos);
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

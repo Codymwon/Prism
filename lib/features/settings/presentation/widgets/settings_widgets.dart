@@ -531,3 +531,47 @@ class HapticToggleTile extends ConsumerWidget {
     );
   }
 }
+
+class VoiceRecordingsToggleTile extends ConsumerWidget {
+  const VoiceRecordingsToggleTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final keepVoice = ref.watch(keepVoiceRecordingsProvider).valueOrNull ?? true;
+
+    return SwitchListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      secondary: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: DesignColors.surfaceVariant(context),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.keyboard_voice_rounded,
+          size: 18,
+          color: DesignColors.textSecondary(context),
+        ),
+      ),
+      title: Text(
+        'Keep Voice Recordings',
+        style: DesignTypography.body(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        'Save audio file in vault when dictating notes',
+        style: DesignTypography.details(context),
+      ),
+      value: keepVoice,
+      activeThumbColor: DesignColors.primary(context),
+      onChanged: (val) {
+        ref.read(keepVoiceRecordingsProvider.notifier).setKeepVoiceRecordings(val);
+      },
+    );
+  }
+}
+
