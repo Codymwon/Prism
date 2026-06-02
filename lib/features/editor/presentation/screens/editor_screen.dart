@@ -9,7 +9,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:record/record.dart';
 import 'package:path/path.dart' as p;
-import 'package:audioplayers/audioplayers.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
@@ -18,9 +17,10 @@ import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
 import '../widgets/wikilink_autocomplete.dart';
 import '../widgets/backlinks_panel.dart';
+import '../widgets/formatting_toolbar.dart';
+import '../widgets/audio_player_bottom_sheet.dart';
 import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
-import '../../../settings/presentation/providers/custom_macro_provider.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 
 
@@ -68,6 +68,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   String _dictationAudioPath = '';
   String _currentWords = '';
   String _dictationSessionId = '';
+
+  // Caching processed markdown text (avoiding redundant processWikilinks RegExp execution)
+  String? _processedWikilinksText;
+  String? _lastProcessedText;
 
   @override
   void initState() {
@@ -203,9 +207,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final mode = ref.watch(editorModeProvider);
-    final noteAsync = ref.watch(noteByIdProvider(widget.noteId));
-    final note = noteAsync.valueOrNull;
-    final isConflicted = note?.isConflicted ?? false;
 
     // StateNotifier — watch synchronously
     final fontFamily = ref.watch(fontFamilyProvider);
@@ -222,7 +223,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
-      appBar: _buildAppBar(colorScheme, mode, noteAsync),
+      appBar: _buildAppBar(colorScheme, mode),
       body: Stack(
         children: [
           if (!_isLoaded)
@@ -230,7 +231,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           else
             Column(
               children: [
-                if (isConflicted) _buildConflictBanner(context, colorScheme, isDark),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final isConflicted = ref.watch(
+                      noteByIdProvider(widget.noteId).select(
+                        (asyncNote) => asyncNote.valueOrNull?.isConflicted ?? false,
+                      ),
+                    );
+                    if (!isConflicted) return const SizedBox.shrink();
+                    return _buildConflictBanner(context, colorScheme, isDark);
+                  },
+                ),
                 Expanded(
                   child: mode == EditorMode.write
                       ? Column(
@@ -239,8 +250,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               child: _buildWriteMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
                             ),
                             _isDictating
-                                ? _buildDictationOverlay(context, colorScheme)
-                                : _buildFormattingToolbar(context, colorScheme),
+                                ? DictationOverlay(
+                                    currentWords: _currentWords,
+                                    onCancel: () => _stopDictation(commit: false),
+                                    onCommit: () => _stopDictation(commit: true),
+                                  )
+                                : FormattingToolbar(
+                                    controller: _controller,
+                                    focusNode: _focusNode,
+                                    onToggleDictation: _toggleDictation,
+                                  ),
                           ],
                         )
                       : _buildPreviewMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
@@ -321,7 +340,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   PreferredSizeWidget _buildAppBar(
     ColorScheme colorScheme,
     EditorMode mode,
-    AsyncValue<Note?> noteAsync,
   ) {
     return AppBar(
       leading: IconButton(
@@ -334,19 +352,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       title: Row(
         children: [
           Expanded(
-            child: noteAsync.when(
-              data: (note) => Text(
-                note?.title ?? '',
-                style: DesignTypography.heading(
-                  context,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              loading: () => const SizedBox.shrink(),
-              error: (err, stack) => const SizedBox.shrink(),
+            child: Consumer(
+              builder: (context, ref, _) {
+                final note = ref.watch(noteByIdProvider(widget.noteId)).valueOrNull;
+                return Text(
+                  note?.title ?? '',
+                  style: DesignTypography.heading(
+                    context,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                );
+              },
             ),
           ),
         ],
@@ -449,8 +468,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
+  String _getProcessedMarkdown() {
+    final text = _controller.text;
+    if (_lastProcessedText == text && _processedWikilinksText != null) {
+      return _processedWikilinksText!;
+    }
+    _lastProcessedText = text;
+    _processedWikilinksText = processWikilinks(text);
+    return _processedWikilinksText!;
+  }
+
   Widget _buildPreviewMode(bool isDark, ColorScheme colorScheme, String family, double size, double paddingHorizontal) {
-    final processedData = processWikilinks(_controller.text);
+    final processedData = _getProcessedMarkdown();
     return Markdown(
       controller: _scrollController,
       data: processedData,
@@ -467,7 +496,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (ctx) => _AudioPlayerBottomSheet(
+                builder: (ctx) => AudioPlayerBottomSheet(
                   filePath: fullPath,
                   fileName: p.basename(fullPath),
                 ),
@@ -601,235 +630,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       default:
         return GoogleFonts.inter(fontSize: fontSize, height: height, color: color, fontWeight: fontWeight, decoration: decoration);
     }
-  }
-
-  void _insertFormatting(String prefix, [String suffix = '']) {
-    final text = _controller.text;
-    final selection = _controller.selection;
-    
-    if (!selection.isValid) {
-      final newText = text + prefix + suffix;
-      _controller.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: newText.length - suffix.length),
-      );
-      return;
-    }
-    
-    final start = selection.start;
-    final end = selection.end;
-    final selectedText = text.substring(start, end);
-    
-    final newSelectedText = prefix + selectedText + suffix;
-    final newText = text.replaceRange(start, end, newSelectedText);
-    
-    _controller.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection(
-        baseOffset: start + prefix.length,
-        extentOffset: start + prefix.length + selectedText.length,
-      ),
-    );
-    
-    _focusNode.requestFocus();
-  }
-
-  void _insertMacro(CustomMacro macro) {
-    final now = DateTime.now();
-    final year = now.year.toString();
-    final month = now.month.toString().padLeft(2, '0');
-    final day = now.day.toString().padLeft(2, '0');
-    final dateStr = '$year-$month-$day';
-
-    final hour = now.hour.toString().padLeft(2, '0');
-    final minute = now.minute.toString().padLeft(2, '0');
-    final timeStr = '$hour:$minute';
-
-    final resolvedText = macro.text
-        .replaceAll('{{date}}', dateStr)
-        .replaceAll('{{time}}', timeStr)
-        .replaceAll('{{datetime}}', '$dateStr $timeStr');
-
-    _insertFormatting(resolvedText);
-  }
-
-  Widget _buildFormattingToolbar(BuildContext context, ColorScheme colorScheme) {
-    final customMacros = ref.watch(customMacrosProvider);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      height: 50,
-      decoration: BoxDecoration(
-        color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: DesignColors.border(context), width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Row(
-          children: [
-            _buildFormattingButton(
-              icon: Icons.format_bold_rounded,
-              tooltip: 'Bold',
-              onTap: () => _insertFormatting('**', '**'),
-            ),
-            _buildFormattingButton(
-              icon: Icons.format_italic_rounded,
-              tooltip: 'Italic',
-              onTap: () => _insertFormatting('*', '*'),
-            ),
-            _buildFormattingButton(
-              icon: Icons.format_size_rounded,
-              tooltip: 'Heading',
-              onTap: () => _insertFormatting('# '),
-            ),
-            _buildFormattingButton(
-              icon: Icons.link_rounded,
-              tooltip: 'Wikilink',
-              onTap: () => _insertFormatting('[[', ']]'),
-            ),
-            _buildFormattingButton(
-              icon: Icons.label_outline_rounded,
-              tooltip: 'Tag',
-              onTap: () => _insertFormatting('#'),
-            ),
-            _buildFormattingButton(
-              icon: Icons.format_list_bulleted_rounded,
-              tooltip: 'Bullet List',
-              onTap: () => _insertFormatting('\n- '),
-            ),
-            _buildFormattingButton(
-              icon: Icons.checklist_rounded,
-              tooltip: 'Checklist',
-              onTap: () => _insertFormatting('\n- [ ] '),
-            ),
-            _buildFormattingButton(
-              icon: Icons.code_rounded,
-              tooltip: 'Code',
-              onTap: () => _insertFormatting('`', '`'),
-            ),
-            _buildFormattingButton(
-              icon: Icons.format_quote_rounded,
-              tooltip: 'Blockquote',
-              onTap: () => _insertFormatting('\n> '),
-            ),
-            _buildFormattingButton(
-              icon: Icons.strikethrough_s_rounded,
-              tooltip: 'Strikethrough',
-              onTap: () => _insertFormatting('~~', '~~'),
-            ),
-            _buildFormattingButton(
-              icon: Icons.border_color_rounded,
-              tooltip: 'Highlight',
-              onTap: () => _insertFormatting('==', '=='),
-            ),
-            _buildFormattingButton(
-              icon: Icons.horizontal_rule_rounded,
-              tooltip: 'Divider',
-              onTap: () => _insertFormatting('\n---\n'),
-            ),
-            if (Platform.isAndroid)
-              _buildFormattingButton(
-                icon: Icons.mic_none_rounded,
-                tooltip: 'Dictate (Voice-to-Text)',
-                onTap: () => _toggleDictation(),
-              ),
-
-            // Vertical Divider separating standard actions and custom macros
-            if (customMacros.isNotEmpty) ...[
-              Container(
-                height: 22,
-                width: 1,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                color: DesignColors.border(context),
-              ),
-              ...customMacros.map((macro) {
-                return _buildCustomMacroButton(
-                  label: macro.label,
-                  tooltip: 'Insert: ${macro.text.replaceAll('\n', ' ')}',
-                  onTap: () => _insertMacro(macro),
-                );
-              }),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFormattingButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
-    return TactileWrapper(
-      style: TactileFeedbackStyle.standard,
-      onTap: onTap,
-      child: Tooltip(
-        message: tooltip,
-        child: Container(
-          height: 38,
-          width: 38,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: DesignColors.textSecondary(context),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCustomMacroButton({
-    required String label,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
-    return TactileWrapper(
-      style: TactileFeedbackStyle.standard,
-      onTap: onTap,
-      child: Tooltip(
-        message: tooltip,
-        child: Container(
-          height: 34,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: DesignColors.surface(context),
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(
-              color: DesignColors.border(context),
-              width: 0.8,
-            ),
-          ),
-          child: Text(
-            label,
-            style: DesignTypography.body(
-              context,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: DesignColors.textSecondary(context),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   // ── Dictation Actions & Overlay ──────────────────────────────────────────
@@ -984,309 +784,5 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _focusNode.requestFocus();
   }
 
-  Widget _buildDictationOverlay(BuildContext context, ColorScheme colorScheme) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      height: 50,
-      decoration: BoxDecoration(
-        color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: DesignColors.border(context), width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            TactileWrapper(
-              style: TactileFeedbackStyle.standard,
-              onTap: () => _stopDictation(commit: false),
-              child: const Tooltip(
-                message: 'Cancel & Discard',
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  color: Colors.redAccent,
-                  size: 20,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const _SubtlePulseIcon(),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _currentWords.isEmpty ? 'Listening...' : _currentWords,
-                style: DesignTypography.body(
-                  context,
-                  fontSize: 13,
-                  color: DesignColors.text(context),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 12),
-            TactileWrapper(
-              style: TactileFeedbackStyle.standard,
-              onTap: () => _stopDictation(commit: true),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  color: colorScheme.primary,
-                  size: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Dictation UI Helper Widgets ──────────────────────────────────────────────
-
-class _SubtlePulseIcon extends StatefulWidget {
-  const _SubtlePulseIcon();
-
-  @override
-  State<_SubtlePulseIcon> createState() => _SubtlePulseIconState();
-}
-
-class _SubtlePulseIconState extends State<_SubtlePulseIcon> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.3, end: 1.0).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-      ),
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          color: Colors.redAccent,
-          shape: BoxShape.circle,
-        ),
-      ),
-    );
-  }
-}
-
-class _AudioPlayerBottomSheet extends StatefulWidget {
-  final String filePath;
-  final String fileName;
-
-  const _AudioPlayerBottomSheet({
-    required this.filePath,
-    required this.fileName,
-  });
-
-  @override
-  State<_AudioPlayerBottomSheet> createState() => _AudioPlayerBottomSheetState();
-}
-
-class _AudioPlayerBottomSheetState extends State<_AudioPlayerBottomSheet> {
-  late final AudioPlayer _player;
-  Duration _duration = Duration.zero;
-  Duration _position = Duration.zero;
-  bool _isPlaying = false;
-  StreamSubscription? _durationSubscription;
-  StreamSubscription? _positionSubscription;
-  StreamSubscription? _playerStateSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _player = AudioPlayer();
-    _initPlayer();
-  }
-
-  void _initPlayer() async {
-    try {
-      await _player.setSource(DeviceFileSource(widget.filePath));
-      
-      _durationSubscription = _player.onDurationChanged.listen((d) {
-        setState(() => _duration = d);
-      });
-      _positionSubscription = _player.onPositionChanged.listen((p) {
-        setState(() => _position = p);
-      });
-      _playerStateSubscription = _player.onPlayerStateChanged.listen((state) {
-        setState(() => _isPlaying = state == PlayerState.playing);
-      });
-
-      await _player.play(DeviceFileSource(widget.filePath));
-    } catch (e) {
-      debugPrint('Audio player initialization error: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _durationSubscription?.cancel();
-    _positionSubscription?.cancel();
-    _playerStateSubscription?.cancel();
-    _player.dispose();
-    super.dispose();
-  }
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$minutes:$seconds';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      decoration: BoxDecoration(
-        color: DesignColors.background(context),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const DesignSheetDragHandle(),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.audiotrack_rounded, color: colorScheme.primary, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Voice Recording',
-                        style: DesignTypography.heading(
-                          context,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.fileName,
-                        style: DesignTypography.details(context),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-              ),
-              child: Slider(
-                value: _position.inMilliseconds.toDouble().clamp(0.0, _duration.inMilliseconds.toDouble()),
-                max: _duration.inMilliseconds > 0 ? _duration.inMilliseconds.toDouble() : 1.0,
-                onChanged: (val) async {
-                  await _player.seek(Duration(milliseconds: val.toInt()));
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(_formatDuration(_position), style: DesignTypography.metadata(context, fontSize: 11)),
-                  Text(_formatDuration(_duration), style: DesignTypography.metadata(context, fontSize: 11)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.replay_10_rounded, size: 28),
-                  onPressed: () async {
-                    final newPos = _position - const Duration(seconds: 10);
-                    await _player.seek(newPos < Duration.zero ? Duration.zero : newPos);
-                  },
-                ),
-                const SizedBox(width: 16),
-                TactileWrapper(
-                  style: TactileFeedbackStyle.standard,
-                  onTap: () async {
-                    if (_isPlaying) {
-                      await _player.pause();
-                    } else {
-                      await _player.resume();
-                    }
-                  },
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: colorScheme.onPrimary,
-                      size: 32,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.forward_10_rounded, size: 28),
-                  onPressed: () async {
-                    final newPos = _position + const Duration(seconds: 10);
-                    await _player.seek(newPos > _duration ? _duration : newPos);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 

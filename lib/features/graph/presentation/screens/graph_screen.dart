@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../widgets/graph_settings_panel.dart';
+import '../widgets/graph_header.dart';
+import '../widgets/graph_empty_state.dart';
+import '../widgets/graph_node_widget.dart';
 
 class GraphScreen extends ConsumerWidget {
   const GraphScreen({super.key});
@@ -84,7 +85,6 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
     final graphAsync = ref.watch(graphDataProvider);
 
     return Scaffold(
@@ -92,12 +92,16 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(isDark, colorScheme),
+            GraphHeader(
+              showSettings: _showSettings,
+              onRefresh: () => ref.invalidate(graphDataProvider),
+              onSettingsToggle: () => setState(() => _showSettings = !_showSettings),
+            ),
             Expanded(
               child: graphAsync.when(
                 data: (data) {
                   if (data.nodes.isEmpty || data.edges.isEmpty) {
-                    return _buildEmptyState(isDark, colorScheme);
+                    return const GraphEmptyState();
                   }
                   return Stack(
                     children: [
@@ -176,96 +180,6 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
       ),
     );
   }
-
-  Widget _buildHeader(bool isDark, ColorScheme colorScheme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Graph View',
-                style: GoogleFonts.inter(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              Text(
-                'Your connected ideas',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: DesignColors.textSecondary(context),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          IconButton(
-            icon: Icon(
-              Icons.refresh_rounded,
-              color: DesignColors.textSecondary(context),
-            ),
-            onPressed: () {
-              ref.invalidate(graphDataProvider);
-            },
-          ),
-          IconButton(
-            icon: Icon(
-              _showSettings ? Icons.settings_rounded : Icons.settings_outlined,
-              color: _showSettings 
-                  ? colorScheme.primary 
-                  : DesignColors.textSecondary(context),
-            ),
-            onPressed: () {
-              setState(() {
-                _showSettings = !_showSettings;
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(bool isDark, ColorScheme colorScheme) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.hub_outlined,
-            size: 72,
-            color: DesignColors.textTertiary(context),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No connections yet',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: DesignColors.text(context),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 48),
-            child: Text(
-              'Start linking notes with [[wikilinks]] and your graph will grow here',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: DesignColors.textSecondary(context),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.9, 0.9));
-  }
 }
 
 // ─── Continuous Spring-Physics Graph simulation viewport (isolated rebuilds!) ───
@@ -295,6 +209,7 @@ class GraphSimulationCanvas extends StatefulWidget {
 
 class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with SingleTickerProviderStateMixin {
   late Ticker _ticker;
+  final _RepaintNotifier _repaintNotifier = _RepaintNotifier();
   final Map<String, Offset> _positions = {};
   final Map<String, Offset> _velocities = {};
   String? _draggedNodeId;
@@ -303,7 +218,6 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
 
   // Cache to store pre-built static subtrees of node widgets
   final Map<String, Widget> _nodeContentCache = {};
-  int _physicsTick = 0;
 
   @override
   void initState() {
@@ -325,30 +239,46 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
   @override
   void didUpdateWidget(covariant GraphSimulationCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
+    bool needsWake = false;
+
     // If nodes changed, initialize positions for any new ones
-    _initializePositions(widget.nodes);
     if (oldWidget.nodes != widget.nodes) {
+      _initializePositions(widget.nodes);
       _nodeContentCache.clear();
+      needsWake = true;
+    }
+
+    if (oldWidget.edges != widget.edges ||
+        oldWidget.repulsionRate != widget.repulsionRate ||
+        oldWidget.repulsionPercentage != widget.repulsionPercentage ||
+        oldWidget.attractionRate != widget.attractionRate ||
+        oldWidget.damping != widget.damping) {
+      needsWake = true;
+    }
+
+    if (needsWake) {
+      _wakeSimulation();
     }
   }
 
   // Pre-builds static widget subtrees once
   void _buildNodeContentCache() {
     _nodeContentCache.clear();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
-
     for (final gn in widget.nodes) {
       final isSelected = _selectedNodeId == gn.id;
-      _nodeContentCache[gn.id] = _buildNodeWidgetContent(
-        context,
-        gn.id,
-        gn.title,
-        gn.linkCount,
-        isDark,
-        colorScheme,
-        isSelected,
-        gn.colorHex,
+      _nodeContentCache[gn.id] = GraphNodeWidget(
+        id: gn.id,
+        title: gn.title,
+        linkCount: gn.linkCount,
+        isSelected: isSelected,
+        colorHex: gn.colorHex,
+        onTap: () {
+          setState(() {
+            _selectedNodeId = gn.id;
+            _nodeContentCache.clear(); // Rebuild with selection highlights!
+          });
+          context.push('/editor/${gn.id}');
+        },
       );
     }
   }
@@ -356,7 +286,14 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
   @override
   void dispose() {
     _ticker.dispose();
+    _repaintNotifier.dispose();
     super.dispose();
+  }
+
+  void _wakeSimulation() {
+    if (!_ticker.isActive) {
+      _ticker.start();
+    }
   }
 
   void triggerReLayout() {
@@ -364,17 +301,17 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
     const centerX = 1250.0;
     const centerY = 1250.0;
     
-    setState(() {
-      for (final node in widget.nodes) {
-        final angle = rand.nextDouble() * 2 * pi;
-        final radius = 50 + rand.nextDouble() * 150;
-        _positions[node.id] = Offset(
-          centerX + cos(angle) * radius,
-          centerY + sin(angle) * radius,
-        );
-        _velocities[node.id] = Offset.zero;
-      }
-    });
+    for (final node in widget.nodes) {
+      final angle = rand.nextDouble() * 2 * pi;
+      final radius = 50 + rand.nextDouble() * 150;
+      _positions[node.id] = Offset(
+        centerX + cos(angle) * radius,
+        centerY + sin(angle) * radius,
+      );
+      _velocities[node.id] = Offset.zero;
+    }
+    _repaintNotifier.notify();
+    _wakeSimulation();
   }
 
   void _initializePositions(List<GraphNode> nodes) {
@@ -466,27 +403,40 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
     }
 
     // 5. Update Velocities & Coordinate Positions
-    setState(() {
-      _physicsTick++;
-      for (final id in _positions.keys) {
-        if (id == _draggedNodeId) continue; // Dragged node stays pinned under user's finger!
+    double maxVelocity = 0.0;
+    for (final id in _positions.keys) {
+      if (id == _draggedNodeId) continue; // Dragged node stays pinned under user's finger!
 
-        final force = forces[id]!;
-        final vel = _velocities[id]!;
+      final force = forces[id]!;
+      final vel = _velocities[id]!;
 
-        // Euler Integration: velocity = (velocity + force) * damping
-        var newVel = (vel + force) * widget.damping;
+      // Euler Integration: velocity = (velocity + force) * damping
+      var newVel = (vel + force) * widget.damping;
 
-        // Clamp speed to prevent numeric explosion (cosmic safety limit)
-        const maxSpeed = 16.0;
-        if (newVel.distance > maxSpeed) {
-          newVel = newVel / newVel.distance * maxSpeed;
-        }
-
-        _velocities[id] = newVel;
-        _positions[id] = _positions[id]! + newVel;
+      // Clamp speed to prevent numeric explosion (cosmic safety limit)
+      const maxSpeed = 16.0;
+      if (newVel.distance > maxSpeed) {
+        newVel = newVel / newVel.distance * maxSpeed;
       }
-    });
+
+      _velocities[id] = newVel;
+      _positions[id] = _positions[id]! + newVel;
+
+      final speed = newVel.distance;
+      if (speed > maxVelocity) {
+        maxVelocity = speed;
+      }
+    }
+
+    _repaintNotifier.notify();
+
+    // Check if the simulation has cooled down to rest
+    if (_draggedNodeId == null && maxVelocity < 0.05) {
+      _ticker.stop();
+      for (final id in _velocities.keys) {
+        _velocities[id] = Offset.zero;
+      }
+    }
   }
 
   @override
@@ -517,47 +467,41 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
                   positions: _positions,
                   edges: widget.edges,
                   color: colorScheme.primary.withValues(alpha: 0.35),
-                  physicsTick: _physicsTick,
+                  repaint: _repaintNotifier,
                 ),
               ),
             ),
 
-            // 2. Draw interactive node widgets (Draggable positioned items)
-            ...widget.nodes.map((gn) {
-              final pos = _positions[gn.id];
-              if (pos == null) return const SizedBox.shrink();
-
-              // Calculate dot size to offset the vertical position perfectly
-              final dotSize = (8.0 + (gn.linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
-
-              return Positioned(
-                left: pos.dx - 40,
-                top: pos.dy - (dotSize / 2),
-                child: GestureDetector(
-                  onPanStart: (details) {
-                    setState(() {
-                      _draggedNodeId = gn.id;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    setState(() {
-                      // Directly pin coordinate to user finger dragging
-                      _positions[gn.id] = _positions[gn.id]! + details.delta;
-                      _velocities[gn.id] = Offset.zero;
-                    });
-                  },
-                  onPanEnd: (details) {
-                    setState(() {
-                      _draggedNodeId = null;
-                    });
-                  },
-                  child: SizedBox(
-                    width: 80,
-                    child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
-                  ),
+            // 2. Draw interactive node widgets (Positioned using Flow layout)
+            Positioned.fill(
+              child: Flow(
+                delegate: GraphFlowDelegate(
+                  positions: _positions,
+                  nodes: widget.nodes,
+                  repaint: _repaintNotifier,
                 ),
-              );
-            }),
+                children: widget.nodes.map((gn) {
+                  return GestureDetector(
+                    onPanStart: (details) {
+                      _draggedNodeId = gn.id;
+                      _wakeSimulation();
+                    },
+                    onPanUpdate: (details) {
+                      _positions[gn.id] = (_positions[gn.id] ?? Offset.zero) + details.delta;
+                      _velocities[gn.id] = Offset.zero;
+                      _repaintNotifier.notify();
+                    },
+                    onPanEnd: (details) {
+                      _draggedNodeId = null;
+                    },
+                    child: SizedBox(
+                      width: 80,
+                      child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -573,89 +517,52 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
 
     return graphContent;
   }
+}
 
-  String _pruneTitle(String title) {
-    if (title.length > 15) {
-      return '${title.substring(0, 12)}...';
+// ─── Custom Repaint Notifier class ──────────────────────────────────────────
+class _RepaintNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
+// ─── Flow layout delegate for high-performance node positioning ──────────────
+class GraphFlowDelegate extends FlowDelegate {
+  final Map<String, Offset> positions;
+  final List<GraphNode> nodes;
+  final Listenable repaint;
+
+  GraphFlowDelegate({
+    required this.positions,
+    required this.nodes,
+    required this.repaint,
+  }) : super(repaint: repaint);
+
+  @override
+  void paintChildren(FlowPaintingContext context) {
+    for (int i = 0; i < nodes.length; i++) {
+      final node = nodes[i];
+      final pos = positions[node.id];
+      if (pos != null) {
+        final dotSize = (8.0 + (node.linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
+        final dx = pos.dx - 40.0; // center on node width (80)
+        final dy = pos.dy - (dotSize / 2);
+        context.paintChild(
+          i,
+          transform: Matrix4.translationValues(dx, dy, 0.0),
+        );
+      } else {
+        context.paintChild(i);
+      }
     }
-    return title;
   }
 
-  Color? _parseColor(String? hexString) {
-    if (hexString == null) return null;
-    final buffer = StringBuffer();
-    if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-    buffer.write(hexString.replaceFirst('#', ''));
-    return Color(int.parse(buffer.toString(), radix: 16));
+  @override
+  bool shouldRepaint(covariant GraphFlowDelegate oldDelegate) {
+    return oldDelegate.positions != positions || oldDelegate.nodes != nodes;
   }
 
-  Widget _buildNodeWidgetContent(
-    BuildContext context,
-    String id,
-    String title,
-    int linkCount,
-    bool isDark,
-    ColorScheme colorScheme,
-    bool isSelected,
-    String? colorHex,
-  ) {
-    final dotSize = (8.0 + (linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
-    final folderColor = _parseColor(colorHex);
-    final defaultColor = (isDark ? Colors.grey[400] : Colors.grey[600]) ?? Colors.grey;
-    final Color dotColor = isSelected 
-        ? colorScheme.primary 
-        : (folderColor ?? defaultColor);
-
-    return TactileWrapper(
-      onTap: () {
-        setState(() {
-          _selectedNodeId = id;
-          _nodeContentCache.clear(); // Rebuild with selection highlights!
-        });
-        context.push('/editor/$id');
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: dotSize,
-            height: dotSize,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: dotColor.withValues(alpha: 0.5),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Container(
-            constraints: const BoxConstraints(maxWidth: 80),
-            child: Text(
-              _pruneTitle(title),
-              style: GoogleFonts.inter(
-                fontSize: 9,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected 
-                    ? colorScheme.primary 
-                    : (isDark ? colorScheme.onSurface.withValues(alpha: 0.7) : colorScheme.onSurface.withValues(alpha: 0.8)),
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
+  @override
+  Size getSize(BoxConstraints constraints) {
+    return const Size(2500.0, 2500.0);
   }
 }
 
@@ -664,14 +571,13 @@ class GraphLinksPainter extends CustomPainter {
   final Map<String, Offset> positions;
   final List<GraphEdge> edges;
   final Color color;
-  final int physicsTick;
 
   GraphLinksPainter({
     required this.positions,
     required this.edges,
     required this.color,
-    required this.physicsTick,
-  });
+    required Listenable repaint,
+  }) : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -691,7 +597,7 @@ class GraphLinksPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant GraphLinksPainter oldDelegate) {
-    return oldDelegate.physicsTick != physicsTick || 
+    return oldDelegate.positions != positions || 
            oldDelegate.edges != edges || 
            oldDelegate.color != color;
   }

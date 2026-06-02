@@ -24,14 +24,11 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
     final colorScheme = Theme.of(context).colorScheme;
     final backlinksAsync = ref.watch(backlinksProvider(widget.noteId));
 
-    return backlinksAsync.when(
-      data: (backlinks) {
-        if (backlinks.isEmpty) return const SizedBox.shrink();
-        return _buildPanel(context, isDark, colorScheme, backlinks);
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (err, stack) => const SizedBox.shrink(),
-    );
+    final backlinks = backlinksAsync.valueOrNull;
+    if (backlinks == null || backlinks.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return _buildPanel(context, isDark, colorScheme, backlinks);
   }
 
   Widget _buildPanel(

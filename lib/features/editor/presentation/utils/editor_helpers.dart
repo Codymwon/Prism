@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../notes/data/note_repository.dart';
+import '../../../settings/presentation/providers/custom_macro_provider.dart';
 
 /// Standard wikilink tapping navigation helper.
 ///
@@ -21,4 +22,69 @@ Future<void> handleWikilinkTap({
       context.push('/editor/${targetNote.id}');
     }
   }
+}
+
+/// Helper to insert Markdown formatting at the current selection of the text editor.
+void insertFormatting({
+  required TextEditingController controller,
+  required FocusNode focusNode,
+  required String prefix,
+  String suffix = '',
+}) {
+  final text = controller.text;
+  final selection = controller.selection;
+  
+  if (!selection.isValid) {
+    final newText = text + prefix + suffix;
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length - suffix.length),
+    );
+    return;
+  }
+  
+  final start = selection.start;
+  final end = selection.end;
+  final selectedText = text.substring(start, end);
+  
+  final newSelectedText = prefix + selectedText + suffix;
+  final newText = text.replaceRange(start, end, newSelectedText);
+  
+  controller.value = TextEditingValue(
+    text: newText,
+    selection: TextSelection(
+      baseOffset: start + prefix.length,
+      extentOffset: start + prefix.length + selectedText.length,
+    ),
+  );
+  
+  focusNode.requestFocus();
+}
+
+/// Helper to resolve template variables inside a macro and insert the resolved text.
+void insertMacro({
+  required TextEditingController controller,
+  required FocusNode focusNode,
+  required CustomMacro macro,
+}) {
+  final now = DateTime.now();
+  final year = now.year.toString();
+  final month = now.month.toString().padLeft(2, '0');
+  final day = now.day.toString().padLeft(2, '0');
+  final dateStr = '$year-$month-$day';
+
+  final hour = now.hour.toString().padLeft(2, '0');
+  final minute = now.minute.toString().padLeft(2, '0');
+  final timeStr = '$hour:$minute';
+
+  final resolvedText = macro.text
+      .replaceAll('{{date}}', dateStr)
+      .replaceAll('{{time}}', timeStr)
+      .replaceAll('{{datetime}}', '$dateStr $timeStr');
+
+  insertFormatting(
+    controller: controller,
+    focusNode: focusNode,
+    prefix: resolvedText,
+  );
 }
