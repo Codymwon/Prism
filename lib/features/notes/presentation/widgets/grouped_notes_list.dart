@@ -18,12 +18,16 @@ class GroupedNotesList extends ConsumerStatefulWidget {
   final List<Note> allNotes;
   final List<VirtualFolder> folders;
   final Map<String, List<String>> mappings;
+  /// If provided, tapping a note calls this instead of pushing a GoRouter route.
+  /// Used by the desktop split-pane to open the note in the right-hand editor.
+  final void Function(String noteId)? onNoteTap;
 
   const GroupedNotesList({
     super.key,
     required this.allNotes,
     required this.folders,
     required this.mappings,
+    this.onNoteTap,
   });
 
   @override
@@ -57,26 +61,34 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
     final primaryColor = colorScheme.primary;
     final sort = ref.watch(noteSortProvider);
 
-    // 1. Group Journal notes
-    final journalNotes = widget.allNotes.where((n) => n.isDaily).toList();
+    // 1. Single-pass pre-grouping: O(N) instead of O(F * N)
+    final folderToNotes = <String, List<Note>>{};
+    final journalNotes = <Note>[];
+    final uncategorizedNotes = <Note>[];
 
-    // 2. Group Uncategorized notes (non-daily and not in any virtual folder)
-    final uncategorizedNotes = widget.allNotes
-        .where((n) => !n.isDaily && (widget.mappings[n.id] == null || widget.mappings[n.id]!.isEmpty))
-        .toList();
+    for (final note in widget.allNotes) {
+      if (note.isDaily) {
+        journalNotes.add(note);
+      } else {
+        final folderIds = widget.mappings[note.id];
+        if (folderIds == null || folderIds.isEmpty) {
+          uncategorizedNotes.add(note);
+        } else {
+          for (final fid in folderIds) {
+            folderToNotes.putIfAbsent(fid, () => []).add(note);
+          }
+        }
+      }
+    }
 
-    // 3. Dynamically sort custom folders list
+    // 2. Sort folders using pre-grouped, fast O(1) map lookups
     final sortedFolders = List<VirtualFolder>.from(widget.folders);
     if (sort == NoteSort.title) {
       sortedFolders.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } else if (sort == NoteSort.updated) {
       sortedFolders.sort((a, b) {
-        final aNotes = widget.allNotes
-            .where((n) => !n.isDaily && (widget.mappings[n.id]?.contains(a.id) ?? false))
-            .toList();
-        final bNotes = widget.allNotes
-            .where((n) => !n.isDaily && (widget.mappings[n.id]?.contains(b.id) ?? false))
-            .toList();
+        final aNotes = folderToNotes[a.id] ?? const [];
+        final bNotes = folderToNotes[b.id] ?? const [];
 
         if (aNotes.isEmpty && bNotes.isEmpty) {
           return a.name.toLowerCase().compareTo(b.name.toLowerCase());
@@ -84,8 +96,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
         if (aNotes.isEmpty) return 1;
         if (bNotes.isEmpty) return -1;
 
-        // Since widget.allNotes is already sorted by noteSortProvider (updated DESC),
-        // the first note is the most recently updated note in each folder.
+        // O(1) retrieval since notes lists are already sorted in notesProvider
         return bNotes.first.updatedAt.compareTo(aNotes.first.updatedAt);
       });
     } else if (sort == NoteSort.created) {
@@ -113,10 +124,8 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
         // B. Custom Virtual Folders
         ...sortedFolders.map((folder) {
           final folderColor = folder.colorHex.toColor();
-
-          final folderNotes = widget.allNotes
-               .where((n) => !n.isDaily && (widget.mappings[n.id]?.contains(folder.id) ?? false))
-               .toList();
+          // O(1) lookup instead of full list scan
+          final folderNotes = folderToNotes[folder.id] ?? const [];
 
           return _buildAccordionCard(
             context: context,
@@ -282,6 +291,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
               _AccordionNotesList(
                 notes: notes,
                 onDelete: _deleteNote,
+                onNoteTap: widget.onNoteTap,
               ),
             ],
           ),
@@ -295,10 +305,12 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
 class _AccordionNotesList extends StatelessWidget {
   final List<Note> notes;
   final Function(String) onDelete;
+  final void Function(String noteId)? onNoteTap;
 
   const _AccordionNotesList({
     required this.notes,
     required this.onDelete,
+    this.onNoteTap,
   });
 
   @override
@@ -332,7 +344,9 @@ class _AccordionNotesList extends StatelessWidget {
         return NoteCard(
           note: note,
           backgroundColor: cardBg,
-          onTap: () => context.push('/editor/${note.id}'),
+          onTap: onNoteTap != null
+              ? () => onNoteTap!(note.id)
+              : () => context.push('/editor/${note.id}'),
           onDelete: () => onDelete(note.id),
         );
       }).toList(),

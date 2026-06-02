@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Rounded Background Image (supports dynamic tinting) -->
+    <ImageView
+        android:id="@+id/widget_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg"
+        android:scaleType="fitXY"
+        android:contentDescription="Background"/>
+
+    <!-- Content Layout -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="12dp">
+
+        <!-- Reflection status badge at top-right -->
+        <ImageView
+            android:id="@+id/reflection_status_icon"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_gravity="end"
+            android:src="@drawable/ic_calendar_pending"
+            android:contentDescription="Reflection status"/>
+
+        <Space
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <!-- Fire Icon -->
+        <ImageView
+            android:id="@+id/streak_fire_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_fire"
+            android:contentDescription="Streak"/>
+
+        <Space
+            android:layout_width="wrap_content"
+            android:layout_height="4dp"/>
+
+        <!-- Streak count and text -->
+        <TextView
+            android:id="@+id/streak_count_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0d"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"/>
+
+        <TextView
+            android:id="@+id/streak_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="streak"
+            android:textSize="11sp"
+            android:textColor="#88FFFFFF"/>
+
+        <Space
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+    </LinearLayout>
+</FrameLayout>

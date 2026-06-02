@@ -60,58 +60,79 @@ final activeVaultPathProvider = FutureProvider<String>((ref) async {
 });
 
 // ─── Font Family Provider ────────────────────────────────────────────────────
-final fontFamilyProvider =
-    AsyncNotifierProvider<FontFamilyNotifier, String>(FontFamilyNotifier.new);
+class FontFamilyNotifier extends StateNotifier<String> {
+  FontFamilyNotifier() : super('Inter (Sans)') {
+    _load();
+  }
 
-class FontFamilyNotifier extends AsyncNotifier<String> {
-  @override
-  Future<String> build() async {
+  Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('fontFamily') ?? 'Inter (Sans)';
+    final saved = prefs.getString('fontFamily');
+    if (saved != null) {
+      state = saved;
+    }
   }
 
   Future<void> setFontFamily(String family) async {
-    state = AsyncData(family);
+    state = family;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('fontFamily', family);
   }
 }
 
-// ─── Font Size Provider ──────────────────────────────────────────────────────
-final fontSizeProvider =
-    AsyncNotifierProvider<FontSizeNotifier, String>(FontSizeNotifier.new);
+final fontFamilyProvider = StateNotifierProvider<FontFamilyNotifier, String>((ref) {
+  return FontFamilyNotifier();
+});
 
-class FontSizeNotifier extends AsyncNotifier<String> {
-  @override
-  Future<String> build() async {
+// ─── Font Size Provider ──────────────────────────────────────────────────────
+class FontSizeNotifier extends StateNotifier<String> {
+  FontSizeNotifier() : super('16pt') {
+    _load();
+  }
+
+  Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('fontSize') ?? '16pt';
+    final saved = prefs.getString('fontSize');
+    if (saved != null) {
+      state = saved;
+    }
   }
 
   Future<void> setFontSize(String size) async {
-    state = AsyncData(size);
+    state = size;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('fontSize', size);
   }
 }
 
-// ─── Line Width Provider ─────────────────────────────────────────────────────
-final lineWidthProvider =
-    AsyncNotifierProvider<LineWidthNotifier, String>(LineWidthNotifier.new);
+final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, String>((ref) {
+  return FontSizeNotifier();
+});
 
-class LineWidthNotifier extends AsyncNotifier<String> {
-  @override
-  Future<String> build() async {
+// ─── Line Width Provider ─────────────────────────────────────────────────────
+class LineWidthNotifier extends StateNotifier<String> {
+  LineWidthNotifier() : super('Comfortable') {
+    _load();
+  }
+
+  Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('lineWidth') ?? 'Comfortable';
+    final saved = prefs.getString('lineWidth');
+    if (saved != null) {
+      state = saved;
+    }
   }
 
   Future<void> setLineWidth(String width) async {
-    state = AsyncData(width);
+    state = width;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lineWidth', width);
   }
 }
+
+final lineWidthProvider = StateNotifierProvider<LineWidthNotifier, String>((ref) {
+  return LineWidthNotifier();
+});
 
 // ─── Haptics Enabled Provider ────────────────────────────────────────────────
 final hapticsEnabledProvider =

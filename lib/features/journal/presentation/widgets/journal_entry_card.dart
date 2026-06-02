@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../notes/data/note_model.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 
-class JournalEntryCard extends StatelessWidget {
+class JournalEntryCard extends ConsumerWidget {
   final Note note;
   final String content;
 
@@ -48,13 +50,22 @@ class JournalEntryCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final previewText = _getCleanPreview(content);
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
+
+    void openNote() {
+      if (isDesktop) {
+        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
+      } else {
+        context.push('/editor/${note.id}');
+      }
+    }
 
     return TactileWrapper(
       style: TactileFeedbackStyle.highImpact,
-      onTap: () => context.push('/editor/${note.id}'),
+      onTap: openNote,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),

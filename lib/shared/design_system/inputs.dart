@@ -62,6 +62,7 @@ class DesignSearchBar extends StatefulWidget {
   final VoidCallback onClear;
   final VoidCallback onFocused;
   final String hintText;
+  final FocusNode? focusNode;
 
   const DesignSearchBar({
     super.key,
@@ -69,6 +70,7 @@ class DesignSearchBar extends StatefulWidget {
     required this.onClear,
     required this.onFocused,
     this.hintText = 'Search notes…',
+    this.focusNode,
   });
 
   @override
@@ -77,22 +79,41 @@ class DesignSearchBar extends StatefulWidget {
 
 class _DesignSearchBarState extends State<DesignSearchBar> {
   final _controller = TextEditingController();
-  final _focus = FocusNode();
+  late final FocusNode _focus;
   bool _hasFocus = false;
 
   @override
   void initState() {
     super.initState();
-    _focus.addListener(() {
+    _focus = widget.focusNode ?? FocusNode();
+    _focus.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) {
       setState(() => _hasFocus = _focus.hasFocus);
       if (_focus.hasFocus) widget.onFocused();
-    });
+    }
+  }
+
+  @override
+  void didUpdateWidget(DesignSearchBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      oldWidget.focusNode?.removeListener(_onFocusChange);
+      _focus = widget.focusNode ?? FocusNode();
+      _focus.addListener(_onFocusChange);
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _focus.dispose();
+    if (widget.focusNode == null) {
+      _focus.dispose();
+    } else {
+      _focus.removeListener(_onFocusChange);
+    }
     super.dispose();
   }
 

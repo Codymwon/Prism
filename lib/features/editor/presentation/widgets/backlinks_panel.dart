@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
@@ -103,9 +102,7 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
               ),
               itemBuilder: (context, i) {
                 final bl = backlinks[i];
-                return _BacklinkTile(backlink: bl, isDark: isDark, colorScheme: colorScheme)
-                    .animate(delay: (i * 50).ms)
-                    .fadeIn(duration: 200.ms);
+                return _BacklinkTile(backlink: bl, isDark: isDark, colorScheme: colorScheme);
               },
             ),
             secondChild: const SizedBox.shrink(),

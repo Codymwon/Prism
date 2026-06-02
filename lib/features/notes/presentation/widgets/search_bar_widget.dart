@@ -5,12 +5,14 @@ class SearchBarWidget extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
   final VoidCallback onFocused;
+  final FocusNode? focusNode;
 
   const SearchBarWidget({
     super.key,
     required this.onChanged,
     required this.onClear,
     required this.onFocused,
+    this.focusNode,
   });
 
   @override
@@ -19,6 +21,7 @@ class SearchBarWidget extends StatelessWidget {
       onChanged: onChanged,
       onClear: onClear,
       onFocused: onFocused,
+      focusNode: focusNode,
     );
   }
 }

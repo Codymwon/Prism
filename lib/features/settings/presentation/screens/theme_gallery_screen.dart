@@ -22,20 +22,20 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
   Widget build(BuildContext context) {
     final activeThemeType = ref.watch(themeProvider);
 
-    // List of Light Editorial Themes: (type, name, fontFamily, primaryColor, backgroundColor, textColor)
+    // List of Light Editorial Themes: (type, name, primaryColor, backgroundColor, textColor)
     final lightEditorials = [
-      (AppThemeType.sepia, 'Sepia Warmth', 'Lora', const Color(0xFF5C3D2E), const Color(0xFFFAF6EE), const Color(0xFF2A1F19)),
-      (AppThemeType.arctic, 'Arctic Clean', 'Inter', const Color(0xFF3A8FA8), const Color(0xFFF4F8FB), const Color(0xFF152632)),
-      (AppThemeType.blush, 'Blush', 'Inter', const Color(0xFFB0637A), const Color(0xFFFDF8F8), const Color(0xFF2E1F24)),
-      (AppThemeType.matcha, 'Matcha', 'Inter', const Color(0xFF3D6146), const Color(0xFFF4F7F4), const Color(0xFF1D2E22)),
+      (AppThemeType.sepia, 'Sepia Warmth', const Color(0xFF5C3D2E), const Color(0xFFFAF6EE), const Color(0xFF2A1F19)),
+      (AppThemeType.arctic, 'Arctic Clean', const Color(0xFF3A8FA8), const Color(0xFFF4F8FB), const Color(0xFF152632)),
+      (AppThemeType.blush, 'Blush', const Color(0xFFB0637A), const Color(0xFFFDF8F8), const Color(0xFF2E1F24)),
+      (AppThemeType.matcha, 'Matcha', const Color(0xFF3D6146), const Color(0xFFF4F7F4), const Color(0xFF1D2E22)),
     ];
 
-    // List of Dark Editorial Themes: (type, name, fontFamily, primaryColor, backgroundColor, textColor)
+    // List of Dark Editorial Themes: (type, name, primaryColor, backgroundColor, textColor)
     final darkEditorials = [
-      (AppThemeType.forest, 'Forest Moss', 'Inter', const Color(0xFF81B29A), const Color(0xFF141C18), const Color(0xFFDEEDE5)),
-      (AppThemeType.slate, 'Slate Navy', 'Inter', const Color(0xFF7DAFE8), const Color(0xFF0F1117), const Color(0xFFE4EAF5)),
-      (AppThemeType.noir, 'Noir Gold', 'Inter', const Color(0xFFC9A84C), const Color(0xFF111110), const Color(0xFFF0EDE6)),
-      (AppThemeType.midnight, 'Midnight', 'Inter', const Color(0xFF6E7681), const Color(0xFF000000), const Color(0xFFE5E7EB)),
+      (AppThemeType.forest, 'Forest Moss', const Color(0xFF81B29A), const Color(0xFF141C18), const Color(0xFFDEEDE5)),
+      (AppThemeType.slate, 'Slate Navy', const Color(0xFF7DAFE8), const Color(0xFF0F1117), const Color(0xFFE4EAF5)),
+      (AppThemeType.noir, 'Noir Gold', const Color(0xFFC9A84C), const Color(0xFF111110), const Color(0xFFF0EDE6)),
+      (AppThemeType.midnight, 'Midnight', const Color(0xFF6E7681), const Color(0xFF000000), const Color(0xFFE5E7EB)),
     ];
 
     return Scaffold(
@@ -156,10 +156,9 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                         return _GalleryThemeCard(
                           type: theme.$1,
                           name: theme.$2,
-                          fontFamily: theme.$3,
-                          primaryColor: theme.$4,
-                          backgroundColor: theme.$5,
-                          textColor: theme.$6,
+                          primaryColor: theme.$3,
+                          backgroundColor: theme.$4,
+                          textColor: theme.$5,
                           isSelected: isSelected,
                           onTap: () => ref.read(themeProvider.notifier).setTheme(theme.$1),
                         );
@@ -200,10 +199,9 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                         return _GalleryThemeCard(
                           type: theme.$1,
                           name: theme.$2,
-                          fontFamily: theme.$3,
-                          primaryColor: theme.$4,
-                          backgroundColor: theme.$5,
-                          textColor: theme.$6,
+                          primaryColor: theme.$3,
+                          backgroundColor: theme.$4,
+                          textColor: theme.$5,
                           isSelected: isSelected,
                           onTap: () => ref.read(themeProvider.notifier).setTheme(theme.$1),
                         );
@@ -845,7 +843,6 @@ class _MockLinksPainter extends CustomPainter {
 class _GalleryThemeCard extends StatelessWidget {
   final AppThemeType type;
   final String name;
-  final String fontFamily;
   final Color primaryColor;
   final Color backgroundColor;
   final Color textColor;
@@ -855,7 +852,6 @@ class _GalleryThemeCard extends StatelessWidget {
   const _GalleryThemeCard({
     required this.type,
     required this.name,
-    required this.fontFamily,
     required this.primaryColor,
     required this.backgroundColor,
     required this.textColor,
@@ -865,20 +861,11 @@ class _GalleryThemeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextStyle textStyle;
-    if (fontFamily == 'Lora') {
-      textStyle = GoogleFonts.lora(
-        fontSize: 10.5,
-        fontWeight: FontWeight.w700,
-        color: textColor,
-      );
-    } else {
-      textStyle = GoogleFonts.inter(
-        fontSize: 9.5,
-        fontWeight: FontWeight.w600,
-        color: textColor,
-      );
-    }
+    final textStyle = GoogleFonts.inter(
+      fontSize: 9.5,
+      fontWeight: FontWeight.w600,
+      color: textColor,
+    );
 
     // Shorten visual names to fit beautifully inside compact cards
     final displayName = name.replaceFirst(' Warmth', '').replaceFirst(' Clean', '').replaceFirst(' Editorial', '').replaceFirst(' Moss', '').replaceFirst(' Navy', '').replaceFirst(' Gold', '').replaceFirst(' Latte', '').replaceFirst(' Stealth ', '');
@@ -928,17 +915,7 @@ class _GalleryThemeCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 1),
-                    Text(
-                      fontFamily == 'Lora' ? 'Serif typography' : 'Sans typography',
-                      style: GoogleFonts.inter(
-                        fontSize: 7.5,
-                        color: textColor.withValues(alpha: 0.55),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+
                   ],
                 ),
                 // Color dots representing palette in bottom left

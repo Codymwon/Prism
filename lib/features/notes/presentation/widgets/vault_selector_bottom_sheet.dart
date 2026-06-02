@@ -12,36 +12,12 @@ class VaultSelectorBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSheet> {
-  List<String> _vaults = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadVaults();
-  }
-
-  Future<void> _loadVaults() async {
-    // Await the async providers so we get the real loaded values
-    final baseDir = await ref.read(baseVaultsDirectoryProvider.future);
-    final activeVault = await ref.read(activeVaultNameProvider.future);
-    final vaults = await ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
-    if (mounted) {
-      setState(() {
-        _vaults = vaults;
-      });
-    }
-  }
-
   Future<void> _switchVault(String vaultName) async {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context); // Dismiss bottom sheet immediately
 
     try {
       await ref.read(vaultServiceProvider).switchVault(vaultName: vaultName, ref: ref);
-
-      messenger.showSnackBar(
-        SnackBar(content: Text('Switched to vault: $vaultName', style: const TextStyle(color: Colors.white))),
-      );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text('Error switching vault: $e', style: const TextStyle(color: Colors.white))),
@@ -115,10 +91,6 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
         baseDir: baseDir,
         ref: ref,
       );
-
-      messenger.showSnackBar(
-        SnackBar(content: Text('Created and switched to vault: $vaultName', style: const TextStyle(color: Colors.white))),
-      );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text('Error creating vault: $e', style: const TextStyle(color: Colors.white))),
@@ -129,8 +101,13 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    
     // AsyncNotifier — unwrap safely
     final activeVault = ref.watch(activeVaultNameProvider).valueOrNull ?? '';
+    
+    // Watch the availableVaultsProvider directly. Since it is already warmed up
+    // during app startup, it will instantly have data when the user opens the bottom sheet!
+    final vaultsAsync = ref.watch(availableVaultsProvider);
 
     return SafeArea(
       child: Column(
@@ -149,38 +126,55 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: _vaults.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _vaults.length,
-                    itemBuilder: (c, idx) {
-                      final vaultName = _vaults[idx];
-                      final isActive = vaultName == activeVault;
+            child: vaultsAsync.when(
+              data: (vaults) {
+                if (vaults.isEmpty) {
+                  return const Center(child: Text('No vaults found'));
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: vaults.length,
+                  itemBuilder: (c, idx) {
+                    final vaultName = vaults[idx];
+                    final isActive = vaultName == activeVault;
 
-                      return ListTile(
-                        leading: Icon(
-                          DesignIcons.folder,
-                          color: isActive ? colorScheme.primary : DesignColors.textSecondary(context),
+                    return ListTile(
+                      leading: Icon(
+                        DesignIcons.folder,
+                        color: isActive ? colorScheme.primary : DesignColors.textSecondary(context),
+                      ),
+                      title: Text(
+                        vaultName,
+                        style: DesignTypography.body(
+                          context,
+                          fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                         ),
-                        title: Text(
-                          vaultName,
-                          style: DesignTypography.body(
-                            context,
-                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                          ),
-                        ),
-                        trailing: isActive ? Icon(DesignIcons.check, color: colorScheme.primary) : null,
-                        onTap: () async {
-                          if (!isActive) {
-                            await _switchVault(vaultName);
-                          } else {
-                            Navigator.pop(context);
-                          }
-                        },
-                      );
-                    },
-                  ),
+                      ),
+                      trailing: isActive ? Icon(DesignIcons.check, color: colorScheme.primary) : null,
+                      onTap: () async {
+                        if (!isActive) {
+                          await _switchVault(vaultName);
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      },
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (err, stack) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text('Error loading vaults: $err'),
+                ),
+              ),
+            ),
           ),
           const Divider(height: 1),
           ListTile(

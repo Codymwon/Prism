@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:io';
@@ -6,44 +7,69 @@ import '../utils/utils.dart';
 
 class DatabaseHelper {
   static const _dbName = '.meridian.db';
-  static const _dbVersion = 2; // Upgraded to v2 for conflict columns and indexes
+  static const _dbVersion = 3; // Upgraded to v3 for FTS5 support
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
   Database? _db;
 
+  // A strictly sequential queue for all database open & close operations
+  // to prevent race conditions during rapid vault switching.
+  Future<void> _dbQueue = Future.value();
+
+  Future<T> _enqueue<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    _dbQueue = _dbQueue.then((_) async {
+      try {
+        final result = await action();
+        completer.complete(result);
+      } catch (e, stack) {
+        completer.completeError(e, stack);
+      }
+    });
+    return completer.future;
+  }
+
   Future<Database> get database async {
     _db ??= await _initDb();
     return _db!;
   }
 
-  Future<void> closeDatabase() async {
-    if (_db != null) {
-      await _db!.close();
-      _db = null;
-    }
+  Future<void> closeDatabase() {
+    return _enqueue(() async {
+      if (_db != null) {
+        await _db!.close();
+        _db = null;
+      }
+    });
   }
 
-  Future<Database> openDatabaseForPath(String vaultPath) async {
-    final path = join(vaultPath, _dbName);
-    final db = await openDatabase(
-      path,
-      version: _dbVersion,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-      onConfigure: (db) async {
-        // Enable WAL mode for better concurrent read/write performance
-        await db.rawQuery('PRAGMA journal_mode = WAL;');
-        // Enable foreign key constraints
-        await db.execute('PRAGMA foreign_keys = ON;');
-      },
-    );
+  Future<Database> openDatabaseForPath(String vaultPath) {
+    return _enqueue(() async {
+      final path = join(vaultPath, _dbName);
+      final db = await openDatabase(
+        path,
+        version: _dbVersion,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+        onConfigure: (db) async {
+          // Enable WAL mode for better concurrent read/write performance
+          await db.rawQuery('PRAGMA journal_mode = WAL;');
+          // Enable foreign key constraints
+          await db.execute('PRAGMA foreign_keys = ON;');
+        },
+      );
+      return db;
+    });
+  }
 
-    // Sync physical files inside the vault with the SQLite DB
-    await _syncVaultFiles(db, vaultPath);
-
-    return db;
+  Future<void> closeDatabaseConnection(Database db) {
+    return _enqueue(() async {
+      if (db.isOpen) {
+        await db.close();
+      }
+    });
   }
 
   Future<Database> _initDb() async {
@@ -51,7 +77,7 @@ class DatabaseHelper {
     return openDatabaseForPath(vaultPath);
   }
 
-  Future<void> _syncVaultFiles(Database db, String vaultPath) async {
+  Future<void> syncVaultFiles(Database db, String vaultPath) async {
     try {
       final dir = Directory(vaultPath);
       if (!await dir.exists()) return;
@@ -64,44 +90,159 @@ class DatabaseHelper {
 
       if (files.isEmpty) return;
 
-      // Query all existing file paths at once to avoid N individual database select roundtrips
-      final existingNotes = await db.query('notes', columns: ['file_path']);
-      final existingPaths = existingNotes.map((n) => n['file_path'] as String).toSet();
+      // Query existing notes along with their updated_at time
+      final existingNotes = await db.query('notes', columns: ['id', 'file_path', 'updated_at']);
+      final Map<String, ({String id, int updatedAt})> existingPathsMap = {
+        for (final n in existingNotes)
+          n['file_path'] as String: (
+            id: n['id'] as String,
+            updatedAt: n['updated_at'] as int,
+          )
+      };
 
-      final List<File> filesToSync = [];
-      for (final file in files) {
-        if (!existingPaths.contains(file.path)) {
-          filesToSync.add(file);
-        }
-      }
+      // Perform insertions and updates inside a single transaction
+      await db.transaction((txn) async {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-      if (filesToSync.isNotEmpty) {
-        // Conduct bulk insertions inside a single transaction to minimize sqlite disk-sync overhead
-        await db.transaction((txn) async {
-          for (final file in filesToSync) {
-            final filePath = file.path;
+        for (final file in files) {
+          final filePath = file.path;
+          final lastMod = await file.lastModified();
+          final lastModMs = lastMod.millisecondsSinceEpoch;
+
+          final exists = existingPathsMap.containsKey(filePath);
+          final existing = existingPathsMap[filePath];
+
+          // Determine if we need to insert or update
+          final shouldInsert = !exists;
+          final shouldUpdate = exists && (lastModMs > (existing!.updatedAt + 1000));
+
+          if (shouldInsert || shouldUpdate) {
             final content = await file.readAsString();
             final title = extractTitle(content);
             final wordCount = countWords(content);
-            final lastMod = await file.lastModified();
-            final noteId = generateId();
+            final tags = extractTags(content);
+            final wikilinks = extractWikilinks(content);
+            final noteId = shouldInsert ? generateId() : existing!.id;
 
-            await txn.insert('notes', {
-              'id': noteId,
-              'title': title,
-              'file_path': filePath,
-              'word_count': wordCount,
-              'created_at': lastMod.millisecondsSinceEpoch,
-              'updated_at': lastMod.millisecondsSinceEpoch,
-              'is_ghost': 0,
-              'is_daily': 0,
-              'daily_date': null,
-              'is_conflicted': 0,
-              'original_note_id': null,
-            });
+            if (shouldInsert) {
+              await txn.insert('notes', {
+                'id': noteId,
+                'title': title,
+                'file_path': filePath,
+                'word_count': wordCount,
+                'created_at': lastModMs,
+                'updated_at': lastModMs,
+                'is_ghost': 0,
+                'is_daily': 0,
+                'daily_date': null,
+                'is_conflicted': 0,
+                'original_note_id': null,
+              });
+            } else {
+              await txn.update('notes', {
+                'title': title,
+                'word_count': wordCount,
+                'updated_at': lastModMs,
+                'is_ghost': 0,
+              }, where: 'id = ?', whereArgs: [noteId]);
+            }
+
+            // Sync tags
+            await txn.delete('note_tags', where: 'note_id = ?', whereArgs: [noteId]);
+            for (final tag in tags) {
+              await txn.insert(
+                'note_tags',
+                {'note_id': noteId, 'tag': tag},
+                conflictAlgorithm: ConflictAlgorithm.ignore,
+              );
+            }
+
+            // Sync wikilinks
+            await txn.delete('note_links', where: 'source_id = ?', whereArgs: [noteId]);
+            for (final target in wikilinks) {
+              final targetMaps = await txn.query(
+                'notes',
+                columns: ['id'],
+                where: 'LOWER(title) = ?',
+                whereArgs: [target.toLowerCase()],
+              );
+
+              String targetId;
+              if (targetMaps.isEmpty) {
+                targetId = generateId();
+                final slug = titleToSlug(target);
+                final fileName = '$slug-$targetId.md';
+                final targetFilePath = join(vaultPath, fileName);
+
+                await txn.insert('notes', {
+                  'id': targetId,
+                  'title': target,
+                  'file_path': targetFilePath,
+                  'word_count': 0,
+                  'created_at': lastModMs,
+                  'updated_at': lastModMs,
+                  'is_ghost': 1,
+                  'is_daily': 0,
+                  'daily_date': null,
+                  'is_conflicted': 0,
+                  'original_note_id': null,
+                });
+              } else {
+                targetId = targetMaps.first['id'] as String;
+              }
+
+              final snippet = getWikilinkContext(content, target);
+              await txn.insert(
+                'note_links',
+                {
+                  'source_id': noteId,
+                  'target_id': targetId,
+                  'context_snippet': snippet,
+                  'created_at': lastModMs,
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+
+            // If the note is the clipper's Inbox note (file path ending with inbox.md), ensure it is in the virtual folder 'Inbox'
+            final isClipperInbox = filePath.toLowerCase().endsWith('${Platform.pathSeparator}inbox.md') ||
+                filePath.toLowerCase().endsWith('/inbox.md');
+            if (isClipperInbox) {
+              final folderMaps = await txn.query(
+                'virtual_folders',
+                columns: ['id'],
+                where: 'LOWER(name) = ?',
+                whereArgs: ['inbox'],
+              );
+
+              String folderId;
+              if (folderMaps.isEmpty) {
+                folderId = generateId();
+                final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
+                final rawMax = maxSortMap.first['max_sort'];
+                final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
+
+                await txn.insert('virtual_folders', {
+                  'id': folderId,
+                  'name': 'Inbox',
+                  'color_hex': '#7C6FF7',
+                  'icon': 'folder',
+                  'created_at': nowMs,
+                  'sort_order': maxSort + 1,
+                });
+              } else {
+                folderId = folderMaps.first['id'] as String;
+              }
+
+              await txn.insert(
+                'note_folders',
+                {'note_id': noteId, 'folder_id': folderId},
+                conflictAlgorithm: ConflictAlgorithm.ignore,
+              );
+            }
           }
-        });
-      }
+        }
+      });
     } catch (e) {
       // Safely ignore errors during scan so the app doesn't crash
       debugPrint('Error scanning vault files: $e');
@@ -126,12 +267,12 @@ class DatabaseHelper {
       )
     ''');
 
-    // Full-text search virtual table (FTS4)
+    // Full-text search virtual table (FTS5)
     await db.execute('''
-      CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts4(
+      CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
         id,
         title,
-        tokenize=porter
+        tokenize = 'porter'
       )
     ''');
 
@@ -227,6 +368,49 @@ class DatabaseHelper {
       // Add folder indexes
       await db.execute('CREATE INDEX IF NOT EXISTS idx_note_folders_note ON note_folders(note_id)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_note_folders_folder ON note_folders(folder_id)');
+    }
+
+    if (oldVersion < 3) {
+      // Drop old FTS4 table and triggers
+      try {
+        await db.execute('DROP TABLE IF EXISTS notes_fts');
+        await db.execute('DROP TRIGGER IF EXISTS notes_ai');
+        await db.execute('DROP TRIGGER IF EXISTS notes_au');
+        await db.execute('DROP TRIGGER IF EXISTS notes_ad');
+        
+        // Recreate FTS5 table
+        await db.execute('''
+          CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+            id,
+            title,
+            tokenize = 'porter'
+          )
+        ''');
+        
+        // Populate FTS5 table with existing note data
+        await db.execute('INSERT INTO notes_fts(id, title) SELECT id, title FROM notes WHERE is_ghost = 0');
+        
+        // Recreate triggers
+        await db.execute('''
+          CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+            INSERT INTO notes_fts(id, title) VALUES (new.id, new.title);
+          END
+        ''');
+        await db.execute('''
+          CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+            DELETE FROM notes_fts WHERE id = old.id;
+            INSERT INTO notes_fts(id, title) VALUES (new.id, new.title);
+          END
+        ''');
+        await db.execute('''
+          CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+            DELETE FROM notes_fts WHERE id = old.id;
+          END
+        ''');
+      } catch (e) {
+        // Safely ignore or log error
+        debugPrint('Error upgrading database to FTS5: $e');
+      }
     }
   }
 }

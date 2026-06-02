@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
@@ -16,6 +16,7 @@ import '../widgets/wikilink_autocomplete.dart';
 import '../widgets/backlinks_panel.dart';
 import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../../settings/presentation/providers/custom_macro_provider.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 
 enum EditorMode { write, preview }
@@ -44,7 +45,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   final _focusNode = FocusNode();
 
   Timer? _saveTimer;
-  bool _isSaving = false;
+  final ValueNotifier<bool> _isSavingNotifier = ValueNotifier<bool>(false);
   bool _isLoaded = false;
   String _lastSaved = '';
 
@@ -136,10 +137,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<void> _save() async {
     final content = _controller.text;
     if (content == _lastSaved) return;
-    setState(() => _isSaving = true);
+    _isSavingNotifier.value = true;
     await ref.read(noteRepositoryProvider).saveNote(widget.noteId, content);
     _lastSaved = content;
-    if (mounted) setState(() => _isSaving = false);
+    if (mounted) _isSavingNotifier.value = false;
   }
 
   void _insertWikilink(String noteTitle) {
@@ -173,6 +174,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
+    _isSavingNotifier.dispose();
     super.dispose();
   }
 
@@ -185,10 +187,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final note = noteAsync.valueOrNull;
     final isConflicted = note?.isConflicted ?? false;
 
-    // AsyncNotifier — unwrap safely with defaults
-    final fontFamily = ref.watch(fontFamilyProvider).valueOrNull ?? 'Inter (Sans)';
-    final fontSize = ref.watch(fontSizeProvider).valueOrNull ?? '16pt';
-    final lineWidth = ref.watch(lineWidthProvider).valueOrNull ?? 'Comfortable';
+    // StateNotifier — watch synchronously
+    final fontFamily = ref.watch(fontFamilyProvider);
+    final fontSize = ref.watch(fontSizeProvider);
+    final lineWidth = ref.watch(lineWidthProvider);
 
     final sizeVal = double.tryParse(fontSize.replaceAll('pt', '')) ?? 16.0;
     final paddingVal = switch (lineWidth) {
@@ -329,33 +331,38 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
       actions: [
         // Save indicator
-        AnimatedOpacity(
-          opacity: _isSaving ? 1 : 0,
-          duration: const Duration(milliseconds: 300),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: colorScheme.primary,
-                  ),
+        ValueListenableBuilder<bool>(
+          valueListenable: _isSavingNotifier,
+          builder: (context, isSaving, _) {
+            return AnimatedOpacity(
+              opacity: isSaving ? 1 : 0,
+              duration: const Duration(milliseconds: 300),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Saving',
+                      style: DesignTypography.metadata(
+                        context,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  'Saving',
-                  style: DesignTypography.metadata(
-                    context,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
         // Organize note folder assignment button
         IconButton(
@@ -575,19 +582,47 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _focusNode.requestFocus();
   }
 
+  void _insertMacro(CustomMacro macro) {
+    final now = DateTime.now();
+    final year = now.year.toString();
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final dateStr = '$year-$month-$day';
+
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    final timeStr = '$hour:$minute';
+
+    final resolvedText = macro.text
+        .replaceAll('{{date}}', dateStr)
+        .replaceAll('{{time}}', timeStr)
+        .replaceAll('{{datetime}}', '$dateStr $timeStr');
+
+    _insertFormatting(resolvedText);
+  }
+
   Widget _buildFormattingToolbar(BuildContext context, ColorScheme colorScheme) {
+    final customMacros = ref.watch(customMacrosProvider);
+
     return Container(
-      height: 44,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      height: 50,
       decoration: BoxDecoration(
-        color: DesignColors.surfaceVariant(context),
-        border: Border(
-          top: BorderSide(color: DesignColors.border(context), width: 0.5),
-        ),
+        color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: DesignColors.border(context), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         child: Row(
           children: [
             _buildFormattingButton(
@@ -621,6 +656,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               onTap: () => _insertFormatting('\n- '),
             ),
             _buildFormattingButton(
+              icon: Icons.checklist_rounded,
+              tooltip: 'Checklist',
+              onTap: () => _insertFormatting('\n- [ ] '),
+            ),
+            _buildFormattingButton(
               icon: Icons.code_rounded,
               tooltip: 'Code',
               onTap: () => _insertFormatting('`', '`'),
@@ -630,6 +670,38 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               tooltip: 'Blockquote',
               onTap: () => _insertFormatting('\n> '),
             ),
+            _buildFormattingButton(
+              icon: Icons.strikethrough_s_rounded,
+              tooltip: 'Strikethrough',
+              onTap: () => _insertFormatting('~~', '~~'),
+            ),
+            _buildFormattingButton(
+              icon: Icons.border_color_rounded,
+              tooltip: 'Highlight',
+              onTap: () => _insertFormatting('==', '=='),
+            ),
+            _buildFormattingButton(
+              icon: Icons.horizontal_rule_rounded,
+              tooltip: 'Divider',
+              onTap: () => _insertFormatting('\n---\n'),
+            ),
+
+            // Vertical Divider separating standard actions and custom macros
+            if (customMacros.isNotEmpty) ...[
+              Container(
+                height: 22,
+                width: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                color: DesignColors.border(context),
+              ),
+              ...customMacros.map((macro) {
+                return _buildCustomMacroButton(
+                  label: macro.label,
+                  tooltip: 'Insert: ${macro.text.replaceAll('\n', ' ')}',
+                  onTap: () => _insertMacro(macro),
+                );
+              }),
+            ],
           ],
         ),
       ),
@@ -649,11 +721,53 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         child: Container(
           height: 38,
           width: 38,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
           alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: Colors.transparent,
+            shape: BoxShape.circle,
+          ),
           child: Icon(
             icon,
             size: 18,
             color: DesignColors.textSecondary(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomMacroButton({
+    required String label,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return TactileWrapper(
+      style: TactileFeedbackStyle.standard,
+      onTap: onTap,
+      child: Tooltip(
+        message: tooltip,
+        child: Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: DesignColors.surface(context),
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(
+              color: DesignColors.border(context),
+              width: 0.8,
+            ),
+          ),
+          child: Text(
+            label,
+            style: DesignTypography.body(
+              context,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: DesignColors.textSecondary(context),
+            ),
           ),
         ),
       ),

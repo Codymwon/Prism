@@ -18,10 +18,10 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeType = ref.watch(themeProvider);
 
-    // Watch settings providers (AsyncNotifier — unwrap with valueOrNull + default)
-    final fontFamily = ref.watch(fontFamilyProvider).valueOrNull ?? 'Inter (Sans)';
-    final fontSize = ref.watch(fontSizeProvider).valueOrNull ?? '16pt';
-    final lineWidth = ref.watch(lineWidthProvider).valueOrNull ?? 'Comfortable';
+    // Watch settings providers (StateNotifier)
+    final fontFamily = ref.watch(fontFamilyProvider);
+    final fontSize = ref.watch(fontSizeProvider);
+    final lineWidth = ref.watch(lineWidthProvider);
     final baseVaultsDir = ref.watch(baseVaultsDirectoryProvider).valueOrNull ?? '';
 
     return Scaffold(
@@ -53,12 +53,15 @@ class SettingsScreen extends ConsumerWidget {
                   SettingsTile(
                     icon: Icons.text_fields_rounded,
                     title: 'Font family',
-                    subtitle: fontFamily,
+                    subtitle: fontFamily == 'Inter (Sans)' ? 'Inter (Sans) (Default)' : fontFamily,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _showOptionSelector(
                       context: context,
                       title: 'Select Font Family',
                       options: ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)'],
+                      optionLabels: {
+                        'Inter (Sans)': 'Inter (Sans) (Default)',
+                      },
                       currentValue: fontFamily,
                       onSelected: (val) => ref.read(fontFamilyProvider.notifier).setFontFamily(val),
                     ),
@@ -85,12 +88,15 @@ class SettingsScreen extends ConsumerWidget {
                   SettingsTile(
                     icon: Icons.format_size_rounded,
                     title: 'Font size',
-                    subtitle: fontSize,
+                    subtitle: fontSize == '16pt' ? '16pt (Default)' : fontSize,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _showOptionSelector(
                       context: context,
                       title: 'Select Font Size',
                       options: ['12pt', '14pt', '16pt', '18pt', '20pt'],
+                      optionLabels: {
+                        '16pt': '16pt (Default)',
+                      },
                       currentValue: fontSize,
                       onSelected: (val) => ref.read(fontSizeProvider.notifier).setFontSize(val),
                     ),
@@ -98,15 +104,25 @@ class SettingsScreen extends ConsumerWidget {
                   SettingsTile(
                     icon: Icons.wrap_text_rounded,
                     title: 'Line width',
-                    subtitle: lineWidth,
+                    subtitle: lineWidth == 'Comfortable' ? 'Comfortable (Default)' : lineWidth,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _showOptionSelector(
                       context: context,
                       title: 'Select Line Width',
                       options: ['Narrow', 'Comfortable', 'Wide'],
+                      optionLabels: {
+                        'Comfortable': 'Comfortable (Default)',
+                      },
                       currentValue: lineWidth,
                       onSelected: (val) => ref.read(lineWidthProvider.notifier).setLineWidth(val),
                     ),
+                  ),
+                  SettingsTile(
+                    icon: Icons.keyboard_command_key_rounded,
+                    title: 'Custom Toolbar Macros',
+                    subtitle: 'Define 3–5 custom quick-insert macros',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/settings/custom-macros'),
                   ),
 
                   // ── Sync ────────────────────────────────────────────────
@@ -169,6 +185,7 @@ class SettingsScreen extends ConsumerWidget {
     required BuildContext context,
     required String title,
     required List<String> options,
+    Map<String, String>? optionLabels,
     required String currentValue,
     required Function(String) onSelected,
   }) {
@@ -202,17 +219,18 @@ class SettingsScreen extends ConsumerWidget {
                     itemCount: options.length,
                     itemBuilder: (c, idx) {
                       final val = options[idx];
+                      final displayLabel = optionLabels?[val] ?? val;
                       final isSelected = val == currentValue;
 
                       return TactileWrapper(
                         style: TactileFeedbackStyle.standard,
                         onTap: () {
-                          onSelected(val);
                           Navigator.pop(ctx);
+                          onSelected(val);
                         },
                         child: ListTile(
                           title: Text(
-                            val,
+                            displayLabel,
                             style: DesignTypography.body(
                               context,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,

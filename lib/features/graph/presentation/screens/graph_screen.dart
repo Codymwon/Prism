@@ -28,9 +28,9 @@ class GraphScreenContent extends ConsumerStatefulWidget {
   ConsumerState<GraphScreenContent> createState() => _GraphScreenContentState();
 }
 
-class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with SingleTickerProviderStateMixin {
+class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
   late TransformationController _transformationController;
-  late Ticker _ticker;
+  final GlobalKey<GraphSimulationCanvasState> _canvasKey = GlobalKey<GraphSimulationCanvasState>();
 
   // Settings panel toggle
   bool _showSettings = false;
@@ -41,25 +41,10 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
   double _attractionRate = 0.35;          // Elastic spring stiffness
   double _damping = 0.85;                 // Simulation Friction / drag resistance
 
-  // Node simulation coordinates
-  final Map<String, Offset> _positions = {};
-  final Map<String, Offset> _velocities = {};
-  String? _draggedNodeId;
-
-  // Keep track of active graph data
-  List<GraphNode> _currentNodes = [];
-  List<GraphEdge> _currentEdges = [];
-  bool _isBuilt = false;
-  String? _selectedNodeId;
-
   @override
   void initState() {
     super.initState();
     _transformationController = TransformationController();
-
-    // Setup spring-physics simulation frame loop
-    _ticker = createTicker(_tick);
-    _ticker.start();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _centerView();
@@ -68,7 +53,6 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
 
   @override
   void dispose() {
-    _ticker.dispose();
     _transformationController.dispose();
     super.dispose();
   }
@@ -83,42 +67,8 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
     _transformationController.value = Matrix4.translationValues(x, y, 0.0);
   }
 
-  void _initializePositions(List<GraphNode> nodes) {
-    final rand = Random();
-    const centerX = 1250.0;
-    const centerY = 1250.0;
-
-    for (final gn in nodes) {
-      if (!_positions.containsKey(gn.id)) {
-        // Soft cosmic distribution outward from the center
-        final angle = rand.nextDouble() * 2 * pi;
-        final radius = 50 + rand.nextDouble() * 150;
-        _positions[gn.id] = Offset(
-          centerX + cos(angle) * radius,
-          centerY + sin(angle) * radius,
-        );
-        _velocities[gn.id] = Offset.zero;
-      }
-    }
-  }
-
   void _triggerReLayout() {
-    // Distribute nodes randomly near center again to settle
-    final rand = Random();
-    const centerX = 1250.0;
-    const centerY = 1250.0;
-    
-    setState(() {
-      for (final node in _currentNodes) {
-        final angle = rand.nextDouble() * 2 * pi;
-        final radius = 50 + rand.nextDouble() * 150;
-        _positions[node.id] = Offset(
-          centerX + cos(angle) * radius,
-          centerY + sin(angle) * radius,
-        );
-        _velocities[node.id] = Offset.zero;
-      }
-    });
+    _canvasKey.currentState?.triggerReLayout();
   }
 
   void _resetToDefaults() {
@@ -131,128 +81,11 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
     });
   }
 
-  void _tick(Duration elapsed) {
-    if (!mounted || _positions.isEmpty || _currentNodes.isEmpty) return;
-
-    const centerX = 1250.0;
-    const centerY = 1250.0;
-
-    // 1. Initialize forces vector
-    final Map<String, Offset> forces = {
-      for (final id in _positions.keys) id: Offset.zero
-    };
-
-    // 2. Coulomb Repulsion: push all nodes apart (n^2 complexity but fast for small sets)
-    final keys = _positions.keys.toList();
-    for (int i = 0; i < keys.length; i++) {
-      final idA = keys[i];
-      final posA = _positions[idA]!;
-      for (int j = i + 1; j < keys.length; j++) {
-        final idB = keys[j];
-        final posB = _positions[idB]!;
-
-        final delta = posA - posB;
-        final distance = delta.distance + 0.1; // division by zero safety
-
-        if (distance < 500.0) { // Repelling cutoff range
-          // Coulomb Force = (ChargeStrength) / dist^2
-          final forceMagnitude = (_repulsionRate * 12000.0) / (distance * distance);
-          final forceVector = delta / distance * forceMagnitude;
-
-          forces[idA] = forces[idA]! + forceVector;
-          forces[idB] = forces[idB]! - forceVector;
-        }
-      }
-    }
-
-    // 3. Hooke Spring Attraction: pull connected nodes together
-    for (final edge in _currentEdges) {
-      final idA = edge.sourceId;
-      final idB = edge.targetId;
-
-      final posA = _positions[idA];
-      final posB = _positions[idB];
-
-      if (posA != null && posB != null) {
-        final delta = posB - posA;
-        final distance = delta.distance + 0.1;
-
-        // Dynamic Rest Length based on slider
-        final restLength = 120.0 * (1.0 / (_repulsionPercentage + 0.1));
-        final displacement = distance - restLength;
-        
-        // Elastic Force = stiffness * displacement
-        final forceMagnitude = _attractionRate * 0.12 * displacement;
-        final forceVector = delta / distance * forceMagnitude;
-
-        forces[idA] = forces[idA]! + forceVector;
-        forces[idB] = forces[idB]! - forceVector;
-      }
-    }
-
-    // 4. Center Gravity Force: keep nodes centered in viewport
-    const gravityStrength = 0.008;
-    for (final id in _positions.keys) {
-      final pos = _positions[id]!;
-      final delta = Offset(centerX, centerY) - pos;
-      forces[id] = forces[id]! + delta * gravityStrength;
-    }
-
-    // 5. Update Velocities & Coordinate Positions
-    setState(() {
-      for (final id in _positions.keys) {
-        if (id == _draggedNodeId) continue; // Dragged node stays pinned under user's finger!
-
-        final force = forces[id]!;
-        final vel = _velocities[id]!;
-
-        // Euler Integration: velocity = (velocity + force) * damping
-        var newVel = (vel + force) * _damping;
-
-        // Clamp speed to prevent numeric explosion (cosmic safety limit)
-        const maxSpeed = 16.0;
-        if (newVel.distance > maxSpeed) {
-          newVel = newVel / newVel.distance * maxSpeed;
-        }
-
-        _velocities[id] = newVel;
-        _positions[id] = _positions[id]! + newVel;
-      }
-    });
-  }
-
-  void _rebuildGraph(({List<GraphNode> nodes, List<GraphEdge> edges}) data) {
-    _initializePositions(data.nodes);
-    _currentNodes = data.nodes;
-    _currentEdges = data.edges;
-
-    if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _isBuilt = true;
-          });
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final graphAsync = ref.watch(graphDataProvider);
-
-    ref.listen(
-      graphDataProvider,
-      (previous, next) {
-        next.whenOrNull(
-          data: (data) {
-            _rebuildGraph(data);
-          },
-        );
-      },
-    );
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
@@ -266,14 +99,20 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
                   if (data.nodes.isEmpty || data.edges.isEmpty) {
                     return _buildEmptyState(isDark, colorScheme);
                   }
-                  if (!_isBuilt) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
                   return Stack(
                     children: [
-                      // Continuous Spring-Physics Graph simulation viewport
+                      // Continuous Spring-Physics Graph simulation viewport (isolated rebuilds!)
                       Positioned.fill(
-                        child: _buildGraphView(context, isDark, colorScheme, data),
+                        child: GraphSimulationCanvas(
+                          key: _canvasKey,
+                          nodes: data.nodes,
+                          edges: data.edges,
+                          repulsionRate: _repulsionRate,
+                          repulsionPercentage: _repulsionPercentage,
+                          attractionRate: _attractionRate,
+                          damping: _damping,
+                          transformationController: _transformationController,
+                        ),
                       ),
                       
                       // Floating dynamic settings panel (Obsidian style)
@@ -283,10 +122,10 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
                           repulsionPercentage: _repulsionPercentage,
                           attractionRate: _attractionRate,
                           damping: _damping,
-                          onChangedRepulsionRate: (val) => _repulsionRate = val,
-                          onChangedRepulsionPercentage: (val) => _repulsionPercentage = val,
-                          onChangedAttractionRate: (val) => _attractionRate = val,
-                          onChangedDamping: (val) => _damping = val,
+                          onChangedRepulsionRate: (val) => setState(() => _repulsionRate = val),
+                          onChangedRepulsionPercentage: (val) => setState(() => _repulsionPercentage = val),
+                          onChangedAttractionRate: (val) => setState(() => _attractionRate = val),
+                          onChangedDamping: (val) => setState(() => _damping = val),
                           onClose: () => setState(() => _showSettings = false),
                           onResetDefaults: _resetToDefaults,
                           onReLayout: _triggerReLayout,
@@ -363,7 +202,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
                 ),
               ),
             ],
-          ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.05),
+          ),
           const Spacer(),
           IconButton(
             icon: Icon(
@@ -392,17 +231,276 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
     );
   }
 
-  Widget _buildGraphView(
-    BuildContext context,
-    bool isDark,
-    ColorScheme colorScheme,
-    ({List<GraphNode> nodes, List<GraphEdge> edges}) data,
-  ) {
+  Widget _buildEmptyState(bool isDark, ColorScheme colorScheme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.hub_outlined,
+            size: 72,
+            color: DesignColors.textTertiary(context),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No connections yet',
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: DesignColors.text(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48),
+            child: Text(
+              'Start linking notes with [[wikilinks]] and your graph will grow here',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: DesignColors.textSecondary(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.9, 0.9));
+  }
+}
+
+// ─── Continuous Spring-Physics Graph simulation viewport (isolated rebuilds!) ───
+class GraphSimulationCanvas extends StatefulWidget {
+  final List<GraphNode> nodes;
+  final List<GraphEdge> edges;
+  final double repulsionRate;
+  final double repulsionPercentage;
+  final double attractionRate;
+  final double damping;
+  final TransformationController transformationController;
+
+  const GraphSimulationCanvas({
+    super.key,
+    required this.nodes,
+    required this.edges,
+    required this.repulsionRate,
+    required this.repulsionPercentage,
+    required this.attractionRate,
+    required this.damping,
+    required this.transformationController,
+  });
+
+  @override
+  State<GraphSimulationCanvas> createState() => GraphSimulationCanvasState();
+}
+
+class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with SingleTickerProviderStateMixin {
+  late Ticker _ticker;
+  final Map<String, Offset> _positions = {};
+  final Map<String, Offset> _velocities = {};
+  String? _draggedNodeId;
+  String? _selectedNodeId;
+  bool _playedEntranceAnimation = false;
+
+  // Cache to store pre-built static subtrees of node widgets
+  final Map<String, Widget> _nodeContentCache = {};
+  int _physicsTick = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePositions(widget.nodes);
+    _ticker = createTicker(_tick);
+    _ticker.start();
+    
+    // Play entrance animation once, then mark played
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _playedEntranceAnimation = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant GraphSimulationCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If nodes changed, initialize positions for any new ones
+    _initializePositions(widget.nodes);
+    if (oldWidget.nodes != widget.nodes) {
+      _nodeContentCache.clear();
+    }
+  }
+
+  // Pre-builds static widget subtrees once
+  void _buildNodeContentCache() {
+    _nodeContentCache.clear();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    for (final gn in widget.nodes) {
+      final isSelected = _selectedNodeId == gn.id;
+      _nodeContentCache[gn.id] = _buildNodeWidgetContent(
+        context,
+        gn.id,
+        gn.title,
+        gn.linkCount,
+        isDark,
+        colorScheme,
+        isSelected,
+        gn.colorHex,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  void triggerReLayout() {
+    final rand = Random();
+    const centerX = 1250.0;
+    const centerY = 1250.0;
+    
+    setState(() {
+      for (final node in widget.nodes) {
+        final angle = rand.nextDouble() * 2 * pi;
+        final radius = 50 + rand.nextDouble() * 150;
+        _positions[node.id] = Offset(
+          centerX + cos(angle) * radius,
+          centerY + sin(angle) * radius,
+        );
+        _velocities[node.id] = Offset.zero;
+      }
+    });
+  }
+
+  void _initializePositions(List<GraphNode> nodes) {
+    final rand = Random();
+    const centerX = 1250.0;
+    const centerY = 1250.0;
+
+    for (final gn in nodes) {
+      if (!_positions.containsKey(gn.id)) {
+        // Soft cosmic distribution outward from the center
+        final angle = rand.nextDouble() * 2 * pi;
+        final radius = 50 + rand.nextDouble() * 150;
+        _positions[gn.id] = Offset(
+          centerX + cos(angle) * radius,
+          centerY + sin(angle) * radius,
+        );
+        _velocities[gn.id] = Offset.zero;
+      }
+    }
+  }
+
+  void _tick(Duration elapsed) {
+    if (!mounted || _positions.isEmpty || widget.nodes.isEmpty) return;
+
+    const centerX = 1250.0;
+    const centerY = 1250.0;
+
+    // 1. Initialize forces vector
+    final Map<String, Offset> forces = {
+      for (final id in _positions.keys) id: Offset.zero
+    };
+
+    // 2. Coulomb Repulsion: push all nodes apart (n^2 complexity but fast for small sets)
+    final keys = _positions.keys.toList();
+    for (int i = 0; i < keys.length; i++) {
+      final idA = keys[i];
+      final posA = _positions[idA];
+      if (posA == null) continue;
+      for (int j = i + 1; j < keys.length; j++) {
+        final idB = keys[j];
+        final posB = _positions[idB];
+        if (posB == null) continue;
+
+        final delta = posA - posB;
+        final distance = delta.distance + 0.1; // division by zero safety
+
+        if (distance < 500.0) { // Repelling cutoff range
+          // Coulomb Force = (ChargeStrength) / dist^2
+          final forceMagnitude = (widget.repulsionRate * 12000.0) / (distance * distance);
+          final forceVector = delta / distance * forceMagnitude;
+
+          forces[idA] = forces[idA]! + forceVector;
+          forces[idB] = forces[idB]! - forceVector;
+        }
+      }
+    }
+
+    // 3. Hooke Spring Attraction: pull connected nodes together
+    for (final edge in widget.edges) {
+      final idA = edge.sourceId;
+      final idB = edge.targetId;
+
+      final posA = _positions[idA];
+      final posB = _positions[idB];
+
+      if (posA != null && posB != null) {
+        final delta = posB - posA;
+        final distance = delta.distance + 0.1;
+
+        // Dynamic Rest Length based on slider
+        final restLength = 120.0 * (1.0 / (widget.repulsionPercentage + 0.1));
+        final displacement = distance - restLength;
+        
+        // Elastic Force = stiffness * displacement
+        final forceMagnitude = widget.attractionRate * 0.12 * displacement;
+        final forceVector = delta / distance * forceMagnitude;
+
+        forces[idA] = forces[idA]! + forceVector;
+        forces[idB] = forces[idB]! - forceVector;
+      }
+    }
+
+    // 4. Center Gravity Force: keep nodes centered in viewport
+    const gravityStrength = 0.008;
+    for (final id in _positions.keys) {
+      final pos = _positions[id]!;
+      final delta = Offset(centerX, centerY) - pos;
+      forces[id] = forces[id]! + delta * gravityStrength;
+    }
+
+    // 5. Update Velocities & Coordinate Positions
+    setState(() {
+      _physicsTick++;
+      for (final id in _positions.keys) {
+        if (id == _draggedNodeId) continue; // Dragged node stays pinned under user's finger!
+
+        final force = forces[id]!;
+        final vel = _velocities[id]!;
+
+        // Euler Integration: velocity = (velocity + force) * damping
+        var newVel = (vel + force) * widget.damping;
+
+        // Clamp speed to prevent numeric explosion (cosmic safety limit)
+        const maxSpeed = 16.0;
+        if (newVel.distance > maxSpeed) {
+          newVel = newVel / newVel.distance * maxSpeed;
+        }
+
+        _velocities[id] = newVel;
+        _positions[id] = _positions[id]! + newVel;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_nodeContentCache.isEmpty) {
+      _buildNodeContentCache();
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
     const canvasWidth = 2500.0;
     const canvasHeight = 2500.0;
 
-    return InteractiveViewer(
-      transformationController: _transformationController,
+    Widget graphContent = InteractiveViewer(
+      transformationController: widget.transformationController,
       constrained: false,
       boundaryMargin: const EdgeInsets.all(1000),
       minScale: 0.1,
@@ -417,17 +515,17 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
               child: CustomPaint(
                 painter: GraphLinksPainter(
                   positions: _positions,
-                  edges: _currentEdges,
+                  edges: widget.edges,
                   color: colorScheme.primary.withValues(alpha: 0.35),
+                  physicsTick: _physicsTick,
                 ),
               ),
             ),
 
             // 2. Draw interactive node widgets (Draggable positioned items)
-            ..._currentNodes.map((gn) {
+            ...widget.nodes.map((gn) {
               final pos = _positions[gn.id];
               if (pos == null) return const SizedBox.shrink();
-              final isSelected = _selectedNodeId == gn.id;
 
               // Calculate dot size to offset the vertical position perfectly
               final dotSize = (8.0 + (gn.linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
@@ -455,16 +553,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
                   },
                   child: SizedBox(
                     width: 80,
-                    child: _buildNodeWidget(
-                      context,
-                      gn.id,
-                      gn.title,
-                      gn.linkCount,
-                      isDark,
-                      colorScheme,
-                      isSelected,
-                      gn.colorHex,
-                    ),
+                    child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
                   ),
                 ),
               );
@@ -472,7 +561,17 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack);
+    );
+
+    // Play entry animation only once when GraphSimulationCanvas is first mounted
+    if (!_playedEntranceAnimation) {
+      return graphContent
+          .animate()
+          .fadeIn(duration: 600.ms)
+          .scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack);
+    }
+
+    return graphContent;
   }
 
   String _pruneTitle(String title) {
@@ -490,7 +589,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
     return Color(int.parse(buffer.toString(), radix: 16));
   }
 
-  Widget _buildNodeWidget(
+  Widget _buildNodeWidgetContent(
     BuildContext context,
     String id,
     String title,
@@ -509,7 +608,10 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
 
     return TactileWrapper(
       onTap: () {
-        setState(() => _selectedNodeId = id);
+        setState(() {
+          _selectedNodeId = id;
+          _nodeContentCache.clear(); // Rebuild with selection highlights!
+        });
         context.push('/editor/$id');
       },
       child: Column(
@@ -555,44 +657,6 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> with Si
       ),
     );
   }
-
-
-
-  Widget _buildEmptyState(bool isDark, ColorScheme colorScheme) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.hub_outlined,
-            size: 72,
-            color: DesignColors.textTertiary(context),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No connections yet',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: DesignColors.text(context),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 48),
-            child: Text(
-              'Start linking notes with [[wikilinks]] and your graph will grow here',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: DesignColors.textSecondary(context),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.9, 0.9));
-  }
 }
 
 // ─── Custom Spring-line painter for connected wikilink edges ────────────────
@@ -600,11 +664,13 @@ class GraphLinksPainter extends CustomPainter {
   final Map<String, Offset> positions;
   final List<GraphEdge> edges;
   final Color color;
+  final int physicsTick;
 
   GraphLinksPainter({
     required this.positions,
     required this.edges,
     required this.color,
+    required this.physicsTick,
   });
 
   @override
@@ -625,8 +691,7 @@ class GraphLinksPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant GraphLinksPainter oldDelegate) {
-    // Avoid redrawing unless positions, connections, or theme colors change
-    return oldDelegate.positions != positions || 
+    return oldDelegate.physicsTick != physicsTick || 
            oldDelegate.edges != edges || 
            oldDelegate.color != color;
   }

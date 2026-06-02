@@ -11,6 +11,11 @@ import '../../../folders/data/folder_model.dart';
 
 // ─── Notes List Providers ─────────────────────────────────────────────────────
 
+/// On wide (desktop) windows the notes list and the editor sit side-by-side.
+/// This provider holds the id of the note currently open in the desktop pane.
+/// It is completely ignored on mobile — navigation there still uses GoRouter pushes.
+final activeDesktopNoteIdProvider = StateProvider<String?>((ref) => null);
+
 final noteSortProvider = StateProvider<NoteSort>((ref) => NoteSort.updated);
 
 final selectedTagProvider = StateProvider<String?>((ref) => null);
@@ -51,6 +56,8 @@ final vaultStatsProvider = FutureProvider.autoDispose<({int totalNotes, int tota
 });
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
+
+final searchFocusProvider = StateProvider<bool>((ref) => false);
 
 final searchResultsProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
   await ref.watch(databaseProvider.future);

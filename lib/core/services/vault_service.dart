@@ -10,6 +10,12 @@ final vaultServiceProvider = Provider<VaultService>((ref) {
   return VaultService();
 });
 
+final availableVaultsProvider = FutureProvider<List<String>>((ref) async {
+  final baseDir = await ref.watch(baseVaultsDirectoryProvider.future);
+  final activeVault = await ref.watch(activeVaultNameProvider.future);
+  return ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
+});
+
 class VaultService {
   /// Scans subdirectories in base directory to list available vaults asynchronously
   Future<List<String>> getAvailableVaults(String baseDir, String activeVault) async {
@@ -46,6 +52,9 @@ class VaultService {
 
     // 2. Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
+
+    // 3. Invalidate vaults list cache
+    ref.invalidate(availableVaultsProvider);
   }
 
   /// Creates a physical directory for a vault and initializes it with a welcome note asynchronously
@@ -76,6 +85,9 @@ class VaultService {
 
     // Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
+
+    // Invalidate vaults list cache
+    ref.invalidate(availableVaultsProvider);
   }
 
   /// Safely relocates base vaults directory path and loads/creates active vaults inside asynchronously
@@ -117,5 +129,8 @@ class VaultService {
 
     // Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
+
+    // Invalidate vaults list cache
+    ref.invalidate(availableVaultsProvider);
   }
 }

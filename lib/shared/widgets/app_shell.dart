@@ -7,6 +7,9 @@ import '../design_system/design_system.dart';
 import 'tactile_wrapper.dart';
 import 'tutorial_overlay.dart';
 
+// Breakpoint at which we switch from mobile bottom-nav to desktop side-rail.
+const double _kDesktopBreakpoint = 800;
+
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
   final String currentPath;
@@ -36,12 +39,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     context.go(_tabs[index].path);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final hasCompletedTutorial = ref.watch(tutorialStateProvider);
-
-    final mainScaffold = Scaffold(
+  // ─── Mobile scaffold (original, untouched) ─────────────────────────────────
+  Widget _buildMobileScaffold(BuildContext context, ColorScheme colorScheme) {
+    return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         switchInCurve: Curves.easeInOutCubic,
@@ -52,7 +52,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             opacity: animation,
             child: SlideTransition(
               position: Tween<Offset>(
-                begin: const Offset(0.0, 0.015), // Subtle lift up
+                begin: const Offset(0.0, 0.015),
                 end: Offset.zero,
               ).animate(animation),
               child: child,
@@ -127,6 +127,129 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
       ),
     );
+  }
+
+  // ─── Desktop scaffold (NavigationRail + content) ────────────────────────────
+  Widget _buildDesktopScaffold(BuildContext context, ColorScheme colorScheme) {
+    return Scaffold(
+      body: Row(
+        children: [
+          // Slim side navigation rail
+          Container(
+            width: 72,
+            decoration: BoxDecoration(
+              color: DesignColors.surface(context),
+              border: Border(
+                right: BorderSide(
+                  color: DesignColors.border(context),
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  // App logo / brand mark
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Nav items
+                  ...List.generate(_tabs.length, (i) {
+                    final tab = _tabs[i];
+                    final isActive = i == _currentIndex;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: TactileWrapper(
+                        style: TactileFeedbackStyle.standard,
+                        onTap: () => _onTabTap(i),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? colorScheme.primary.withValues(alpha: 0.12)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isActive ? tab.activeIcon : tab.icon,
+                                size: 22,
+                                color: isActive
+                                    ? colorScheme.primary
+                                    : DesignColors.textTertiary(context),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                tab.label,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: isActive
+                                      ? FontWeight.w700
+                                      : FontWeight.w400,
+                                  color: isActive
+                                      ? colorScheme.primary
+                                      : DesignColors.textTertiary(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+          // Main content area — screens fill the remaining space
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeInOutCubic,
+              switchOutCurve: Curves.easeInOutCubic,
+              layoutBuilder: (currentChild, previousChildren) =>
+                  currentChild ?? const SizedBox.shrink(),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+              child: Container(
+                key: ValueKey(_currentIndex),
+                child: widget.child,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasCompletedTutorial = ref.watch(tutorialStateProvider);
+    final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
+
+    final mainScaffold = isDesktop
+        ? _buildDesktopScaffold(context, colorScheme)
+        : _buildMobileScaffold(context, colorScheme);
 
     if (hasCompletedTutorial) {
       return mainScaffold;
@@ -147,6 +270,15 @@ class _AppShellState extends ConsumerState<AppShell> {
         getTargetRect: (size) {
           final topPadding = MediaQuery.of(context).padding.top;
           return Rect.fromLTWH(6, topPadding + 4, 48, 48);
+        },
+      ),
+      TutorialStep(
+        title: 'View Layout Toggle',
+        description: 'Tap here to toggle between a folder-grouped layout for structured cataloging and a clean flat list to view all notes at a single glance.',
+        icon: Icons.grid_view_rounded,
+        getTargetRect: (size) {
+          final topPadding = MediaQuery.of(context).padding.top;
+          return Rect.fromLTWH(size.width - 54, topPadding + 4, 48, 48);
         },
       ),
       TutorialStep(

@@ -17,13 +17,27 @@ final databaseProvider = FutureProvider<Database>((ref) async {
 
   final db = await DatabaseHelper.instance.openDatabaseForPath(vaultPath);
 
+  // Sync vault physical files in the background without blocking database loading
+  _triggerBackgroundSync(db, vaultPath, ref);
+
   ref.onDispose(() async {
-    await db.close();
+    await DatabaseHelper.instance.closeDatabaseConnection(db);
     debugPrint('Database connection reactively closed for: $vaultPath');
   });
 
   return db;
 });
+
+/// Helper to trigger vault file synchronization asynchronously in the background.
+/// Increments notesVersionProvider upon completion to reactively refresh note listings.
+void _triggerBackgroundSync(Database db, String vaultPath, Ref ref) {
+  DatabaseHelper.instance.syncVaultFiles(db, vaultPath).then((_) {
+    ref.read(notesVersionProvider.notifier).update((state) => state + 1);
+    debugPrint('Background physical files sync completed for vault: $vaultPath');
+  }).catchError((e) {
+    debugPrint('Error during background files sync: $e');
+  });
+}
 
 // ─── Centralized Data Version State Providers ──────────────────────────────────
 final notesVersionProvider = StateProvider<int>((ref) => 0);

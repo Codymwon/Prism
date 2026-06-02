@@ -17,6 +17,11 @@ import '../../../folders/data/folder_repository.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../widgets/vault_selector_bottom_sheet.dart';
 import '../widgets/grouped_notes_list.dart';
+import '../../../../core/services/vault_service.dart';
+import '../../../editor/presentation/screens/editor_screen.dart';
+
+// Desktop breakpoint — keep in sync with app_shell.dart
+const double _kDesktopBreakpoint = 800;
 
 enum HomeViewMode { flat, grouped }
 
@@ -31,16 +36,31 @@ class NotesListScreen extends ConsumerStatefulWidget {
 
 class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   bool _isSearching = false;
+  final _searchFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Pre-warm available vaults list cache so the selector bottom sheet loads instantly
+    ref.watch(availableVaultsProvider);
+
+    ref.listen<bool>(searchFocusProvider, (previous, next) {
+      if (next) {
+        setState(() => _isSearching = true);
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _searchFocusNode.requestFocus();
+        });
+        ref.read(searchFocusProvider.notifier).state = false;
+      }
+    });
+
     final colorScheme = Theme.of(context).colorScheme;
-    final query = ref.watch(searchQueryProvider);
-
-    final notesAsync = query.trim().isEmpty
-        ? ref.watch(notesProvider)
-        : ref.watch(searchResultsProvider);
-
+    final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
     final selectedTag = ref.watch(selectedTagProvider);
     final foldersAsync = ref.watch(foldersProvider);
@@ -52,6 +72,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           activeFolder = list.firstWhere((f) => f.id == selectedFolderId);
         } catch (_) {}
       });
+    }
+
+    if (isDesktop) {
+      return _buildDesktopLayout(context, colorScheme, activeFolder);
     }
 
     return Scaffold(
@@ -73,6 +97,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                       setState(() => _isSearching = false);
                     },
                     onFocused: () => setState(() => _isSearching = true),
+                    focusNode: _searchFocusNode,
                   ),
                 ),
                 if (!_isSearching) ...[
@@ -118,49 +143,291 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                   ],
                 ),
               ),
-            ).animate().fadeIn(duration: 200.ms),
+            ),
 
           // Notes list
           Expanded(
-            child: selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
-                ? ref.watch(homeScreenDataProvider).maybeWhen(
-                    data: (data) => GroupedNotesList(
-                      allNotes: data.notes,
-                      folders: data.folders,
-                      mappings: data.mappings,
-                    ),
-                    orElse: () {
-                      final data = ref.watch(homeScreenDataProvider).valueOrNull;
-                      if (data != null) {
-                        return GroupedNotesList(
+            child: Consumer(
+              builder: (context, ref, _) {
+                final query = ref.watch(searchQueryProvider);
+                final notesAsync = query.trim().isEmpty
+                    ? ref.watch(notesProvider)
+                    : ref.watch(searchResultsProvider);
+
+                return selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
+                    ? ref.watch(homeScreenDataProvider).maybeWhen(
+                        data: (data) => GroupedNotesList(
                           allNotes: data.notes,
                           folders: data.folders,
                           mappings: data.mappings,
-                        );
-                      }
-                      return _buildLoadingSkeleton();
-                    },
-                    error: (e, s) => Center(
-                      child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-                    ),
-                  )
-                : notesAsync.maybeWhen(
-                    data: (notes) => _buildNotesList(notes),
-                    orElse: () {
-                      if (notesAsync.hasValue) {
-                        return _buildNotesList(notesAsync.value!);
-                      }
-                      return _buildLoadingSkeleton();
-                    },
-                    error: (e, s) => Center(
-                      child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-                    ),
-                  ),
+                        ),
+                        orElse: () {
+                          final data = ref.watch(homeScreenDataProvider).valueOrNull;
+                          if (data != null) {
+                            return GroupedNotesList(
+                              allNotes: data.notes,
+                              folders: data.folders,
+                              mappings: data.mappings,
+                            );
+                          }
+                          return _buildLoadingSkeleton();
+                        },
+                        error: (e, s) => Center(
+                          child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                        ),
+                      )
+                    : notesAsync.maybeWhen(
+                        data: (notes) => _buildNotesList(notes),
+                        orElse: () {
+                          if (notesAsync.hasValue) {
+                            return _buildNotesList(notesAsync.value!);
+                          }
+                          return _buildLoadingSkeleton();
+                        },
+                        error: (e, s) => Center(
+                          child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                        ),
+                      );
+              },
+            ),
           ),
         ],
       ),
       floatingActionButton: _buildFAB(context, colorScheme),
     );
+  }
+
+  // ─── Desktop two-pane layout ─────────────────────────────────────────────────
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    ColorScheme colorScheme,
+    VirtualFolder? activeFolder,
+  ) {
+    final activeNoteId = ref.watch(activeDesktopNoteIdProvider);
+
+    return Row(
+      children: [
+        // Left panel: notes list (340px fixed)
+        SizedBox(
+          width: 340,
+          child: Scaffold(
+            backgroundColor: DesignColors.background(context),
+            appBar: _buildAppBar(colorScheme, activeFolder),
+            drawer: const FolderDrawer(),
+            body: _buildListBody(colorScheme),
+            floatingActionButton: _buildFAB(context, colorScheme),
+          ),
+        ),
+        // Vertical divider
+        Container(
+          width: 0.5,
+          color: DesignColors.border(context),
+        ),
+        // Right panel: inline editor or empty state
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeInOutCubic,
+            switchOutCurve: Curves.easeInOutCubic,
+            child: activeNoteId != null
+                ? KeyedSubtree(
+                    key: ValueKey(activeNoteId),
+                    child: EditorScreen(noteId: activeNoteId),
+                  )
+                : _buildDesktopEmptyPane(context, colorScheme),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildListBody(ColorScheme colorScheme) {
+    final selectedFolderId = ref.watch(selectedFolderIdProvider);
+    final selectedTag = ref.watch(selectedTagProvider);
+    return Column(
+      children: [
+        // Search bar + Sort Row
+        Padding(
+          padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 0, DesignSpacing.screenPadding, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: SearchBarWidget(
+                  onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
+                  onClear: () {
+                    ref.read(searchQueryProvider.notifier).state = '';
+                    setState(() => _isSearching = false);
+                  },
+                  onFocused: () => setState(() => _isSearching = true),
+                  focusNode: _searchFocusNode,
+                ),
+              ),
+              if (!_isSearching) ...[
+                const SizedBox(width: 8),
+                _buildPremiumSortButton(context, colorScheme),
+              ],
+            ],
+          ),
+        ),
+        // Tag Filter Banner
+        if (selectedTag != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 0, DesignSpacing.screenPadding, 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.2),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.label_outline_rounded, size: 16, color: colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Filtered by tag: #$selectedTag',
+                    style: DesignTypography.heading(
+                      context,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => ref.read(selectedTagProvider.notifier).state = null,
+                    child: Icon(Icons.close_rounded, size: 16, color: colorScheme.primary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        // Notes list
+        Expanded(
+          child: Consumer(
+            builder: (context, ref, _) {
+              final query = ref.watch(searchQueryProvider);
+              final notesAsync = query.trim().isEmpty
+                  ? ref.watch(notesProvider)
+                  : ref.watch(searchResultsProvider);
+
+              return selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
+                  ? ref.watch(homeScreenDataProvider).maybeWhen(
+                      data: (data) => GroupedNotesList(
+                        allNotes: data.notes,
+                        folders: data.folders,
+                        mappings: data.mappings,
+                        onNoteTap: (id) => ref.read(activeDesktopNoteIdProvider.notifier).state = id,
+                      ),
+                      orElse: () {
+                        final data = ref.watch(homeScreenDataProvider).valueOrNull;
+                        if (data != null) {
+                          return GroupedNotesList(
+                            allNotes: data.notes,
+                            folders: data.folders,
+                            mappings: data.mappings,
+                            onNoteTap: (id) => ref.read(activeDesktopNoteIdProvider.notifier).state = id,
+                          );
+                        }
+                        return _buildLoadingSkeleton();
+                      },
+                      error: (e, s) => Center(
+                        child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                      ),
+                    )
+                  : notesAsync.maybeWhen(
+                      data: (notes) => _buildDesktopNotesList(notes),
+                      orElse: () {
+                        if (notesAsync.hasValue) {
+                          return _buildDesktopNotesList(notesAsync.value!);
+                        }
+                        return _buildLoadingSkeleton();
+                      },
+                      error: (e, s) => Center(
+                        child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                      ),
+                    );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopNotesList(List<Note> notes) {
+    if (notes.isEmpty) return _buildEmptyState();
+    final activeNoteId = ref.watch(activeDesktopNoteIdProvider);
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
+      itemCount: notes.length,
+      itemBuilder: (context, i) {
+        final note = notes[i];
+        final isActive = note.id == activeNoteId;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            color: isActive
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.07)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+          ),
+          child: NoteCard(
+            note: note,
+            onTap: () => ref.read(activeDesktopNoteIdProvider.notifier).state = note.id,
+            onDelete: () => _deleteNote(note.id),
+            backgroundColor: Colors.transparent,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDesktopEmptyPane(BuildContext context, ColorScheme colorScheme) {
+    return Container(
+      key: const ValueKey('empty_pane'),
+      color: DesignColors.background(context),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.07),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.article_outlined,
+                size: 48,
+                color: colorScheme.primary.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Select a note to read or edit',
+              style: DesignTypography.heading(
+                context,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: DesignColors.textSecondary(context),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your note will appear here',
+              style: DesignTypography.body(
+                context,
+                fontSize: 13,
+                color: DesignColors.textTertiary(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 300.ms);
   }
 
   PreferredSizeWidget _buildAppBar(ColorScheme colorScheme, VirtualFolder? activeFolder) {
@@ -491,6 +758,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
   }
 
+
+
   Widget _buildEmptyState() {
     final isSearching = ref.watch(searchQueryProvider).isNotEmpty;
     return Center(
@@ -544,7 +813,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       label: 'New Note',
       icon: DesignIcons.add,
       onTap: () => _createNewNote(context),
-    ).animate().scale(begin: const Offset(0.8, 0.8), duration: 300.ms, curve: Curves.elasticOut);
+    );
   }
 
   Future<void> _createNewNote(BuildContext context) async {

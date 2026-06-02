@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
@@ -49,12 +48,11 @@ class FolderDrawer extends ConsumerWidget {
 
               // 5. Vault Statistics Section
               const VaultStatsBoard(),
-              const SizedBox(height: 12),
             ],
           ),
         ),
       ),
-    ).animate().slideX(begin: -0.1, duration: 250.ms, curve: Curves.easeOut);
+    );
   }
 
   Widget _buildRecentNotesSection(

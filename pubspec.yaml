@@ -13,11 +13,12 @@ dependencies:
 
   # Storage
   sqflite: ^2.4.2                   # SQLite database with FTS5
+  sqflite_common_ffi: ^2.4.0+3     # FFI database engine for Windows/Linux
   path_provider: ^2.1.5             # Device document directory
   path: ^1.9.1                      # Path utilities
 
   # Markdown rendering
-  flutter_markdown: ^0.7.6          # Markdown display widget
+  flutter_markdown_plus: ^1.0.0     # Markdown display widget (successor to flutter_markdown)
   markdown: ^7.3.0                  # Markdown parser
 
   # State management

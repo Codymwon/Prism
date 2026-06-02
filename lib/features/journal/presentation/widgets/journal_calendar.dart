@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
@@ -111,6 +110,6 @@ class JournalCalendar extends ConsumerWidget {
       onDaySelected: (selected, focused) {
         ref.read(selectedDayProvider.notifier).state = selected;
       },
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05);
+    );
   }
 }

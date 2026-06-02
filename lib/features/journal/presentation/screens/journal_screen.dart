@@ -7,6 +7,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/utils.dart';
+import '../../../notes/data/note_model.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../widgets/journal_template_button.dart';
@@ -25,6 +26,10 @@ class JournalScreen extends ConsumerStatefulWidget {
 
 class _JournalScreenState extends ConsumerState<JournalScreen> {
   bool _showCalendar = false;
+
+  // Cache of the last successfully loaded daily note data and date string
+  ({Note note, String content})? _lastLoadedData;
+  String? _lastLoadedDateStr;
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +50,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
               ),
             // 7-day quick-navigation strip (visible only when calendar is closed)
             if (!_showCalendar)
-              _buildWeekStrip(colorScheme, selectedDay)
-                  .animate()
-                  .fadeIn(duration: 250.ms)
-                  .slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic),
+              _buildWeekStrip(colorScheme, selectedDay),
             Expanded(child: _buildJournalContent(colorScheme, selectedDay)),
           ],
         ),
@@ -81,12 +83,16 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Text(
-                      isToday_ ? 'Today' : DateFormat('EEEE, MMMM d').format(selectedDay),
-                      style: DesignTypography.body(
-                        context,
-                        fontSize: 14,
-                        color: DesignColors.textSecondary(context),
+                    Flexible(
+                      child: Text(
+                        isToday_ ? 'Today' : DateFormat('EEEE, MMMM d').format(selectedDay),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: DesignTypography.body(
+                          context,
+                          fontSize: 14,
+                          color: DesignColors.textSecondary(context),
+                        ),
                       ),
                     ),
                     streakAsync.maybeWhen(
@@ -169,7 +175,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                         ),
                       ],
                     ),
-                  ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.elasticOut),
+                  ),
                 ),
               );
             },
@@ -297,57 +303,91 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     final dailyAsync = ref.watch(dailyNoteProvider(dateStr));
 
     return dailyAsync.when(
-      loading: () => const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
+      loading: () {
+        // If we have cached data from another day, keep rendering it to prevent unmounting/flicker
+        if (_lastLoadedDateStr != null) {
+          return _buildContentSwitcher(colorScheme, _lastLoadedData, _lastLoadedDateStr!);
+        }
+        // First-time load: show a clean, centered progress indicator
+        return const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
       error: (e, _) => Center(
         child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
       ),
       data: (data) {
-        final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            DesignSpacing.screenPadding,
-            _showCalendar ? 8 : 12,
-            DesignSpacing.screenPadding,
-            100,
+        // Update cache on successful load
+        _lastLoadedData = data;
+        _lastLoadedDateStr = dateStr;
+        return _buildContentSwitcher(colorScheme, data, dateStr);
+      },
+    );
+  }
+
+  // Smooth cross-fade transition when day changes
+  Widget _buildContentSwitcher(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInOut,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (data != null) ...[
-                // ── Word Count Progress Bar ──────────────────────────────────
-                _buildWordCountProgress(colorScheme, data.note.wordCount),
-                const SizedBox(height: 12),
-                // ── Entry card (scrollable content preview) ──────────────────
-                JournalEntryCard(note: data.note, content: data.content),
-              ] else if (!isFuture) ...[
-                // ── Template picker (no entry yet) ───────────────────────────
-                Text(
-                  'START WITH A TEMPLATE',
-                  style: DesignTypography.metadata(
-                    context,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildTemplatesRow(colorScheme),
-                const SizedBox(height: 32),
-                _buildEmptyDay(context, colorScheme, dateStr),
-              ] else ...[
-                // ── Future day ───────────────────────────────────────────────
-                _buildEmptyDay(context, colorScheme, dateStr),
-              ],
-            ],
-          ),
+          child: child,
         );
       },
+      child: Container(
+        key: ValueKey<String>(dateStr),
+        child: _buildJournalLayout(colorScheme, data, dateStr),
+      ),
+    );
+  }
+
+  Widget _buildJournalLayout(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
+    final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        DesignSpacing.screenPadding,
+        _showCalendar ? 8 : 12,
+        DesignSpacing.screenPadding,
+        100,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (data != null) ...[
+            // ── Word Count Progress Bar ──────────────────────────────────
+            _buildWordCountProgress(colorScheme, data.note.wordCount),
+            const SizedBox(height: 12),
+            // ── Entry card (scrollable content preview) ──────────────────
+            JournalEntryCard(note: data.note, content: data.content),
+          ] else if (!isFuture) ...[
+            // ── Template picker (no entry yet) ───────────────────────────
+            Text(
+              'START WITH A TEMPLATE',
+              style: DesignTypography.metadata(
+                context,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildTemplatesRow(colorScheme),
+            const SizedBox(height: 32),
+            _buildEmptyDay(context, colorScheme, dateStr),
+          ] else ...[
+            // ── Future day ───────────────────────────────────────────────
+            _buildEmptyDay(context, colorScheme, dateStr),
+          ],
+        ],
+      ),
     );
   }
 
@@ -468,7 +508,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           ],
         ],
       ),
-    ).animate().fadeIn(duration: 350.ms);
+    );
   }
 
   // ─── Template strip ──────────────────────────────────────────────────────────
@@ -529,6 +569,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     String dateStr,
     String? templateContent,
   ) async {
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
     final repo = ref.read(noteRepositoryProvider);
     final note = await repo.createNote(
       title: dateStr,
@@ -536,7 +577,13 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       isDaily: true,
       dailyDate: dateStr,
     );
-    if (context.mounted) context.push('/editor/${note.id}?date=$dateStr&new=true');
+    if (context.mounted) {
+      if (isDesktop) {
+        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
+      } else {
+        context.push('/editor/${note.id}?date=$dateStr&new=true');
+      }
+    }
   }
 
   void _createWithTemplate(String emoji, String templateName) {
