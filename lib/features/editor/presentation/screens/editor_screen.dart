@@ -462,6 +462,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             final file = File(fullPath);
             if (!mounted) return;
             if (await file.exists()) {
+              if (!mounted) return;
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
@@ -472,6 +473,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ),
               );
             } else {
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Audio file does not exist on disk.')),
               );
@@ -739,7 +741,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _buildFormattingButton(
                 icon: Icons.mic_none_rounded,
                 tooltip: 'Dictate (Voice-to-Text)',
-                onTap: () => _toggleDictation(context),
+                onTap: () => _toggleDictation(),
               ),
 
             // Vertical Divider separating standard actions and custom macros
@@ -832,7 +834,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // ── Dictation Actions & Overlay ──────────────────────────────────────────
 
-  Future<void> _toggleDictation(BuildContext context) async {
+  Future<void> _toggleDictation() async {
     if (_isDictating) {
       _stopDictation(commit: true);
       return;
