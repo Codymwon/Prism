@@ -14,14 +14,13 @@ import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
-import '../../../notes/data/note_model.dart';
 import '../widgets/wikilink_autocomplete.dart';
 import '../widgets/backlinks_panel.dart';
 import '../widgets/formatting_toolbar.dart';
 import '../widgets/audio_player_bottom_sheet.dart';
 import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
-import '../../../../shared/widgets/tactile_wrapper.dart';
+
 
 
 enum EditorMode { write, preview }
