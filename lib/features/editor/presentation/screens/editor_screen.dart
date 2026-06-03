@@ -488,199 +488,252 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return _processedWikilinksText!;
   }
 
+  void _toggleCheckbox(int index) {
+    final text = _controller.text;
+    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
+    final matches = regex.allMatches(text).toList();
+    if (index >= 0 && index < matches.length) {
+      final match = matches[index];
+      final charIndex = match.end - 2;
+      if (charIndex >= 0 && charIndex < text.length) {
+        final currentChar = text[charIndex];
+        final newChar = (currentChar == ' ') ? 'x' : ' ';
+        final newText = text.substring(0, charIndex) + newChar + text.substring(charIndex + 1);
+        _controller.value = TextEditingValue(
+          text: newText,
+          selection: _controller.selection.copyWith(
+            baseOffset: _controller.selection.baseOffset.clamp(0, newText.length),
+            extentOffset: _controller.selection.extentOffset.clamp(0, newText.length),
+          ),
+        );
+        setState(() {});
+        _save();
+      }
+    }
+  }
+
   Widget _buildPreviewMode(bool isDark, ColorScheme colorScheme, String family, double size, double paddingHorizontal) {
     final processedData = _getProcessedMarkdown();
-    return Markdown(
+    int checkboxIndex = 0;
+    return SingleChildScrollView(
       controller: _scrollController,
-      data: processedData,
-      inlineSyntaxes: [HighlightSyntax()],
-      builders: {
-        'mark': HighlightElementBuilder(context),
-      },
-      imageBuilder: (uri, title, alt) {
-        final uriStr = uri.toString();
-        final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
-        final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
-        
-        if (!isNetwork && !isAbsolute) {
-          final note = ref.read(noteByIdProvider(widget.noteId)).valueOrNull;
-          if (note != null) {
-            final vaultPath = p.dirname(note.filePath);
-            final fullPath = p.join(vaultPath, uriStr);
-            final file = File(fullPath);
-            if (file.existsSync()) {
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    file,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        color: DesignColors.surfaceVariant(context),
-                        child: Row(
-                          children: [
-                            Icon(Icons.broken_image_outlined, color: DesignColors.textSecondary(context)),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Failed to load image',
-                              style: DesignTypography.body(context, color: DesignColors.textSecondary(context)),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            }
-          }
-        }
-        return const SizedBox.shrink();
-      },
-      onTapLink: (text, href, title) async {
-        if (href != null && (href.endsWith('.m4a') || href.endsWith('.mp3') || href.contains('attachments/'))) {
-          try {
-            final vaultPath = await getVaultPath();
-            final fullPath = p.join(vaultPath, href);
-            final file = File(fullPath);
-            if (!mounted) return;
-            if (await file.exists()) {
-              if (!mounted) return;
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (ctx) => AudioPlayerBottomSheet(
-                  filePath: fullPath,
-                  fileName: p.basename(fullPath),
-                ),
-              );
-            } else {
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Audio file does not exist on disk.')),
-              );
-            }
-          } catch (e) {
-            debugPrint('Error opening audio player: $e');
-          }
-        } else {
-          handleWikilinkTap(
-            href: href,
-            ref: ref,
-            context: context,
-          );
-        }
-      },
       padding: EdgeInsets.fromLTRB(paddingHorizontal, 12, paddingHorizontal, 100),
-      styleSheet: MarkdownStyleSheet(
-        h1: _getFont(
-          family,
-          fontSize: size * 1.625,
-          fontWeight: FontWeight.w700,
-          color: DesignColors.text(context),
-        ),
-        h2: _getFont(
-          family,
-          fontSize: size * 1.25,
-          fontWeight: FontWeight.w600,
-          color: DesignColors.text(context),
-        ),
-        h3: _getFont(
-          family,
-          fontSize: size * 1.0625,
-          fontWeight: FontWeight.w600,
-          color: DesignColors.text(context),
-        ),
-        h4: _getFont(
-          family,
-          fontSize: size * 0.95,
-          fontWeight: FontWeight.w600,
-          color: DesignColors.text(context),
-        ),
-        h5: _getFont(
-          family,
-          fontSize: size * 0.88,
-          fontWeight: FontWeight.w600,
-          color: DesignColors.text(context),
-        ),
-        h6: _getFont(
-          family,
-          fontSize: size * 0.81,
-          fontWeight: FontWeight.w600,
-          color: DesignColors.text(context),
-        ),
-        p: _getFont(
-          family,
-          fontSize: size,
-          height: 1.7,
-          color: DesignColors.text(context),
-        ),
-        strong: _getFont(
-          family,
-          fontSize: size,
-          fontWeight: FontWeight.bold,
-          color: DesignColors.text(context),
-        ),
-        em: _getFont(
-          family,
-          fontSize: size,
-          color: DesignColors.text(context),
-        ).copyWith(fontStyle: FontStyle.italic),
-        listBullet: _getFont(
-          family,
-          fontSize: size,
-          color: DesignColors.text(context),
-        ),
-        blockquote: _getFont(
-          family,
-          fontSize: size,
-          color: DesignColors.textSecondary(context),
-        ),
-        tableHead: _getFont(
-          family,
-          fontSize: size,
-          fontWeight: FontWeight.bold,
-          color: DesignColors.text(context),
-        ),
-        tableBody: _getFont(
-          family,
-          fontSize: size,
-          color: DesignColors.text(context),
-        ),
-        code: GoogleFonts.robotoMono(
-          fontSize: size * 0.8125,
-          color: DesignColors.accentGreen(context),
-          backgroundColor: DesignColors.surfaceVariant(context),
-        ),
-        a: _getFont(
-          family,
-          fontSize: size,
-          color: colorScheme.primary,
-          decoration: TextDecoration.underline,
-          fontWeight: FontWeight.w600,
-        ),
-        blockquoteDecoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(
-              color: colorScheme.primary,
-              width: 3,
+      child: MarkdownBody(
+        data: processedData,
+        inlineSyntaxes: [HighlightSyntax()],
+        builders: {
+          'mark': HighlightElementBuilder(context),
+        },
+        imageBuilder: (uri, title, alt) {
+          final uriStr = uri.toString();
+          final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
+          final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
+          
+          if (!isNetwork && !isAbsolute) {
+            final note = ref.read(noteByIdProvider(widget.noteId)).valueOrNull;
+            if (note != null) {
+              final vaultPath = p.dirname(note.filePath);
+              final fullPath = p.join(vaultPath, uriStr);
+              final file = File(fullPath);
+              if (file.existsSync()) {
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      file,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          color: DesignColors.surfaceVariant(context),
+                          child: Row(
+                            children: [
+                              Icon(Icons.broken_image_outlined, color: DesignColors.textSecondary(context)),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Failed to load image',
+                                style: DesignTypography.body(context, color: DesignColors.textSecondary(context)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
+            }
+          }
+          return const SizedBox.shrink();
+        },
+        onTapLink: (text, href, title) async {
+          if (href != null && (href.endsWith('.m4a') || href.endsWith('.mp3') || href.contains('attachments/'))) {
+            try {
+              final vaultPath = await getVaultPath();
+              final fullPath = p.join(vaultPath, href);
+              final file = File(fullPath);
+              if (!mounted) return;
+              if (await file.exists()) {
+                if (!mounted) return;
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (ctx) => AudioPlayerBottomSheet(
+                    filePath: fullPath,
+                    fileName: p.basename(fullPath),
+                  ),
+                );
+              } else {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Audio file does not exist on disk.')),
+                );
+              }
+            } catch (e) {
+              debugPrint('Error opening audio player: $e');
+            }
+          } else {
+            handleWikilinkTap(
+              href: href,
+              ref: ref,
+              context: context,
+            );
+          }
+        },
+        styleSheet: MarkdownStyleSheet(
+          h1: _getFont(
+            family,
+            fontSize: size * 1.625,
+            fontWeight: FontWeight.w700,
+            color: DesignColors.text(context),
+          ),
+          h2: _getFont(
+            family,
+            fontSize: size * 1.25,
+            fontWeight: FontWeight.w600,
+            color: DesignColors.text(context),
+          ),
+          h3: _getFont(
+            family,
+            fontSize: size * 1.0625,
+            fontWeight: FontWeight.w600,
+            color: DesignColors.text(context),
+          ),
+          h4: _getFont(
+            family,
+            fontSize: size * 0.95,
+            fontWeight: FontWeight.w600,
+            color: DesignColors.text(context),
+          ),
+          h5: _getFont(
+            family,
+            fontSize: size * 0.88,
+            fontWeight: FontWeight.w600,
+            color: DesignColors.text(context),
+          ),
+          h6: _getFont(
+            family,
+            fontSize: size * 0.81,
+            fontWeight: FontWeight.w600,
+            color: DesignColors.text(context),
+          ),
+          p: _getFont(
+            family,
+            fontSize: size,
+            height: 1.7,
+            color: DesignColors.text(context),
+          ),
+          strong: _getFont(
+            family,
+            fontSize: size,
+            fontWeight: FontWeight.bold,
+            color: DesignColors.text(context),
+          ),
+          em: _getFont(
+            family,
+            fontSize: size,
+            color: DesignColors.text(context),
+          ).copyWith(fontStyle: FontStyle.italic),
+          listBullet: _getFont(
+            family,
+            fontSize: size,
+            color: DesignColors.text(context),
+          ),
+          blockquote: _getFont(
+            family,
+            fontSize: size,
+            color: DesignColors.textSecondary(context),
+          ),
+          tableHead: _getFont(
+            family,
+            fontSize: size,
+            fontWeight: FontWeight.bold,
+            color: DesignColors.text(context),
+          ),
+          tableBody: _getFont(
+            family,
+            fontSize: size,
+            color: DesignColors.text(context),
+          ),
+          code: GoogleFonts.robotoMono(
+            fontSize: size * 0.8125,
+            color: DesignColors.accentGreen(context),
+            backgroundColor: DesignColors.surfaceVariant(context),
+          ),
+          a: _getFont(
+            family,
+            fontSize: size,
+            color: colorScheme.primary,
+            decoration: TextDecoration.underline,
+            fontWeight: FontWeight.w600,
+          ),
+          blockquoteDecoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: colorScheme.primary,
+                width: 3,
+              ),
             ),
           ),
         ),
+        checkboxBuilder: (bool value) {
+          final index = checkboxIndex++;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6, bottom: 2),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: Checkbox(
+                value: value,
+                activeColor: colorScheme.primary,
+                checkColor: colorScheme.onPrimary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                side: BorderSide(
+                  color: DesignColors.textSecondary(context).withValues(alpha: 0.7),
+                  width: 1.5,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                onChanged: (bool? newValue) {
+                  _toggleCheckbox(index);
+                },
+              ),
+            ),
+          );
+        },
       ),
     );
   }

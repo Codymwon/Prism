@@ -14,7 +14,8 @@ import 'package:meridian/features/notes/data/vault_service.dart';
 
 class MockNoteRepository implements NoteRepository {
   final Note note;
-  MockNoteRepository(this.note);
+  final void Function(String id, String content)? onSaveNote;
+  MockNoteRepository(this.note, {this.onSaveNote});
 
   @override
   Ref get _ref => throw UnimplementedError();
@@ -23,7 +24,7 @@ class MockNoteRepository implements NoteRepository {
   Future<Database> get _db => throw UnimplementedError();
 
   @override
-  VaultService get _vaultService => throw UnimplementedError();
+  Future<VaultService> get _vaultService => throw UnimplementedError();
 
   @override
   Future<Note> createNote({String? title, String initialContent = '', bool isDaily = false, String? dailyDate}) => throw UnimplementedError();
@@ -59,7 +60,9 @@ class MockNoteRepository implements NoteRepository {
   Future<({List<GraphNode> nodes, List<GraphEdge> edges})> getGraphData() => throw UnimplementedError();
 
   @override
-  Future<void> saveNote(String id, String content) async {}
+  Future<void> saveNote(String id, String content) async {
+    onSaveNote?.call(id, content);
+  }
 
   @override
   Future<void> deleteNote(String id) => throw UnimplementedError();
@@ -158,5 +161,71 @@ void main() {
     
     final fileImage = imageWidget.image as FileImage;
     expect(p.normalize(fileImage.file.path), p.normalize(imageFile.path));
+  });
+
+  testWidgets('EditorScreen in preview mode renders interactive checklists and toggles them', (WidgetTester tester) async {
+    // Mock the record plugin method channel
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('com.llfbandit.record/messages'),
+      (methodCall) async {
+        return null;
+      },
+    );
+
+    final noteId = 'test-note-2';
+    final initialContent = '# Test Note\n\n- [ ] Task A\n- [x] Task B\n';
+    noteFile.writeAsStringSync(initialContent);
+
+    final note = Note(
+      id: noteId,
+      title: 'Test Note',
+      filePath: noteFile.path,
+      wordCount: 10,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    String? savedContent;
+    final mockRepo = MockNoteRepository(
+      note,
+      onSaveNote: (id, content) {
+        savedContent = content;
+      },
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteRepositoryProvider.overrideWithValue(mockRepo),
+          noteByIdProvider(noteId).overrideWith((ref) => note),
+          backlinksProvider(noteId).overrideWith((ref) => []),
+        ],
+        child: MaterialApp(
+          home: EditorScreen(
+            noteId: noteId,
+            isNew: false,
+          ),
+        ),
+      ),
+    );
+
+    // Yield to the real event loop so filesystem I/O can complete
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+
+    // Pump to process setState and render the updated widget tree
+    await tester.pump();
+
+    // Verify Checkboxes are rendered
+    final checkboxFinder = find.byType(Checkbox);
+    expect(checkboxFinder, findsNWidgets(2));
+
+    // Get the first Checkbox and tap it
+    await tester.tap(checkboxFinder.at(0));
+    await tester.pump();
+
+    // Verify saveNote was called with the updated content
+    expect(savedContent, equals('# Test Note\n\n- [x] Task A\n- [x] Task B\n'));
   });
 }
