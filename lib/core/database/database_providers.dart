@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_helper.dart';
 import '../../features/settings/presentation/providers/settings_provider.dart';
+import '../../features/notes/data/vault_service.dart';
 
 // ─── Database Connection Provider (Reactive Lifecycle) ────────────────────────
 // Watches activeVaultPathProvider (now a FutureProvider) so it waits for the
@@ -31,7 +32,7 @@ final databaseProvider = FutureProvider<Database>((ref) async {
 /// Helper to trigger vault file synchronization asynchronously in the background.
 /// Increments notesVersionProvider upon completion to reactively refresh note listings.
 void _triggerBackgroundSync(Database db, String vaultPath, Ref ref) {
-  DatabaseHelper.instance.syncVaultFiles(db, vaultPath).then((_) {
+  ref.read(vaultServiceProvider).syncVault(vaultPath).then((_) {
     ref.read(notesVersionProvider.notifier).update((state) => state + 1);
     debugPrint('Background physical files sync completed for vault: $vaultPath');
   }).catchError((e) {

@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:meridian/core/database/database_helper.dart';
 import 'package:path/path.dart' as p;
+import 'package:meridian/features/notes/data/adapters/vault_service_impl.dart';
+import 'package:meridian/features/notes/data/adapters/local_vault_storage.dart';
+import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
+import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 
 void main() {
   // Initialize FFI for local tests
@@ -11,6 +14,7 @@ void main() {
 
   late Database db;
   late Directory tempDir;
+  late VaultServiceImpl service;
 
   setUp(() async {
     // Open in-memory SQLite DB
@@ -19,10 +23,6 @@ void main() {
       options: OpenDatabaseOptions(
         version: 3,
         onCreate: (db, version) async {
-          // Manually execute creation statements since onCreate in DatabaseHelper is private
-          // Let's call the onCreate trigger helper by opening/closing it or manually copying creation sql.
-          // Wait, DatabaseHelper onCreate is private, but we can call it if we trigger it,
-          // or we can copy-paste the onCreate statements to create schema.
           await db.execute('''
             CREATE TABLE IF NOT EXISTS notes (
               id TEXT PRIMARY KEY,
@@ -81,6 +81,15 @@ void main() {
 
     // Create a temporary vault folder
     tempDir = await Directory.systemTemp.createTemp('meridian_test_vault');
+    
+    // Initialize our VaultService
+    service = VaultServiceImpl(
+      getDb: () async => db,
+      storage: LocalVaultStorage(),
+      parser: MarkdownContentParser(),
+      indexer: SqliteMetadataIndexer(),
+      getVaultPath: () async => tempDir.path,
+    );
   });
 
   tearDown(() async {
@@ -90,14 +99,14 @@ void main() {
     }
   });
 
-  group('DatabaseHelper syncVaultFiles tests', () {
+  group('VaultServiceImpl syncVault tests', () {
     test('should sync new file from disk to database', () async {
       // 1. Create a physical markdown note
       final file = File(p.join(tempDir.path, 'my-test-note.md'));
       await file.writeAsString('# My Test Title\n\nThis is a simple note #productivity');
 
       // 2. Trigger sync
-      await DatabaseHelper.instance.syncVaultFiles(db, tempDir.path);
+      await service.syncVault(tempDir.path);
 
       // 3. Query notes from DB to assert it was inserted
       final notes = await db.query('notes');
@@ -116,7 +125,7 @@ void main() {
       await file.writeAsString('# Initial Title\n\nWord1');
 
       // First sync to insert the note
-      await DatabaseHelper.instance.syncVaultFiles(db, tempDir.path);
+      await service.syncVault(tempDir.path);
       
       final notesBefore = await db.query('notes');
       expect(notesBefore.length, equals(1));
@@ -130,7 +139,7 @@ void main() {
       await file.setLastModified(futureTime);
 
       // Trigger sync again
-      await DatabaseHelper.instance.syncVaultFiles(db, tempDir.path);
+      await service.syncVault(tempDir.path);
 
       final notesAfter = await db.query('notes');
       expect(notesAfter.length, equals(1));
@@ -143,7 +152,7 @@ void main() {
       await file.writeAsString('# Inbox\n\n- [2026-06-02] Shared link');
 
       // Trigger sync
-      await DatabaseHelper.instance.syncVaultFiles(db, tempDir.path);
+      await service.syncVault(tempDir.path);
 
       // Verify the note is in DB
       final notes = await db.query('notes');
@@ -169,7 +178,7 @@ void main() {
       await file.writeAsString('# Inbox\n\nUser custom content');
 
       // Trigger sync
-      await DatabaseHelper.instance.syncVaultFiles(db, tempDir.path);
+      await service.syncVault(tempDir.path);
 
       // Verify note is in DB
       final notes = await db.query('notes');

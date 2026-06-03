@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/utils.dart';
 import 'note_model.dart';
+import 'vault_service.dart';
 
 // ─── Repository Provider ──────────────────────────────────────────────────────
 
@@ -21,6 +22,8 @@ class NoteRepository {
 
   Future<Database> get _db => _ref.read(databaseProvider.future);
 
+  VaultService get _vaultService => _ref.read(vaultServiceProvider);
+
   // ── CREATE ────────────────────────────────────────────────────────────────
 
   Future<Note> createNote({
@@ -29,59 +32,19 @@ class NoteRepository {
     bool isDaily = false,
     String? dailyDate,
   }) async {
-    final db = await _db; // Warm up DB first to prevent race condition during onboarding note creation
-    final id = generateId();
-    final vaultPath = await getVaultPath();
-    final noteTitle = title ?? (isDaily && dailyDate != null ? dailyDate : 'Untitled');
-    final slug = titleToSlug(noteTitle);
-    final fileName = '$slug-$id.md';
-    final filePath = p.join(vaultPath, fileName);
-    final now = DateTime.now();
-
-    final content = initialContent.isEmpty
-        ? (isDaily ? '# $noteTitle\n\n' : '# $noteTitle\n\n')
-        : initialContent;
-
-    // Write the .md file to disk
-    await File(filePath).writeAsString(content);
-
-    final note = Note(
-      id: id,
-      title: noteTitle,
-      filePath: filePath,
-      wordCount: countWords(content),
-      createdAt: now,
-      updatedAt: now,
+    final note = await _vaultService.createNote(
+      title: title,
+      initialContent: initialContent,
       isDaily: isDaily,
       dailyDate: dailyDate,
     );
-
-    await db.insert('notes', note.toMap());
     _ref.read(notesVersionProvider.notifier).state++;
     return note;
   }
 
   /// Creates a "ghost note" — a placeholder note from a wikilink before actual content.
   Future<Note> createGhostNote(String title) async {
-    final id = generateId();
-    final vaultPath = await getVaultPath();
-    final slug = titleToSlug(title);
-    final fileName = '$slug-$id.md';
-    final filePath = p.join(vaultPath, fileName);
-    final now = DateTime.now();
-
-    final note = Note(
-      id: id,
-      title: title,
-      filePath: filePath,
-      wordCount: 0,
-      createdAt: now,
-      updatedAt: now,
-      isGhost: true,
-    );
-
-    final db = await _db;
-    await db.insert('notes', note.toMap());
+    final note = await _vaultService.createGhostNote(title);
     _ref.read(notesVersionProvider.notifier).state++;
     return note;
   }
@@ -240,105 +203,14 @@ class NoteRepository {
   // ── UPDATE ────────────────────────────────────────────────────────────────
 
   Future<void> saveNote(String id, String content) async {
-    final note = await getNoteById(id);
-    if (note == null) return;
-
-    // Write content to disk
-    await File(note.filePath).writeAsString(content);
-
-    final title = extractTitle(content);
-    final wordCount = countWords(content);
-    final tags = extractTags(content);
-    final wikilinks = extractWikilinks(content);
-    final now = DateTime.now();
-
-    final db = await _db;
-
-    await db.transaction((txn) async {
-      // Update note metadata
-      await txn.update(
-        'notes',
-        {
-          'title': title,
-          'word_count': wordCount,
-          'updated_at': now.millisecondsSinceEpoch,
-          'is_ghost': 0,
-        },
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-
-      // Rebuild tags
-      await txn.delete('note_tags', where: 'note_id = ?', whereArgs: [id]);
-      for (final tag in tags) {
-        await txn.insert(
-          'note_tags',
-          {'note_id': id, 'tag': tag},
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-
-      // Rebuild wikilinks
-      await txn.delete('note_links', where: 'source_id = ?', whereArgs: [id]);
-      for (final target in wikilinks) {
-        // Find or create the target note inside the transaction
-        final maps = await txn.query(
-          'notes',
-          where: 'LOWER(title) = ?',
-          whereArgs: [target.toLowerCase()],
-        );
-        var targetNote = maps.isEmpty ? null : Note.fromMap(maps.first);
-
-        if (targetNote == null) {
-          final targetId = generateId();
-          final vaultPath = await getVaultPath();
-          final slug = titleToSlug(target);
-          final fileName = '$slug-$targetId.md';
-          final filePath = p.join(vaultPath, fileName);
-          final targetNow = DateTime.now();
-
-          targetNote = Note(
-            id: targetId,
-            title: target,
-            filePath: filePath,
-            wordCount: 0,
-            createdAt: targetNow,
-            updatedAt: targetNow,
-            isGhost: true,
-          );
-          await txn.insert('notes', targetNote.toMap());
-        }
-
-        final snippet = getWikilinkContext(content, target);
-        await txn.insert(
-          'note_links',
-          {
-            'source_id': id,
-            'target_id': targetNote.id,
-            'context_snippet': snippet,
-            'created_at': now.millisecondsSinceEpoch,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      }
-    });
+    await _vaultService.saveNote(id, content);
     _ref.read(notesVersionProvider.notifier).state++;
   }
 
   // ── DELETE ────────────────────────────────────────────────────────────────
 
   Future<void> deleteNote(String id) async {
-    final note = await getNoteById(id);
-    if (note == null) return;
-
-    // Delete file from disk asynchronously
-    final file = File(note.filePath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-
-    final db = await _db;
-    await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+    await _vaultService.deleteNote(id);
     _ref.read(notesVersionProvider.notifier).state++;
   }
 
