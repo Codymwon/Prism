@@ -73,7 +73,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       loading: () {
         // If we have cached data from another day, keep rendering it to prevent unmounting/flicker
         if (_lastLoadedDateStr != null) {
-          return _buildContentSwitcher(colorScheme, _lastLoadedData, _lastLoadedDateStr!);
+          return _buildJournalLayout(colorScheme, _lastLoadedData, _lastLoadedDateStr!);
         }
         // First-time load: show a clean, centered progress indicator
         return const Center(
@@ -91,13 +91,13 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         // Update cache on successful load
         _lastLoadedData = data;
         _lastLoadedDateStr = dateStr;
-        return _buildContentSwitcher(colorScheme, data, dateStr);
+        return _buildJournalLayout(colorScheme, data, dateStr);
       },
     );
   }
 
-  // Smooth cross-fade transition when day changes
-  Widget _buildContentSwitcher(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
+  // Smooth cross-fade transition below the static streak grid
+  Widget _buildDynamicContentSwitcher(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
@@ -118,15 +118,54 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           child: child,
         );
       },
-      child: Container(
-        key: ValueKey<String>(dateStr),
-        child: _buildJournalLayout(colorScheme, data, dateStr),
-      ),
+      child: _buildDynamicContent(colorScheme, data, dateStr),
     );
   }
 
-  Widget _buildJournalLayout(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
+  Widget _buildDynamicContent(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
     final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
+
+    if (data != null) {
+      return JournalEntryCard(
+        key: const ValueKey<String>('entry'),
+        note: data.note,
+        content: data.content,
+      );
+    } else if (!isFuture) {
+      return Column(
+        key: const ValueKey<String>('empty_past'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'START WITH A TEMPLATE',
+            style: DesignTypography.metadata(
+              context,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          JournalTemplatesRow(onTemplateSelected: _createWithTemplate),
+          const SizedBox(height: 32),
+          JournalEmptyState(
+            dateStr: dateStr,
+            showCalendar: _showCalendar,
+            onStartWriting: () => _createDailyNote(context, dateStr, null),
+          ),
+        ],
+      );
+    } else {
+      return JournalEmptyState(
+        key: const ValueKey<String>('empty_future'),
+        dateStr: dateStr,
+        showCalendar: _showCalendar,
+        onStartWriting: () => _createDailyNote(context, dateStr, null),
+      );
+    }
+  }
+
+  Widget _buildJournalLayout(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         DesignSpacing.screenPadding,
@@ -137,39 +176,11 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (data != null) ...[
-            // ── Consistency Streak Grid ──────────────────────────────────
-            const JournalStreakGrid(),
-            const SizedBox(height: 12),
-            // ── Entry card (scrollable content preview) ──────────────────
-            JournalEntryCard(note: data.note, content: data.content),
-          ] else if (!isFuture) ...[
-            // ── Template picker (no entry yet) ───────────────────────────
-            Text(
-              'START WITH A TEMPLATE',
-              style: DesignTypography.metadata(
-                context,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            JournalTemplatesRow(onTemplateSelected: _createWithTemplate),
-            const SizedBox(height: 32),
-            JournalEmptyState(
-              dateStr: dateStr,
-              showCalendar: _showCalendar,
-              onStartWriting: () => _createDailyNote(context, dateStr, null),
-            ),
-          ] else ...[
-            // ── Future day ───────────────────────────────────────────────
-            JournalEmptyState(
-              dateStr: dateStr,
-              showCalendar: _showCalendar,
-              onStartWriting: () => _createDailyNote(context, dateStr, null),
-            ),
-          ],
+          // ── Consistency Streak Grid ──────────────────────────────────
+          const JournalStreakGrid(),
+          const SizedBox(height: 12),
+          // ── Switcher for dynamic content below the grid ───────────────
+          _buildDynamicContentSwitcher(colorScheme, data, dateStr),
         ],
       ),
     );

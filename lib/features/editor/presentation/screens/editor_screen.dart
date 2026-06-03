@@ -9,6 +9,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:record/record.dart';
 import 'package:path/path.dart' as p;
+import 'package:file_picker/file_picker.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
@@ -95,8 +96,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     String content = '';
     final file = File(note.filePath);
-    if (await file.exists()) {
-      content = await file.readAsString();
+    if (file.existsSync()) {
+      content = file.readAsStringSync();
     } else {
       content = '# ${note.title}\n\n';
     }
@@ -190,7 +191,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _save(); // final save on close
     
     // Reset editor mode to View mode when exiting
-    ref.read(editorModeProvider.notifier).state = EditorMode.preview;
+    try {
+      ref.read(editorModeProvider.notifier).state = EditorMode.preview;
+    } catch (_) {}
 
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
@@ -263,6 +266,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                     controller: _controller,
                                     focusNode: _focusNode,
                                     onToggleDictation: _toggleDictation,
+                                    onAttachImage: _attachImage,
                                   ),
                           ],
                         )
@@ -493,6 +497,59 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       builders: {
         'mark': HighlightElementBuilder(context),
       },
+      imageBuilder: (uri, title, alt) {
+        final uriStr = uri.toString();
+        final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
+        final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
+        
+        if (!isNetwork && !isAbsolute) {
+          final note = ref.read(noteByIdProvider(widget.noteId)).valueOrNull;
+          if (note != null) {
+            final vaultPath = p.dirname(note.filePath);
+            final fullPath = p.join(vaultPath, uriStr);
+            final file = File(fullPath);
+            if (file.existsSync()) {
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    file,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        color: DesignColors.surfaceVariant(context),
+                        child: Row(
+                          children: [
+                            Icon(Icons.broken_image_outlined, color: DesignColors.textSecondary(context)),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Failed to load image',
+                              style: DesignTypography.body(context, color: DesignColors.textSecondary(context)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            }
+          }
+        }
+        return const SizedBox.shrink();
+      },
       onTapLink: (text, href, title) async {
         if (href != null && (href.endsWith('.m4a') || href.endsWith('.mp3') || href.contains('attachments/'))) {
           try {
@@ -639,6 +696,58 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       case 'Inter (Sans)':
       default:
         return GoogleFonts.inter(fontSize: fontSize, height: height, color: color, fontWeight: fontWeight, decoration: decoration);
+    }
+  }
+
+  Future<void> _attachImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+      );
+      if (result == null || result.files.single.path == null) {
+        return;
+      }
+
+      final pickedPath = result.files.single.path!;
+      final note = ref.read(noteByIdProvider(widget.noteId)).valueOrNull;
+      if (note == null) return;
+
+      final vaultPath = p.dirname(note.filePath);
+      final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
+      if (!await attachmentsDir.exists()) {
+        await attachmentsDir.create(recursive: true);
+      }
+
+      final originalName = p.basename(pickedPath);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'image_${timestamp}_$originalName';
+      final destPath = p.join(attachmentsDir.path, fileName);
+
+      await File(pickedPath).copy(destPath);
+
+      final relativePath = 'attachments/$fileName';
+      final imageLink = '\n\n![image]($relativePath)\n';
+
+      final text = _controller.text;
+      final selection = _controller.selection;
+      final cursor = selection.isValid ? selection.baseOffset : text.length;
+
+      final before = text.substring(0, cursor);
+      final after = text.substring(cursor);
+
+      _controller.value = TextEditingValue(
+        text: before + imageLink + after,
+        selection: TextSelection.collapsed(offset: cursor + imageLink.length),
+      );
+
+      _save();
+    } catch (e) {
+      debugPrint('Error attaching image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to attach image: $e')),
+        );
+      }
     }
   }
 

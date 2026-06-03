@@ -3,12 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meridian/features/journal/presentation/screens/journal_screen.dart';
 import 'package:meridian/features/notes/presentation/providers/notes_providers.dart';
+import 'package:meridian/features/notes/data/note_model.dart';
+import 'package:meridian/core/utils/utils.dart';
 import 'package:meridian/features/journal/presentation/widgets/journal_week_strip.dart';
+import 'package:meridian/features/journal/presentation/widgets/journal_streak_grid.dart';
+import 'package:meridian/features/journal/presentation/widgets/journal_templates_row.dart';
+import 'package:meridian/features/journal/presentation/widgets/journal_empty_state.dart';
 
 void main() {
   testWidgets('Journal screen content starts immediately below the date strip without a large vertical gap', (WidgetTester tester) async {
     // Set screen size to 1000 height to ensure content is smaller than screen
-    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.physicalSize = const Size(600, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -39,22 +44,204 @@ void main() {
     final stripFinder = find.byType(JournalWeekStrip);
     expect(stripFinder, findsOneWidget);
 
-    // Verify the "START WITH A TEMPLATE" text is present
-    final textFinder = find.text('START WITH A TEMPLATE');
-    expect(textFinder, findsOneWidget);
+    // Verify that the JournalStreakGrid is present (now at the top of content)
+    final streakGridFinder = find.byType(JournalStreakGrid);
+    expect(streakGridFinder, findsOneWidget);
 
     // Find the bottom edge of the week strip
     final stripBottom = tester.getBottomLeft(stripFinder).dy;
 
-    // Find the top edge of the template text
-    final textTop = tester.getTopLeft(textFinder).dy;
+    // Find the top edge of the streak grid
+    final gridTop = tester.getTopLeft(streakGridFinder).dy;
 
-    // The gap should be small (about 10 pixels: 6 bottom margin of JournalWeekStrip + 4 top margin of SingleChildScrollView)
-    final gap = textTop - stripBottom;
-    debugPrint('Measured vertical gap: $gap pixels');
+    // The gap should be small
+    final gap = gridTop - stripBottom;
+    debugPrint('Measured vertical gap to streak grid: $gap pixels');
 
-    // If centered vertically, this gap will be much larger (often > 100 pixels depending on screen height)
     // We expect the gap to be less than 20 pixels in a correct layout
-    expect(gap, lessThan(20.0), reason: 'There is a large vertical gap ($gap px) between the date strip and the content, likely due to vertical centering.');
+    expect(gap, lessThan(20.0), reason: 'There is a large vertical gap ($gap px) between the date strip and the content.');
+  });
+
+  testWidgets('JournalStreakGrid is visible in empty state and rendered above the template picker', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          allDailyDatesProvider.overrideWith((ref) => <String>{}),
+          journalStreakProvider.overrideWith((ref) => (streak: 2, totalCount: 2)),
+          dailyNoteProvider.overrideWith((ref, dateStr) => null),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: JournalScreen(),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify that JournalStreakGrid is present
+    final streakGridFinder = find.byType(JournalStreakGrid);
+    expect(streakGridFinder, findsOneWidget);
+
+    // Verify that the template picker header is present
+    final templateHeaderFinder = find.text('START WITH A TEMPLATE');
+    expect(templateHeaderFinder, findsOneWidget);
+
+    // Verify JournalStreakGrid is placed vertically above the template header
+    final gridBottom = tester.getBottomLeft(streakGridFinder).dy;
+    final headerTop = tester.getTopLeft(templateHeaderFinder).dy;
+    expect(gridBottom, lessThan(headerTop), reason: 'Streak Grid should be placed above the template picker');
+  });
+
+  testWidgets('JournalStreakGrid is visible on a future day empty state and rendered above the empty state message', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final futureDate = DateTime.now().add(const Duration(days: 5));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          selectedDayProvider.overrideWith((ref) => futureDate),
+          allDailyDatesProvider.overrideWith((ref) => <String>{}),
+          journalStreakProvider.overrideWith((ref) => (streak: 2, totalCount: 2)),
+          dailyNoteProvider.overrideWith((ref, dateStr) => null),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: JournalScreen(),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify that JournalStreakGrid is present
+    final streakGridFinder = find.byType(JournalStreakGrid);
+    expect(streakGridFinder, findsOneWidget);
+
+    // Verify that the empty state widget is present
+    final emptyStateFinder = find.byType(JournalEmptyState);
+    expect(emptyStateFinder, findsOneWidget);
+
+    // Verify that the template picker header is NOT present (since it is a future day)
+    final templateHeaderFinder = find.text('START WITH A TEMPLATE');
+    expect(templateHeaderFinder, findsNothing);
+
+    // Verify JournalStreakGrid is placed vertically above the empty state message
+    final gridBottom = tester.getBottomLeft(streakGridFinder).dy;
+    final emptyStateTop = tester.getTopLeft(emptyStateFinder).dy;
+    expect(gridBottom, lessThan(emptyStateTop), reason: 'Streak Grid should be placed above the empty state');
+  });
+
+  testWidgets('Past empty day content uses empty_past key', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          selectedDayProvider.overrideWith((ref) => yesterday),
+          allDailyDatesProvider.overrideWith((ref) => <String>{}),
+          journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
+          dailyNoteProvider.overrideWith((ref, dateStr) => null),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: JournalScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('empty_past')), findsOneWidget);
+  });
+
+  testWidgets('Future empty day content uses empty_future key', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final tomorrow = DateTime.now().add(const Duration(days: 5));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          selectedDayProvider.overrideWith((ref) => tomorrow),
+          allDailyDatesProvider.overrideWith((ref) => <String>{}),
+          journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
+          dailyNoteProvider.overrideWith((ref, dateStr) => null),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: JournalScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('empty_future')), findsOneWidget);
+  });
+
+  testWidgets('Daily note entry content uses static entry key to prevent rebuild transition flickers', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final dummyNote = Note(
+      id: 'abc',
+      title: formatDailyDate(yesterday),
+      filePath: 'dummy.md',
+      wordCount: 10,
+      createdAt: yesterday,
+      updatedAt: yesterday,
+      isDaily: true,
+      dailyDate: formatDailyDate(yesterday),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          selectedDayProvider.overrideWith((ref) => yesterday),
+          allDailyDatesProvider.overrideWith((ref) => <String>{formatDailyDate(yesterday)}),
+          journalStreakProvider.overrideWith((ref) => (streak: 1, totalCount: 1)),
+          dailyNoteProvider.overrideWith((ref, dateStr) => (note: dummyNote, content: '# reflection\nsome content')),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: JournalScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('entry')), findsOneWidget);
   });
 }
+

@@ -25,6 +25,16 @@ class AttachmentFile {
     required this.lastModified,
     required this.isReferenced,
   });
+
+  bool get isImage {
+    final lower = name.toLowerCase();
+    return lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.gif') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.bmp');
+  }
 }
 
 final attachmentsProvider = FutureProvider<List<AttachmentFile>>((ref) async {
@@ -57,7 +67,15 @@ final attachmentsProvider = FutureProvider<List<AttachmentFile>>((ref) async {
   try {
     final files = await attachmentsDir.list().toList();
     for (final entity in files) {
-      if (entity is File && (entity.path.endsWith('.m4a') || entity.path.endsWith('.mp3'))) {
+      final pathLower = entity.path.toLowerCase();
+      final isAudio = pathLower.endsWith('.m4a') || pathLower.endsWith('.mp3');
+      final isImage = pathLower.endsWith('.png') ||
+                      pathLower.endsWith('.jpg') ||
+                      pathLower.endsWith('.jpeg') ||
+                      pathLower.endsWith('.gif') ||
+                      pathLower.endsWith('.webp') ||
+                      pathLower.endsWith('.bmp');
+      if (entity is File && (isAudio || isImage)) {
         final name = p.basename(entity.path);
         final stat = await entity.stat();
         result.add(AttachmentFile(
@@ -229,7 +247,7 @@ class AttachmentsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$totalCount audio recordings saved',
+                      '$totalCount attachments saved',
                       style: DesignTypography.details(context),
                     ),
                   ],
@@ -314,20 +332,44 @@ class AttachmentsScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Icon represent micro recording
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: DesignColors.surfaceVariant(context),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.mic_none_rounded,
-              size: 18,
-              color: DesignColors.textSecondary(context),
-            ),
-          ),
+          // Icon represent micro recording or image thumbnail
+          attachment.isImage
+              ? Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: DesignColors.surfaceVariant(context),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: DesignColors.border(context), width: 0.5),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: Image.file(
+                      attachment.file,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.broken_image_outlined,
+                          size: 18,
+                          color: DesignColors.textTertiary(context),
+                        );
+                      },
+                    ),
+                  ),
+                )
+              : Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: DesignColors.surfaceVariant(context),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.mic_none_rounded,
+                    size: 18,
+                    color: DesignColors.textSecondary(context),
+                  ),
+                ),
           const SizedBox(width: 12),
           
           Expanded(
@@ -392,22 +434,23 @@ class AttachmentsScreen extends ConsumerWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: const Icon(Icons.play_arrow_rounded, size: 24),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (ctx) => AudioPlayerBottomSheet(
-                      filePath: attachment.file.path,
-                      fileName: attachment.name,
-                    ),
-                  );
-                },
-                tooltip: 'Play Recording',
-                color: colorScheme.primary,
-              ),
+              if (!attachment.isImage)
+                IconButton(
+                  icon: const Icon(Icons.play_arrow_rounded, size: 24),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (ctx) => AudioPlayerBottomSheet(
+                        filePath: attachment.file.path,
+                        fileName: attachment.name,
+                      ),
+                    );
+                  },
+                  tooltip: 'Play Recording',
+                  color: colorScheme.primary,
+                ),
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, size: 20),
                 onPressed: () => _confirmDelete(context, ref, attachment.file),

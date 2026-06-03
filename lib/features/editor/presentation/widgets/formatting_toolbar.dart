@@ -11,12 +11,14 @@ class FormattingToolbar extends ConsumerWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onToggleDictation;
+  final VoidCallback onAttachImage;
 
   const FormattingToolbar({
     super.key,
     required this.controller,
     required this.focusNode,
     required this.onToggleDictation,
+    required this.onAttachImage,
   });
 
   @override
@@ -178,6 +180,12 @@ class FormattingToolbar extends ConsumerWidget {
                   focusNode: focusNode,
                   prefix: '\n---\n',
                 ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.image_outlined,
+                tooltip: 'Attach Image',
+                onTap: onAttachImage,
               ),
               if (Platform.isAndroid)
                 _buildFormattingButton(

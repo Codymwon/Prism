@@ -32,6 +32,7 @@ void main() {
                 controller: controller,
                 focusNode: focusNode,
                 onToggleDictation: () {},
+                onAttachImage: () {},
               ),
             ),
           ),
@@ -62,5 +63,39 @@ void main() {
 
     // Clear test text scale factor
     tester.platformDispatcher.clearTextScaleFactorTestValue();
+  });
+
+  testWidgets('FormattingToolbar renders Attach Image button and triggers callback', (WidgetTester tester) async {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    bool attachImageTriggered = false;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {
+                  attachImageTriggered = true;
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final attachImageFinder = find.byTooltip('Attach Image');
+    expect(attachImageFinder, findsOneWidget);
+
+    await tester.tap(attachImageFinder);
+    expect(attachImageTriggered, isTrue);
   });
 }
