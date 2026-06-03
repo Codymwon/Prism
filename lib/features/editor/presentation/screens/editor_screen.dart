@@ -67,6 +67,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   String _dictationAudioPath = '';
   String _currentWords = '';
   String _dictationSessionId = '';
+  int _speechSessionCount = 0;
 
   // Caching processed markdown text (avoiding redundant processWikilinks RegExp execution)
   String? _processedWikilinksText;
@@ -124,7 +125,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     // Debounced save (500ms after last keystroke)
     _saveTimer?.cancel();
-    _saveTimer = Timer(const Duration(milliseconds: 500), () => _save());
+    if (!_isDictating) {
+      _saveTimer = Timer(const Duration(milliseconds: 500), () => _save());
+    }
   }
 
   void _detectWikilink(String text) {
@@ -699,14 +702,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   void _startListening({bool isRestart = false}) async {
     final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
 
+    _speechSessionCount++;
+    final currentSession = _speechSessionCount;
+
     if (!isRestart) {
       final selection = _controller.selection;
       _dictationStartOffset = selection.isValid ? selection.baseOffset : _controller.text.length;
       _dictationPreSpeechText = _controller.text;
       _currentWords = '';
     } else {
+      // On auto-restart, continue from the end of the previous speech segment
+      _dictationStartOffset = (_dictationStartOffset + _currentWords.length).clamp(0, _controller.text.length);
       _dictationPreSpeechText = _controller.text;
-      _dictationStartOffset = _controller.selection.baseOffset;
       _currentWords = '';
     }
 
@@ -746,13 +753,32 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       // Dictation Mode (Live Text Transcription)
       await _speechToText.listen(
         onResult: (result) {
-          if (!mounted || !_isDictating) return;
+          if (!mounted || !_isDictating || _speechSessionCount != currentSession) return;
 
-          final newWords = result.recognizedWords;
-          _currentWords = newWords;
+          String newWords = result.recognizedWords;
 
+          // If the engine resets the recognized words to empty after we have already captured some words,
+          // it means the previous segment has been finalized. We commit it to our offset.
+          if (newWords.isEmpty && _currentWords.isNotEmpty) {
+            _dictationStartOffset = (_dictationStartOffset + _currentWords.length).clamp(0, _controller.text.length);
+            _dictationPreSpeechText = _controller.text;
+            _currentWords = '';
+          }
+          
           final before = _dictationPreSpeechText.substring(0, _dictationStartOffset);
           final after = _dictationPreSpeechText.substring(_dictationStartOffset);
+
+          // Add a leading space if appending to existing text and spacing is needed
+          if (_dictationStartOffset > 0 &&
+              before.isNotEmpty &&
+              !before.endsWith(' ') &&
+              !before.endsWith('\n') &&
+              newWords.isNotEmpty &&
+              !newWords.startsWith(' ')) {
+            newWords = ' $newWords';
+          }
+
+          _currentWords = newWords;
 
           _controller.value = TextEditingValue(
             text: before + newWords + after,
@@ -815,6 +841,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _dictationAudioPath = '';
     _currentWords = '';
     _focusNode.requestFocus();
+
+    if (commit) {
+      _save();
+    }
   }
 }
 

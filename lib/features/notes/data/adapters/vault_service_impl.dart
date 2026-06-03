@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import '../../../../core/utils/utils.dart' as utils;
@@ -293,7 +294,7 @@ class VaultServiceImpl implements VaultService {
       });
     } catch (e) {
       // Safely ignore errors during scan
-      print('Error scanning vault files: $e');
+      debugPrint('Error scanning vault files: $e');
     }
   }
 }

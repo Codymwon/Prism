@@ -22,10 +22,17 @@ class FormattingToolbar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final customMacros = ref.watch(customMacrosProvider);
+    final mediaQuery = MediaQuery.of(context);
+    final clampedTextScaler = mediaQuery.textScaler.clamp(
+      minScaleFactor: 0.8,
+      maxScaleFactor: 1.25,
+    );
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      height: 54,
+    return MediaQuery(
+      data: mediaQuery.copyWith(textScaler: clampedTextScaler),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        height: 54,
       decoration: BoxDecoration(
         color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(27),
@@ -38,171 +45,174 @@ class FormattingToolbar extends ConsumerWidget {
           ),
         ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Row(
-          children: [
-            _buildFormattingButton(
-              context,
-              icon: Icons.format_bold_rounded,
-              tooltip: 'Bold',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '**',
-                suffix: '**',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.format_italic_rounded,
-              tooltip: 'Italic',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '*',
-                suffix: '*',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.format_size_rounded,
-              tooltip: 'Heading',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '# ',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.link_rounded,
-              tooltip: 'Wikilink',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '[[',
-                suffix: ']]',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.label_outline_rounded,
-              tooltip: 'Tag',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '#',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.format_list_bulleted_rounded,
-              tooltip: 'Bullet List',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '\n- ',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.checklist_rounded,
-              tooltip: 'Checklist',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '\n- [ ] ',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.code_rounded,
-              tooltip: 'Code',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '`',
-                suffix: '`',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.format_quote_rounded,
-              tooltip: 'Blockquote',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '\n> ',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.strikethrough_s_rounded,
-              tooltip: 'Strikethrough',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '~~',
-                suffix: '~~',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.border_color_rounded,
-              tooltip: 'Highlight',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '==',
-                suffix: '==',
-              ),
-            ),
-            _buildFormattingButton(
-              context,
-              icon: Icons.horizontal_rule_rounded,
-              tooltip: 'Divider',
-              onTap: () => insertFormatting(
-                controller: controller,
-                focusNode: focusNode,
-                prefix: '\n---\n',
-              ),
-            ),
-            if (Platform.isAndroid)
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            children: [
               _buildFormattingButton(
                 context,
-                icon: Icons.mic_none_rounded,
-                tooltip: 'Dictate (Voice-to-Text)',
-                onTap: onToggleDictation,
+                icon: Icons.format_bold_rounded,
+                tooltip: 'Bold',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '**',
+                  suffix: '**',
+                ),
               ),
-
-            // Vertical Divider separating standard actions and custom macros
-            if (customMacros.isNotEmpty) ...[
-              Container(
-                height: 22,
-                width: 1,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                color: DesignColors.border(context),
+              _buildFormattingButton(
+                context,
+                icon: Icons.format_italic_rounded,
+                tooltip: 'Italic',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '*',
+                  suffix: '*',
+                ),
               ),
-              ...customMacros.map((macro) {
-                return _buildCustomMacroButton(
+              _buildFormattingButton(
+                context,
+                icon: Icons.format_size_rounded,
+                tooltip: 'Heading',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '# ',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.link_rounded,
+                tooltip: 'Wikilink',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '[[',
+                  suffix: ']]',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.label_outline_rounded,
+                tooltip: 'Tag',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '#',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.format_list_bulleted_rounded,
+                tooltip: 'Bullet List',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '\n- ',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.checklist_rounded,
+                tooltip: 'Checklist',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '\n- [ ] ',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.code_rounded,
+                tooltip: 'Code',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '`',
+                  suffix: '`',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.format_quote_rounded,
+                tooltip: 'Blockquote',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '\n> ',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.strikethrough_s_rounded,
+                tooltip: 'Strikethrough',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '~~',
+                  suffix: '~~',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.border_color_rounded,
+                tooltip: 'Highlight',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '==',
+                  suffix: '==',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.horizontal_rule_rounded,
+                tooltip: 'Divider',
+                onTap: () => insertFormatting(
+                  controller: controller,
+                  focusNode: focusNode,
+                  prefix: '\n---\n',
+                ),
+              ),
+              if (Platform.isAndroid)
+                _buildFormattingButton(
                   context,
-                  label: macro.label,
-                  tooltip: 'Insert: ${macro.text.replaceAll('\n', ' ')}',
-                  onTap: () => insertMacro(
-                    controller: controller,
-                    focusNode: focusNode,
-                    macro: macro,
-                  ),
-                );
-              }),
+                  icon: Icons.mic_none_rounded,
+                  tooltip: 'Dictate (Voice-to-Text)',
+                  onTap: onToggleDictation,
+                ),
+
+              // Vertical Divider separating standard actions and custom macros
+              if (customMacros.isNotEmpty) ...[
+                Container(
+                  height: 22,
+                  width: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: DesignColors.border(context),
+                ),
+                ...customMacros.map((macro) {
+                  return _buildCustomMacroButton(
+                    context,
+                    label: macro.label,
+                    tooltip: 'Insert: ${macro.text.replaceAll('\n', ' ')}',
+                    onTap: () => insertMacro(
+                      controller: controller,
+                      focusNode: focusNode,
+                      macro: macro,
+                    ),
+                  );
+                }),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    );
+    ),);
   }
 
   Widget _buildFormattingButton(
@@ -259,13 +269,18 @@ class FormattingToolbar extends ConsumerWidget {
               width: 0.8,
             ),
           ),
-          child: Text(
-            label,
-            style: DesignTypography.body(
-              context,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: DesignColors.textSecondary(context),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DesignTypography.body(
+                context,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: DesignColors.textSecondary(context),
+              ),
             ),
           ),
         ),
@@ -289,10 +304,17 @@ class DictationOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final mediaQuery = MediaQuery.of(context);
+    final clampedTextScaler = mediaQuery.textScaler.clamp(
+      minScaleFactor: 0.8,
+      maxScaleFactor: 1.25,
+    );
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      height: 54,
+    return MediaQuery(
+      data: mediaQuery.copyWith(textScaler: clampedTextScaler),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        height: 54,
       decoration: BoxDecoration(
         color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(27),
@@ -356,6 +378,6 @@ class DictationOverlay extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),);
   }
 }

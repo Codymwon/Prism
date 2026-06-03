@@ -10,7 +10,7 @@ import '../widgets/journal_calendar.dart';
 import '../widgets/journal_entry_card.dart';
 import '../widgets/journal_header.dart';
 import '../widgets/journal_week_strip.dart';
-import '../widgets/journal_word_count_progress.dart';
+import '../widgets/journal_streak_grid.dart';
 import '../widgets/journal_templates_row.dart';
 import '../widgets/journal_empty_state.dart';
 
@@ -100,6 +100,15 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   Widget _buildContentSwitcher(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
+      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
       transitionBuilder: (Widget child, Animation<double> animation) {
         return FadeTransition(
           opacity: CurvedAnimation(
@@ -129,8 +138,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (data != null) ...[
-            // ── Word Count Progress Bar ──────────────────────────────────
-            JournalWordCountProgress(wordCount: data.note.wordCount),
+            // ── Consistency Streak Grid ──────────────────────────────────
+            const JournalStreakGrid(),
             const SizedBox(height: 12),
             // ── Entry card (scrollable content preview) ──────────────────
             JournalEntryCard(note: data.note, content: data.content),

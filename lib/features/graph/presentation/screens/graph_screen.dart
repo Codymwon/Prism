@@ -538,6 +538,11 @@ class GraphFlowDelegate extends FlowDelegate {
   }) : super(repaint: repaint);
 
   @override
+  BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) {
+    return BoxConstraints.tight(const Size(80.0, 60.0));
+  }
+
+  @override
   void paintChildren(FlowPaintingContext context) {
     for (int i = 0; i < nodes.length; i++) {
       final node = nodes[i];

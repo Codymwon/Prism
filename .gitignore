@@ -49,3 +49,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+CONTEXT.md
+docs/
+

@@ -79,8 +79,7 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
 
   void _initPlayer() async {
     try {
-      await _player.setSource(DeviceFileSource(widget.filePath));
-      
+      // 1. Set up listeners first so they don't miss initial metadata events
       _durationSubscription = _player.onDurationChanged.listen((d) {
         setState(() => _duration = d);
       });
@@ -91,7 +90,18 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
         setState(() => _isPlaying = state == PlayerState.playing);
       });
 
-      await _player.play(DeviceFileSource(widget.filePath));
+      // 2. Set the source
+      final source = DeviceFileSource(widget.filePath);
+      await _player.setSource(source);
+      
+      // 3. Start playback
+      await _player.play(source);
+
+      // 4. Fallback: Query the duration directly if it was already resolved and missed in the stream
+      final duration = await _player.getDuration();
+      if (duration != null && duration != Duration.zero) {
+        setState(() => _duration = duration);
+      }
     } catch (e) {
       debugPrint('Audio player initialization error: $e');
     }

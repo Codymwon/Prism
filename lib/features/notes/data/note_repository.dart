@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
-import '../../../core/utils/utils.dart';
 import 'note_model.dart';
 import 'vault_service.dart';
 

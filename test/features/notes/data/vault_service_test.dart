@@ -4,7 +4,6 @@ import 'package:meridian/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
 import 'package:meridian/features/notes/data/vault_storage.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
 
 class FakeVaultStorage implements VaultStorage {
   final Map<String, String> files = {};
