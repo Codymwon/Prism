@@ -250,7 +250,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             ),
                             _isDictating
                                 ? DictationOverlay(
-                                    currentWords: _currentWords,
+                                    currentWords: ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false
+                                        ? 'Recording audio note...'
+                                        : (_currentWords.isEmpty ? 'Listening...' : _currentWords),
                                     onCancel: () => _stopDictation(commit: false),
                                     onCommit: () => _stopDictation(commit: true),
                                   )
@@ -275,6 +277,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               onSelect: _insertWikilink,
               onDismiss: () => setState(() => _showWikilinkPopup = false),
             ),
+
+          // Editor tutorial overlay removed
         ],
       ),
     );
@@ -482,6 +486,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return Markdown(
       controller: _scrollController,
       data: processedData,
+      inlineSyntaxes: [HighlightSyntax()],
+      builders: {
+        'mark': HighlightElementBuilder(context),
+      },
       onTapLink: (text, href, title) async {
         if (href != null && (href.endsWith('.m4a') || href.endsWith('.mp3') || href.contains('attachments/'))) {
           try {
@@ -639,37 +647,44 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       return;
     }
 
+    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
+
     try {
-      if (!_speechInitialized) {
-        bool available = await _speechToText.initialize(
-          onStatus: (status) {
-            if (status == 'notListening' && _isDictating) {
-              if (_isDictating) {
-                _startListening();
+      if (!keepVoice) {
+        // Dictation Mode (Live Text Transcription)
+        if (!_speechInitialized) {
+          bool available = await _speechToText.initialize(
+            onStatus: (status) {
+              if (status == 'notListening' && _isDictating) {
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  if (_isDictating && mounted) {
+                    _startListening(isRestart: true);
+                  }
+                });
               }
-            }
-          },
-          onError: (error) {
-            debugPrint('Speech error: $error');
-          },
-        );
-        if (!mounted) return;
-        if (!available) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Speech recognition is not available on this device.')),
+            },
+            onError: (error) {
+              debugPrint('Speech error: $error');
+            },
           );
-          return;
+          if (!mounted) return;
+          if (!available) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Speech recognition is not available on this device.')),
+            );
+            return;
+          }
+          _speechInitialized = true;
         }
-        _speechInitialized = true;
       }
 
       final hasAudioPermission = await _audioRecorder.hasPermission();
       if (!mounted) return;
       if (hasAudioPermission) {
-        _startListening();
+        _startListening(isRestart: false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission is required for dictation.')),
+          const SnackBar(content: Text('Microphone permission is required.')),
         );
       }
     } catch (e) {
@@ -681,61 +696,77 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  void _startListening() async {
-    final selection = _controller.selection;
-    _dictationStartOffset = selection.isValid ? selection.baseOffset : _controller.text.length;
-    _dictationPreSpeechText = _controller.text;
-    _currentWords = '';
+  void _startListening({bool isRestart = false}) async {
+    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
+
+    if (!isRestart) {
+      final selection = _controller.selection;
+      _dictationStartOffset = selection.isValid ? selection.baseOffset : _controller.text.length;
+      _dictationPreSpeechText = _controller.text;
+      _currentWords = '';
+    } else {
+      _dictationPreSpeechText = _controller.text;
+      _dictationStartOffset = _controller.selection.baseOffset;
+      _currentWords = '';
+    }
 
     setState(() {
       _isDictating = true;
     });
 
-    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? true;
     if (keepVoice) {
-      try {
-        final vaultPath = await getVaultPath();
-        final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
-        if (!await attachmentsDir.exists()) {
-          await attachmentsDir.create(recursive: true);
+      // Audio Recorder Mode: start recorder only once at the beginning
+      if (!isRestart) {
+        try {
+          final vaultPath = await getVaultPath();
+          final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
+          if (!await attachmentsDir.exists()) {
+            await attachmentsDir.create(recursive: true);
+          }
+
+          _dictationSessionId = generateId().substring(0, 8);
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final audioPath = p.join(attachmentsDir.path, 'audio_${timestamp}_$_dictationSessionId.m4a');
+          _dictationAudioPath = audioPath;
+
+          await _audioRecorder.start(
+            const RecordConfig(
+              encoder: AudioEncoder.aacLc,
+              sampleRate: 16000,
+              numChannels: 1,
+              bitRate: 32000,
+            ),
+            path: audioPath,
+          );
+        } catch (e) {
+          debugPrint('Audio recording error: $e');
         }
-
-        _dictationSessionId = generateId().substring(0, 8);
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final audioPath = p.join(attachmentsDir.path, 'audio_${timestamp}_$_dictationSessionId.m4a');
-        _dictationAudioPath = audioPath;
-
-        await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc),
-          path: audioPath,
-        );
-      } catch (e) {
-        debugPrint('Audio recording error: $e');
       }
+    } else {
+      // Dictation Mode (Live Text Transcription)
+      await _speechToText.listen(
+        onResult: (result) {
+          if (!mounted || !_isDictating) return;
+
+          final newWords = result.recognizedWords;
+          _currentWords = newWords;
+
+          final before = _dictationPreSpeechText.substring(0, _dictationStartOffset);
+          final after = _dictationPreSpeechText.substring(_dictationStartOffset);
+
+          _controller.value = TextEditingValue(
+            text: before + newWords + after,
+            selection: TextSelection.collapsed(offset: _dictationStartOffset + newWords.length),
+          );
+        },
+        listenOptions: SpeechListenOptions(
+          partialResults: true,
+          listenMode: ListenMode.dictation,
+          listenFor: const Duration(minutes: 10),
+          pauseFor: const Duration(seconds: 15),
+        ),
+      );
     }
-
-    await _speechToText.listen(
-      onResult: (result) {
-        if (!mounted || !_isDictating) return;
-
-        final newWords = result.recognizedWords;
-        _currentWords = newWords;
-
-        final before = _dictationPreSpeechText.substring(0, _dictationStartOffset);
-        final after = _dictationPreSpeechText.substring(_dictationStartOffset);
-
-        _controller.value = TextEditingValue(
-          text: before + newWords + after,
-          selection: TextSelection.collapsed(offset: _dictationStartOffset + newWords.length),
-        );
-      },
-      listenFor: const Duration(minutes: 10),
-      pauseFor: const Duration(seconds: 15),
-      listenOptions: SpeechListenOptions(
-        partialResults: true,
-        listenMode: ListenMode.dictation,
-      ),
-    );
   }
 
   Future<void> _stopDictation({required bool commit}) async {
@@ -745,7 +776,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _isDictating = false;
     });
 
-    await _speechToText.stop();
+    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
+
+    if (!keepVoice) {
+      await _speechToText.stop();
+    }
     final audioPath = await _audioRecorder.stop();
 
     if (!commit) {
@@ -761,7 +796,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         }
       }
     } else {
-      final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? true;
       if (keepVoice && audioPath != null && _dictationAudioPath.isNotEmpty) {
         final filename = p.basename(_dictationAudioPath);
         
@@ -782,6 +816,5 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _currentWords = '';
     _focusNode.requestFocus();
   }
-
 }
 

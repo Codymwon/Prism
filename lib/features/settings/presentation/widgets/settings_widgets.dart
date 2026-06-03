@@ -537,7 +537,7 @@ class VoiceRecordingsToggleTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final keepVoice = ref.watch(keepVoiceRecordingsProvider).valueOrNull ?? true;
+    final keepVoice = ref.watch(keepVoiceRecordingsProvider).valueOrNull ?? false;
 
     return SwitchListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),

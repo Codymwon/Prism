@@ -162,7 +162,7 @@ class KeepVoiceRecordingsNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('keepVoiceRecordings') ?? true;
+    return prefs.getBool('keepVoiceRecordings') ?? false;
   }
 
   Future<void> setKeepVoiceRecordings(bool enabled) async {

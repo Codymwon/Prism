@@ -282,7 +282,7 @@ class CustomMacrosScreen extends ConsumerWidget {
                   maxLength: 12,
                   style: DesignTypography.body(context, fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'e.g. 📅 Date, Todo, Tag',
+                    hintText: 'e.g. Date, Todo, Tag',
                     hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(

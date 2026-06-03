@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:markdown/markdown.dart' as md;
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../settings/presentation/providers/custom_macro_provider.dart';
 
@@ -87,4 +90,36 @@ void insertMacro({
     focusNode: focusNode,
     prefix: resolvedText,
   );
+}
+
+/// Custom Inline Markdown Syntax for Highlights (==text==)
+class HighlightSyntax extends md.InlineSyntax {
+  HighlightSyntax() : super(r'==([^=]+)==');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    parser.addNode(md.Element.text('mark', match.group(1)!));
+    return true;
+  }
+}
+
+/// Custom Element Builder to render the custom 'mark' highlight tag
+class HighlightElementBuilder extends MarkdownElementBuilder {
+  final BuildContext context;
+  HighlightElementBuilder(this.context);
+
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    return Text.rich(
+      TextSpan(
+        text: element.textContent,
+        style: TextStyle(
+          backgroundColor: DesignColors.accentAmber(context).withValues(alpha: 0.3),
+          color: DesignColors.text(context),
+          fontWeight: preferredStyle?.fontWeight,
+          fontStyle: preferredStyle?.fontStyle,
+        ),
+      ),
+    );
+  }
 }

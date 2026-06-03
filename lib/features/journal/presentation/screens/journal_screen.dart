@@ -121,7 +121,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         DesignSpacing.screenPadding,
-        _showCalendar ? 8 : 12,
+        _showCalendar ? 8 : 4,
         DesignSpacing.screenPadding,
         100,
       ),

@@ -278,6 +278,10 @@ $_conflictContent
     final processedData = processWikilinks(content);
     return Markdown(
       data: processedData,
+      inlineSyntaxes: [HighlightSyntax()],
+      builders: {
+        'mark': HighlightElementBuilder(context),
+      },
       onTapLink: (text, href, title) => handleWikilinkTap(
         href: href,
         ref: ref,

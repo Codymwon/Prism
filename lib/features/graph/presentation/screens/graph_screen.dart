@@ -496,6 +496,7 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
                     },
                     child: SizedBox(
                       width: 80,
+                      height: 60,
                       child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
                     ),
                   );

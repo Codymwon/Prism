@@ -25,10 +25,10 @@ class FormattingToolbar extends ConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      height: 50,
+      height: 54,
       decoration: BoxDecoration(
         color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(27),
         border: Border.all(color: DesignColors.border(context), width: 1.0),
         boxShadow: [
           BoxShadow(
@@ -217,8 +217,8 @@ class FormattingToolbar extends ConsumerWidget {
       child: Tooltip(
         message: tooltip,
         child: Container(
-          height: 38,
-          width: 38,
+          height: 40,
+          width: 40,
           margin: const EdgeInsets.symmetric(horizontal: 2),
           alignment: Alignment.center,
           decoration: const BoxDecoration(
@@ -227,7 +227,7 @@ class FormattingToolbar extends ConsumerWidget {
           ),
           child: Icon(
             icon,
-            size: 18,
+            size: 19,
             color: DesignColors.textSecondary(context),
           ),
         ),
@@ -247,13 +247,13 @@ class FormattingToolbar extends ConsumerWidget {
       child: Tooltip(
         message: tooltip,
         child: Container(
-          height: 34,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           margin: const EdgeInsets.symmetric(horizontal: 4),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: DesignColors.surface(context),
-            borderRadius: BorderRadius.circular(17),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: DesignColors.border(context),
               width: 0.8,
@@ -292,10 +292,10 @@ class DictationOverlay extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      height: 50,
+      height: 54,
       decoration: BoxDecoration(
         color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(27),
         border: Border.all(color: DesignColors.border(context), width: 1.0),
         boxShadow: [
           BoxShadow(

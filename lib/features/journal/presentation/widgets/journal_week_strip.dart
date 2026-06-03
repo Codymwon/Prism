@@ -24,7 +24,12 @@ class JournalWeekStrip extends ConsumerWidget {
     final days = List.generate(7, (i) => today.subtract(Duration(days: 6 - i)));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: DesignSpacing.screenPadding, vertical: 8),
+      padding: const EdgeInsets.only(
+        left: DesignSpacing.screenPadding,
+        right: DesignSpacing.screenPadding,
+        top: 4,
+        bottom: 6,
+      ),
       child: Row(
         children: List.generate(days.length, (i) {
           final day = days[i];

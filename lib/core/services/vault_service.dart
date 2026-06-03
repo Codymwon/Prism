@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import '../../features/notes/data/note_repository.dart';
 import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../../features/settings/presentation/providers/settings_provider.dart';
 
@@ -76,13 +75,6 @@ class VaultService {
     // Set new active vault (saves to SharedPreferences)
     await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
 
-    // Initialize with a welcome note inside the repository
-    final repo = ref.read(noteRepositoryProvider);
-    await repo.createNote(
-      title: 'Welcome to your new Vault',
-      initialContent: '# Welcome to $vaultName\n\nThis is a brand new workspace. Start linking notes using `[[wikilinks]]`!',
-    );
-
     // Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
 
@@ -118,10 +110,6 @@ class VaultService {
       final newVaultPath = p.join(newPath, activeVault);
       final vaultDir = Directory(newVaultPath);
       if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
-
-      // Initialize starter notes inside it
-      final welcomeFile = File(p.join(newVaultPath, 'welcome.md'));
-      await welcomeFile.writeAsString('# Welcome to Meridian\n\nNotes configured at new location.');
     }
 
     // Update active vault name provider

@@ -77,6 +77,7 @@ class SettingsScreen extends ConsumerWidget {
                     trailing: const Icon(Icons.refresh_rounded, size: 20),
                     onTap: () async {
                       await ref.read(tutorialStateProvider.notifier).resetTutorial();
+                      await ref.read(editorTutorialStateProvider.notifier).resetTutorial();
                       if (context.mounted) {
                         context.go('/notes');
                       }
@@ -125,6 +126,13 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.push('/settings/custom-macros'),
                   ),
                   const VoiceRecordingsToggleTile(),
+                  SettingsTile(
+                    icon: Icons.audio_file_rounded,
+                    title: 'Manage Attachments',
+                    subtitle: 'View and delete voice dictation files',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/settings/attachments'),
+                  ),
 
                   // ── Sync ────────────────────────────────────────────────
                   const SettingsSectionHeader(title: 'Sync'),
