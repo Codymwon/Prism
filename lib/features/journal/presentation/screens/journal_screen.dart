@@ -214,10 +214,10 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     final selectedDay = ref.read(selectedDayProvider);
     final dateStr = formatDailyDate(selectedDay);
     final templates = {
-      'Gratitude': '# $dateStr\n\n## 🙏 Gratitude\n\n- I am grateful for...\n- Something that made me smile...\n- A person I appreciate...\n\n',
-      'Daily Plan': '# $dateStr\n\n## 📋 Today\'s Plan\n\n### 🎯 Top 3 priorities\n1. \n2. \n3. \n\n### 📅 Schedule\n\n\n### 🌙 End of day reflection\n\n',
-      'Reflection': '# $dateStr\n\n## 💭 Reflection\n\n### What went well?\n\n\n### What could be better?\n\n\n### Key learnings\n\n',
-      'Goals': '# $dateStr\n\n## 🎯 Goals Check-in\n\n### Progress on current goals\n\n\n### New goal ideas\n\n\n### Blockers\n\n',
+      'Gratitude': '# $dateStr\n\n## 🙏 Gratitude & Focus\n- I am grateful for...\n- Today\'s positive highlight: \n\n## 🎙️ Mindful Recording\n*(Tap 🎙️ in the toolbar to record your voice reflection here)*\n\n## 🔗 Connections\n- Connected notes: [[Weekly Review]], [[My Future Ideas]]\n\n#journal #gratitude\n',
+      'Daily Plan': '# $dateStr\n\n## 📋 Today\'s Focus\n- [ ] Top priority 1\n- [ ] Top priority 2\n- [ ] Top priority 3\n\n## 📅 Tasks & Schedule\n- [ ] Morning routine *(Tap ☑️ Todo in toolbar to add tasks)*\n- [ ] Work focus session\n- [ ] Evening wind-down\n\n## 🔗 Connections\n- Linked goals: [[Annual Goals]]\n\n#planning #tasks\n',
+      'Reflection': '# $dateStr\n\n## 💭 Daily Reflection\n- **What went well today?** \n- **What could have been improved?** \n- **Key learning or breakthrough:** \n\n## 🎙️ Voice Journal\n*(Speak your mind with offline voice dictation in the toolbar)*\n\n## 🔗 Connections\n- Connected note: [[Personal Growth]]\n\n#reflection #mindfulness\n',
+      'Goals': '# $dateStr\n\n## 🎯 Goals Check-in\n- **Current focus:** \n- [ ] Goal milestone task 1\n- [ ] Goal milestone task 2\n\n## 🚧 Blockers & Next Steps\n- What is holding me back? \n- Next actionable step: \n\n## 🔗 Connections\n- Master board: [[Annual Goals]], [[Projects]]\n\n#goals #productivity\n',
     };
     _createDailyNote(context, dateStr, templates[templateName]);
   }
