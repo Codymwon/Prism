@@ -275,7 +275,7 @@ $_conflictContent
       );
     }
 
-    final processedData = processWikilinks(content);
+    final processedData = preprocessMarkdown(content);
     return Markdown(
       data: processedData,
       inlineSyntaxes: [HighlightSyntax()],

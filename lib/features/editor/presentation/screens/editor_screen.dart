@@ -484,7 +484,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       return _processedWikilinksText!;
     }
     _lastProcessedText = text;
-    _processedWikilinksText = processWikilinks(text);
+    _processedWikilinksText = preprocessMarkdown(text);
     return _processedWikilinksText!;
   }
 

@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:meridian/features/notes/data/vault_service.dart';
+import 'package:meridian/core/utils/utils.dart';
 
 class MockNoteRepository implements NoteRepository {
   final Note note;
@@ -227,5 +228,118 @@ void main() {
 
     // Verify saveNote was called with the updated content
     expect(savedContent, equals('# Test Note\n\n- [x] Task A\n- [x] Task B\n'));
+  });
+
+  testWidgets('EditorScreen renders and toggles spaced-out checklist items without rendering them as list dots', (WidgetTester tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('com.llfbandit.record/messages'),
+      (methodCall) async {
+        return null;
+      },
+    );
+
+    final noteId = 'test-note-spaced-checklists';
+    final rawContent = '# Test Note\n\n- [ ] Task A\n\n- [ ] Task B\n\n- [ ] Task C\n- Normal bullet\n';
+    noteFile.writeAsStringSync(rawContent);
+
+    final note = Note(
+      id: noteId,
+      title: 'Test Note',
+      filePath: noteFile.path,
+      wordCount: 10,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    String? savedContent;
+    final mockRepo = MockNoteRepository(
+      note,
+      onSaveNote: (id, content) {
+        savedContent = content;
+      },
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteRepositoryProvider.overrideWithValue(mockRepo),
+          noteByIdProvider(noteId).overrideWith((ref) => note),
+          backlinksProvider(noteId).overrideWith((ref) => []),
+        ],
+        child: MaterialApp(
+          home: EditorScreen(
+            noteId: noteId,
+            isNew: false,
+          ),
+        ),
+      ),
+    );
+
+    // Yield to the event loop so file I/O can complete
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+
+    // Verify Checkboxes are rendered despite spacing and normal bullets
+    final checkboxFinder = find.byType(Checkbox);
+    expect(checkboxFinder, findsNWidgets(3));
+
+    // Tap the second checkbox (Task B)
+    await tester.tap(checkboxFinder.at(1));
+    await tester.pump();
+
+    // Verify that the second checklist item is toggled, and the raw formatting (spacing) is preserved
+    final expectedContent = '# Test Note\n\n- [ ] Task A\n\n- [x] Task B\n\n- [ ] Task C\n- Normal bullet\n';
+    expect(savedContent, equals(expectedContent));
+  });
+
+  testWidgets('EditorScreen preserves paragraph and heading empty line spaces in preview mode', (WidgetTester tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('com.llfbandit.record/messages'),
+      (methodCall) async {
+        return null;
+      },
+    );
+
+    final noteId = 'test-note-paragraph-spaces';
+    final rawContent = '# Test Note\n\nParagraph A\n\n\nParagraph B\n';
+    noteFile.writeAsStringSync(rawContent);
+
+    final note = Note(
+      id: noteId,
+      title: 'Test Note',
+      filePath: noteFile.path,
+      wordCount: 10,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final mockRepo = MockNoteRepository(note);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteRepositoryProvider.overrideWithValue(mockRepo),
+          noteByIdProvider(noteId).overrideWith((ref) => note),
+          backlinksProvider(noteId).overrideWith((ref) => []),
+        ],
+        child: MaterialApp(
+          home: EditorScreen(
+            noteId: noteId,
+            isNew: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+
+    // Verify that the parser correctly processed the empty newlines to &nbsp; while keeping blank lines
+    final processedData = preprocessMarkdown(rawContent);
+    expect(processedData, equals('# Test Note\n\n&nbsp;\n\nParagraph A\n\n&nbsp;\n\n\n&nbsp;\n\nParagraph B\n'));
   });
 }

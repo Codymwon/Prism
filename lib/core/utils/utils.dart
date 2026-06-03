@@ -126,6 +126,32 @@ String processWikilinks(String text) {
   });
 }
 
+/// Preprocesses markdown text by converting wikilinks and preserving blank lines
+/// with `&nbsp;` (excluding fenced code blocks) to prevent checklist checkbox
+/// rendering bugs and ensure correct empty line spacing in view mode.
+String preprocessMarkdown(String text) {
+  // 1. Process wikilinks
+  final processedLinks = processWikilinks(text);
+
+  // 2. Split by fenced code blocks to avoid modifying them
+  final parts = processedLinks.split('```');
+  for (int i = 0; i < parts.length; i++) {
+    if (i % 2 == 0) {
+      // Preprocess non-code block content line-by-line
+      final lines = parts[i].split('\n');
+      final length = (lines.isNotEmpty && lines.last.isEmpty) ? lines.length - 1 : lines.length;
+      for (int j = 0; j < length; j++) {
+        if (lines[j].trim().isEmpty) {
+          lines[j] = '\n&nbsp;\n';
+        }
+      }
+      parts[i] = lines.join('\n');
+    }
+  }
+
+  return parts.join('```');
+}
+
 /// Extension to parse HEX color strings safely.
 extension ColorParsing on String {
   Color toColor({Color defaultColor = const Color(0xFF7C6FF7)}) {
