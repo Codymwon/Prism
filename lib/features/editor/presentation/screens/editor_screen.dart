@@ -711,7 +711,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         checkboxBuilder: (bool value) {
           final index = checkboxIndex++;
           return Padding(
-            padding: const EdgeInsets.only(right: 6, bottom: 2),
+            padding: const EdgeInsets.only(right: 6, top: 3),
             child: SizedBox(
               width: 18,
               height: 18,
