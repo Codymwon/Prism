@@ -1,10 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../widgets/spatial_group_edit_bottom_sheet.dart';
+import '../../data/spatial_group_repository.dart';
 
-class GraphSettingsPanel extends StatefulWidget {
+class GraphSettingsPanel extends ConsumerStatefulWidget {
   final double repulsionRate;
   final double repulsionPercentage;
   final double attractionRate;
@@ -35,15 +38,16 @@ class GraphSettingsPanel extends StatefulWidget {
   });
 
   @override
-  State<GraphSettingsPanel> createState() => _GraphSettingsPanelState();
+  ConsumerState<GraphSettingsPanel> createState() => _GraphSettingsPanelState();
 }
 
-class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
+class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
   // Local state copy to ensure drag changes only rebuild the panel
   late double _localRepulsionRate;
   late double _localRepulsionPercentage;
   late double _localAttractionRate;
   late double _localDamping;
+  int _activeTab = 0; // 0 = Forces, 1 = Groups
 
   @override
   void initState() {
@@ -110,17 +114,62 @@ class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Row
+                    // Header Row with Tabs
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Graph Forces Settings',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
-                          ),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => setState(() => _activeTab = 0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: _activeTab == 0 ? colorScheme.primary : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Forces',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: _activeTab == 0 ? FontWeight.w700 : FontWeight.w500,
+                                    color: _activeTab == 0
+                                        ? (isDark ? MeridianColors.darkText : MeridianColors.lightText)
+                                        : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            GestureDetector(
+                              onTap: () => setState(() => _activeTab = 1),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: _activeTab == 1 ? colorScheme.primary : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Groups',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: _activeTab == 1 ? FontWeight.w700 : FontWeight.w500,
+                                    color: _activeTab == 1
+                                        ? (isDark ? MeridianColors.darkText : MeridianColors.lightText)
+                                        : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         IconButton(
                           icon: const Icon(Icons.close_rounded, size: 18),
@@ -132,103 +181,107 @@ class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
                     ),
                     const SizedBox(height: 12),
                     
-                    // Repulsion Force Slider
-                    _buildSlider(
-                      title: 'Repulsion Force',
-                      value: _localRepulsionRate,
-                      min: 0.05,
-                      max: 1.5,
-                      divisions: 29,
-                      label: _localRepulsionRate.toStringAsFixed(2),
-                      onChanged: (val) {
-                        setState(() => _localRepulsionRate = val);
-                        widget.onChangedRepulsionRate(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
+                    if (_activeTab == 0) ...[
+                      // Repulsion Force Slider
+                      _buildSlider(
+                        title: 'Repulsion Force',
+                        value: _localRepulsionRate,
+                        min: 0.05,
+                        max: 1.5,
+                        divisions: 29,
+                        label: _localRepulsionRate.toStringAsFixed(2),
+                        onChanged: (val) {
+                          setState(() => _localRepulsionRate = val);
+                          widget.onChangedRepulsionRate(val);
+                        },
+                        onChangeEnd: (val) => widget.onReLayout(),
+                      ),
 
-                    // Spring rest length (via Repulsion Percentage)
-                    _buildSlider(
-                      title: 'Link Spring Distance',
-                      value: _localRepulsionPercentage,
-                      min: 0.3,
-                      max: 2.0,
-                      divisions: 34,
-                      label: '${(120.0 * (1.0 / (_localRepulsionPercentage + 0.1))).toStringAsFixed(0)}px',
-                      onChanged: (val) {
-                        setState(() => _localRepulsionPercentage = val);
-                        widget.onChangedRepulsionPercentage(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
+                      // Spring rest length (via Repulsion Percentage)
+                      _buildSlider(
+                        title: 'Link Spring Distance',
+                        value: _localRepulsionPercentage,
+                        min: 0.3,
+                        max: 2.0,
+                        divisions: 34,
+                        label: '${(120.0 * (1.0 / (_localRepulsionPercentage + 0.1))).toStringAsFixed(0)}px',
+                        onChanged: (val) {
+                          setState(() => _localRepulsionPercentage = val);
+                          widget.onChangedRepulsionPercentage(val);
+                        },
+                        onChangeEnd: (val) => widget.onReLayout(),
+                      ),
 
-                    // Attraction Rate Slider
-                    _buildSlider(
-                      title: 'Spring Stiffness',
-                      value: _localAttractionRate,
-                      min: 0.05,
-                      max: 0.9,
-                      divisions: 34,
-                      label: _localAttractionRate.toStringAsFixed(2),
-                      onChanged: (val) {
-                        setState(() => _localAttractionRate = val);
-                        widget.onChangedAttractionRate(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
+                      // Attraction Rate Slider
+                      _buildSlider(
+                        title: 'Spring Stiffness',
+                        value: _localAttractionRate,
+                        min: 0.05,
+                        max: 0.9,
+                        divisions: 34,
+                        label: _localAttractionRate.toStringAsFixed(2),
+                        onChanged: (val) {
+                          setState(() => _localAttractionRate = val);
+                          widget.onChangedAttractionRate(val);
+                        },
+                        onChangeEnd: (val) => widget.onReLayout(),
+                      ),
 
-                    // Friction Damping Slider
-                    _buildSlider(
-                      title: 'Simulation Damping',
-                      value: _localDamping,
-                      min: 0.7,
-                      max: 0.98,
-                      divisions: 28,
-                      label: _localDamping.toStringAsFixed(2),
-                      onChanged: (val) {
-                        setState(() => _localDamping = val);
-                        widget.onChangedDamping(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
-                    const SizedBox(height: 8),
+                      // Friction Damping Slider
+                      _buildSlider(
+                        title: 'Simulation Damping',
+                        value: _localDamping,
+                        min: 0.7,
+                        max: 0.98,
+                        divisions: 28,
+                        label: _localDamping.toStringAsFixed(2),
+                        onChanged: (val) {
+                          setState(() => _localDamping = val);
+                          widget.onChangedDamping(val);
+                        },
+                        onChangeEnd: (val) => widget.onReLayout(),
+                      ),
+                      const SizedBox(height: 8),
 
-                    // Footer Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton.icon(
-                          onPressed: widget.onResetDefaults,
-                          icon: const Icon(Icons.restart_alt_rounded, size: 16),
-                          label: Text(
-                            'Reset Defaults',
-                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: Size.zero,
-                          ),
-                        ),
-                        TactileWrapper(
-                          onTap: widget.onReLayout,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              borderRadius: BorderRadius.circular(8),
+                      // Footer Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: widget.onResetDefaults,
+                            icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                            label: Text(
+                              'Reset Defaults',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
                             ),
-                            child: Text(
-                              'Re-layout',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                            ),
+                          ),
+                          TactileWrapper(
+                            onTap: widget.onReLayout,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Re-layout',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ] else ...[
+                      _buildGroupsTab(context, isDark, colorScheme),
+                    ],
                   ],
                 ),
               ),
@@ -237,6 +290,186 @@ class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
         ),
       ),
     );
+  }
+
+  Widget _buildGroupsTab(BuildContext context, bool isDark, ColorScheme colorScheme) {
+    final groupsAsync = ref.watch(spatialGroupsListProvider);
+    final mappingsAsync = ref.watch(spatialGroupMappingsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Spatial Groups',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (context) => const SpatialGroupEditBottomSheet(),
+                );
+              },
+              icon: const Icon(Icons.add_rounded, size: 14),
+              label: Text(
+                'New Group',
+                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        groupsAsync.when(
+          data: (groups) {
+            if (groups.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    'No spatial groups created yet.',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return Container(
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: groups.length,
+                itemBuilder: (context, index) {
+                  final group = groups[index];
+                  final nodeIds = mappingsAsync.value?[group.id] ?? [];
+                  final resolvedColor = _resolveColor(group.colorHex);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        // Color Indicator Circle
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: resolvedColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                group.name,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+                                ),
+                              ),
+                              Text(
+                                '${nodeIds.length} notes',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Actions
+                        IconButton(
+                          icon: const Icon(Icons.edit_rounded, size: 16),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (context) => SpatialGroupEditBottomSheet(group: group),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.delete_rounded, size: 16),
+                          color: colorScheme.error,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Group'),
+                                content: Text('Are you sure you want to delete "${group.name}"?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: Text('Delete', style: TextStyle(color: colorScheme.error)),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              await ref.read(spatialGroupRepositoryProvider).deleteSpatialGroup(group.id);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Error loading groups: $e'),
+        ),
+      ],
+    );
+  }
+
+  Color _resolveColor(String key) {
+    final theme = Theme.of(context);
+    switch (key.toUpperCase()) {
+      case '#PRIMARY':
+        return theme.colorScheme.primary;
+      case '#ROSE':
+        return theme.colorScheme.error;
+      case '#GREEN':
+        return theme.colorScheme.secondary;
+      case '#AMBER':
+        return theme.colorScheme.tertiary;
+      default:
+        var hexColor = key.replaceAll('#', '');
+        if (hexColor.length == 6) {
+          hexColor = 'FF$hexColor';
+        }
+        final val = int.tryParse(hexColor, radix: 16);
+        return val != null ? Color(val) : theme.colorScheme.primary;
+    }
   }
 
   Widget _buildSlider({

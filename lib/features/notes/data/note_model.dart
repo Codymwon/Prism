@@ -133,6 +133,9 @@ class GraphNode {
   final bool isTemporal;
   final String? temporalType; // 'week', 'month', 'year'
   final bool isGhost;
+  final bool isPinned;
+  final double? pinnedX;
+  final double? pinnedY;
 
   const GraphNode({
     required this.id,
@@ -142,7 +145,36 @@ class GraphNode {
     this.isTemporal = false,
     this.temporalType,
     this.isGhost = false,
+    this.isPinned = false,
+    this.pinnedX,
+    this.pinnedY,
   });
+
+  GraphNode copyWith({
+    String? id,
+    String? title,
+    int? linkCount,
+    String? colorHex,
+    bool? isTemporal,
+    String? temporalType,
+    bool? isGhost,
+    bool? isPinned,
+    double? pinnedX,
+    double? pinnedY,
+  }) {
+    return GraphNode(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      linkCount: linkCount ?? this.linkCount,
+      colorHex: colorHex ?? this.colorHex,
+      isTemporal: isTemporal ?? this.isTemporal,
+      temporalType: temporalType ?? this.temporalType,
+      isGhost: isGhost ?? this.isGhost,
+      isPinned: isPinned ?? this.isPinned,
+      pinnedX: pinnedX ?? this.pinnedX,
+      pinnedY: pinnedY ?? this.pinnedY,
+    );
+  }
 }
 
 /// A graph edge between two notes (for Graph View).
