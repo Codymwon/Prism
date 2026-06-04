@@ -229,11 +229,6 @@ class CustomMacrosScreen extends ConsumerWidget {
     int? index,
     CustomMacro? existingMacro,
   ]) {
-    final isEdit = index != null && existingMacro != null;
-    final labelCtrl = TextEditingController(text: existingMacro?.label ?? '');
-    final textCtrl = TextEditingController(text: existingMacro?.text ?? '');
-    final formKey = GlobalKey<FormState>();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -242,191 +237,81 @@ class CustomMacrosScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 8,
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const DesignSheetDragHandle(),
-                Text(
-                  isEdit ? 'Edit Custom Macro' : 'Create Custom Macro',
-                  style: DesignTypography.heading(
-                    context,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                
-                // Label Input
-                Text(
-                  'BUTTON LABEL',
-                  style: DesignTypography.metadata(
-                    context,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: labelCtrl,
-                  maxLength: 12,
-                  style: DesignTypography.body(context, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Date, Todo, Tag',
-                    hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: DesignColors.border(context)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: DesignColors.primary(context), width: 1.5),
-                    ),
-                    counterText: '',
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Label is required';
-                    }
-                    if (val.trim().length > 12) {
-                      return 'Label must be 12 chars or less';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Text Input
-                Text(
-                  'MACRO INJECTION TEXT',
-                  style: DesignTypography.metadata(
-                    context,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: textCtrl,
-                  maxLines: 4,
-                  minLines: 2,
-                  style: DesignTypography.body(context, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Enter text, templates, tags, or placeholders…',
-                    hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: DesignColors.border(context)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: DesignColors.primary(context), width: 1.5),
-                    ),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Injection text is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // Placeholder Pill Shelf
-                Text(
-                  'TAP DYNAMIC PLACEHOLDERS TO INSERT:',
-                  style: DesignTypography.metadata(
-                    context,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: DesignColors.textSecondary(context),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _buildPlaceholderPill(ctx, textCtrl, '{{date}}', 'Current Date'),
-                    _buildPlaceholderPill(ctx, textCtrl, '{{time}}', 'Current Time'),
-                    _buildPlaceholderPill(ctx, textCtrl, '{{datetime}}', 'Date & Time'),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Buttons Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          side: BorderSide(color: DesignColors.border(context)),
-                        ),
-                        onPressed: () => Navigator.pop(ctx),
-                        child: Text(
-                          'Cancel',
-                          style: DesignTypography.body(context, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TactileWrapper(
-                        style: TactileFeedbackStyle.standard,
-                        onTap: () {
-                          if (formKey.currentState!.validate()) {
-                            final macro = CustomMacro(
-                              label: labelCtrl.text.trim(),
-                              text: textCtrl.text,
-                            );
-                            if (isEdit) {
-                              ref.read(customMacrosProvider.notifier).updateMacro(index, macro);
-                            } else {
-                              ref.read(customMacrosProvider.notifier).addMacro(macro);
-                            }
-                            Navigator.pop(ctx);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: DesignColors.primary(context),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            isEdit ? 'Save Changes' : 'Create Macro',
-                            style: DesignTypography.body(
-                              context,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+        return _MacroEditorSheet(
+          existingMacro: existingMacro,
+          index: index,
         );
       },
     );
+  }
+
+  void _confirmReset(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: DesignColors.background(context),
+        title: Text(
+          'Reset Macros',
+          style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to reset all macros to their defaults? This will erase your custom edits.',
+          style: DesignTypography.body(context),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: DesignTypography.body(context)),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(customMacrosProvider.notifier).resetToDefaults();
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Macros reset to defaults.')),
+              );
+            },
+            child: Text(
+              'Reset',
+              style: DesignTypography.body(context, color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MacroEditorSheet extends ConsumerStatefulWidget {
+  final CustomMacro? existingMacro;
+  final int? index;
+
+  const _MacroEditorSheet({
+    this.existingMacro,
+    this.index,
+  });
+
+  @override
+  ConsumerState<_MacroEditorSheet> createState() => _MacroEditorSheetState();
+}
+
+class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
+  late final TextEditingController _labelController;
+  late final TextEditingController _textController;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _labelController = TextEditingController(text: widget.existingMacro?.label ?? '');
+    _textController = TextEditingController(text: widget.existingMacro?.text ?? '');
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _textController.dispose();
+    super.dispose();
   }
 
   Widget _buildPlaceholderPill(
@@ -485,38 +370,191 @@ class CustomMacrosScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmReset(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: DesignColors.background(context),
-        title: Text(
-          'Reset Macros',
-          style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Are you sure you want to reset all macros to their defaults? This will erase your custom edits.',
-          style: DesignTypography.body(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: DesignTypography.body(context)),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(customMacrosProvider.notifier).resetToDefaults();
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Macros reset to defaults.')),
-              );
-            },
-            child: Text(
-              'Reset',
-              style: DesignTypography.body(context, color: Colors.red, fontWeight: FontWeight.bold),
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.index != null && widget.existingMacro != null;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        left: 20,
+        right: 20,
+        top: 8,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const DesignSheetDragHandle(),
+            Text(
+              isEdit ? 'Edit Custom Macro' : 'Create Custom Macro',
+              style: DesignTypography.heading(
+                context,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            
+            // Label Input
+            Text(
+              'BUTTON LABEL',
+              style: DesignTypography.metadata(
+                context,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _labelController,
+              maxLength: 12,
+              style: DesignTypography.body(context, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'e.g. Date, Todo, Tag',
+                hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: DesignColors.border(context)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: DesignColors.primary(context), width: 1.5),
+                ),
+                counterText: '',
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Label is required';
+                }
+                if (val.trim().length > 12) {
+                  return 'Label must be 12 chars or less';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Text Input
+            Text(
+              'MACRO INJECTION TEXT',
+              style: DesignTypography.metadata(
+                context,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _textController,
+              maxLines: 4,
+              minLines: 2,
+              style: DesignTypography.body(context, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Enter text, templates, tags, or placeholders…',
+                hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: DesignColors.border(context)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: DesignColors.primary(context), width: 1.5),
+                ),
+              ),
+              validator: (val) {
+                if (val == null || val.isEmpty) {
+                  return 'Injection text is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Placeholder Pill Shelf
+            Text(
+              'TAP DYNAMIC PLACEHOLDERS TO INSERT:',
+              style: DesignTypography.metadata(
+                context,
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: DesignColors.textSecondary(context),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildPlaceholderPill(context, _textController, '{{date}}', 'Current Date'),
+                _buildPlaceholderPill(context, _textController, '{{time}}', 'Current Time'),
+                _buildPlaceholderPill(context, _textController, '{{datetime}}', 'Date & Time'),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Buttons Row
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: BorderSide(color: DesignColors.border(context)),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: DesignTypography.body(context, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TactileWrapper(
+                    style: TactileFeedbackStyle.standard,
+                    onTap: () {
+                      if (_formKey.currentState!.validate()) {
+                        final macro = CustomMacro(
+                          label: _labelController.text.trim(),
+                          text: _textController.text,
+                        );
+                        if (isEdit) {
+                          ref.read(customMacrosProvider.notifier).updateMacro(widget.index!, macro);
+                        } else {
+                          ref.read(customMacrosProvider.notifier).addMacro(macro);
+                        }
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: DesignColors.primary(context),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        isEdit ? 'Save Changes' : 'Create Macro',
+                        style: DesignTypography.body(
+                          context,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

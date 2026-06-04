@@ -105,7 +105,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           alignment: Alignment.topCenter,
           children: <Widget>[
             ...previousChildren,
-            if (currentChild != null) currentChild,
+            ?currentChild,
           ],
         );
       },
@@ -195,9 +195,21 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   ) async {
     final isDesktop = MediaQuery.of(context).size.width >= 800;
     final repo = ref.read(noteRepositoryProvider);
+    final String initialContent;
+    if (templateContent != null) {
+      initialContent = templateContent;
+    } else {
+      final buffer = StringBuffer();
+      buffer.writeln('---');
+      buffer.writeln('title: "Daily Reflection"');
+      buffer.writeln('date: $dateStr');
+      buffer.writeln('---');
+      buffer.writeln();
+      initialContent = buffer.toString();
+    }
     final note = await repo.createNote(
-      title: dateStr,
-      initialContent: templateContent ?? '# $dateStr\n\n',
+      title: 'Daily Reflection',
+      initialContent: initialContent,
       isDaily: true,
       dailyDate: dateStr,
     );
@@ -214,11 +226,11 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     final selectedDay = ref.read(selectedDayProvider);
     final dateStr = formatDailyDate(selectedDay);
     final templates = {
-      'Gratitude': '# $dateStr\n\n## 🙏 Gratitude & Focus\n- I am grateful for...\n- Today\'s positive highlight: \n\n## 🎙️ Mindful Recording\n*(Tap 🎙️ in the toolbar to record your voice reflection here)*\n\n## 🔗 Connections\n- Connected notes: [[Weekly Review]], [[My Future Ideas]]\n\n#journal #gratitude\n',
-      'Daily Plan': '# $dateStr\n\n## 📋 Today\'s Focus\n- [ ] Top priority 1\n- [ ] Top priority 2\n- [ ] Top priority 3\n\n## 📅 Tasks & Schedule\n- [ ] Morning routine *(Tap ☑️ Todo in toolbar to add tasks)*\n- [ ] Work focus session\n- [ ] Evening wind-down\n\n## 🔗 Connections\n- Linked goals: [[Annual Goals]]\n\n#planning #tasks\n',
-      'Reflection': '# $dateStr\n\n## 💭 Daily Reflection\n- **What went well today?** \n- **What could have been improved?** \n- **Key learning or breakthrough:** \n\n## 🎙️ Voice Journal\n*(Speak your mind with offline voice dictation in the toolbar)*\n\n## 🔗 Connections\n- Connected note: [[Personal Growth]]\n\n#reflection #mindfulness\n',
-      'Goals': '# $dateStr\n\n## 🎯 Goals Check-in\n- **Current focus:** \n- [ ] Goal milestone task 1\n- [ ] Goal milestone task 2\n\n## 🚧 Blockers & Next Steps\n- What is holding me back? \n- Next actionable step: \n\n## 🔗 Connections\n- Master board: [[Annual Goals]], [[Projects]]\n\n#goals #productivity\n',
+      'Gratitude': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 🙏 Gratitude & Focus\n- I am grateful for...\n- Today\'s positive highlight: \n\n## 🎙️ Mindful Recording\n*(Tap 🎙️ in the toolbar to record your voice reflection here)*\n\n## 🔗 Connections\n- Connected notes: [[Weekly Review]], [[My Future Ideas]]\n\n#journal #gratitude\n',
+      'Daily Plan': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 📋 Today\'s Focus\n- [ ] Top priority 1\n- [ ] Top priority 2\n- [ ] Top priority 3\n\n## 📅 Tasks & Schedule\n- [ ] Morning routine *(Tap ☑️ Todo in toolbar to add tasks)*\n- [ ] Work focus session\n- [ ] Evening wind-down\n\n## 🔗 Connections\n- Linked goals: [[Annual Goals]]\n\n#planning #tasks\n',
+      'Reflection': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 💭 Daily Reflection\n- **What went well today?** \n- **What could have been improved?** \n- **Key learning or breakthrough:** \n\n## 🎙️ Voice Journal\n*(Speak your mind with offline voice dictation in the toolbar)*\n\n## 🔗 Connections\n- Connected note: [[Personal Growth]]\n\n#reflection #mindfulness\n',
+      'Goals': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 🎯 Goals Check-in\n- **Current focus:** \n- [ ] Goal milestone task 1\n- [ ] Goal milestone task 2\n\n## 🚧 Blockers & Next Steps\n- What is holding me back? \n- Next actionable step: \n\n## 🔗 Connections\n- Master board: [[Annual Goals]], [[Projects]]\n\n#goals #productivity\n',
     };
-    _createDailyNote(context, dateStr, templates[templateName]);
+    _createDailyNote(context, dateStr, templates[templateName]!);
   }
 }

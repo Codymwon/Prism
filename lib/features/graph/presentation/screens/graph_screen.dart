@@ -37,10 +37,11 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
   bool _showSettings = false;
 
   // Simulation physics parameters (Obsidian-Style)
-  double _repulsionRate = 1.0;            // Repelling charge strength
-  double _repulsionPercentage = 0.5;      // Controls Rest Length: restLength = 120 * (1 / (repulsionPercentage + 0.1))
-  double _attractionRate = 0.35;          // Elastic spring stiffness
-  double _damping = 0.85;                 // Simulation Friction / drag resistance
+  // repulsionPercentage=0.9  →  restLength = 120 / (0.9+0.1) = 120 px  (mobile-friendly)
+  double _repulsionRate = 0.6;            // Repelling charge strength
+  double _repulsionPercentage = 0.9;      // Controls Rest Length: restLength = 120 * (1 / (repulsionPercentage + 0.1))
+  double _attractionRate = 0.45;          // Elastic spring stiffness
+  double _damping = 0.88;                 // Simulation Friction / drag resistance
 
   @override
   void initState() {
@@ -74,10 +75,10 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
 
   void _resetToDefaults() {
     setState(() {
-      _repulsionRate = 1.0;
-      _repulsionPercentage = 0.5;
-      _attractionRate = 0.35;
-      _damping = 0.85;
+      _repulsionRate = 0.6;
+      _repulsionPercentage = 0.9;
+      _attractionRate = 0.45;
+      _damping = 0.88;
       _triggerReLayout();
     });
   }
@@ -100,7 +101,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
             Expanded(
               child: graphAsync.when(
                 data: (data) {
-                  if (data.nodes.isEmpty || data.edges.isEmpty) {
+                  if (data.nodes.isEmpty) {
                     return const GraphEmptyState();
                   }
                   return Stack(
@@ -272,7 +273,11 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
         linkCount: gn.linkCount,
         isSelected: isSelected,
         colorHex: gn.colorHex,
+        isTemporal: gn.isTemporal,
+        temporalType: gn.temporalType,
+        isGhost: gn.isGhost,
         onTap: () {
+          if (gn.isTemporal) return;
           setState(() {
             _selectedNodeId = gn.id;
             _nodeContentCache.clear(); // Rebuild with selection highlights!
@@ -467,6 +472,7 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
                   positions: _positions,
                   edges: widget.edges,
                   color: colorScheme.primary.withValues(alpha: 0.35),
+                  ghostNodeIds: widget.nodes.where((n) => n.isGhost).map((n) => n.id).toSet(),
                   repaint: _repaintNotifier,
                 ),
               ),
@@ -577,18 +583,25 @@ class GraphLinksPainter extends CustomPainter {
   final Map<String, Offset> positions;
   final List<GraphEdge> edges;
   final Color color;
+  final Set<String> ghostNodeIds;
 
   GraphLinksPainter({
     required this.positions,
     required this.edges,
     required this.color,
+    required this.ghostNodeIds,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
+    final standardPaint = Paint()
       ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    final ghostPaint = Paint()
+      ..color = color.withValues(alpha: 0.15)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -596,7 +609,8 @@ class GraphLinksPainter extends CustomPainter {
       final src = positions[edge.sourceId];
       final tgt = positions[edge.targetId];
       if (src != null && tgt != null) {
-        canvas.drawLine(src, tgt, paint);
+        final isGhostConnection = ghostNodeIds.contains(edge.sourceId) || ghostNodeIds.contains(edge.targetId);
+        canvas.drawLine(src, tgt, isGhostConnection ? ghostPaint : standardPaint);
       }
     }
   }
@@ -605,6 +619,7 @@ class GraphLinksPainter extends CustomPainter {
   bool shouldRepaint(covariant GraphLinksPainter oldDelegate) {
     return oldDelegate.positions != positions || 
            oldDelegate.edges != edges || 
-           oldDelegate.color != color;
+           oldDelegate.color != color ||
+           oldDelegate.ghostNodeIds != ghostNodeIds;
   }
 }

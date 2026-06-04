@@ -26,54 +26,11 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
   }
 
   void _showCreateVaultDialog() {
-    final controller = TextEditingController();
-
     showDialog(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: DesignColors.surface(context),
-          title: Text(
-            'Create New Vault',
-            style: DesignTypography.heading(context, fontWeight: FontWeight.w700),
-          ),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            style: DesignTypography.body(context),
-            decoration: InputDecoration(
-              hintText: 'Vault Name',
-              hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
-              filled: true,
-              fillColor: DesignColors.surfaceVariant(context),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: DesignColors.border(context)),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: DesignTypography.details(context)),
-            ),
-            TextButton(
-              onPressed: () async {
-                final name = controller.text.trim();
-                if (name.isEmpty) return;
-                final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
-                if (!safePattern.hasMatch(name)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
-                  );
-                  return;
-                }
-                Navigator.pop(ctx);
-                await _createNewVault(name);
-              },
-              child: Text('Create', style: DesignTypography.details(context, fontWeight: FontWeight.bold)),
-            ),
-          ],
+        return _CreateVaultDialog(
+          onConfirm: (name) => _createNewVault(name),
         );
       },
     );
@@ -194,6 +151,79 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
           const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+}
+
+class _CreateVaultDialog extends StatefulWidget {
+  final ValueChanged<String> onConfirm;
+
+  const _CreateVaultDialog({required this.onConfirm});
+
+  @override
+  State<_CreateVaultDialog> createState() => _CreateVaultDialogState();
+}
+
+class _CreateVaultDialogState extends State<_CreateVaultDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: DesignColors.surface(context),
+      title: Text(
+        'Create New Vault',
+        style: DesignTypography.heading(context, fontWeight: FontWeight.w700),
+      ),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        style: DesignTypography.body(context),
+        decoration: InputDecoration(
+          hintText: 'Vault Name',
+          hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
+          filled: true,
+          fillColor: DesignColors.surfaceVariant(context),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+            borderSide: BorderSide(color: DesignColors.border(context)),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: DesignTypography.details(context)),
+        ),
+        TextButton(
+          onPressed: () {
+            final name = _controller.text.trim();
+            if (name.isEmpty) return;
+            final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+            if (!safePattern.hasMatch(name)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
+              );
+              return;
+            }
+            Navigator.pop(context);
+            widget.onConfirm(name);
+          },
+          child: Text('Create', style: DesignTypography.details(context, fontWeight: FontWeight.bold)),
+        ),
+      ],
     );
   }
 }

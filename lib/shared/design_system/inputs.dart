@@ -79,20 +79,21 @@ class DesignSearchBar extends StatefulWidget {
 
 class _DesignSearchBarState extends State<DesignSearchBar> {
   final _controller = TextEditingController();
-  late final FocusNode _focus;
+  FocusNode? _internalFocusNode;
   bool _hasFocus = false;
+
+  FocusNode get _effectiveFocusNode => widget.focusNode ?? (_internalFocusNode ??= FocusNode());
 
   @override
   void initState() {
     super.initState();
-    _focus = widget.focusNode ?? FocusNode();
-    _focus.addListener(_onFocusChange);
+    _effectiveFocusNode.addListener(_onFocusChange);
   }
 
   void _onFocusChange() {
     if (mounted) {
-      setState(() => _hasFocus = _focus.hasFocus);
-      if (_focus.hasFocus) widget.onFocused();
+      setState(() => _hasFocus = _effectiveFocusNode.hasFocus);
+      if (_effectiveFocusNode.hasFocus) widget.onFocused();
     }
   }
 
@@ -100,20 +101,22 @@ class _DesignSearchBarState extends State<DesignSearchBar> {
   void didUpdateWidget(DesignSearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusNode != oldWidget.focusNode) {
-      oldWidget.focusNode?.removeListener(_onFocusChange);
-      _focus = widget.focusNode ?? FocusNode();
-      _focus.addListener(_onFocusChange);
+      final oldFocusNode = oldWidget.focusNode ?? _internalFocusNode;
+      oldFocusNode?.removeListener(_onFocusChange);
+      _effectiveFocusNode.addListener(_onFocusChange);
+      if (widget.focusNode != null && _internalFocusNode != null) {
+        _internalFocusNode!.dispose();
+        _internalFocusNode = null;
+      }
     }
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    if (widget.focusNode == null) {
-      _focus.dispose();
-    } else {
-      _focus.removeListener(_onFocusChange);
-    }
+    final currentFocus = widget.focusNode ?? _internalFocusNode;
+    currentFocus?.removeListener(_onFocusChange);
+    _internalFocusNode?.dispose();
     super.dispose();
   }
 
@@ -149,7 +152,7 @@ class _DesignSearchBarState extends State<DesignSearchBar> {
           Expanded(
             child: TextField(
               controller: _controller,
-              focusNode: _focus,
+              focusNode: _effectiveFocusNode,
               onChanged: (val) {
                 setState(() {});
                 widget.onChanged(val);

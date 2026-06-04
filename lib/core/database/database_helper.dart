@@ -105,16 +105,18 @@ class DatabaseHelper {
       )
     ''');
 
-    // FTS triggers to keep the index in sync
+    // FTS triggers to keep the index in sync (ghost notes excluded)
     await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+      CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes
+      WHEN new.is_ghost = 0 BEGIN
         INSERT INTO notes_fts(id, title) VALUES (new.id, new.title);
       END
     ''');
     await db.execute('''
       CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
         DELETE FROM notes_fts WHERE id = old.id;
-        INSERT INTO notes_fts(id, title) VALUES (new.id, new.title);
+        INSERT OR IGNORE INTO notes_fts(id, title)
+          SELECT new.id, new.title WHERE new.is_ghost = 0;
       END
     ''');
     await db.execute('''
@@ -219,16 +221,18 @@ class DatabaseHelper {
         // Populate FTS5 table with existing note data
         await db.execute('INSERT INTO notes_fts(id, title) SELECT id, title FROM notes WHERE is_ghost = 0');
         
-        // Recreate triggers
+        // Recreate triggers (ghost notes excluded)
         await db.execute('''
-          CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+          CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes
+          WHEN new.is_ghost = 0 BEGIN
             INSERT INTO notes_fts(id, title) VALUES (new.id, new.title);
           END
         ''');
         await db.execute('''
           CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
             DELETE FROM notes_fts WHERE id = old.id;
-            INSERT INTO notes_fts(id, title) VALUES (new.id, new.title);
+            INSERT OR IGNORE INTO notes_fts(id, title)
+              SELECT new.id, new.title WHERE new.is_ghost = 0;
           END
         ''');
         await db.execute('''

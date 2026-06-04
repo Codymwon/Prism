@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meridian/features/notes/data/note_model.dart';
 import 'package:meridian/features/notes/data/note_repository.dart';
-import 'package:meridian/features/notes/presentation/providers/notes_providers.dart';
 import 'package:meridian/features/settings/presentation/screens/attachments_screen.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';

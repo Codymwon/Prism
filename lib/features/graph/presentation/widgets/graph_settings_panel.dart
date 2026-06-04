@@ -137,8 +137,8 @@ class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
                       title: 'Repulsion Force',
                       value: _localRepulsionRate,
                       min: 0.05,
-                      max: 3.0,
-                      divisions: 59,
+                      max: 1.5,
+                      divisions: 29,
                       label: _localRepulsionRate.toStringAsFixed(2),
                       onChanged: (val) {
                         setState(() => _localRepulsionRate = val);
@@ -151,9 +151,9 @@ class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
                     _buildSlider(
                       title: 'Link Spring Distance',
                       value: _localRepulsionPercentage,
-                      min: 0.1,
-                      max: 1.0,
-                      divisions: 18,
+                      min: 0.3,
+                      max: 2.0,
+                      divisions: 34,
                       label: '${(120.0 * (1.0 / (_localRepulsionPercentage + 0.1))).toStringAsFixed(0)}px',
                       onChanged: (val) {
                         setState(() => _localRepulsionPercentage = val);
@@ -166,9 +166,9 @@ class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
                     _buildSlider(
                       title: 'Spring Stiffness',
                       value: _localAttractionRate,
-                      min: 0.01,
-                      max: 1.0,
-                      divisions: 99,
+                      min: 0.05,
+                      max: 0.9,
+                      divisions: 34,
                       label: _localAttractionRate.toStringAsFixed(2),
                       onChanged: (val) {
                         setState(() => _localAttractionRate = val);
@@ -181,9 +181,9 @@ class _GraphSettingsPanelState extends State<GraphSettingsPanel> {
                     _buildSlider(
                       title: 'Simulation Damping',
                       value: _localDamping,
-                      min: 0.5,
+                      min: 0.7,
                       max: 0.98,
-                      divisions: 48,
+                      divisions: 28,
                       label: _localDamping.toStringAsFixed(2),
                       onChanged: (val) {
                         setState(() => _localDamping = val);

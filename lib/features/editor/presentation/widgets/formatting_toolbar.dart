@@ -7,7 +7,7 @@ import '../../../settings/presentation/providers/custom_macro_provider.dart';
 import '../utils/editor_helpers.dart';
 import 'audio_player_bottom_sheet.dart';
 
-class FormattingToolbar extends ConsumerWidget {
+class FormattingToolbar extends ConsumerStatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onToggleDictation;
@@ -22,7 +22,128 @@ class FormattingToolbar extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FormattingToolbar> createState() => _FormattingToolbarState();
+}
+
+class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
+  final _headingKey = GlobalKey();
+
+  void _showHeadingMenu(BuildContext context) {
+    final RenderBox? box = _headingKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final Offset offset = box.localToGlobal(Offset.zero);
+    final Size size = box.size;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final headings = [
+      ('H1', '# ', 'Heading 1'),
+      ('H2', '## ', 'Heading 2'),
+      ('H3', '### ', 'Heading 3'),
+      ('H4', '#### ', 'Heading 4'),
+    ];
+
+    showMenu<String>(
+      context: context,
+      color: isDark ? DesignColors.surface(context) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: DesignColors.border(context),
+          width: 1,
+        ),
+      ),
+      elevation: 8,
+      shadowColor: Colors.black26,
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy - 178, // above the button
+        offset.dx + size.width,
+        offset.dy,
+      ),
+      items: headings.map((h) {
+        final label = h.$1;
+        final prefix = h.$2;
+        final desc = h.$3;
+        final fontSize = switch (label) {
+          'H1' => 17.0,
+          'H2' => 15.0,
+          'H3' => 13.5,
+          _    => 12.5,
+        };
+        return PopupMenuItem<String>(
+          value: prefix,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          height: 42,
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.primary,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                desc,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: label == 'H1' ? FontWeight.w700 : FontWeight.w600,
+                  color: DesignColors.text(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    ).then((prefix) {
+      if (prefix == null) return;
+      _insertHeadingPrefix(prefix);
+    });
+  }
+
+  /// Inserts a heading prefix at the beginning of the line containing the cursor.
+  /// Replaces any existing heading prefix on that line.
+  void _insertHeadingPrefix(String newPrefix) {
+    final text = widget.controller.text;
+    final selection = widget.controller.selection;
+    final cursor = selection.isValid ? selection.baseOffset : text.length;
+
+    // Find start of current line
+    final lineStart = text.lastIndexOf('\n', cursor - 1) + 1;
+    final lineEnd = text.indexOf('\n', cursor);
+    final actualLineEnd = lineEnd == -1 ? text.length : lineEnd;
+    final currentLine = text.substring(lineStart, actualLineEnd);
+
+    // Strip any existing heading prefix
+    final stripped = currentLine.replaceFirst(RegExp(r'^#{1,6} ?'), '');
+    final newLine = '$newPrefix$stripped';
+
+    final newText = text.replaceRange(lineStart, actualLineEnd, newLine);
+    final newCursor = (lineStart + newPrefix.length + stripped.length).clamp(0, newText.length);
+
+    widget.controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newCursor),
+    );
+    widget.focusNode.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final customMacros = ref.watch(customMacrosProvider);
     final mediaQuery = MediaQuery.of(context);
     final clampedTextScaler = mediaQuery.textScaler.clamp(
@@ -60,8 +181,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.format_bold_rounded,
                 tooltip: 'Bold',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '**',
                   suffix: '**',
                 ),
@@ -71,29 +192,27 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.format_italic_rounded,
                 tooltip: 'Italic',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '*',
                   suffix: '*',
                 ),
               ),
+              // Heading button with H1–H4 popup menu
               _buildFormattingButton(
                 context,
                 icon: Icons.format_size_rounded,
-                tooltip: 'Heading',
-                onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
-                  prefix: '# ',
-                ),
+                tooltip: 'Heading (H1–H4)',
+                key: _headingKey,
+                onTap: () => _showHeadingMenu(context),
               ),
               _buildFormattingButton(
                 context,
                 icon: Icons.link_rounded,
                 tooltip: 'Wikilink',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '[[',
                   suffix: ']]',
                 ),
@@ -103,8 +222,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.label_outline_rounded,
                 tooltip: 'Tag',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '#',
                 ),
               ),
@@ -113,8 +232,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.format_list_bulleted_rounded,
                 tooltip: 'Bullet List',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '\n- ',
                 ),
               ),
@@ -123,8 +242,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.checklist_rounded,
                 tooltip: 'Checklist',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '\n- [ ] ',
                 ),
               ),
@@ -133,8 +252,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.code_rounded,
                 tooltip: 'Code',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '`',
                   suffix: '`',
                 ),
@@ -144,8 +263,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.format_quote_rounded,
                 tooltip: 'Blockquote',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '\n> ',
                 ),
               ),
@@ -154,8 +273,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.strikethrough_s_rounded,
                 tooltip: 'Strikethrough',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '~~',
                   suffix: '~~',
                 ),
@@ -165,8 +284,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.border_color_rounded,
                 tooltip: 'Highlight',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '==',
                   suffix: '==',
                 ),
@@ -176,8 +295,8 @@ class FormattingToolbar extends ConsumerWidget {
                 icon: Icons.horizontal_rule_rounded,
                 tooltip: 'Divider',
                 onTap: () => insertFormatting(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   prefix: '\n---\n',
                 ),
               ),
@@ -185,14 +304,14 @@ class FormattingToolbar extends ConsumerWidget {
                 context,
                 icon: Icons.image_outlined,
                 tooltip: 'Attach Image',
-                onTap: onAttachImage,
+                onTap: widget.onAttachImage,
               ),
               if (Platform.isAndroid)
                 _buildFormattingButton(
                   context,
                   icon: Icons.mic_none_rounded,
                   tooltip: 'Dictate (Voice-to-Text)',
-                  onTap: onToggleDictation,
+                  onTap: widget.onToggleDictation,
                 ),
 
               // Vertical Divider separating standard actions and custom macros
@@ -209,8 +328,8 @@ class FormattingToolbar extends ConsumerWidget {
                     label: macro.label,
                     tooltip: 'Insert: ${macro.text.replaceAll('\n', ' ')}',
                     onTap: () => insertMacro(
-                      controller: controller,
-                      focusNode: focusNode,
+                      controller: widget.controller,
+                      focusNode: widget.focusNode,
                       macro: macro,
                     ),
                   );
@@ -225,11 +344,13 @@ class FormattingToolbar extends ConsumerWidget {
 
   Widget _buildFormattingButton(
     BuildContext context, {
+    Key? key,
     required IconData icon,
     required String tooltip,
     required VoidCallback onTap,
   }) {
     return TactileWrapper(
+      key: key,
       style: TactileFeedbackStyle.standard,
       onTap: onTap,
       child: Tooltip(

@@ -205,9 +205,10 @@ final allDailyDatesProvider = FutureProvider.autoDispose<Set<String>>((ref) asyn
     columns: ['daily_date'],
     where: 'is_daily = 1 AND is_ghost = 0',
   );
+  final datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
   return maps
       .map((m) => m['daily_date'] as String?)
-      .where((d) => d != null && d.isNotEmpty)
+      .where((d) => d != null && d.isNotEmpty && datePattern.hasMatch(d))
       .cast<String>()
       .toSet();
 });

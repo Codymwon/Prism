@@ -27,7 +27,11 @@ void main() {
     });
 
     group('extractTitle', () {
-      test('should extract title from standard markdown H1 header', () {
+      test('should extract title from frontmatter if present', () {
+        expect(extractTitle('---\ntitle: My Frontmatter Title\n---\n# Some H1 Header'), equals('My Frontmatter Title'));
+      });
+
+      test('should extract title from standard markdown H1 header if no frontmatter title', () {
         expect(extractTitle('# Welcome to Meridian\n\nSome body text.'), equals('Welcome to Meridian'));
       });
 
@@ -35,12 +39,26 @@ void main() {
         expect(extractTitle('#    My Custom Title    \nBody.'), equals('My Custom Title'));
       });
 
-      test('should fallback to first non-empty line if no H1 exists', () {
+      test('should fallback to first non-empty line if no H1 or frontmatter exists', () {
         expect(extractTitle('\n\nFirst line of note\nSecond line.'), equals('First line of note'));
       });
 
       test('should return "Untitled" if content is completely empty', () {
         expect(extractTitle('   \n\n  '), equals('Untitled'));
+      });
+    });
+
+    group('Frontmatter Helpers', () {
+      test('should strip frontmatter cleanly', () {
+        expect(stripFrontmatter('---\ntitle: A\ndate: 2026-06-04\n---\nMy body content'), equals('My body content'));
+        expect(stripFrontmatter('No frontmatter content'), equals('No frontmatter content'));
+      });
+
+      test('should extract frontmatter values', () {
+        final content = '---\ntitle: "My Cool Title"\ndate: 2026-06-04\n---';
+        expect(extractFrontmatterValue(content, 'title'), equals('My Cool Title'));
+        expect(extractFrontmatterValue(content, 'date'), equals('2026-06-04'));
+        expect(extractFrontmatterValue(content, 'nonexistent'), isNull);
       });
     });
 

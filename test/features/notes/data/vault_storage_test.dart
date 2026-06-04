@@ -75,6 +75,23 @@ I am linking to [[Productivity Tools Guide]] and [[Welcome to Meridian]].
       expect(metadata.wikilinks, containsAll(['Productivity Tools Guide', 'Welcome to Meridian']));
     });
 
+    test('should parse metadata cleanly with frontmatter', () {
+      const content = '''---
+title: "Custom Frontmatter Title"
+date: 2026-06-04
+tags: [ignored]
+---
+# Main Heading
+This is a note with #actualtag and [[Target Link]].
+''';
+      final metadata = parser.parse(content);
+      expect(metadata.title, equals('Custom Frontmatter Title'));
+      expect(metadata.tags, contains('actualtag'));
+      expect(metadata.tags, isNot(contains('ignored')));
+      expect(metadata.wikilinks, contains('Target Link'));
+      expect(metadata.wordCount, equals(12));
+    });
+
     test('should slugify title correctly', () {
       expect(parser.titleToSlug('My New Note!'), equals('my-new-note'));
     });

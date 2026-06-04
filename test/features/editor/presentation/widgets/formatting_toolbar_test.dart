@@ -49,17 +49,17 @@ void main() {
     // Find the toolbar container position
     final toolbarFinder = find.byType(FormattingToolbar);
     final toolbarRect = tester.getRect(toolbarFinder);
-    print('Toolbar Rect: $toolbarRect');
+    debugPrint('Toolbar Rect: $toolbarRect');
 
     // Find the first formatting button position (e.g. Bold button)
     final boldButtonFinder = find.byTooltip('Bold');
     final boldButtonRect = tester.getRect(boldButtonFinder);
-    print('Bold Button Rect: $boldButtonRect');
+    debugPrint('Bold Button Rect: $boldButtonRect');
 
     // Find the first macro button position (e.g. Long Label One)
     final macroButtonFinder = find.byTooltip('Insert: 1');
     final macroButtonRect = tester.getRect(macroButtonFinder);
-    print('Macro Button Rect: $macroButtonRect');
+    debugPrint('Macro Button Rect: $macroButtonRect');
 
     // Clear test text scale factor
     tester.platformDispatcher.clearTextScaleFactorTestValue();

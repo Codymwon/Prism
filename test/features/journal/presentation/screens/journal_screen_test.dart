@@ -7,7 +7,6 @@ import 'package:meridian/features/notes/data/note_model.dart';
 import 'package:meridian/core/utils/utils.dart';
 import 'package:meridian/features/journal/presentation/widgets/journal_week_strip.dart';
 import 'package:meridian/features/journal/presentation/widgets/journal_streak_grid.dart';
-import 'package:meridian/features/journal/presentation/widgets/journal_templates_row.dart';
 import 'package:meridian/features/journal/presentation/widgets/journal_empty_state.dart';
 
 void main() {

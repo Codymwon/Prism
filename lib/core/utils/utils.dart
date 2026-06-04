@@ -66,14 +66,80 @@ String titleToSlug(String title) {
 }
 
 /// Extracts the title from a markdown string.
-/// Looks for a # heading first, falls back to first non-empty line.
+/// Looks for frontmatter first, falls back to # heading, and finally to first non-empty line.
 String extractTitle(String content) {
+  final fmTitle = extractFrontmatterValue(content, 'title');
+  if (fmTitle != null && fmTitle.isNotEmpty) {
+    return fmTitle;
+  }
   for (final line in content.split('\n')) {
     final trimmed = line.trim();
     if (trimmed.startsWith('# ')) return trimmed.substring(2).trim();
     if (trimmed.isNotEmpty) return trimmed;
   }
   return 'Untitled';
+}
+
+/// Strips the YAML frontmatter block from a markdown string if it exists.
+String stripFrontmatter(String content) {
+  final cleanContent = content.trimLeft();
+  final hasFrontmatter = cleanContent.startsWith('---\n') || cleanContent.startsWith('---\r\n');
+  if (!hasFrontmatter) return content;
+  
+  final lines = cleanContent.split('\n');
+  int closingIndex = -1;
+  for (int i = 1; i < lines.length; i++) {
+    if (lines[i].trim() == '---') {
+      closingIndex = i;
+      break;
+    }
+  }
+  
+  if (closingIndex != -1) {
+    final remainingLines = lines.sublist(closingIndex + 1);
+    var rest = remainingLines.join('\n');
+    // Also trim leading blank lines of body content if any
+    if (rest.startsWith('\r\n')) {
+      rest = rest.substring(2);
+    } else if (rest.startsWith('\n')) {
+      rest = rest.substring(1);
+    }
+    return rest;
+  }
+  return content;
+}
+
+/// Extracts a value for a specific key from YAML frontmatter if present.
+String? extractFrontmatterValue(String content, String key) {
+  final cleanContent = content.trimLeft();
+  final hasFrontmatter = cleanContent.startsWith('---\n') || cleanContent.startsWith('---\r\n');
+  if (!hasFrontmatter) return null;
+  
+  final lines = cleanContent.split('\n');
+  int closingIndex = -1;
+  for (int i = 1; i < lines.length; i++) {
+    if (lines[i].trim() == '---') {
+      closingIndex = i;
+      break;
+    }
+  }
+  
+  if (closingIndex != -1) {
+    final frontmatterLines = lines.sublist(1, closingIndex);
+    final keyPattern = RegExp('^${RegExp.escape(key)}\\s*:\\s*(.*)\$');
+    for (final line in frontmatterLines) {
+      final match = keyPattern.firstMatch(line.trim());
+      if (match != null) {
+        var value = match.group(1)!.trim();
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.substring(1, value.length - 1);
+        }
+        return value;
+      }
+    }
+  }
+  return null;
 }
 
 /// Counts words in a string.

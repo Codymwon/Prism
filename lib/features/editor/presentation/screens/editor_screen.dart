@@ -45,6 +45,7 @@ class EditorScreen extends ConsumerStatefulWidget {
 }
 
 class _EditorScreenState extends ConsumerState<EditorScreen> {
+  final _titleController = TextEditingController();
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
@@ -53,6 +54,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   final ValueNotifier<bool> _isSavingNotifier = ValueNotifier<bool>(false);
   bool _isLoaded = false;
   String _lastSaved = '';
+  String? _dailyDate;
+  String _loadedTitle = '';
+  String _loadedBody = '';
 
   // Wikilink autocomplete state
   bool _showWikilinkPopup = false;
@@ -78,6 +82,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   void initState() {
     super.initState();
     _loadNote();
+    _titleController.addListener(_onTextChanged);
     _controller.addListener(_onTextChanged);
 
     // Set mode: Edit mode for new notes, View mode for existing notes
@@ -94,16 +99,48 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final note = await repo.getNoteById(widget.noteId);
     if (note == null) return;
 
+    _dailyDate = note.dailyDate;
+
     String content = '';
     final file = File(note.filePath);
     if (file.existsSync()) {
       content = file.readAsStringSync();
     } else {
-      content = '# ${note.title}\n\n';
+      content = '---\ntitle: "${note.title}"\n---\n\n';
+    }
+
+    final parsedTitle = extractFrontmatterValue(content, 'title') ?? note.title;
+    var parsedBody = stripFrontmatter(content);
+    
+    // Strip the H1 header from the body if the note doesn't have frontmatter (legacy migration)
+    final hasFrontmatter = content.trimLeft().startsWith('---\n') || content.trimLeft().startsWith('---\r\n');
+    if (!hasFrontmatter) {
+      final lines = parsedBody.split('\n');
+      int h1Index = -1;
+      for (int i = 0; i < lines.length; i++) {
+        final trimmed = lines[i].trim();
+        if (trimmed.startsWith('# ')) {
+          final cleanText = trimmed.substring(2).trim();
+          if (cleanText == parsedTitle) {
+            h1Index = i;
+            break;
+          }
+        }
+      }
+      if (h1Index != -1) {
+        lines.removeAt(h1Index);
+        while (lines.isNotEmpty && lines.first.trim().isEmpty) {
+          lines.removeAt(0);
+        }
+        parsedBody = lines.join('\n');
+      }
     }
 
     if (mounted) {
-      _controller.text = content;
+      _titleController.text = parsedTitle;
+      _controller.text = parsedBody;
+      _loadedTitle = parsedTitle;
+      _loadedBody = parsedBody;
       _lastSaved = content;
       setState(() => _isLoaded = true);
 
@@ -112,7 +149,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         Future.delayed(const Duration(milliseconds: 300), () {
           _focusNode.requestFocus();
           // Position cursor at end
-          _controller.selection = TextSelection.collapsed(offset: content.length);
+          _controller.selection = TextSelection.collapsed(offset: parsedBody.length);
         });
       }
     }
@@ -158,11 +195,32 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Future<void> _save() async {
-    final content = _controller.text;
+    final title = _titleController.text;
+    final body = _controller.text;
+    if (title == _loadedTitle && body == _loadedBody) return;
+
+    final cleanTitle = title.trim().isEmpty ? 'Untitled' : title.trim();
+    final dateStr = _dailyDate ?? widget.dailyDate;
+
+    final buffer = StringBuffer();
+    buffer.writeln('---');
+    buffer.writeln('title: "$cleanTitle"');
+    if (dateStr != null) {
+      buffer.writeln('date: $dateStr');
+    }
+    buffer.writeln('---');
+    buffer.writeln();
+    buffer.write(body);
+
+    final content = buffer.toString();
     if (content == _lastSaved) return;
+
     _isSavingNotifier.value = true;
-    await ref.read(noteRepositoryProvider).saveNote(widget.noteId, content);
+    final repo = ref.read(noteRepositoryProvider);
+    await repo.saveNote(widget.noteId, content);
     _lastSaved = content;
+    _loadedTitle = title;
+    _loadedBody = body;
     if (mounted) _isSavingNotifier.value = false;
   }
 
@@ -188,13 +246,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   @override
   void dispose() {
     _saveTimer?.cancel();
-    _save(); // final save on close
+    if (_titleController.text != _loadedTitle || _controller.text != _loadedBody) {
+      _save(); // final save on close if modified
+    }
     
     // Reset editor mode to View mode when exiting
     try {
       ref.read(editorModeProvider.notifier).state = EditorMode.preview;
     } catch (_) {}
 
+    _titleController.removeListener(_onTextChanged);
+    _titleController.dispose();
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
     _scrollController.dispose();
@@ -202,6 +264,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _isSavingNotifier.dispose();
     
     // Dispose dictation utilities
+    try {
+      _speechToText.stop();
+    } catch (_) {}
     _audioRecorder.dispose();
     
     super.dispose();
@@ -444,37 +509,75 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Widget _buildWriteMode(bool isDark, ColorScheme colorScheme, String family, double size, double paddingHorizontal) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        scrollController: _scrollController,
-        maxLines: null,
-        expands: true,
-        keyboardType: TextInputType.multiline,
-        textInputAction: TextInputAction.newline,
-        style: _getFont(
-          family,
-          fontSize: size,
-          height: 1.7,
-          color: DesignColors.text(context),
-        ),
-        decoration: InputDecoration(
-          hintText: 'Start writing… use # for headings, [[note]] for links, #tag for tags',
-          hintStyle: _getFont(
-            family,
-            fontSize: size - 1.0,
-            color: DesignColors.textTertiary(context),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
+          child: TextField(
+            controller: _titleController,
+            style: _getFont(
+              family,
+              fontSize: size * 1.5,
+              fontWeight: FontWeight.bold,
+              color: DesignColors.text(context),
+            ),
+            decoration: InputDecoration(
+              hintText: 'Note Title',
+              hintStyle: _getFont(
+                family,
+                fontSize: size * 1.5,
+                fontWeight: FontWeight.bold,
+                color: DesignColors.textTertiary(context),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.only(top: 16, bottom: 8),
+            ),
           ),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.only(top: 12, bottom: 100),
-          fillColor: Colors.transparent,
-          filled: true,
         ),
-      ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
+          child: Divider(
+            color: DesignColors.border(context),
+            height: 1,
+            thickness: 1,
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              scrollController: _scrollController,
+              maxLines: null,
+              expands: true,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              style: _getFont(
+                family,
+                fontSize: size,
+                height: 1.7,
+                color: DesignColors.text(context),
+              ),
+              decoration: InputDecoration(
+                hintText: 'Start writing… use [[note]] for links, #tag for tags',
+                hintStyle: _getFont(
+                  family,
+                  fontSize: size - 1.0,
+                  color: DesignColors.textTertiary(context),
+                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.only(top: 12, bottom: 100),
+                fillColor: Colors.transparent,
+                filled: true,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -518,222 +621,242 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return SingleChildScrollView(
       controller: _scrollController,
       padding: EdgeInsets.fromLTRB(paddingHorizontal, 12, paddingHorizontal, 100),
-      child: MarkdownBody(
-        data: processedData,
-        inlineSyntaxes: [HighlightSyntax()],
-        builders: {
-          'mark': HighlightElementBuilder(context),
-        },
-        imageBuilder: (uri, title, alt) {
-          final uriStr = uri.toString();
-          final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
-          final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
-          
-          if (!isNetwork && !isAbsolute) {
-            final note = ref.read(noteByIdProvider(widget.noteId)).valueOrNull;
-            if (note != null) {
-              final vaultPath = p.dirname(note.filePath);
-              final fullPath = p.join(vaultPath, uriStr);
-              final file = File(fullPath);
-              if (file.existsSync()) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      file,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          color: DesignColors.surfaceVariant(context),
-                          child: Row(
-                            children: [
-                              Icon(Icons.broken_image_outlined, color: DesignColors.textSecondary(context)),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Failed to load image',
-                                style: DesignTypography.body(context, color: DesignColors.textSecondary(context)),
-                              ),
-                            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _titleController.text.isEmpty ? 'Untitled' : _titleController.text,
+            style: _getFont(
+              family,
+              fontSize: size * 1.8,
+              fontWeight: FontWeight.w800,
+              color: DesignColors.text(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 1,
+            color: DesignColors.border(context),
+          ),
+          const SizedBox(height: 16),
+          MarkdownBody(
+            data: processedData,
+            inlineSyntaxes: [HighlightSyntax()],
+            builders: {
+              'mark': HighlightElementBuilder(context),
+            },
+            imageBuilder: (uri, title, alt) {
+              final uriStr = uri.toString();
+              final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
+              final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
+              
+              if (!isNetwork && !isAbsolute) {
+                final note = ref.read(noteByIdProvider(widget.noteId)).valueOrNull;
+                if (note != null) {
+                  final vaultPath = p.dirname(note.filePath);
+                  final fullPath = p.join(vaultPath, uriStr);
+                  final file = File(fullPath);
+                  if (file.existsSync()) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                );
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          file,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              color: DesignColors.surfaceVariant(context),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.broken_image_outlined, color: DesignColors.textSecondary(context)),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Failed to load image',
+                                    style: DesignTypography.body(context, color: DesignColors.textSecondary(context)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                }
               }
-            }
-          }
-          return const SizedBox.shrink();
-        },
-        onTapLink: (text, href, title) async {
-          if (href != null && (href.endsWith('.m4a') || href.endsWith('.mp3') || href.contains('attachments/'))) {
-            try {
-              final vaultPath = await getVaultPath();
-              final fullPath = p.join(vaultPath, href);
-              final file = File(fullPath);
-              if (!mounted) return;
-              if (await file.exists()) {
-                if (!mounted) return;
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (ctx) => AudioPlayerBottomSheet(
-                    filePath: fullPath,
-                    fileName: p.basename(fullPath),
-                  ),
-                );
+              return const SizedBox.shrink();
+            },
+            onTapLink: (text, href, title) async {
+              if (href != null && (href.endsWith('.m4a') || href.endsWith('.mp3') || href.contains('attachments/'))) {
+                try {
+                  final vaultPath = await getVaultPath();
+                  final fullPath = p.join(vaultPath, href);
+                  final file = File(fullPath);
+                  if (!mounted) return;
+                  if (await file.exists()) {
+                    if (!mounted) return;
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (ctx) => AudioPlayerBottomSheet(
+                        filePath: fullPath,
+                        fileName: p.basename(fullPath),
+                      ),
+                    );
+                  } else {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Audio file does not exist on disk.')),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Error opening audio player: $e');
+                }
               } else {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Audio file does not exist on disk.')),
+                handleWikilinkTap(
+                  href: href,
+                  ref: ref,
+                  context: context,
                 );
               }
-            } catch (e) {
-              debugPrint('Error opening audio player: $e');
-            }
-          } else {
-            handleWikilinkTap(
-              href: href,
-              ref: ref,
-              context: context,
-            );
-          }
-        },
-        styleSheet: MarkdownStyleSheet(
-          h1: _getFont(
-            family,
-            fontSize: size * 1.625,
-            fontWeight: FontWeight.w700,
-            color: DesignColors.text(context),
-          ),
-          h2: _getFont(
-            family,
-            fontSize: size * 1.25,
-            fontWeight: FontWeight.w600,
-            color: DesignColors.text(context),
-          ),
-          h3: _getFont(
-            family,
-            fontSize: size * 1.0625,
-            fontWeight: FontWeight.w600,
-            color: DesignColors.text(context),
-          ),
-          h4: _getFont(
-            family,
-            fontSize: size * 0.95,
-            fontWeight: FontWeight.w600,
-            color: DesignColors.text(context),
-          ),
-          h5: _getFont(
-            family,
-            fontSize: size * 0.88,
-            fontWeight: FontWeight.w600,
-            color: DesignColors.text(context),
-          ),
-          h6: _getFont(
-            family,
-            fontSize: size * 0.81,
-            fontWeight: FontWeight.w600,
-            color: DesignColors.text(context),
-          ),
-          p: _getFont(
-            family,
-            fontSize: size,
-            height: 1.7,
-            color: DesignColors.text(context),
-          ),
-          strong: _getFont(
-            family,
-            fontSize: size,
-            fontWeight: FontWeight.bold,
-            color: DesignColors.text(context),
-          ),
-          em: _getFont(
-            family,
-            fontSize: size,
-            color: DesignColors.text(context),
-          ).copyWith(fontStyle: FontStyle.italic),
-          listBullet: _getFont(
-            family,
-            fontSize: size,
-            color: DesignColors.text(context),
-          ),
-          blockquote: _getFont(
-            family,
-            fontSize: size,
-            color: DesignColors.textSecondary(context),
-          ),
-          tableHead: _getFont(
-            family,
-            fontSize: size,
-            fontWeight: FontWeight.bold,
-            color: DesignColors.text(context),
-          ),
-          tableBody: _getFont(
-            family,
-            fontSize: size,
-            color: DesignColors.text(context),
-          ),
-          code: GoogleFonts.robotoMono(
-            fontSize: size * 0.8125,
-            color: DesignColors.accentGreen(context),
-            backgroundColor: DesignColors.surfaceVariant(context),
-          ),
-          a: _getFont(
-            family,
-            fontSize: size,
-            color: colorScheme.primary,
-            decoration: TextDecoration.underline,
-            fontWeight: FontWeight.w600,
-          ),
-          blockquoteDecoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
+            },
+            styleSheet: MarkdownStyleSheet(
+              h1: _getFont(
+                family,
+                fontSize: size * 1.625,
+                fontWeight: FontWeight.w700,
+                color: DesignColors.text(context),
+              ),
+              h2: _getFont(
+                family,
+                fontSize: size * 1.25,
+                fontWeight: FontWeight.w600,
+                color: DesignColors.text(context),
+              ),
+              h3: _getFont(
+                family,
+                fontSize: size * 1.0625,
+                fontWeight: FontWeight.w600,
+                color: DesignColors.text(context),
+              ),
+              h4: _getFont(
+                family,
+                fontSize: size * 0.95,
+                fontWeight: FontWeight.w600,
+                color: DesignColors.text(context),
+              ),
+              h5: _getFont(
+                family,
+                fontSize: size * 0.88,
+                fontWeight: FontWeight.w600,
+                color: DesignColors.text(context),
+              ),
+              h6: _getFont(
+                family,
+                fontSize: size * 0.81,
+                fontWeight: FontWeight.w600,
+                color: DesignColors.text(context),
+              ),
+              p: _getFont(
+                family,
+                fontSize: size,
+                height: 1.7,
+                color: DesignColors.text(context),
+              ),
+              strong: _getFont(
+                family,
+                fontSize: size,
+                fontWeight: FontWeight.bold,
+                color: DesignColors.text(context),
+              ),
+              em: _getFont(
+                family,
+                fontSize: size,
+                color: DesignColors.text(context),
+              ).copyWith(fontStyle: FontStyle.italic),
+              listBullet: _getFont(
+                family,
+                fontSize: size,
+                color: DesignColors.text(context),
+              ),
+              blockquote: _getFont(
+                family,
+                fontSize: size,
+                color: DesignColors.textSecondary(context),
+              ),
+              tableHead: _getFont(
+                family,
+                fontSize: size,
+                fontWeight: FontWeight.bold,
+                color: DesignColors.text(context),
+              ),
+              tableBody: _getFont(
+                family,
+                fontSize: size,
+                color: DesignColors.text(context),
+              ),
+              code: GoogleFonts.robotoMono(
+                fontSize: size * 0.8125,
+                color: DesignColors.accentGreen(context),
+                backgroundColor: DesignColors.surfaceVariant(context),
+              ),
+              a: _getFont(
+                family,
+                fontSize: size,
                 color: colorScheme.primary,
-                width: 3,
+                decoration: TextDecoration.underline,
+                fontWeight: FontWeight.w600,
+              ),
+              blockquoteDecoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: colorScheme.primary,
+                    width: 3,
+                  ),
+                ),
               ),
             ),
+            checkboxBuilder: (bool value) {
+              final index = checkboxIndex++;
+              return Padding(
+                padding: const EdgeInsets.only(right: 6, top: 3),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: Checkbox(
+                    value: value,
+                    activeColor: colorScheme.primary,
+                    checkColor: colorScheme.onPrimary,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    side: BorderSide(
+                      color: DesignColors.textSecondary(context).withValues(alpha: 0.7),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    onChanged: (bool? newValue) {
+                      _toggleCheckbox(index);
+                    },
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-        checkboxBuilder: (bool value) {
-          final index = checkboxIndex++;
-          return Padding(
-            padding: const EdgeInsets.only(right: 6, top: 3),
-            child: SizedBox(
-              width: 18,
-              height: 18,
-              child: Checkbox(
-                value: value,
-                activeColor: colorScheme.primary,
-                checkColor: colorScheme.onPrimary,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                side: BorderSide(
-                  color: DesignColors.textSecondary(context).withValues(alpha: 0.7),
-                  width: 1.5,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                onChanged: (bool? newValue) {
-                  _toggleCheckbox(index);
-                },
-              ),
-            ),
-          );
-        },
+        ],
       ),
     );
   }

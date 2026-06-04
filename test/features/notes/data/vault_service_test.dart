@@ -192,5 +192,38 @@ void main() {
       final notes = await db.query('notes', where: 'id = ?', whereArgs: [note.id]);
       expect(notes, isEmpty);
     });
+
+    test('should materialize ghost note and reuse its ID/filePath when creating a note with the same title', () async {
+      // 1. Create a ghost note
+      final ghostNote = await service.createGhostNote('My Ghost Note');
+      
+      // Verify it is created in the db as a ghost
+      final ghostDbNotes = await db.query('notes', where: 'id = ?', whereArgs: [ghostNote.id]);
+      expect(ghostDbNotes.length, equals(1));
+      expect(ghostDbNotes.first['is_ghost'], equals(1));
+      
+      // 2. Create a note with the same title
+      final materializedNote = await service.createNote(
+        title: 'My Ghost Note',
+        initialContent: '# My Ghost Note\n\nMaterialized content',
+      );
+      
+      // Verify ID and filePath are reused
+      expect(materializedNote.id, equals(ghostNote.id));
+      expect(materializedNote.filePath, equals(ghostNote.filePath));
+      
+      // Verify file is written to storage
+      final fileWritten = await storage.exists(materializedNote.filePath);
+      expect(fileWritten, isTrue);
+      
+      // Verify database entry is updated to is_ghost = 0
+      final dbNotes = await db.query('notes', where: 'id = ?', whereArgs: [materializedNote.id]);
+      expect(dbNotes.length, equals(1));
+      expect(dbNotes.first['is_ghost'], equals(0));
+      
+      // Verify no duplicate titles exist in the db
+      final allWithTitle = await db.query('notes', where: 'LOWER(title) = ?', whereArgs: ['my ghost note']);
+      expect(allWithTitle.length, equals(1));
+    });
   });
 }

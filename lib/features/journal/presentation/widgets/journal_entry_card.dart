@@ -23,6 +23,11 @@ class JournalEntryCard extends ConsumerWidget {
   });
 
   String _getCardTitle(String content, String fallback) {
+    final fmTitle = extractFrontmatterValue(content, 'title');
+    if (fmTitle != null && fmTitle.isNotEmpty) {
+      return fmTitle;
+    }
+
     final lines = content.split('\n');
     for (final line in lines) {
       final trimmed = line.trim();
@@ -67,8 +72,9 @@ class JournalEntryCard extends ConsumerWidget {
     return '$dateFormatted • $timeFormatted';
   }
 
-  String _getBodyMarkdown(String content) {
-    final lines = content.split('\n');
+  String _getBodyMarkdown(String content, String cardTitle) {
+    final cleanContent = stripFrontmatter(content);
+    final lines = cleanContent.split('\n');
     int skipCount = 0;
     for (int i = 0; i < lines.length; i++) {
       final trimmed = lines[i].trim();
@@ -82,17 +88,29 @@ class JournalEntryCard extends ConsumerWidget {
     }
     final remainingLines = lines.sublist(skipCount);
     
-    // Skip the first heading which is used as the card title
+    // Skip the heading line that matches the cardTitle
     int titleHeadingIndex = -1;
     for (int i = 0; i < remainingLines.length; i++) {
       final trimmed = remainingLines[i].trim();
       if (trimmed.startsWith('#')) {
-        titleHeadingIndex = i;
-        break;
+        final cleanText = trimmed.replaceFirst(RegExp(r'^#+\s*'), '').trim();
+        if (cleanText == cardTitle) {
+          titleHeadingIndex = i;
+          break;
+        }
       }
     }
     if (titleHeadingIndex != -1) {
       remainingLines.removeAt(titleHeadingIndex);
+    } else {
+      // Fallback: Skip the first h1 heading (exactly one '#')
+      for (int i = 0; i < remainingLines.length; i++) {
+        final trimmed = remainingLines[i].trim();
+        if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
+          remainingLines.removeAt(i);
+          break;
+        }
+      }
     }
     
     // Filter out markdown checklist items from the body preview
@@ -197,7 +215,7 @@ class JournalEntryCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final cardTitle = _getCardTitle(content, note.title);
     final cardSubtitle = '${_getFormattedSubtitle(note)} • ${note.wordCount} words';
-    final bodyMarkdown = _getBodyMarkdown(content);
+    final bodyMarkdown = _getBodyMarkdown(content, cardTitle);
     final checklist = _getChecklist(content);
     final imagePath = _getImagePath(content);
     final showPrompt = note.isDaily && note.dailyDate != null && isToday(note.dailyDate!);

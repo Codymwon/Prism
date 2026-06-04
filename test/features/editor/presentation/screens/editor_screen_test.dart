@@ -9,56 +9,23 @@ import 'package:meridian/features/notes/data/note_repository.dart';
 import 'package:meridian/features/notes/presentation/providers/notes_providers.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:meridian/features/notes/data/vault_service.dart';
 import 'package:meridian/core/utils/utils.dart';
 
-class MockNoteRepository implements NoteRepository {
+class FakeRef implements Ref<Object?> {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class MockNoteRepository extends NoteRepository {
   final Note note;
   final void Function(String id, String content)? onSaveNote;
-  MockNoteRepository(this.note, {this.onSaveNote});
-
-  @override
-  Ref get _ref => throw UnimplementedError();
-
-  @override
-  Future<Database> get _db => throw UnimplementedError();
-
-  @override
-  Future<VaultService> get _vaultService => throw UnimplementedError();
-
-  @override
-  Future<Note> createNote({String? title, String initialContent = '', bool isDaily = false, String? dailyDate}) => throw UnimplementedError();
-
-  @override
-  Future<Note> createGhostNote(String title) => throw UnimplementedError();
-
-  @override
-  Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) => throw UnimplementedError();
+  MockNoteRepository(this.note, {this.onSaveNote}) : super(FakeRef());
 
   @override
   Future<Note?> getNoteById(String id) async => note;
 
   @override
-  Future<Note?> getNoteByTitle(String title) => throw UnimplementedError();
-
-  @override
-  Future<Note?> getDailyNote(String date) => throw UnimplementedError();
-
-  @override
-  Future<List<Note>> searchNotes(String query) => throw UnimplementedError();
-
-  @override
-  Future<List<Note>> getNotesByTag(String tag) => throw UnimplementedError();
-
-  @override
-  Future<List<Note>> getTitleSuggestions(String query) => throw UnimplementedError();
-
-  @override
   Future<List<Backlink>> getBacklinks(String noteId) async => [];
-
-  @override
-  Future<({List<GraphNode> nodes, List<GraphEdge> edges})> getGraphData() => throw UnimplementedError();
 
   @override
   Future<void> saveNote(String id, String content) async {
@@ -66,16 +33,7 @@ class MockNoteRepository implements NoteRepository {
   }
 
   @override
-  Future<void> deleteNote(String id) => throw UnimplementedError();
-
-  @override
   Future<List<String>> getTagsForNote(String noteId) async => [];
-
-  @override
-  Future<List<String>> getUniqueTags() => throw UnimplementedError();
-
-  @override
-  Future<({int totalNotes, int totalWords, int totalLinks})> getVaultStats() => throw UnimplementedError();
 }
 
 void main() {
@@ -227,7 +185,7 @@ void main() {
     await tester.pump();
 
     // Verify saveNote was called with the updated content
-    expect(savedContent, equals('# Test Note\n\n- [x] Task A\n- [x] Task B\n'));
+    expect(savedContent, equals('---\ntitle: "Test Note"\n---\n\n- [x] Task A\n- [x] Task B\n'));
   });
 
   testWidgets('EditorScreen renders and toggles spaced-out checklist items without rendering them as list dots', (WidgetTester tester) async {
@@ -290,7 +248,7 @@ void main() {
     await tester.pump();
 
     // Verify that the second checklist item is toggled, and the raw formatting (spacing) is preserved
-    final expectedContent = '# Test Note\n\n- [ ] Task A\n\n- [x] Task B\n\n- [ ] Task C\n- Normal bullet\n';
+    final expectedContent = '---\ntitle: "Test Note"\n---\n\n- [ ] Task A\n\n- [x] Task B\n\n- [ ] Task C\n- Normal bullet\n';
     expect(savedContent, equals(expectedContent));
   });
 

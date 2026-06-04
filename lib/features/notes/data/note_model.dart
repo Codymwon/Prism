@@ -130,12 +130,18 @@ class GraphNode {
   final String title;
   final int linkCount;
   final String? colorHex; // from folder membership
+  final bool isTemporal;
+  final String? temporalType; // 'week', 'month', 'year'
+  final bool isGhost;
 
   const GraphNode({
     required this.id,
     required this.title,
     required this.linkCount,
     this.colorHex,
+    this.isTemporal = false,
+    this.temporalType,
+    this.isGhost = false,
   });
 }
 

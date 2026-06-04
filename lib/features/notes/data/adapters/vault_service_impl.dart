@@ -34,16 +34,41 @@ class VaultServiceImpl implements VaultService {
     final database = await getDb();
     final currentVaultPath = await getVaultPath();
 
-    final id = utils.generateId();
     final noteTitle = title ?? (isDaily && dailyDate != null ? dailyDate : 'Untitled');
+
+    String id = utils.generateId();
+    String? existingFilePath;
+    if (title != null) {
+      final maps = await database.query(
+        'notes',
+        columns: ['id', 'file_path'],
+        where: 'LOWER(title) = ? AND is_ghost = 1',
+        whereArgs: [title.toLowerCase()],
+      );
+      if (maps.isNotEmpty) {
+        id = maps.first['id'] as String;
+        existingFilePath = maps.first['file_path'] as String;
+      }
+    }
+
     final slug = parser.titleToSlug(noteTitle);
-    final fileName = '$slug-$id.md';
-    final filePath = p.join(currentVaultPath, fileName);
+    final filePath = existingFilePath ?? p.join(currentVaultPath, '$slug-$id.md');
     final now = DateTime.now();
 
-    final content = initialContent.isEmpty
-        ? '# $noteTitle\n\n'
-        : initialContent;
+    final String content;
+    if (initialContent.isNotEmpty) {
+      content = initialContent;
+    } else {
+      final buffer = StringBuffer();
+      buffer.writeln('---');
+      buffer.writeln('title: "$noteTitle"');
+      if (isDaily && dailyDate != null) {
+        buffer.writeln('date: $dailyDate');
+      }
+      buffer.writeln('---');
+      buffer.writeln();
+      content = buffer.toString();
+    }
 
     // Write physical file
     await storage.writeContent(filePath, content);

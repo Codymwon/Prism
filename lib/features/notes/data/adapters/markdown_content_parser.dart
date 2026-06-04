@@ -5,9 +5,10 @@ class MarkdownContentParser implements NoteContentParser {
   @override
   NoteMetadata parse(String content) {
     final title = utils.extractTitle(content);
-    final wordCount = utils.countWords(content);
-    final tags = utils.extractTags(content);
-    final wikilinks = utils.extractWikilinks(content);
+    final cleanContent = utils.stripFrontmatter(content);
+    final wordCount = utils.countWords(cleanContent);
+    final tags = utils.extractTags(cleanContent);
+    final wikilinks = utils.extractWikilinks(cleanContent);
     
     final Map<String, String> wikilinkContexts = {};
     for (final link in wikilinks) {
