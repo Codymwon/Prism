@@ -122,10 +122,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _dailyDate = note.dailyDate;
 
     String content = '';
-    final file = File(note.filePath);
-    if (file.existsSync()) {
-      content = file.readAsStringSync();
-    } else {
+    try {
+      content = await repo.readNoteContent(widget.noteId);
+    } catch (_) {
       content = '---\ntitle: "${note.title}"\n---\n\n';
     }
 

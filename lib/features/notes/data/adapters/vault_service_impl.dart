@@ -182,6 +182,15 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
   }
 
   @override
+  Future<String> readNoteContent(String noteId) async {
+    final note = await getNoteById(noteId);
+    if (note == null) {
+      throw ArgumentError('Note not found for ID: $noteId');
+    }
+    return storage.readContent(note.filePath);
+  }
+
+  @override
   Future<void> saveNote(String id, String content) async {
     final database = await getDb();
     final currentVaultPath = await getVaultPath();

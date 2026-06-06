@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
@@ -208,11 +207,8 @@ final noteDetailsProvider = FutureProvider.autoDispose.family<({List<String> tag
   // 2. Read first few lines of the file as snippet
   String snippet = '';
   try {
-    final file = File(note.filePath);
-    if (await file.exists()) {
-      final content = await file.readAsString();
-      snippet = _getCleanSnippet(content);
-    }
+    final content = await repo.readNoteContent(note.id);
+    snippet = _getCleanSnippet(content);
   } catch (e) {
     debugPrint('Error reading note snippet: $e');
   }
@@ -299,10 +295,7 @@ final dailyNoteProvider = FutureProvider.autoDispose.family<({Note note, String 
 
   String content = '';
   try {
-    final file = File(note.filePath);
-    if (await file.exists()) {
-      content = await file.readAsString();
-    }
+    content = await repo.readNoteContent(note.id);
   } catch (_) {}
 
   return (note: note, content: content);

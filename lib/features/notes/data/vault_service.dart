@@ -21,6 +21,8 @@ abstract class NoteIngestionService {
   Future<Note?> getNoteByTitle(String title);
   Future<Note?> getDailyNote(String date);
 
+  Future<String> readNoteContent(String noteId);
+
   Future<void> saveNote(String id, String content);
   Future<void> deleteNote(String id);
 

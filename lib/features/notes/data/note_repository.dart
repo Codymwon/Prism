@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
@@ -98,6 +99,28 @@ class NoteRepository {
       whereArgs: [date],
     );
     return maps.isEmpty ? null : Note.fromMap(maps.first);
+  }
+
+  Future<String> readNoteContent(String noteId) async {
+    NoteIngestionService? service;
+    try {
+      service = _vaultService;
+    } catch (_) {
+      // In tests, _vaultService getter might throw due to FakeRef / uninitialized providers
+    }
+
+    if (service != null) {
+      return service.readNoteContent(noteId);
+    }
+
+    final note = await getNoteById(noteId);
+    if (note != null) {
+      final file = File(note.filePath);
+      if (file.existsSync()) {
+        return file.readAsStringSync();
+      }
+    }
+    throw ArgumentError('Note not found or file does not exist for ID: $noteId');
   }
 
   Future<List<Note>> searchNotes(String query) async {
