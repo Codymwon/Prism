@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../utils/utils.dart';
 
 class DatabaseHelper {
-  static const _dbName = '.meridian.db';
+  static const _dbName = '.prism.db';
   static const _dbVersion = 4; // Upgraded to v4 for spatial groups and coordinates
 
   DatabaseHelper._();
@@ -62,18 +64,44 @@ class DatabaseHelper {
         _activeVaultPath = null;
       }
       final path = join(vaultPath, _dbName);
-      final db = await openDatabase(
-        path,
-        version: _dbVersion,
-        onCreate: _onCreate,
-        onUpgrade: _onUpgrade,
-        onConfigure: (db) async {
-          // Enable WAL mode for better concurrent read/write performance
-          await db.rawQuery('PRAGMA journal_mode = WAL;');
-          // Enable foreign key constraints
-          await db.execute('PRAGMA foreign_keys = ON;');
-        },
-      );
+      Database db;
+      try {
+        db = await openDatabase(
+          path,
+          version: _dbVersion,
+          onCreate: _onCreate,
+          onUpgrade: _onUpgrade,
+          onDowngrade: _onDowngrade,
+          onConfigure: (db) async {
+            await db.rawQuery('PRAGMA journal_mode = WAL;');
+            await db.execute('PRAGMA foreign_keys = ON;');
+          },
+        );
+      } catch (e, stack) {
+        debugPrint('[DB] Unreadable database at $path — attempting recovery.\n$e\n$stack');
+        try {
+          final corruptFile = File(path);
+          if (await corruptFile.exists()) {
+            await corruptFile.rename('$path.corrupt');
+            debugPrint('[DB] Corrupt file renamed to $path.corrupt');
+          }
+        } catch (renameErr) {
+          debugPrint('[DB] Could not rename corrupt file: $renameErr');
+        }
+        // Open a fresh empty database; background syncVault will rebuild
+        // the notes index from the .md files on disk.
+        db = await openDatabase(
+          path,
+          version: _dbVersion,
+          onCreate: _onCreate,
+          onUpgrade: _onUpgrade,
+          onDowngrade: _onDowngrade,
+          onConfigure: (db) async {
+            await db.rawQuery('PRAGMA journal_mode = WAL;');
+            await db.execute('PRAGMA foreign_keys = ON;');
+          },
+        );
+      }
       _db = db;
       _activeVaultPath = vaultPath;
       return db;
@@ -346,6 +374,34 @@ class DatabaseHelper {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_spatial_group_nodes_note ON spatial_group_nodes(note_id)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_audio_bookmarks_note ON audio_bookmarks(note_id)');
     }
+  }
+
+  Future<void> _onDowngrade(Database db, int oldVersion, int newVersion) async {
+    debugPrint('[DB] Schema downgrade detected ($oldVersion → $newVersion). Dropping and rebuilding schema.');
+    await _dropAllTables(db);
+    await _onCreate(db, newVersion);
+  }
+
+  Future<void> _dropAllTables(Database db) async {
+    await db.execute('PRAGMA foreign_keys = OFF');
+    for (final table in [
+      'audio_bookmarks',
+      'spatial_group_nodes',
+      'spatial_groups',
+      'graph_node_positions',
+      'note_tags',
+      'note_folders',
+      'virtual_folders',
+      'note_links',
+      'notes_fts',
+      'notes',
+    ]) {
+      await db.execute('DROP TABLE IF EXISTS $table');
+    }
+    for (final trigger in ['notes_ai', 'notes_au', 'notes_ad']) {
+      await db.execute('DROP TRIGGER IF EXISTS $trigger');
+    }
+    await db.execute('PRAGMA foreign_keys = ON');
   }
 }
 
