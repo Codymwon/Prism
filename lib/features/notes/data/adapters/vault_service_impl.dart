@@ -234,14 +234,16 @@ class VaultServiceImpl implements VaultService {
       final files = await storage.listDocumentIdentifiers(vaultPath);
       if (files.isEmpty) return;
 
-      // Query existing notes along with their updated_at time
-      final existingNotes = await database.query('notes', columns: ['id', 'file_path', 'updated_at']);
+      // Query existing notes along with their updated_at time and ghost flag
+      final existingNotes = await database.query('notes', columns: ['id', 'file_path', 'updated_at', 'is_ghost']);
+      // Ghost notes have no physical file by design — exclude them from the path map
       final Map<String, ({String id, int updatedAt})> existingPathsMap = {
         for (final n in existingNotes)
-          n['file_path'] as String: (
-            id: n['id'] as String,
-            updatedAt: n['updated_at'] as int,
-          )
+          if ((n['is_ghost'] as int? ?? 0) == 0)
+            n['file_path'] as String: (
+              id: n['id'] as String,
+              updatedAt: n['updated_at'] as int,
+            )
       };
 
       // Perform insertions and updates inside a single transaction
@@ -315,6 +317,32 @@ class VaultServiceImpl implements VaultService {
               );
             }
           }
+        }
+
+        // ── Orphan pruning ─────────────────────────────────────────────────
+        // Remove non-ghost notes whose physical .md file no longer exists.
+        final filesSet = files.toSet();
+        final orphanedNotes = existingNotes
+            .where((n) =>
+                (n['is_ghost'] as int? ?? 0) == 0 &&
+                !filesSet.contains(n['file_path'] as String))
+            .toList();
+
+        for (final orphan in orphanedNotes) {
+          await indexer.removeNoteIndex(txn, orphan['id'] as String);
+        }
+
+        // After real-note deletes cascade through note_links, prune any
+        // ghost notes that now have no remaining backlinks.
+        final orphanedGhosts = await txn.rawQuery('''
+          SELECT id FROM notes
+          WHERE is_ghost = 1
+            AND NOT EXISTS (
+              SELECT 1 FROM note_links WHERE target_id = notes.id
+            )
+        ''');
+        for (final ghost in orphanedGhosts) {
+          await indexer.removeNoteIndex(txn, ghost['id'] as String);
         }
       });
     } catch (e) {

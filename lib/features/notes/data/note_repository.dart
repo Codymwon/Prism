@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
+import '../../graph/data/graph_models.dart';
 import 'note_model.dart';
 import 'vault_service.dart';
 
@@ -285,6 +286,60 @@ class NoteRepository {
     }
 
     return (nodes: nodes, edges: edges);
+  }
+
+  Future<Map<String, GraphNodePosition>> getPinnedCoordinates() async {
+    final db = await _db;
+    final maps = await db.query('graph_node_positions');
+    final result = <String, GraphNodePosition>{};
+    for (final map in maps) {
+      final pos = GraphNodePosition.fromMap(map);
+      result[pos.noteId] = pos;
+    }
+    return result;
+  }
+
+  Future<void> pinNode(String nodeId, double x, double y) async {
+    if (nodeId.startsWith('week-') || nodeId.startsWith('year-')) {
+      throw ArgumentError('Cannot pin temporal node: $nodeId');
+    }
+    final noteExists = await getNoteById(nodeId) != null;
+    if (!noteExists) {
+      return;
+    }
+    try {
+      final db = await _db;
+      await db.insert(
+        'graph_node_positions',
+        {
+          'note_id': nodeId,
+          'x': x,
+          'y': y,
+          'is_pinned': 1,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      _ref.read(notesVersionProvider.notifier).state++;
+    } catch (e) {
+      // Gracefully catch foreign key exceptions or others
+    }
+  }
+
+  Future<void> unpinNode(String nodeId) async {
+    if (nodeId.startsWith('week-') || nodeId.startsWith('year-')) {
+      throw ArgumentError('Cannot unpin temporal node: $nodeId');
+    }
+    try {
+      final db = await _db;
+      await db.delete(
+        'graph_node_positions',
+        where: 'note_id = ?',
+        whereArgs: [nodeId],
+      );
+      _ref.read(notesVersionProvider.notifier).state++;
+    } catch (e) {
+      // Gracefully catch exceptions
+    }
   }
 
   // ── UPDATE ────────────────────────────────────────────────────────────────

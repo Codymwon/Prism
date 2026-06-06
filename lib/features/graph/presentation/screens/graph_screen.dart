@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../data/graph_models.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
+import '../../../notes/data/note_repository.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../widgets/graph_settings_panel.dart';
 import '../widgets/graph_header.dart';
@@ -112,6 +114,9 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
                           key: _canvasKey,
                           nodes: data.nodes,
                           edges: data.edges,
+                          spatialGroups: data.spatialGroups,
+                          nodeToGroup: data.nodeToGroup,
+                          groupNodes: data.groupNodes,
                           repulsionRate: _repulsionRate,
                           repulsionPercentage: _repulsionPercentage,
                           attractionRate: _attractionRate,
@@ -184,14 +189,18 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
 }
 
 // ─── Continuous Spring-Physics Graph simulation viewport (isolated rebuilds!) ───
-class GraphSimulationCanvas extends StatefulWidget {
+class GraphSimulationCanvas extends ConsumerStatefulWidget {
   final List<GraphNode> nodes;
   final List<GraphEdge> edges;
+  final List<SpatialGroup> spatialGroups;
+  final Map<String, String> nodeToGroup;
+  final Map<String, List<String>> groupNodes;
   final double repulsionRate;
   final double repulsionPercentage;
   final double attractionRate;
   final double damping;
   final TransformationController transformationController;
+  final bool disableEntranceAnimation;
 
   const GraphSimulationCanvas({
     super.key,
@@ -202,13 +211,17 @@ class GraphSimulationCanvas extends StatefulWidget {
     required this.attractionRate,
     required this.damping,
     required this.transformationController,
+    this.spatialGroups = const [],
+    this.nodeToGroup = const {},
+    this.groupNodes = const {},
+    this.disableEntranceAnimation = false,
   });
 
   @override
-  State<GraphSimulationCanvas> createState() => GraphSimulationCanvasState();
+  ConsumerState<GraphSimulationCanvas> createState() => GraphSimulationCanvasState();
 }
 
-class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with SingleTickerProviderStateMixin {
+class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> with SingleTickerProviderStateMixin {
   late Ticker _ticker;
   final _RepaintNotifier _repaintNotifier = _RepaintNotifier();
   final Map<String, Offset> _positions = {};
@@ -219,6 +232,16 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
 
   // Cache to store pre-built static subtrees of node widgets
   final Map<String, Widget> _nodeContentCache = {};
+
+  @visibleForTesting
+  Map<String, Offset> get positionsForTesting => _positions;
+
+  @visibleForTesting
+  void setNodePositionForTesting(String id, Offset offset) {
+    _positions[id] = offset;
+    _repaintNotifier.notify();
+  }
+
 
   @override
   void initState() {
@@ -253,7 +276,10 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
         oldWidget.repulsionRate != widget.repulsionRate ||
         oldWidget.repulsionPercentage != widget.repulsionPercentage ||
         oldWidget.attractionRate != widget.attractionRate ||
-        oldWidget.damping != widget.damping) {
+        oldWidget.damping != widget.damping ||
+        oldWidget.spatialGroups != widget.spatialGroups ||
+        oldWidget.nodeToGroup != widget.nodeToGroup ||
+        oldWidget.groupNodes != widget.groupNodes) {
       needsWake = true;
     }
 
@@ -276,6 +302,8 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
         isTemporal: gn.isTemporal,
         temporalType: gn.temporalType,
         isGhost: gn.isGhost,
+        isPinned: gn.isPinned,
+        onUnpin: () => ref.read(noteRepositoryProvider).unpinNode(gn.id),
         onTap: () {
           if (gn.isTemporal) return;
           setState(() {
@@ -325,7 +353,10 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
     const centerY = 1250.0;
 
     for (final gn in nodes) {
-      if (!_positions.containsKey(gn.id)) {
+      if (gn.isPinned && gn.pinnedX != null && gn.pinnedY != null) {
+        _positions[gn.id] = Offset(gn.pinnedX!, gn.pinnedY!);
+        _velocities[gn.id] = Offset.zero;
+      } else if (!_positions.containsKey(gn.id)) {
         // Soft cosmic distribution outward from the center
         final angle = rand.nextDouble() * 2 * pi;
         final radius = 50 + rand.nextDouble() * 150;
@@ -409,8 +440,15 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
 
     // 5. Update Velocities & Coordinate Positions
     double maxVelocity = 0.0;
+    final pinnedNodeIds = widget.nodes.where((n) => n.isPinned).map((n) => n.id).toSet();
+
     for (final id in _positions.keys) {
       if (id == _draggedNodeId) continue; // Dragged node stays pinned under user's finger!
+
+      if (pinnedNodeIds.contains(id)) {
+        _velocities[id] = Offset.zero;
+        continue;
+      }
 
       final force = forces[id]!;
       final vel = _velocities[id]!;
@@ -465,7 +503,20 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
         height: canvasHeight,
         child: Stack(
           children: [
-            // 1. Draw connecting elastic lines (Custom Paint background)
+            // 1. Draw spatial groups convex hulls (Custom Paint background)
+            Positioned.fill(
+              child: CustomPaint(
+                painter: GraphGroupsPainter(
+                  positions: _positions,
+                  groups: widget.spatialGroups,
+                  groupNodeIds: widget.groupNodes,
+                  context: context,
+                  repaint: _repaintNotifier,
+                ),
+              ),
+            ),
+
+            // 2. Draw connecting elastic lines (Custom Paint background)
             Positioned.fill(
               child: CustomPaint(
                 painter: GraphLinksPainter(
@@ -473,6 +524,7 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
                   edges: widget.edges,
                   color: colorScheme.primary.withValues(alpha: 0.35),
                   ghostNodeIds: widget.nodes.where((n) => n.isGhost).map((n) => n.id).toSet(),
+                  nodeToGroup: widget.nodeToGroup,
                   repaint: _repaintNotifier,
                 ),
               ),
@@ -488,17 +540,28 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
                 ),
                 children: widget.nodes.map((gn) {
                   return GestureDetector(
-                    onPanStart: (details) {
+                    key: ValueKey('drag_${gn.id}'),
+                    behavior: HitTestBehavior.opaque,
+                    onPanStart: gn.isTemporal ? null : (details) {
                       _draggedNodeId = gn.id;
                       _wakeSimulation();
                     },
-                    onPanUpdate: (details) {
-                      _positions[gn.id] = (_positions[gn.id] ?? Offset.zero) + details.delta;
+                    onPanUpdate: gn.isTemporal ? null : (details) {
+                      final scale = widget.transformationController.value.getMaxScaleOnAxis();
+                      final delta = scale > 0 ? details.delta / scale : details.delta;
+                      final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(40.0, 2460.0);
+                      final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(30.0, 2470.0);
+                      _positions[gn.id] = Offset(newX, newY);
                       _velocities[gn.id] = Offset.zero;
                       _repaintNotifier.notify();
                     },
-                    onPanEnd: (details) {
+                    onPanEnd: gn.isTemporal ? null : (details) {
                       _draggedNodeId = null;
+                      if (!mounted) return;
+                      final finalPos = _positions[gn.id];
+                      if (finalPos != null) {
+                        ref.read(noteRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
+                      }
                     },
                     child: SizedBox(
                       width: 80,
@@ -515,7 +578,7 @@ class GraphSimulationCanvasState extends State<GraphSimulationCanvas> with Singl
     );
 
     // Play entry animation only once when GraphSimulationCanvas is first mounted
-    if (!_playedEntranceAnimation) {
+    if (!widget.disableEntranceAnimation && !_playedEntranceAnimation) {
       return graphContent
           .animate()
           .fadeIn(duration: 600.ms)
@@ -584,33 +647,39 @@ class GraphLinksPainter extends CustomPainter {
   final List<GraphEdge> edges;
   final Color color;
   final Set<String> ghostNodeIds;
+  final Map<String, String> nodeToGroup;
 
   GraphLinksPainter({
     required this.positions,
     required this.edges,
     required this.color,
     required this.ghostNodeIds,
+    required this.nodeToGroup,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final standardPaint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    final ghostPaint = Paint()
-      ..color = color.withValues(alpha: 0.15)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
     for (final edge in edges) {
       final src = positions[edge.sourceId];
       final tgt = positions[edge.targetId];
       if (src != null && tgt != null) {
         final isGhostConnection = ghostNodeIds.contains(edge.sourceId) || ghostNodeIds.contains(edge.targetId);
-        canvas.drawLine(src, tgt, isGhostConnection ? ghostPaint : standardPaint);
+        
+        final groupSrc = nodeToGroup[edge.sourceId];
+        final groupTgt = nodeToGroup[edge.targetId];
+        final isSameGroup = groupSrc != null && groupTgt != null && groupSrc == groupTgt;
+        
+        final opacityMultiplier = isSameGroup ? 1.0 : 0.5;
+        final baseAlpha = isGhostConnection ? 0.15 : 0.35;
+        final finalAlpha = baseAlpha * opacityMultiplier;
+
+        final edgePaint = Paint()
+          ..color = color.withValues(alpha: finalAlpha)
+          ..strokeWidth = 1.5
+          ..style = PaintingStyle.stroke;
+
+        canvas.drawLine(src, tgt, edgePaint);
       }
     }
   }
@@ -620,6 +689,141 @@ class GraphLinksPainter extends CustomPainter {
     return oldDelegate.positions != positions || 
            oldDelegate.edges != edges || 
            oldDelegate.color != color ||
-           oldDelegate.ghostNodeIds != ghostNodeIds;
+           oldDelegate.ghostNodeIds != ghostNodeIds ||
+           oldDelegate.nodeToGroup != nodeToGroup;
+  }
+}
+
+// ─── Custom Spatial Groups Convex Hulls painter ─────────────────────────────
+class GraphGroupsPainter extends CustomPainter {
+  final Map<String, Offset> positions;
+  final List<SpatialGroup> groups;
+  final Map<String, List<String>> groupNodeIds;
+  final BuildContext context;
+
+  GraphGroupsPainter({
+    required this.positions,
+    required this.groups,
+    required this.groupNodeIds,
+    required this.context,
+    required Listenable repaint,
+  }) : super(repaint: repaint);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final group in groups) {
+      final nodeIds = groupNodeIds[group.id] ?? [];
+      if (nodeIds.isEmpty) continue;
+
+      final points = nodeIds
+          .map((id) => positions[id])
+          .whereType<Offset>()
+          .toList();
+
+      if (points.isEmpty) continue;
+
+      final baseColor = _resolveColor(group.colorHex, context);
+
+      if (points.length == 1) {
+        final fillPaint = Paint()
+          ..color = baseColor.withValues(alpha: 0.15)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(points.first, 30.0, fillPaint);
+      } else if (points.length == 2) {
+        final capsulePaint = Paint()
+          ..color = baseColor.withValues(alpha: 0.15)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 60.0
+          ..strokeCap = StrokeCap.round;
+        canvas.drawLine(points[0], points[1], capsulePaint);
+      } else {
+        final hull = _computeConvexHull(points);
+        if (hull.isNotEmpty) {
+          final path = Path()
+            ..moveTo(hull.first.dx, hull.first.dy);
+          for (int i = 1; i < hull.length; i++) {
+            path.lineTo(hull[i].dx, hull[i].dy);
+          }
+          path.close();
+          final fillPaint = Paint()
+            ..color = baseColor.withValues(alpha: 0.15)
+            ..style = PaintingStyle.fill;
+          final strokePaint = Paint()
+            ..color = baseColor.withValues(alpha: 0.15)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 60.0
+            ..strokeJoin = StrokeJoin.round;
+          canvas.drawPath(path, fillPaint);
+          canvas.drawPath(path, strokePaint);
+        }
+      }
+    }
+  }
+
+  Color _resolveColor(String colorKey, BuildContext context) {
+    final theme = Theme.of(context);
+    switch (colorKey.toUpperCase()) {
+      case '#PRIMARY':
+        return theme.colorScheme.primary;
+      case '#ROSE':
+        return theme.colorScheme.error;
+      case '#GREEN':
+        return theme.colorScheme.secondary;
+      case '#AMBER':
+        return theme.colorScheme.tertiary;
+      default:
+        var hexColor = colorKey.replaceAll('#', '');
+        if (hexColor.length == 6) {
+          hexColor = 'FF$hexColor';
+        }
+        final val = int.tryParse(hexColor, radix: 16);
+        return val != null ? Color(val) : theme.colorScheme.primary;
+    }
+  }
+
+  List<Offset> _computeConvexHull(List<Offset> points) {
+    if (points.length <= 1) return List.from(points);
+    if (points.length == 2) return List.from(points);
+
+    final sorted = List<Offset>.from(points)
+      ..sort((a, b) {
+        if (a.dx != b.dx) {
+          return a.dx.compareTo(b.dx);
+        }
+        return a.dy.compareTo(b.dy);
+      });
+
+    double crossProduct(Offset o, Offset a, Offset b) {
+      return (a.dx - o.dx) * (b.dy - o.dy) - (a.dy - o.dy) * (b.dx - o.dx);
+    }
+
+    final List<Offset> lower = [];
+    for (final p in sorted) {
+      while (lower.length >= 2 && crossProduct(lower[lower.length - 2], lower.last, p) <= 0) {
+        lower.removeLast();
+      }
+      lower.add(p);
+    }
+
+    final List<Offset> upper = [];
+    for (final p in sorted.reversed) {
+      while (upper.length >= 2 && crossProduct(upper[upper.length - 2], upper.last, p) <= 0) {
+        upper.removeLast();
+      }
+      upper.add(p);
+    }
+
+    lower.removeLast();
+    upper.removeLast();
+
+    return [...lower, ...upper];
+  }
+
+  @override
+  bool shouldRepaint(covariant GraphGroupsPainter oldDelegate) {
+    return oldDelegate.positions != positions ||
+        oldDelegate.groups != groups ||
+        oldDelegate.groupNodeIds != groupNodeIds ||
+        oldDelegate.context != context;
   }
 }

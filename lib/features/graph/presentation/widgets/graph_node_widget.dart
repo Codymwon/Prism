@@ -12,6 +12,8 @@ class GraphNodeWidget extends StatelessWidget {
   final bool isTemporal;
   final String? temporalType;
   final bool isGhost;
+  final bool isPinned;
+  final VoidCallback? onUnpin;
 
   const GraphNodeWidget({
     super.key,
@@ -24,6 +26,8 @@ class GraphNodeWidget extends StatelessWidget {
     this.isTemporal = false,
     this.temporalType,
     this.isGhost = false,
+    this.isPinned = false,
+    this.onUnpin,
   });
 
   String _pruneTitle(String title) {
@@ -127,9 +131,43 @@ class GraphNodeWidget extends StatelessWidget {
       return childWidget;
     }
 
-    return TactileWrapper(
+    final mainWidget = TactileWrapper(
       onTap: onTap,
       child: childWidget,
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        mainWidget,
+        if (isPinned)
+          Positioned(
+            top: -4,
+            right: 18,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (onUnpin != null) {
+                  onUnpin!();
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: colorScheme.outline, width: 1),
+                ),
+                child: Icon(
+                  Icons.push_pin_rounded,
+                  size: 10,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
