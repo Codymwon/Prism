@@ -14,7 +14,7 @@ void main() {
 
   late Database db;
   late Directory tempDir;
-  late VaultServiceImpl service;
+  late NoteIngestionServiceImpl service;
 
   setUp(() async {
     // Open in-memory SQLite DB
@@ -83,7 +83,7 @@ void main() {
     tempDir = await Directory.systemTemp.createTemp('meridian_test_vault');
     
     // Initialize our VaultService
-    service = VaultServiceImpl(
+    service = NoteIngestionServiceImpl(
       getDb: () async => db,
       storage: LocalVaultStorage(),
       parser: MarkdownContentParser(),
@@ -99,7 +99,7 @@ void main() {
     }
   });
 
-  group('VaultServiceImpl syncVault tests', () {
+  group('NoteIngestionServiceImpl syncVault tests', () {
     test('should sync new file from disk to database', () async {
       // 1. Create a physical markdown note
       final file = File(p.join(tempDir.path, 'my-test-note.md'));

@@ -121,8 +121,8 @@ void main() {
     container = ProviderContainer(
       overrides: [
         databaseProvider.overrideWith((ref) async => db),
-        vaultServiceProvider.overrideWith((ref) {
-          return VaultServiceImpl(
+        noteIngestionServiceProvider.overrideWith((ref) {
+          return NoteIngestionServiceImpl(
             getDb: () async => db,
             storage: storage,
             parser: MarkdownContentParser(),

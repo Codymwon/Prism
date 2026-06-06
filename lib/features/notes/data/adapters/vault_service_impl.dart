@@ -9,14 +9,14 @@ import '../vault_storage.dart';
 import '../note_model.dart';
 import '../vault_service.dart';
 
-class VaultServiceImpl implements VaultService {
+class NoteIngestionServiceImpl implements NoteIngestionService {
   final Future<Database> Function() getDb;
   final VaultStorage storage;
   final NoteContentParser parser;
   final MetadataIndexer indexer;
   final Future<String> Function() getVaultPath;
 
-  VaultServiceImpl({
+  NoteIngestionServiceImpl({
     required this.getDb,
     required this.storage,
     required this.parser,

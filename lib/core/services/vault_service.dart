@@ -5,17 +5,17 @@ import 'package:path/path.dart' as p;
 import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../../features/settings/presentation/providers/settings_provider.dart';
 
-final vaultServiceProvider = Provider<VaultService>((ref) {
-  return VaultService();
+final vaultManagementServiceProvider = Provider<VaultManagementService>((ref) {
+  return VaultManagementService();
 });
 
 final availableVaultsProvider = FutureProvider<List<String>>((ref) async {
   final baseDir = await ref.watch(baseVaultsDirectoryProvider.future);
   final activeVault = await ref.watch(activeVaultNameProvider.future);
-  return ref.read(vaultServiceProvider).getAvailableVaults(baseDir, activeVault);
+  return ref.read(vaultManagementServiceProvider).getAvailableVaults(baseDir, activeVault);
 });
 
-class VaultService {
+class VaultManagementService {
   /// Scans subdirectories in base directory to list available vaults asynchronously
   Future<List<String>> getAvailableVaults(String baseDir, String activeVault) async {
     List<String> vaults = [];

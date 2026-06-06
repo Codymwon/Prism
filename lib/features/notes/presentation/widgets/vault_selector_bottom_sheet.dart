@@ -17,7 +17,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
     Navigator.pop(context); // Dismiss bottom sheet immediately
 
     try {
-      await ref.read(vaultServiceProvider).switchVault(vaultName: vaultName, ref: ref);
+      await ref.read(vaultManagementServiceProvider).switchVault(vaultName: vaultName, ref: ref);
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text('Error switching vault: $e', style: const TextStyle(color: Colors.white))),
@@ -43,7 +43,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
     try {
       // Await async provider to get the real loaded value
       final baseDir = await ref.read(baseVaultsDirectoryProvider.future);
-      await ref.read(vaultServiceProvider).createVault(
+      await ref.read(vaultManagementServiceProvider).createVault(
         vaultName: vaultName,
         baseDir: baseDir,
         ref: ref,

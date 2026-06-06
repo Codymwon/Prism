@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -8,7 +9,9 @@ import 'package:meridian/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
 import 'package:meridian/features/notes/data/vault_storage.dart';
+import 'package:meridian/features/settings/presentation/providers/settings_provider.dart';
 import 'package:meridian/features/graph/data/spatial_group_repository.dart';
+
 
 class FakeVaultStorage implements VaultStorage {
   final Map<String, String> files = {};
@@ -48,8 +51,12 @@ void main() {
   late Database db;
   late FakeVaultStorage storage;
   late ProviderContainer container;
+  late Directory tempDir;
 
   setUp(() async {
+    tempDir = Directory.systemTemp.createTempSync('prism_test_vault');
+    final vaultPath = tempDir.path;
+
     db = await databaseFactory.openDatabase(
       inMemoryDatabasePath,
       options: OpenDatabaseOptions(
@@ -134,6 +141,28 @@ void main() {
               FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
             )
           ''');
+
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS graph_node_positions (
+              note_id TEXT PRIMARY KEY,
+              x REAL NOT NULL,
+              y REAL NOT NULL,
+              is_pinned INTEGER NOT NULL DEFAULT 0,
+              FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
+            )
+          ''');
+
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS audio_bookmarks (
+              id TEXT PRIMARY KEY,
+              note_id TEXT NOT NULL,
+              attachment_path TEXT NOT NULL,
+              timestamp_ms INTEGER NOT NULL,
+              annotation_text TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
+            )
+          ''');
         },
       ),
     );
@@ -143,15 +172,16 @@ void main() {
     container = ProviderContainer(
       overrides: [
         databaseProvider.overrideWith((ref) async => db),
-        vaultServiceProvider.overrideWith((ref) {
-          return VaultServiceImpl(
+        noteIngestionServiceProvider.overrideWith((ref) {
+          return NoteIngestionServiceImpl(
             getDb: () async => db,
             storage: storage,
             parser: MarkdownContentParser(),
             indexer: SqliteMetadataIndexer(),
-            getVaultPath: () async => '/vault',
+            getVaultPath: () async => vaultPath,
           );
         }),
+        activeVaultPathProvider.overrideWith((ref) async => vaultPath),
       ],
     );
   });
@@ -159,6 +189,9 @@ void main() {
   tearDown(() async {
     container.dispose();
     await db.close();
+    try {
+      tempDir.deleteSync(recursive: true);
+    } catch (_) {}
   });
 
   group('SpatialGroupRepository Tests', () {

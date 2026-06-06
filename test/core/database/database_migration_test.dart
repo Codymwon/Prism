@@ -15,13 +15,16 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await DatabaseHelper.instance.closeDatabase();
+    try {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    } catch (_) {}
   });
 
   test('Database migration from v3 to v4 preserves notes and creates new tables', () async {
-    final dbPath = p.join(tempDir.path, '.meridian.db');
+    final dbPath = p.join(tempDir.path, '.prism.db');
 
     // 1. Initialize a Version 3 Database manually
     final v3Db = await databaseFactory.openDatabase(

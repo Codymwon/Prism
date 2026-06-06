@@ -100,7 +100,7 @@ void main() {
 
   group('DatabaseHelper Upgrade Error Propagation', () {
     test('upgrade failure propagates the exception to the caller', () async {
-      final dbPath = p.join(tempDir2.path, '.meridian.db');
+      final dbPath = p.join(tempDir2.path, '.prism.db');
 
       // 1. Initialize a Version 1 Database manually without the notes table
       final v1Db = await databaseFactory.openDatabase(
@@ -117,11 +117,15 @@ void main() {
       // Now we open it via DatabaseHelper to upgrade it to v4.
       // This should trigger the ALTER TABLE notes ... in version 2 upgrade,
       // which will fail because the notes table does not exist.
-      // We expect this to fail and propagate the exception to the caller.
-      expect(
-        () => DatabaseHelper.instance.openDatabaseForPath(tempDir2.path),
-        throwsA(anything),
-      );
+      // We expect DatabaseHelper to catch the error, rename to .corrupt, and return a fresh database.
+      final db = await DatabaseHelper.instance.openDatabaseForPath(tempDir2.path);
+      expect(db.isOpen, isTrue);
+
+      final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='notes'");
+      expect(tables, isNotEmpty);
+
+      final corruptFile = File('$dbPath.corrupt');
+      expect(await corruptFile.exists(), isTrue);
     });
   });
 }

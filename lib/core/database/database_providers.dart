@@ -37,7 +37,7 @@ final databaseProvider = FutureProvider<Database>((ref) async {
 /// Helper to trigger vault file synchronization asynchronously in the background.
 /// Increments notesVersionProvider upon completion to reactively refresh note listings.
 void _triggerBackgroundSync(Database db, String vaultPath, Ref ref) {
-  ref.read(vaultServiceProvider).syncVault(vaultPath).then((_) {
+  ref.read(noteIngestionServiceProvider).syncVault(vaultPath).then((_) {
     ref.read(notesVersionProvider.notifier).update((state) => state + 1);
     debugPrint('Background physical files sync completed for vault: $vaultPath');
   }).catchError((e) {

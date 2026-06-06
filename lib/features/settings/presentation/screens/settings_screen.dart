@@ -267,7 +267,7 @@ class SettingsScreen extends ConsumerWidget {
       final path = await FilePicker.platform.getDirectoryPath();
       if (path == null) return;
 
-      await ref.read(vaultServiceProvider).changeBaseDirectory(newPath: path, ref: ref);
+      await ref.read(vaultManagementServiceProvider).changeBaseDirectory(newPath: path, ref: ref);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -48,7 +48,7 @@ void main() {
 
   late Database db;
   late FakeVaultStorage storage;
-  late VaultServiceImpl service;
+  late NoteIngestionServiceImpl service;
 
   setUp(() async {
     db = await databaseFactory.openDatabase(
@@ -114,7 +114,7 @@ void main() {
 
     storage = FakeVaultStorage();
     // Initialize our hybrid service with adapters
-    service = VaultServiceImpl(
+    service = NoteIngestionServiceImpl(
       getDb: () async => db,
       storage: storage,
       parser: MarkdownContentParser(),
@@ -127,7 +127,7 @@ void main() {
     await db.close();
   });
 
-  group('VaultServiceImpl Tests', () {
+  group('NoteIngestionServiceImpl Tests', () {
     test('should create and index a new note', () async {
       final note = await service.createNote(
         title: 'New Note',

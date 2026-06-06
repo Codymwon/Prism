@@ -7,7 +7,7 @@ import 'adapters/markdown_content_parser.dart';
 import 'adapters/sqlite_metadata_indexer.dart';
 import 'note_model.dart';
 
-abstract class VaultService {
+abstract class NoteIngestionService {
   Future<Note> createNote({
     String? title,
     String initialContent = '',
@@ -27,8 +27,8 @@ abstract class VaultService {
   Future<void> syncVault(String vaultPath);
 }
 
-final vaultServiceProvider = Provider<VaultService>((ref) {
-  return VaultServiceImpl(
+final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
+  return NoteIngestionServiceImpl(
     getDb: () => ref.read(databaseProvider.future),
     storage: LocalVaultStorage(),
     parser: MarkdownContentParser(),

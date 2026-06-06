@@ -22,7 +22,7 @@ class NoteRepository {
 
   Future<Database> get _db => _ref.read(databaseProvider.future);
 
-  VaultService get _vaultService => _ref.read(vaultServiceProvider);
+  NoteIngestionService get _vaultService => _ref.read(noteIngestionServiceProvider);
 
   /// Atomically re-serialises app-only SQLite tables to the sidecar.
   Future<void> _flush(Database db) async {
