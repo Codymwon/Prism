@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/database/prism_metadata_store.dart';
 import '../../../core/utils/utils.dart';
+import '../../../features/settings/presentation/providers/settings_provider.dart';
 import 'graph_models.dart';
 
 // ─── Providers ────────────────────────────────────────────────────────────────
@@ -30,6 +32,14 @@ class SpatialGroupRepository {
   SpatialGroupRepository(this._ref);
 
   Future<Database> get _db => _ref.read(databaseProvider.future);
+
+  /// Atomically re-serialises app-only SQLite tables to the sidecar.
+  Future<void> _flush(Database db) async {
+    final vaultPath = await _ref.read(activeVaultPathProvider.future);
+    if (vaultPath.isNotEmpty) {
+      await PrismMetadataStore().flushFromDatabase(db, vaultPath);
+    }
+  }
 
   // ── CREATE ────────────────────────────────────────────────────────────────
   /// Creates a new spatial group and inserts its associated member note IDs.
@@ -68,6 +78,7 @@ class SpatialGroupRepository {
 
     _ref.read(spatialGroupsVersionProvider.notifier).state++;
     _ref.read(notesVersionProvider.notifier).state++;
+    await _flush(db);
     return group;
   }
 
@@ -114,6 +125,7 @@ class SpatialGroupRepository {
 
     _ref.read(spatialGroupsVersionProvider.notifier).state++;
     _ref.read(notesVersionProvider.notifier).state++;
+    await _flush(db);
   }
 
   // ── DELETE ────────────────────────────────────────────────────────────────
@@ -127,6 +139,7 @@ class SpatialGroupRepository {
     );
     _ref.read(spatialGroupsVersionProvider.notifier).state++;
     _ref.read(notesVersionProvider.notifier).state++;
+    await _flush(db);
   }
 
   // ── READ ──────────────────────────────────────────────────────────────────
@@ -163,5 +176,17 @@ class SpatialGroupRepository {
       WHERE source_id = ? OR target_id = ?
     ''', [noteId, noteId, noteId]);
     return maps.map((m) => m['note_id'] as String).toList();
+  }
+
+  /// Get 2-hop connected notes for group auto-selection flow.
+  Future<List<String>> get2HopConnections(String noteId) async {
+    final h1 = await get1HopConnections(noteId);
+    final Set<String> results = Set.from(h1);
+    for (final neighborId in h1) {
+      final h2 = await get1HopConnections(neighborId);
+      results.addAll(h2);
+    }
+    results.remove(noteId);
+    return results.toList();
   }
 }

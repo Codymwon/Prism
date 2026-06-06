@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/database/prism_metadata_store.dart';
+import '../../../features/settings/presentation/providers/settings_provider.dart';
 import '../../graph/data/graph_models.dart';
 import 'note_model.dart';
 import 'vault_service.dart';
@@ -21,6 +23,14 @@ class NoteRepository {
   Future<Database> get _db => _ref.read(databaseProvider.future);
 
   VaultService get _vaultService => _ref.read(vaultServiceProvider);
+
+  /// Atomically re-serialises app-only SQLite tables to the sidecar.
+  Future<void> _flush(Database db) async {
+    final vaultPath = await _ref.read(activeVaultPathProvider.future);
+    if (vaultPath.isNotEmpty) {
+      await PrismMetadataStore().flushFromDatabase(db, vaultPath);
+    }
+  }
 
   // ── CREATE ────────────────────────────────────────────────────────────────
 
@@ -320,6 +330,7 @@ class NoteRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       _ref.read(notesVersionProvider.notifier).state++;
+      await _flush(db);
     } catch (e) {
       // Gracefully catch foreign key exceptions or others
     }
@@ -337,6 +348,7 @@ class NoteRepository {
         whereArgs: [nodeId],
       );
       _ref.read(notesVersionProvider.notifier).state++;
+      await _flush(db);
     } catch (e) {
       // Gracefully catch exceptions
     }

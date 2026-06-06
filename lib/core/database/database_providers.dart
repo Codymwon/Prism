@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_helper.dart';
+import 'prism_metadata_store.dart';
 import '../../features/settings/presentation/providers/settings_provider.dart';
 import '../../features/notes/data/vault_service.dart';
 
@@ -17,6 +18,10 @@ final databaseProvider = FutureProvider<Database>((ref) async {
   }
 
   final db = await DatabaseHelper.instance.openDatabaseForPath(vaultPath);
+
+  // Restore app-only metadata (virtual folders, pins, spatial groups) from the
+  // sync-safe sidecar before the background notes-index rebuild runs.
+  await PrismMetadataStore().loadIntoDatabase(db, vaultPath);
 
   // Sync vault physical files in the background without blocking database loading
   _triggerBackgroundSync(db, vaultPath, ref);

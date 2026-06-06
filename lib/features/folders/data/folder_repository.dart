@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/database/prism_metadata_store.dart';
 import '../../../core/utils/utils.dart';
+import '../../../features/settings/presentation/providers/settings_provider.dart';
 import '../../notes/data/note_model.dart';
 import 'folder_model.dart';
 
@@ -17,6 +19,14 @@ class FolderRepository {
   FolderRepository(this._ref);
 
   Future<Database> get _db => _ref.read(databaseProvider.future);
+
+  /// Atomically re-serialises the five app-only SQLite tables to the sidecar.
+  Future<void> _flush(Database db) async {
+    final vaultPath = await _ref.read(activeVaultPathProvider.future);
+    if (vaultPath.isNotEmpty) {
+      await PrismMetadataStore().flushFromDatabase(db, vaultPath);
+    }
+  }
 
   // ── READ ──────────────────────────────────────────────────────────────────
   Future<Map<String, List<String>>> getNoteFolderMappings() async {
@@ -97,6 +107,7 @@ class FolderRepository {
 
     await db.insert('virtual_folders', folder.toMap());
     _ref.read(foldersVersionProvider.notifier).state++;
+    await _flush(db);
     return folder;
   }
 
@@ -114,6 +125,7 @@ class FolderRepository {
       whereArgs: [id],
     );
     _ref.read(foldersVersionProvider.notifier).state++;
+    await _flush(db);
   }
 
   // ── DELETE ────────────────────────────────────────────────────────────────
@@ -121,6 +133,7 @@ class FolderRepository {
     final db = await _db;
     await db.delete('virtual_folders', where: 'id = ?', whereArgs: [id]);
     _ref.read(foldersVersionProvider.notifier).state++;
+    await _flush(db);
   }
 
   // ── RELATIONS (NOTE <-> FOLDER) ──────────────────────────────────────────
@@ -132,6 +145,7 @@ class FolderRepository {
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
     _ref.read(foldersVersionProvider.notifier).state++;
+    await _flush(db);
   }
 
   Future<void> removeNoteFromFolder(String noteId, String folderId) async {
@@ -142,6 +156,7 @@ class FolderRepository {
       whereArgs: [noteId, folderId],
     );
     _ref.read(foldersVersionProvider.notifier).state++;
+    await _flush(db);
   }
 
   Future<void> setNoteFolders(String noteId, List<String> folderIds) async {
@@ -157,5 +172,6 @@ class FolderRepository {
       }
     });
     _ref.read(foldersVersionProvider.notifier).state++;
+    await _flush(db);
   }
 }
