@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:path/path.dart' as p;
 import 'package:markdown/markdown.dart' as md;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/data/note_repository.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/custom_macro_provider.dart';
 
 /// Standard wikilink tapping navigation helper.
@@ -122,4 +126,275 @@ class HighlightElementBuilder extends MarkdownElementBuilder {
       ),
     );
   }
+}
+
+/// Helper to resolve typeface fonts dynamically based on user preferences.
+TextStyle getEditorFont(
+  String family, {
+  double? fontSize,
+  double? height,
+  Color? color,
+  FontWeight? fontWeight,
+  TextDecoration? decoration,
+}) {
+  switch (family) {
+    case 'Roboto Mono (Mono)':
+      return GoogleFonts.robotoMono(
+        fontSize: fontSize,
+        height: height,
+        color: color,
+        fontWeight: fontWeight,
+        decoration: decoration,
+      );
+    case 'Lora (Serif)':
+      return GoogleFonts.lora(
+        fontSize: fontSize,
+        height: height,
+        color: color,
+        fontWeight: fontWeight,
+        decoration: decoration,
+      );
+    case 'Merriweather (Serif)':
+      return GoogleFonts.merriweather(
+        fontSize: fontSize,
+        height: height,
+        color: color,
+        fontWeight: fontWeight,
+        decoration: decoration,
+      );
+    case 'Inter (Sans)':
+    default:
+      return GoogleFonts.inter(
+        fontSize: fontSize,
+        height: height,
+        color: color,
+        fontWeight: fontWeight,
+        decoration: decoration,
+      );
+  }
+}
+
+/// Helper to build uniform MarkdownStyleSheet based on current theme, fonts and sizes.
+MarkdownStyleSheet buildMarkdownStyleSheet(
+  BuildContext context,
+  String family,
+  double size,
+  ColorScheme colorScheme,
+) {
+  return MarkdownStyleSheet(
+    h1: getEditorFont(
+      family,
+      fontSize: size * 1.625,
+      fontWeight: FontWeight.w700,
+      color: DesignColors.text(context),
+    ),
+    h2: getEditorFont(
+      family,
+      fontSize: size * 1.25,
+      fontWeight: FontWeight.w600,
+      color: DesignColors.text(context),
+    ),
+    h3: getEditorFont(
+      family,
+      fontSize: size * 1.0625,
+      fontWeight: FontWeight.w600,
+      color: DesignColors.text(context),
+    ),
+    h4: getEditorFont(
+      family,
+      fontSize: size * 0.95,
+      fontWeight: FontWeight.w600,
+      color: DesignColors.text(context),
+    ),
+    h5: getEditorFont(
+      family,
+      fontSize: size * 0.88,
+      fontWeight: FontWeight.w600,
+      color: DesignColors.text(context),
+    ),
+    h6: getEditorFont(
+      family,
+      fontSize: size * 0.81,
+      fontWeight: FontWeight.w600,
+      color: DesignColors.text(context),
+    ),
+    p: getEditorFont(
+      family,
+      fontSize: size,
+      height: 1.7,
+      color: DesignColors.text(context),
+    ),
+    strong: getEditorFont(
+      family,
+      fontSize: size,
+      fontWeight: FontWeight.bold,
+      color: DesignColors.text(context),
+    ),
+    em: getEditorFont(
+      family,
+      fontSize: size,
+      color: DesignColors.text(context),
+    ).copyWith(fontStyle: FontStyle.italic),
+    listBullet: getEditorFont(
+      family,
+      fontSize: size,
+      color: DesignColors.text(context),
+    ),
+    blockquote: getEditorFont(
+      family,
+      fontSize: size,
+      color: DesignColors.textSecondary(context),
+    ),
+    tableHead: getEditorFont(
+      family,
+      fontSize: size,
+      fontWeight: FontWeight.bold,
+      color: DesignColors.text(context),
+    ),
+    tableBody: getEditorFont(
+      family,
+      fontSize: size,
+      color: DesignColors.text(context),
+    ),
+    code: GoogleFonts.robotoMono(
+      fontSize: size * 0.8125,
+      color: DesignColors.accentGreen(context),
+      backgroundColor: DesignColors.surfaceVariant(context),
+    ),
+    a: getEditorFont(
+      family,
+      fontSize: size,
+      color: colorScheme.primary,
+      decoration: TextDecoration.underline,
+      fontWeight: FontWeight.w600,
+    ),
+    blockquoteDecoration: BoxDecoration(
+      border: Border(
+        left: BorderSide(
+          color: colorScheme.primary,
+          width: 3,
+        ),
+      ),
+    ),
+  );
+}
+
+/// Helper to render image attachments inside Markdown body previews.
+Widget buildMarkdownImage({
+  required Uri uri,
+  required String noteId,
+  required WidgetRef ref,
+  required BuildContext context,
+}) {
+  final uriStr = uri.toString();
+  final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
+  final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
+
+  if (!isNetwork && !isAbsolute) {
+    final note = ref.read(noteByIdProvider(noteId)).valueOrNull;
+    if (note != null) {
+      final vaultPath = p.dirname(note.filePath);
+      final fullPath = p.join(vaultPath, uriStr);
+      final file = File(fullPath);
+      if (file.existsSync()) {
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              file,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  color: DesignColors.surfaceVariant(context),
+                  child: Row(
+                    children: [
+                      Icon(Icons.broken_image_outlined,
+                          color: DesignColors.textSecondary(context)),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Failed to load image',
+                        style: DesignTypography.body(context,
+                            color: DesignColors.textSecondary(context)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+  return const SizedBox.shrink();
+}
+
+/// A segment of note content that is either a block of markdown text or
+/// an audio attachment reference.
+class MarkdownSegment {
+  final String? text;
+  final String? audioLabel;
+  final String? audioPath;
+
+  const MarkdownSegment._({this.text, this.audioLabel, this.audioPath});
+
+  factory MarkdownSegment.text(String text) => MarkdownSegment._(text: text);
+
+  factory MarkdownSegment.audio({
+    required String label,
+    required String path,
+  }) => MarkdownSegment._(audioLabel: label, audioPath: path);
+
+  bool get isAudio => audioPath != null;
+}
+
+final RegExp _audioLinkRegex = RegExp(
+  r'^\[([^\]]*)\]\((attachments/[^)]+\.(?:m4a|mp3|wav|aac|ogg))\)$',
+  multiLine: true,
+  caseSensitive: false,
+);
+
+/// Splits note markdown text into alternating markdown and audio segments.
+List<MarkdownSegment> splitAudioLinks(String markdown) {
+  final segments = <MarkdownSegment>[];
+  int lastEnd = 0;
+
+  for (final match in _audioLinkRegex.allMatches(markdown)) {
+    if (match.start > lastEnd) {
+      final textBefore = markdown.substring(lastEnd, match.start);
+      if (textBefore.trim().isNotEmpty) {
+        segments.add(MarkdownSegment.text(textBefore));
+      }
+    }
+    segments.add(MarkdownSegment.audio(
+      label: match.group(1)!,
+      path: match.group(2)!,
+    ));
+    lastEnd = match.end;
+  }
+
+  if (lastEnd < markdown.length) {
+    final remaining = markdown.substring(lastEnd);
+    if (remaining.trim().isNotEmpty) {
+      segments.add(MarkdownSegment.text(remaining));
+    }
+  }
+
+  if (segments.isEmpty) {
+    segments.add(MarkdownSegment.text(markdown));
+  }
+
+  return segments;
 }

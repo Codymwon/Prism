@@ -2,18 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:record/record.dart';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
-import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../widgets/wikilink_autocomplete.dart';
 import '../widgets/backlinks_panel.dart';
@@ -21,28 +15,9 @@ import '../widgets/formatting_toolbar.dart';
 import '../widgets/inline_audio_waveform_player.dart';
 import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
-
-/// A segment of note content that is either a block of markdown text or
-/// an audio attachment reference.
-class _MarkdownSegment {
-  final String? text;
-  final String? audioLabel;
-  final String? audioPath;
-
-  const _MarkdownSegment._({this.text, this.audioLabel, this.audioPath});
-
-  factory _MarkdownSegment.text(String text) =>
-      _MarkdownSegment._(text: text);
-
-  factory _MarkdownSegment.audio({
-    required String label,
-    required String path,
-  }) =>
-      _MarkdownSegment._(audioLabel: label, audioPath: path);
-
-  bool get isAudio => audioPath != null;
-}
-
+import '../providers/editor_controller.dart';
+import '../widgets/conflict_banner.dart';
+import '../widgets/editor_write_mode.dart';
 
 enum EditorMode { write, preview }
 
@@ -70,29 +45,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
 
-  Timer? _saveTimer;
-  final ValueNotifier<bool> _isSavingNotifier = ValueNotifier<bool>(false);
-  bool _isLoaded = false;
-  String _lastSaved = '';
-  String? _dailyDate;
-  String _loadedTitle = '';
-  String _loadedBody = '';
-
-  // Wikilink autocomplete state
-  bool _showWikilinkPopup = false;
-  String _wikilinkQuery = '';
-
-  // Dictation & Audio State
-  final SpeechToText _speechToText = SpeechToText();
-  final AudioRecorder _audioRecorder = AudioRecorder();
-  bool _isDictating = false;
-  bool _speechInitialized = false;
-  int _dictationStartOffset = 0;
-  String _dictationPreSpeechText = '';
-  String _dictationAudioPath = '';
-  String _currentWords = '';
-  String _dictationSessionId = '';
-  int _speechSessionCount = 0;
+  late EditorController _editorController;
+  late StateController<EditorMode> _editorModeController;
 
   // Caching processed markdown text (avoiding redundant processWikilinks RegExp execution)
   String? _processedWikilinksText;
@@ -101,6 +55,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   @override
   void initState() {
     super.initState();
+    _editorController = ref.read(editorControllerProvider(widget.noteId).notifier);
+    _editorModeController = ref.read(editorModeProvider.notifier);
     _loadNote();
     _titleController.addListener(_onTextChanged);
     _controller.addListener(_onTextChanged);
@@ -108,170 +64,92 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // Set mode: Edit mode for new notes, View mode for existing notes
     Future.microtask(() {
       if (mounted) {
-        ref.read(editorModeProvider.notifier).state =
+        _editorModeController.state =
             widget.isNew ? EditorMode.write : EditorMode.preview;
       }
     });
   }
 
   Future<void> _loadNote() async {
-    final repo = ref.read(noteRepositoryProvider);
-    final note = await repo.getNoteById(widget.noteId);
-    if (note == null) return;
-
-    _dailyDate = note.dailyDate;
-
-    String content = '';
-    try {
-      content = await repo.readNoteContent(widget.noteId);
-    } catch (_) {
-      content = '---\ntitle: "${note.title}"\n---\n\n';
-    }
-
-    final parsedTitle = extractFrontmatterValue(content, 'title') ?? note.title;
-    var parsedBody = stripFrontmatter(content);
-    
-    // Strip the H1 header from the body if the note doesn't have frontmatter (legacy migration)
-    final hasFrontmatter = content.trimLeft().startsWith('---\n') || content.trimLeft().startsWith('---\r\n');
-    if (!hasFrontmatter) {
-      final lines = parsedBody.split('\n');
-      int h1Index = -1;
-      for (int i = 0; i < lines.length; i++) {
-        final trimmed = lines[i].trim();
-        if (trimmed.startsWith('# ')) {
-          final cleanText = trimmed.substring(2).trim();
-          if (cleanText == parsedTitle) {
-            h1Index = i;
-            break;
-          }
-        }
-      }
-      if (h1Index != -1) {
-        lines.removeAt(h1Index);
-        while (lines.isNotEmpty && lines.first.trim().isEmpty) {
-          lines.removeAt(0);
-        }
-        parsedBody = lines.join('\n');
-      }
-    }
+    final stateResult = await ref
+        .read(editorControllerProvider(widget.noteId).notifier)
+        .loadNote(isNew: widget.isNew, defaultDailyDate: widget.dailyDate);
+    if (stateResult == null) return;
 
     if (mounted) {
-      _titleController.text = parsedTitle;
-      _controller.text = parsedBody;
-      _loadedTitle = parsedTitle;
-      _loadedBody = parsedBody;
-      _lastSaved = content;
-      setState(() => _isLoaded = true);
+      _titleController.text = stateResult.loadedTitle;
+      _controller.text = stateResult.loadedBody;
 
       // Auto-focus when new
       if (widget.isNew) {
         Future.delayed(const Duration(milliseconds: 300), () {
-          _focusNode.requestFocus();
-          // Position cursor at end
-          _controller.selection = TextSelection.collapsed(offset: parsedBody.length);
+          if (mounted) {
+            _focusNode.requestFocus();
+            // Position cursor at end
+            _controller.selection =
+                TextSelection.collapsed(offset: stateResult.loadedBody.length);
+          }
         });
       }
     }
   }
 
   void _onTextChanged() {
-    final text = _controller.text;
-
-    // Wikilink detection
-    _detectWikilink(text);
-
-    // Debounced save (500ms after last keystroke)
-    _saveTimer?.cancel();
-    if (!_isDictating) {
-      _saveTimer = Timer(const Duration(milliseconds: 500), () => _save());
-    }
+    final dictationState = ref.read(dictationControllerProvider(widget.noteId));
+    ref.read(editorControllerProvider(widget.noteId).notifier).onTextChanged(
+          _titleController.text,
+          _controller.text,
+          _controller.selection,
+          dictationState.isDictating,
+        );
   }
 
-  void _detectWikilink(String text) {
-    final selection = _controller.selection;
-    if (!selection.isValid) return;
-
-    final cursor = selection.baseOffset;
-    if (cursor <= 0) return;
-
-    final before = text.substring(0, cursor);
-    final openBracket = before.lastIndexOf('[[');
-
-    if (openBracket != -1 && !before.substring(openBracket).contains(']]')) {
-      final query = before.substring(openBracket + 2);
-      if (query.isNotEmpty) {
-        setState(() {
-          _showWikilinkPopup = true;
-          _wikilinkQuery = query;
-        });
-        return;
+  void _toggleCheckbox(int index) {
+    final text = _controller.text;
+    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
+    final matches = regex.allMatches(text).toList();
+    if (index >= 0 && index < matches.length) {
+      final match = matches[index];
+      final charIndex = match.end - 2;
+      if (charIndex >= 0 && charIndex < text.length) {
+        final currentChar = text[charIndex];
+        final newChar = (currentChar == ' ') ? 'x' : ' ';
+        final newText =
+            text.substring(0, charIndex) + newChar + text.substring(charIndex + 1);
+        _controller.value = TextEditingValue(
+          text: newText,
+          selection: _controller.selection.copyWith(
+            baseOffset: _controller.selection.baseOffset.clamp(0, newText.length),
+            extentOffset: _controller.selection.extentOffset.clamp(0, newText.length),
+          ),
+        );
+        ref.read(editorControllerProvider(widget.noteId).notifier).save(
+              _titleController.text,
+              _controller.text,
+            );
       }
     }
-
-    if (_showWikilinkPopup) {
-      setState(() => _showWikilinkPopup = false);
-    }
-  }
-
-  Future<void> _save() async {
-    final title = _titleController.text;
-    final body = _controller.text;
-    if (title == _loadedTitle && body == _loadedBody) return;
-
-    final cleanTitle = title.trim().isEmpty ? 'Untitled' : title.trim();
-    final dateStr = _dailyDate ?? widget.dailyDate;
-
-    final buffer = StringBuffer();
-    buffer.writeln('---');
-    buffer.writeln('title: "$cleanTitle"');
-    if (dateStr != null) {
-      buffer.writeln('date: $dateStr');
-    }
-    buffer.writeln('---');
-    buffer.writeln();
-    buffer.write(body);
-
-    final content = buffer.toString();
-    if (content == _lastSaved) return;
-
-    _isSavingNotifier.value = true;
-    final repo = ref.read(noteRepositoryProvider);
-    await repo.saveNote(widget.noteId, content);
-    _lastSaved = content;
-    _loadedTitle = title;
-    _loadedBody = body;
-    if (mounted) _isSavingNotifier.value = false;
   }
 
   void _insertWikilink(String noteTitle) {
-    final text = _controller.text;
-    final cursor = _controller.selection.baseOffset;
-    final before = text.substring(0, cursor);
-    final openBracket = before.lastIndexOf('[[');
-
-    if (openBracket != -1) {
-      final after = text.substring(cursor);
-      final newText =
-          '${text.substring(0, openBracket)}[[$noteTitle]]$after';
-      final newCursor = openBracket + noteTitle.length + 4;
-      _controller.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: newCursor),
-      );
+    final newValue = ref
+        .read(editorControllerProvider(widget.noteId).notifier)
+        .insertWikilink(noteTitle, _controller.text, _controller.selection);
+    if (newValue != null) {
+      _controller.value = newValue;
     }
-    setState(() => _showWikilinkPopup = false);
   }
 
   @override
   void dispose() {
-    _saveTimer?.cancel();
-    if (_titleController.text != _loadedTitle || _controller.text != _loadedBody) {
-      _save(); // final save on close if modified
-    }
-    
+    _editorController.saveIfNeeded(
+      _titleController.text,
+      _controller.text,
+    );
+
     // Reset editor mode to View mode when exiting
     try {
-      ref.read(editorModeProvider.notifier).state = EditorMode.preview;
+      _editorModeController.state = EditorMode.preview;
     } catch (_) {}
 
     _titleController.removeListener(_onTextChanged);
@@ -280,22 +158,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
-    _isSavingNotifier.dispose();
-    
-    // Dispose dictation utilities
-    try {
-      _speechToText.stop();
-    } catch (_) {}
-    _audioRecorder.dispose();
-    
+
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final mode = ref.watch(editorModeProvider);
+
+    final editorState = ref.watch(editorControllerProvider(widget.noteId));
+    final dictationState = ref.watch(dictationControllerProvider(widget.noteId));
 
     // StateNotifier — watch synchronously
     final fontFamily = ref.watch(fontFamilyProvider);
@@ -312,10 +187,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
-      appBar: _buildAppBar(colorScheme, mode),
+      appBar: _buildAppBar(colorScheme, mode, editorState),
       body: Stack(
         children: [
-          if (!_isLoaded)
+          if (!editorState.isLoaded)
             const Center(child: CircularProgressIndicator())
           else
             Column(
@@ -324,11 +199,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   builder: (context, ref, _) {
                     final isConflicted = ref.watch(
                       noteByIdProvider(widget.noteId).select(
-                        (asyncNote) => asyncNote.valueOrNull?.isConflicted ?? false,
+                        (asyncNote) =>
+                            asyncNote.valueOrNull?.isConflicted ?? false,
                       ),
                     );
                     if (!isConflicted) return const SizedBox.shrink();
-                    return _buildConflictBanner(context, colorScheme, isDark);
+                    return ConflictBanner(noteId: widget.noteId);
                   },
                 ),
                 Expanded(
@@ -336,13 +212,26 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       ? Column(
                           children: [
                             Expanded(
-                              child: _buildWriteMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
+                              child: EditorWriteMode(
+                                titleController: _titleController,
+                                controller: _controller,
+                                focusNode: _focusNode,
+                                scrollController: _scrollController,
+                                family: fontFamily,
+                                size: sizeVal,
+                                paddingHorizontal: paddingVal,
+                              ),
                             ),
-                            _isDictating
+                            dictationState.isDictating
                                 ? DictationOverlay(
-                                    currentWords: ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false
+                                    currentWords: ref
+                                                .read(keepVoiceRecordingsProvider)
+                                                .valueOrNull ??
+                                            false
                                         ? 'Recording audio note...'
-                                        : (_currentWords.isEmpty ? 'Listening...' : _currentWords),
+                                        : (dictationState.currentWords.isEmpty
+                                            ? 'Listening...'
+                                            : dictationState.currentWords),
                                     onCancel: () => _stopDictation(commit: false),
                                     onCommit: () => _stopDictation(commit: true),
                                   )
@@ -354,7 +243,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                   ),
                           ],
                         )
-                      : _buildPreviewMode(isDark, colorScheme, fontFamily, sizeVal, paddingVal),
+                      : _buildPreviewMode(
+                          isDark, colorScheme, fontFamily, sizeVal, paddingVal, editorState),
                 ),
                 // Backlinks panel
                 BacklinksPanel(noteId: widget.noteId),
@@ -362,78 +252,23 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
 
           // Wikilink autocomplete floating popup
-          if (_showWikilinkPopup)
+          if (editorState.showWikilinkPopup)
             WikilinkAutocomplete(
-              query: _wikilinkQuery,
+              query: editorState.wikilinkQuery,
               onSelect: _insertWikilink,
-              onDismiss: () => setState(() => _showWikilinkPopup = false),
+              onDismiss: () => ref
+                  .read(editorControllerProvider(widget.noteId).notifier)
+                  .dismissWikilinkPopup(),
             ),
-
-          // Editor tutorial overlay removed
         ],
       ),
     );
   }
 
-  Widget _buildConflictBanner(BuildContext context, ColorScheme colorScheme, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: isDark ? 0.15 : 0.08),
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.orange.withValues(alpha: 0.3),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(DesignIcons.warning, color: isDark ? Colors.orange[300] : Colors.orange[800], size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Conflicted Copy: Review and resolve changes.',
-              style: DesignTypography.heading(
-                context,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.orange[200] : Colors.orange[900],
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => context.push('/editor/${widget.noteId}/merge'),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              backgroundColor: isDark ? Colors.orange[800]!.withValues(alpha: 0.3) : Colors.orange[100],
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Resolve',
-                  style: DesignTypography.heading(
-                    context,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.orange[200] : Colors.orange[900],
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(DesignIcons.chevronRight, size: 14, color: isDark ? Colors.orange[200] : Colors.orange[900]),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: -0.1);
-  }
-
   PreferredSizeWidget _buildAppBar(
     ColorScheme colorScheme,
     EditorMode mode,
+    EditorState editorState,
   ) {
     return AppBar(
       leading: IconButton(
@@ -448,7 +283,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           Expanded(
             child: Consumer(
               builder: (context, ref, _) {
-                final note = ref.watch(noteByIdProvider(widget.noteId)).valueOrNull;
+                final note =
+                    ref.watch(noteByIdProvider(widget.noteId)).valueOrNull;
                 return Text(
                   note?.title ?? '',
                   style: DesignTypography.heading(
@@ -466,38 +302,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
       actions: [
         // Save indicator
-        ValueListenableBuilder<bool>(
-          valueListenable: _isSavingNotifier,
-          builder: (context, isSaving, _) {
-            return AnimatedOpacity(
-              opacity: isSaving ? 1 : 0,
-              duration: const Duration(milliseconds: 300),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Saving',
-                      style: DesignTypography.metadata(
-                        context,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
+        AnimatedOpacity(
+          opacity: editorState.isSaving ? 1 : 0,
+          duration: const Duration(milliseconds: 300),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colorScheme.primary,
+                  ),
                 ),
-              ),
-            );
-          },
+                const SizedBox(width: 4),
+                Text(
+                  'Saving',
+                  style: DesignTypography.metadata(
+                    context,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
         // Organize note folder assignment button
         IconButton(
@@ -527,79 +358,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  Widget _buildWriteMode(bool isDark, ColorScheme colorScheme, String family, double size, double paddingHorizontal) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
-          child: TextField(
-            controller: _titleController,
-            style: _getFont(
-              family,
-              fontSize: size * 1.5,
-              fontWeight: FontWeight.bold,
-              color: DesignColors.text(context),
-            ),
-            decoration: InputDecoration(
-              hintText: 'Note Title',
-              hintStyle: _getFont(
-                family,
-                fontSize: size * 1.5,
-                fontWeight: FontWeight.bold,
-                color: DesignColors.textTertiary(context),
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.only(top: 16, bottom: 8),
-            ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
-          child: Divider(
-            color: DesignColors.border(context),
-            height: 1,
-            thickness: 1,
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              scrollController: _scrollController,
-              maxLines: null,
-              expands: true,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              style: _getFont(
-                family,
-                fontSize: size,
-                height: 1.7,
-                color: DesignColors.text(context),
-              ),
-              decoration: InputDecoration(
-                hintText: 'Start writing… use [[note]] for links, #tag for tags',
-                hintStyle: _getFont(
-                  family,
-                  fontSize: size - 1.0,
-                  color: DesignColors.textTertiary(context),
-                ),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.only(top: 12, bottom: 100),
-                fillColor: Colors.transparent,
-                filled: true,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   String _getProcessedMarkdown() {
     final text = _controller.text;
     if (_lastProcessedText == text && _processedWikilinksText != null) {
@@ -610,185 +368,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return _processedWikilinksText!;
   }
 
-  void _toggleCheckbox(int index) {
-    final text = _controller.text;
-    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
-    final matches = regex.allMatches(text).toList();
-    if (index >= 0 && index < matches.length) {
-      final match = matches[index];
-      final charIndex = match.end - 2;
-      if (charIndex >= 0 && charIndex < text.length) {
-        final currentChar = text[charIndex];
-        final newChar = (currentChar == ' ') ? 'x' : ' ';
-        final newText = text.substring(0, charIndex) + newChar + text.substring(charIndex + 1);
-        _controller.value = TextEditingValue(
-          text: newText,
-          selection: _controller.selection.copyWith(
-            baseOffset: _controller.selection.baseOffset.clamp(0, newText.length),
-            extentOffset: _controller.selection.extentOffset.clamp(0, newText.length),
-          ),
-        );
-        setState(() {});
-        _save();
-      }
-    }
-  }
-
-  // Regex that matches an audio attachment markdown link on its own line.
-  // Captures: group(1) = label, group(2) = relative path (e.g. attachments/foo.m4a)
-  static final _audioLinkRegex = RegExp(
-    r'^\[([^\]]*)\]\((attachments/[^)]+\.(?:m4a|mp3|wav|aac|ogg))\)$',
-    multiLine: true,
-    caseSensitive: false,
-  );
-
-  /// Splits [markdown] into alternating text/audio segments.
-  /// Returns a list of [_MarkdownSegment] objects.
-  List<_MarkdownSegment> _splitAudioLinks(String markdown) {
-    final segments = <_MarkdownSegment>[];
-    int lastEnd = 0;
-
-    for (final match in _audioLinkRegex.allMatches(markdown)) {
-      if (match.start > lastEnd) {
-        final textBefore = markdown.substring(lastEnd, match.start);
-        if (textBefore.trim().isNotEmpty) {
-          segments.add(_MarkdownSegment.text(textBefore));
-        }
-      }
-      segments.add(_MarkdownSegment.audio(
-        label: match.group(1)!,
-        path: match.group(2)!,
-      ));
-      lastEnd = match.end;
-    }
-
-    if (lastEnd < markdown.length) {
-      final remaining = markdown.substring(lastEnd);
-      if (remaining.trim().isNotEmpty) {
-        segments.add(_MarkdownSegment.text(remaining));
-      }
-    }
-
-    // Fallback: if nothing matched, treat entire text as markdown
-    if (segments.isEmpty) {
-      segments.add(_MarkdownSegment.text(markdown));
-    }
-
-    return segments;
-  }
-
-  Widget _buildPreviewMode(bool isDark, ColorScheme colorScheme, String family, double size, double paddingHorizontal) {
+  Widget _buildPreviewMode(
+    bool isDark,
+    ColorScheme colorScheme,
+    String family,
+    double size,
+    double paddingHorizontal,
+    EditorState editorState,
+  ) {
     final processedData = _getProcessedMarkdown();
-    final segments = _splitAudioLinks(processedData);
+    final segments = splitAudioLinks(processedData);
     int checkboxIndex = 0;
 
-    // Build the MarkdownStyleSheet once
-    final styleSheet = MarkdownStyleSheet(
-      h1: _getFont(
-        family,
-        fontSize: size * 1.625,
-        fontWeight: FontWeight.w700,
-        color: DesignColors.text(context),
-      ),
-      h2: _getFont(
-        family,
-        fontSize: size * 1.25,
-        fontWeight: FontWeight.w600,
-        color: DesignColors.text(context),
-      ),
-      h3: _getFont(
-        family,
-        fontSize: size * 1.0625,
-        fontWeight: FontWeight.w600,
-        color: DesignColors.text(context),
-      ),
-      h4: _getFont(
-        family,
-        fontSize: size * 0.95,
-        fontWeight: FontWeight.w600,
-        color: DesignColors.text(context),
-      ),
-      h5: _getFont(
-        family,
-        fontSize: size * 0.88,
-        fontWeight: FontWeight.w600,
-        color: DesignColors.text(context),
-      ),
-      h6: _getFont(
-        family,
-        fontSize: size * 0.81,
-        fontWeight: FontWeight.w600,
-        color: DesignColors.text(context),
-      ),
-      p: _getFont(
-        family,
-        fontSize: size,
-        height: 1.7,
-        color: DesignColors.text(context),
-      ),
-      strong: _getFont(
-        family,
-        fontSize: size,
-        fontWeight: FontWeight.bold,
-        color: DesignColors.text(context),
-      ),
-      em: _getFont(
-        family,
-        fontSize: size,
-        color: DesignColors.text(context),
-      ).copyWith(fontStyle: FontStyle.italic),
-      listBullet: _getFont(
-        family,
-        fontSize: size,
-        color: DesignColors.text(context),
-      ),
-      blockquote: _getFont(
-        family,
-        fontSize: size,
-        color: DesignColors.textSecondary(context),
-      ),
-      tableHead: _getFont(
-        family,
-        fontSize: size,
-        fontWeight: FontWeight.bold,
-        color: DesignColors.text(context),
-      ),
-      tableBody: _getFont(
-        family,
-        fontSize: size,
-        color: DesignColors.text(context),
-      ),
-      code: GoogleFonts.robotoMono(
-        fontSize: size * 0.8125,
-        color: DesignColors.accentGreen(context),
-        backgroundColor: DesignColors.surfaceVariant(context),
-      ),
-      a: _getFont(
-        family,
-        fontSize: size,
-        color: colorScheme.primary,
-        decoration: TextDecoration.underline,
-        fontWeight: FontWeight.w600,
-      ),
-      blockquoteDecoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(
-            color: colorScheme.primary,
-            width: 3,
-          ),
-        ),
-      ),
-    );
+    final styleSheet = buildMarkdownStyleSheet(context, family, size, colorScheme);
 
     return SingleChildScrollView(
       controller: _scrollController,
-      padding: EdgeInsets.fromLTRB(paddingHorizontal, 12, paddingHorizontal, 100),
+      padding:
+          EdgeInsets.fromLTRB(paddingHorizontal, 12, paddingHorizontal, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             _titleController.text.isEmpty ? 'Untitled' : _titleController.text,
-            style: _getFont(
+            style: getEditorFont(
               family,
               fontSize: size * 1.8,
               fontWeight: FontWeight.w800,
@@ -801,7 +404,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             color: DesignColors.border(context),
           ),
           const SizedBox(height: 16),
-          // Render segments: text segments as MarkdownBody, audio segments inline
           for (final segment in segments)
             if (segment.isAudio)
               InlineAudioWaveformPlayer(
@@ -818,59 +420,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   'mark': HighlightElementBuilder(context),
                 },
                 imageBuilder: (uri, title, alt) {
-                  final uriStr = uri.toString();
-                  final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
-                  final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
-
-                  if (!isNetwork && !isAbsolute) {
-                    final note = ref.read(noteByIdProvider(widget.noteId)).valueOrNull;
-                    if (note != null) {
-                      final vaultPath = p.dirname(note.filePath);
-                      final fullPath = p.join(vaultPath, uriStr);
-                      final file = File(fullPath);
-                      if (file.existsSync()) {
-                        return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              file,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  padding: const EdgeInsets.all(16),
-                                  color: DesignColors.surfaceVariant(context),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.broken_image_outlined,
-                                          color: DesignColors.textSecondary(context)),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        'Failed to load image',
-                                        style: DesignTypography.body(context,
-                                            color: DesignColors.textSecondary(context)),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  }
-                  return const SizedBox.shrink();
+                  return buildMarkdownImage(
+                    uri: uri,
+                    noteId: widget.noteId,
+                    ref: ref,
+                    context: context,
+                  );
                 },
                 onTapLink: (text, href, title) async {
                   handleWikilinkTap(
@@ -893,7 +448,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                         checkColor: colorScheme.onPrimary,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         side: BorderSide(
-                          color: DesignColors.textSecondary(context).withValues(alpha: 0.7),
+                          color: DesignColors.textSecondary(context)
+                              .withValues(alpha: 0.7),
                           width: 1.5,
                         ),
                         shape: RoundedRectangleBorder(
@@ -910,20 +466,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ],
       ),
     );
-  }
-
-  TextStyle _getFont(String family, {double? fontSize, double? height, Color? color, FontWeight? fontWeight, TextDecoration? decoration}) {
-    switch (family) {
-      case 'Roboto Mono (Mono)':
-        return GoogleFonts.robotoMono(fontSize: fontSize, height: height, color: color, fontWeight: fontWeight, decoration: decoration);
-      case 'Lora (Serif)':
-        return GoogleFonts.lora(fontSize: fontSize, height: height, color: color, fontWeight: fontWeight, decoration: decoration);
-      case 'Merriweather (Serif)':
-        return GoogleFonts.merriweather(fontSize: fontSize, height: height, color: color, fontWeight: fontWeight, decoration: decoration);
-      case 'Inter (Sans)':
-      default:
-        return GoogleFonts.inter(fontSize: fontSize, height: height, color: color, fontWeight: fontWeight, decoration: decoration);
-    }
   }
 
   Future<void> _attachImage() async {
@@ -967,7 +509,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         selection: TextSelection.collapsed(offset: cursor + imageLink.length),
       );
 
-      _save();
+      ref.read(editorControllerProvider(widget.noteId).notifier).save(
+            _titleController.text,
+            _controller.text,
+          );
     } catch (e) {
       debugPrint('Error attaching image: $e');
       if (mounted) {
@@ -978,209 +523,46 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  // ── Dictation Actions & Overlay ──────────────────────────────────────────
-
   Future<void> _toggleDictation() async {
-    if (_isDictating) {
-      _stopDictation(commit: true);
-      return;
-    }
-
-    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
-
     try {
-      if (!keepVoice) {
-        // Dictation Mode (Live Text Transcription)
-        if (!_speechInitialized) {
-          bool available = await _speechToText.initialize(
-            onStatus: (status) {
-              if (status == 'notListening' && _isDictating) {
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  if (_isDictating && mounted) {
-                    _startListening(isRestart: true);
-                  }
-                });
-              }
-            },
-            onError: (error) {
-              debugPrint('Speech error: $error');
+      await ref
+          .read(dictationControllerProvider(widget.noteId).notifier)
+          .toggleDictation(
+            textController: _controller,
+            focusNode: _focusNode,
+            onSave: () {
+              ref.read(editorControllerProvider(widget.noteId).notifier).save(
+                    _titleController.text,
+                    _controller.text,
+                  );
             },
           );
-          if (!mounted) return;
-          if (!available) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Speech recognition is not available on this device.')),
-            );
-            return;
-          }
-          _speechInitialized = true;
-        }
-      }
-
-      final hasAudioPermission = await _audioRecorder.hasPermission();
-      if (!mounted) return;
-      if (hasAudioPermission) {
-        _startListening(isRestart: false);
-      } else {
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission is required.')),
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
         );
       }
-    } catch (e) {
-      debugPrint('Error starting dictation: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to start dictation: $e')),
-      );
-    }
-  }
-
-  void _startListening({bool isRestart = false}) async {
-    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
-
-    _speechSessionCount++;
-    final currentSession = _speechSessionCount;
-
-    if (!isRestart) {
-      final selection = _controller.selection;
-      _dictationStartOffset = selection.isValid ? selection.baseOffset : _controller.text.length;
-      _dictationPreSpeechText = _controller.text;
-      _currentWords = '';
-    } else {
-      // On auto-restart, continue from the end of the previous speech segment
-      _dictationStartOffset = (_dictationStartOffset + _currentWords.length).clamp(0, _controller.text.length);
-      _dictationPreSpeechText = _controller.text;
-      _currentWords = '';
-    }
-
-    setState(() {
-      _isDictating = true;
-    });
-
-    if (keepVoice) {
-      // Audio Recorder Mode: start recorder only once at the beginning
-      if (!isRestart) {
-        try {
-          final vaultPath = await getVaultPath();
-          final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
-          if (!await attachmentsDir.exists()) {
-            await attachmentsDir.create(recursive: true);
-          }
-
-          _dictationSessionId = generateId().substring(0, 8);
-          final timestamp = DateTime.now().millisecondsSinceEpoch;
-          final audioPath = p.join(attachmentsDir.path, 'audio_${timestamp}_$_dictationSessionId.m4a');
-          _dictationAudioPath = audioPath;
-
-          await _audioRecorder.start(
-            const RecordConfig(
-              encoder: AudioEncoder.aacLc,
-              sampleRate: 16000,
-              numChannels: 1,
-              bitRate: 32000,
-            ),
-            path: audioPath,
-          );
-        } catch (e) {
-          debugPrint('Audio recording error: $e');
-        }
-      }
-    } else {
-      // Dictation Mode (Live Text Transcription)
-      await _speechToText.listen(
-        onResult: (result) {
-          if (!mounted || !_isDictating || _speechSessionCount != currentSession) return;
-
-          String newWords = result.recognizedWords;
-
-          // If the engine resets the recognized words to empty after we have already captured some words,
-          // it means the previous segment has been finalized. We commit it to our offset.
-          if (newWords.isEmpty && _currentWords.isNotEmpty) {
-            _dictationStartOffset = (_dictationStartOffset + _currentWords.length).clamp(0, _controller.text.length);
-            _dictationPreSpeechText = _controller.text;
-            _currentWords = '';
-          }
-          
-          final before = _dictationPreSpeechText.substring(0, _dictationStartOffset);
-          final after = _dictationPreSpeechText.substring(_dictationStartOffset);
-
-          // Add a leading space if appending to existing text and spacing is needed
-          if (_dictationStartOffset > 0 &&
-              before.isNotEmpty &&
-              !before.endsWith(' ') &&
-              !before.endsWith('\n') &&
-              newWords.isNotEmpty &&
-              !newWords.startsWith(' ')) {
-            newWords = ' $newWords';
-          }
-
-          _currentWords = newWords;
-
-          _controller.value = TextEditingValue(
-            text: before + newWords + after,
-            selection: TextSelection.collapsed(offset: _dictationStartOffset + newWords.length),
-          );
-        },
-        listenOptions: SpeechListenOptions(
-          partialResults: true,
-          listenMode: ListenMode.dictation,
-          listenFor: const Duration(minutes: 10),
-          pauseFor: const Duration(seconds: 15),
-        ),
-      );
     }
   }
 
   Future<void> _stopDictation({required bool commit}) async {
-    if (!_isDictating) return;
-
-    setState(() {
-      _isDictating = false;
-    });
-
-    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
-
-    if (!keepVoice) {
-      await _speechToText.stop();
-    }
-    final audioPath = await _audioRecorder.stop();
-
-    if (!commit) {
-      _controller.value = TextEditingValue(
-        text: _dictationPreSpeechText,
-        selection: TextSelection.collapsed(offset: _dictationStartOffset),
-      );
-
-      if (_dictationAudioPath.isNotEmpty) {
-        final file = File(_dictationAudioPath);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      }
-    } else {
-      if (keepVoice && audioPath != null && _dictationAudioPath.isNotEmpty) {
-        final filename = p.basename(_dictationAudioPath);
-        
-        final text = _controller.text;
-        final cursor = _controller.selection.baseOffset;
-        final before = text.substring(0, cursor);
-        final after = text.substring(cursor);
-
-        final audioLink = '\n\n[Audio Note](attachments/$filename)\n';
-        _controller.value = TextEditingValue(
-          text: before + audioLink + after,
-          selection: TextSelection.collapsed(offset: cursor + audioLink.length),
-        );
-      }
-    }
-
-    _dictationAudioPath = '';
-    _currentWords = '';
-    _focusNode.requestFocus();
-
-    if (commit) {
-      _save();
+    try {
+      await ref
+          .read(dictationControllerProvider(widget.noteId).notifier)
+          .stopDictation(
+            commit: commit,
+            textController: _controller,
+            focusNode: _focusNode,
+            onSave: () {
+              ref.read(editorControllerProvider(widget.noteId).notifier).save(
+                    _titleController.text,
+                    _controller.text,
+                  );
+            },
+          );
+    } catch (e) {
+      debugPrint('Error stopping dictation: $e');
     }
   }
 }
-
