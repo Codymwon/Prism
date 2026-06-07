@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../widgets/spatial_group_edit_bottom_sheet.dart';
 import '../../data/spatial_group_repository.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
+
 
 class GraphSettingsPanel extends ConsumerStatefulWidget {
   final double repulsionRate;
@@ -240,6 +242,31 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                           widget.onChangedDamping(val);
                         },
                         onChangeEnd: (val) => widget.onReLayout(),
+                      ),
+                      
+                      // Drag to Pin Switch
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Drag to Pin',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                              ),
+                            ),
+                            Switch(
+                              value: ref.watch(dragToPinEnabledProvider).valueOrNull ?? false,
+                              activeColor: colorScheme.primary,
+                              onChanged: (val) {
+                                ref.read(dragToPinEnabledProvider.notifier).setDragToPinEnabled(val);
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 8),
 

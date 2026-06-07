@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -338,6 +338,76 @@ void main() {
       final connections = await groupRepository.get1HopConnections(noteRoot.id);
       expect(connections.length, equals(2));
       expect(connections, containsAll([noteA.id, noteB.id]));
+      expect(connections, isNot(contains(noteUnrelated.id)));
+    });
+
+    test('get2HopConnections correctly retrieves 2-hop connected notes', () async {
+      final noteRepository = container.read(noteRepositoryProvider);
+      final groupRepository = container.read(spatialGroupRepositoryProvider);
+
+      final noteRoot = await noteRepository.createNote(title: 'Root Node');
+      final noteA = await noteRepository.createNote(title: 'Node A');
+      final noteB = await noteRepository.createNote(title: 'Node B');
+      final noteC = await noteRepository.createNote(title: 'Node C');
+      final noteUnrelated = await noteRepository.createNote(title: 'Unrelated');
+
+      // root -> A -> B -> C
+      await db.insert('note_links', {
+        'source_id': noteRoot.id,
+        'target_id': noteA.id,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
+      await db.insert('note_links', {
+        'source_id': noteA.id,
+        'target_id': noteB.id,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
+      await db.insert('note_links', {
+        'source_id': noteB.id,
+        'target_id': noteC.id,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      // 2-hop connections from root should be A (1-hop) and B (2-hop), but not C (3-hop) or root or unrelated
+      final connections = await groupRepository.get2HopConnections(noteRoot.id);
+      expect(connections.length, equals(2));
+      expect(connections, containsAll([noteA.id, noteB.id]));
+      expect(connections, isNot(contains(noteC.id)));
+      expect(connections, isNot(contains(noteRoot.id)));
+      expect(connections, isNot(contains(noteUnrelated.id)));
+    });
+
+    test('getAllConnectedHops correctly retrieves all connected component notes via BFS', () async {
+      final noteRepository = container.read(noteRepositoryProvider);
+      final groupRepository = container.read(spatialGroupRepositoryProvider);
+
+      final noteRoot = await noteRepository.createNote(title: 'Root Node');
+      final noteA = await noteRepository.createNote(title: 'Node A');
+      final noteB = await noteRepository.createNote(title: 'Node B');
+      final noteC = await noteRepository.createNote(title: 'Node C');
+      final noteUnrelated = await noteRepository.createNote(title: 'Unrelated');
+
+      // root -> A -> B -> C
+      await db.insert('note_links', {
+        'source_id': noteRoot.id,
+        'target_id': noteA.id,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
+      await db.insert('note_links', {
+        'source_id': noteA.id,
+        'target_id': noteB.id,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
+      await db.insert('note_links', {
+        'source_id': noteB.id,
+        'target_id': noteC.id,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      final connections = await groupRepository.getAllConnectedHops(noteRoot.id);
+      expect(connections.length, equals(3));
+      expect(connections, containsAll([noteA.id, noteB.id, noteC.id]));
+      expect(connections, isNot(contains(noteRoot.id)));
       expect(connections, isNot(contains(noteUnrelated.id)));
     });
   });

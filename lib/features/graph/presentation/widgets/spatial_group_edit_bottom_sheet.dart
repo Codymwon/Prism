@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -91,6 +91,61 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
     if (_selectedRootNote == null) return;
     final rootId = _selectedRootNote!.id;
     final connections = await ref.read(spatialGroupRepositoryProvider).get1HopConnections(rootId);
+    
+    setState(() {
+      final newSet = _selectedNoteIds.toSet();
+      newSet.add(rootId);
+      newSet.addAll(connections);
+      _selectedNoteIds = newSet.toList();
+    });
+  }
+
+  Future<void> _include2HopNotes() async {
+    if (_selectedRootNote == null) return;
+    final rootId = _selectedRootNote!.id;
+    final connections = await ref.read(spatialGroupRepositoryProvider).get2HopConnections(rootId);
+    
+    setState(() {
+      final newSet = _selectedNoteIds.toSet();
+      newSet.add(rootId);
+      newSet.addAll(connections);
+      _selectedNoteIds = newSet.toList();
+    });
+  }
+
+  Future<void> _includeAllHopNotes() async {
+    if (_selectedRootNote == null) return;
+    final rootId = _selectedRootNote!.id;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Auto-Include All Hops'),
+          content: const Text(
+            'Warning: This will auto-include all notes in the connected component, which might result in a very large or graph-wide group. Do you want to proceed?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Proceed'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    final connections = await ref.read(spatialGroupRepositoryProvider).getAllConnectedHops(rootId);
     
     setState(() {
       final newSet = _selectedNoteIds.toSet();
@@ -274,9 +329,9 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                 ),
                 const SizedBox(height: 16),
 
-                // 1-Hop Selector
+                // Connected Notes Selector
                 Text(
-                  'Auto-Include 1-Hop Connected Notes',
+                  'Auto-Include Connected Notes',
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -286,51 +341,82 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                 const SizedBox(height: 8),
                 notesAsync.when(
                   data: (notes) {
-                    return Row(
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Autocomplete<Note>(
-                            optionsBuilder: (TextEditingValue textEditingValue) {
-                              if (textEditingValue.text.isEmpty) {
-                                return const Iterable<Note>.empty();
-                              }
-                              return notes.where((note) =>
-                                  note.title.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                            },
-                            displayStringForOption: (Note note) => note.title,
-                            onSelected: (Note note) {
-                              setState(() {
-                                _selectedRootNote = note;
-                              });
-                            },
-                            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                              return TextField(
-                                controller: controller,
-                                focusNode: focusNode,
-                                decoration: InputDecoration(
-                                  hintText: 'Select root note...',
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                        Autocomplete<Note>(
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return const Iterable<Note>.empty();
+                            }
+                            return notes.where((note) =>
+                                note.title.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                          },
+                          displayStringForOption: (Note note) => note.title,
+                          onSelected: (Note note) {
+                            setState(() {
+                              _selectedRootNote = note;
+                            });
+                          },
+                          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                            return TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                hintText: 'Select root note...',
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                        const SizedBox(width: 10),
-                        ElevatedButton.icon(
-                          onPressed: _selectedRootNote != null ? _include1HopNotes : null,
-                          icon: const Icon(Icons.hub_rounded, size: 16),
-                          label: const Text('Add 1-Hop'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.primaryContainer,
-                            foregroundColor: colorScheme.onPrimaryContainer,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: _selectedRootNote != null ? _include1HopNotes : null,
+                              icon: const Icon(Icons.hub_rounded, size: 16),
+                              label: const Text('Add 1-Hop'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme.primaryContainer,
+                                foregroundColor: colorScheme.onPrimaryContainer,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
                             ),
-                          ),
+                            ElevatedButton.icon(
+                              onPressed: _selectedRootNote != null ? _include2HopNotes : null,
+                              icon: const Icon(Icons.hub_rounded, size: 16),
+                              label: const Text('Add 2-Hop'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme.primaryContainer,
+                                foregroundColor: colorScheme.onPrimaryContainer,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: _selectedRootNote != null ? _includeAllHopNotes : null,
+                              icon: const Icon(Icons.hub_rounded, size: 16),
+                              label: const Text('Add All Hops'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme.primaryContainer,
+                                foregroundColor: colorScheme.onPrimaryContainer,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     );

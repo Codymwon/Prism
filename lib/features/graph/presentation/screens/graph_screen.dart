@@ -14,6 +14,8 @@ import '../widgets/graph_settings_panel.dart';
 import '../widgets/graph_header.dart';
 import '../widgets/graph_empty_state.dart';
 import '../widgets/graph_node_widget.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
+
 
 class GraphScreen extends ConsumerWidget {
   const GraphScreen({super.key});
@@ -101,8 +103,9 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
               onSettingsToggle: () => setState(() => _showSettings = !_showSettings),
             ),
             Expanded(
-              child: graphAsync.when(
-                data: (data) {
+              child: () {
+                if (graphAsync.hasValue) {
+                  final data = graphAsync.requireValue;
                   if (data.nodes.isEmpty) {
                     return const GraphEmptyState();
                   }
@@ -176,10 +179,12 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
                       ),
                     ],
                   );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-              ),
+                } else if (graphAsync.hasError) {
+                  return Center(child: Text('Error: ${graphAsync.error}'));
+                } else {
+                  return const Center(child: CircularProgressIndicator());
+                }
+              }(),
             ),
           ],
         ),
@@ -484,6 +489,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   @override
   Widget build(BuildContext context) {
+    // Warm up settings provider to ensure it's loaded during interaction
+    final _ = ref.watch(dragToPinEnabledProvider);
+
     if (_nodeContentCache.isEmpty) {
       _buildNodeContentCache();
     }
@@ -549,8 +557,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                     onPanUpdate: gn.isTemporal ? null : (details) {
                       final scale = widget.transformationController.value.getMaxScaleOnAxis();
                       final delta = scale > 0 ? details.delta / scale : details.delta;
-                      final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(40.0, 2460.0);
-                      final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(30.0, 2470.0);
+                      final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(50.0, 2450.0);
+                      final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(40.0, 2460.0);
                       _positions[gn.id] = Offset(newX, newY);
                       _velocities[gn.id] = Offset.zero;
                       _repaintNotifier.notify();
@@ -559,13 +567,20 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                       _draggedNodeId = null;
                       if (!mounted) return;
                       final finalPos = _positions[gn.id];
-                      if (finalPos != null) {
-                        ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
+                      if (finalPos != null && !gn.isGhost) {
+                        final dragToPin = ref.read(dragToPinEnabledProvider).valueOrNull ?? false;
+                        if (dragToPin) {
+                          ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
+                        } else {
+                          if (gn.isPinned) {
+                            ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
+                          }
+                        }
                       }
                     },
                     child: SizedBox(
-                      width: 80,
-                      height: 60,
+                      width: 100,
+                      height: 80,
                       child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
                     ),
                   );
@@ -608,7 +623,7 @@ class GraphFlowDelegate extends FlowDelegate {
 
   @override
   BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) {
-    return BoxConstraints.tight(const Size(80.0, 60.0));
+    return BoxConstraints.tight(const Size(100.0, 80.0));
   }
 
   @override
@@ -618,7 +633,7 @@ class GraphFlowDelegate extends FlowDelegate {
       final pos = positions[node.id];
       if (pos != null) {
         final dotSize = (8.0 + (node.linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
-        final dx = pos.dx - 40.0; // center on node width (80)
+        final dx = pos.dx - 50.0; // center on node width (100)
         final dy = pos.dy - (dotSize / 2);
         context.paintChild(
           i,

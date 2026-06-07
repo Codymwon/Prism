@@ -143,26 +143,32 @@ class GraphNodeWidget extends StatelessWidget {
         mainWidget,
         if (isPinned)
           Positioned(
-            top: -4,
-            right: 18,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                if (onUnpin != null) {
-                  onUnpin!();
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: colorScheme.outline, width: 1),
-                ),
-                child: Icon(
-                  Icons.push_pin_rounded,
-                  size: 10,
-                  color: colorScheme.primary,
+            top: -16,
+            right: 10,
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    if (onUnpin != null) {
+                      onUnpin!();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colorScheme.outline, width: 1),
+                    ),
+                    child: Icon(
+                      Icons.push_pin_rounded,
+                      size: 10,
+                      color: colorScheme.primary,
+                    ),
+                  ),
                 ),
               ),
             ),

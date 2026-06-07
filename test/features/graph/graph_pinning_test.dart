@@ -1,4 +1,5 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/core/database/database_providers.dart';
@@ -10,6 +11,9 @@ import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart'
 import 'package:prism/features/notes/data/vault_storage.dart';
 import 'package:prism/features/graph/data/graph_node_repository.dart';
 import 'package:prism/features/graph/presentation/providers/graph_providers.dart';
+import 'package:prism/features/graph/presentation/screens/graph_screen.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/settings/presentation/providers/settings_provider.dart';
 
 class FakeVaultStorage implements VaultStorage {
   final Map<String, String> files = {};
@@ -289,5 +293,313 @@ void main() {
       expect(noteNode.pinnedX, equals(123.0));
       expect(noteNode.pinnedY, equals(456.0));
     });
+
+    test('pinNode returns early if target note is a ghost note', () async {
+      final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
+
+      // Create a ghost note
+      final ghostNote = await repository.createGhostNote('Ghost Note');
+      expect(ghostNote.isGhost, isTrue);
+
+      // Try to pin the ghost note
+      await graphNodeRepository.pinNode(ghostNote.id, 150.5, 300.75);
+
+      // Retrieve pinned coordinates
+      final pinnedCoords = await graphNodeRepository.getPinnedCoordinates();
+
+      // Verify the ghost note was not pinned
+      expect(pinnedCoords.containsKey(ghostNote.id), isFalse);
+    });
   });
+
+  group('Graph Dragging and Pinning Behaviors (dragToPin enabled vs disabled)', () {
+    testWidgets('With dragToPin ENABLED: dragging normal note calls pinNode', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(2500.0, 2500.0);
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(const Size(2500.0, 2500.0));
+      addTearDown(() async {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final mockRepo = FakeGraphNodeRepository();
+      final nodes = [
+        const GraphNode(id: 'note-1', title: 'Normal Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: false),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            graphNodeRepositoryProvider.overrideWithValue(mockRepo),
+            dragToPinEnabledProvider.overrideWith(() => FakeDragToPinEnabledNotifier(true)),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: GraphSimulationCanvas(
+                nodes: nodes,
+                edges: const [],
+                repulsionRate: 1.0,
+                repulsionPercentage: 0.5,
+                attractionRate: 0.35,
+                damping: 0.85,
+                transformationController: TransformationController(),
+                disableEntranceAnimation: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
+      state.setNodePositionForTesting('note-1', const Offset(100.0, 100.0));
+      await tester.pump();
+
+      final keyFinder = find.byKey(const ValueKey('drag_note-1'));
+      final center = tester.getCenter(keyFinder);
+
+      // Drag the node starting from its explicit coordinates
+      final gesture = await tester.startGesture(center);
+      await tester.pump();
+      await gesture.moveBy(const Offset(20.0, 20.0)); // win arena
+      await tester.pump();
+      await gesture.moveBy(const Offset(30.0, 30.0)); // drag
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      // Check if pinNode was called
+      expect(mockRepo.pinCalls, isNotEmpty);
+      expect(mockRepo.pinCalls.first.$1, equals('note-1'));
+
+      // Clean up ticker
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('With dragToPin ENABLED: dragging ghost note does NOT call pinNode', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(2500.0, 2500.0);
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(const Size(2500.0, 2500.0));
+      addTearDown(() async {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final mockRepo = FakeGraphNodeRepository();
+      final nodes = [
+        const GraphNode(id: 'ghost-1', title: 'Ghost Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: true),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            graphNodeRepositoryProvider.overrideWithValue(mockRepo),
+            dragToPinEnabledProvider.overrideWith(() => FakeDragToPinEnabledNotifier(true)),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: GraphSimulationCanvas(
+                nodes: nodes,
+                edges: const [],
+                repulsionRate: 1.0,
+                repulsionPercentage: 0.5,
+                attractionRate: 0.35,
+                damping: 0.85,
+                transformationController: TransformationController(),
+                disableEntranceAnimation: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
+      state.setNodePositionForTesting('ghost-1', const Offset(100.0, 100.0));
+      await tester.pump();
+
+      final keyFinder = find.byKey(const ValueKey('drag_ghost-1'));
+      final center = tester.getCenter(keyFinder);
+
+      // Drag the node
+      final gesture = await tester.startGesture(center);
+      await tester.pump();
+      await gesture.moveBy(const Offset(20.0, 20.0));
+      await tester.pump();
+      await gesture.moveBy(const Offset(30.0, 30.0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      // Check if pinNode was NOT called
+      expect(mockRepo.pinCalls, isEmpty);
+
+      // Clean up ticker
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('With dragToPin DISABLED: dragging unpinned note does NOT call pinNode', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(2500.0, 2500.0);
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(const Size(2500.0, 2500.0));
+      addTearDown(() async {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final mockRepo = FakeGraphNodeRepository();
+      final nodes = [
+        const GraphNode(id: 'note-1', title: 'Unpinned Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: false),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            graphNodeRepositoryProvider.overrideWithValue(mockRepo),
+            dragToPinEnabledProvider.overrideWith(() => FakeDragToPinEnabledNotifier(false)),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: GraphSimulationCanvas(
+                nodes: nodes,
+                edges: const [],
+                repulsionRate: 1.0,
+                repulsionPercentage: 0.5,
+                attractionRate: 0.35,
+                damping: 0.85,
+                transformationController: TransformationController(),
+                disableEntranceAnimation: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
+      state.setNodePositionForTesting('note-1', const Offset(100.0, 100.0));
+      await tester.pump();
+
+      final keyFinder = find.byKey(const ValueKey('drag_note-1'));
+      final center = tester.getCenter(keyFinder);
+
+      // Drag the node
+      final gesture = await tester.startGesture(center);
+      await tester.pump();
+      await gesture.moveBy(const Offset(20.0, 20.0));
+      await tester.pump();
+      await gesture.moveBy(const Offset(30.0, 30.0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      // Check if pinNode was NOT called
+      expect(mockRepo.pinCalls, isEmpty);
+
+      // Clean up ticker
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('With dragToPin DISABLED: dragging pinned note calls pinNode (to update positions)', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(2500.0, 2500.0);
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(const Size(2500.0, 2500.0));
+      addTearDown(() async {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final mockRepo = FakeGraphNodeRepository();
+      final nodes = [
+        const GraphNode(id: 'note-1', title: 'Pinned Note', linkCount: 1, isTemporal: false, isPinned: true, isGhost: false),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            graphNodeRepositoryProvider.overrideWithValue(mockRepo),
+            dragToPinEnabledProvider.overrideWith(() => FakeDragToPinEnabledNotifier(false)),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: GraphSimulationCanvas(
+                nodes: nodes,
+                edges: const [],
+                repulsionRate: 1.0,
+                repulsionPercentage: 0.5,
+                attractionRate: 0.35,
+                damping: 0.85,
+                transformationController: TransformationController(),
+                disableEntranceAnimation: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
+      state.setNodePositionForTesting('note-1', const Offset(100.0, 100.0));
+      await tester.pump();
+
+      final keyFinder = find.byKey(const ValueKey('drag_note-1'));
+      final center = tester.getCenter(keyFinder);
+
+      // Drag the node
+      final gesture = await tester.startGesture(center);
+      await tester.pump();
+      await gesture.moveBy(const Offset(20.0, 20.0));
+      await tester.pump();
+      await gesture.moveBy(const Offset(30.0, 30.0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      // Check if pinNode was called
+      expect(mockRepo.pinCalls, isNotEmpty);
+      expect(mockRepo.pinCalls.first.$1, equals('note-1'));
+
+      // Clean up ticker
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+}
+
+class FakeGraphNodeRepository implements GraphNodeRepository {
+  final List<(String, double, double)> pinCalls = [];
+  final List<String> unpinCalls = [];
+
+  @override
+  Future<void> pinNode(String nodeId, double x, double y) async {
+    pinCalls.add((nodeId, x, y));
+  }
+
+  @override
+  Future<void> unpinNode(String nodeId) async {
+    unpinCalls.add(nodeId);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeDragToPinEnabledNotifier extends DragToPinEnabledNotifier {
+  final bool initialValue;
+  FakeDragToPinEnabledNotifier(this.initialValue);
+
+  @override
+  Future<bool> build() async => initialValue;
 }

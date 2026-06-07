@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:prism/features/graph/presentation/screens/graph_screen.dart';
@@ -7,7 +7,7 @@ import 'package:prism/features/graph/presentation/widgets/graph_node_widget.dart
 import 'package:prism/shared/widgets/tactile_wrapper.dart';
 
 void main() {
-  testWidgets('Graph nodes within Flow are constrained to 80x60 and do not take up 2500x2500', (WidgetTester tester) async {
+  testWidgets('Graph nodes within Flow are constrained to 100x80 and do not take up 2500x2500', (WidgetTester tester) async {
     final nodes = [
       const GraphNode(id: '1', title: 'Node 1', linkCount: 1),
       const GraphNode(id: '2', title: 'Node 2', linkCount: 2),
@@ -19,16 +19,18 @@ void main() {
     final transformationController = TransformationController();
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: GraphSimulationCanvas(
-            nodes: nodes,
-            edges: edges,
-            repulsionRate: 1.0,
-            repulsionPercentage: 0.5,
-            attractionRate: 0.35,
-            damping: 0.85,
-            transformationController: transformationController,
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: GraphSimulationCanvas(
+              nodes: nodes,
+              edges: edges,
+              repulsionRate: 1.0,
+              repulsionPercentage: 0.5,
+              attractionRate: 0.35,
+              damping: 0.85,
+              transformationController: transformationController,
+            ),
           ),
         ),
       ),
@@ -50,9 +52,9 @@ void main() {
     final size = tester.getSize(nodeDetectorFinder.first);
     
     // In the buggy implementation, the size will be 2500x2500 (matching the canvas / parent constraints)
-    // In the correct implementation, the size should be 80x60
-    expect(size.width, 80.0);
-    expect(size.height, 60.0);
+    // In the correct implementation, the size should be 100x80
+    expect(size.width, 100.0);
+    expect(size.height, 80.0);
 
     // Clean up ticker
     await tester.pumpWidget(const SizedBox());
@@ -198,9 +200,9 @@ void main() {
     await gesture1.up();
     await tester.pump();
 
-    // The position should be clamped to the minimum boundaries: X = 40.0, Y = 30.0
-    expect(state.positionsForTesting['normal-1']!.dx, equals(40.0));
-    expect(state.positionsForTesting['normal-1']!.dy, equals(30.0));
+    // The position should be clamped to the minimum boundaries: X = 50.0, Y = 40.0
+    expect(state.positionsForTesting['normal-1']!.dx, equals(50.0));
+    expect(state.positionsForTesting['normal-1']!.dy, equals(40.0));
 
     // Drag far to the bottom-right (off-canvas)
     final startLocation2 = tester.getCenter(find.byKey(const ValueKey('drag_normal-1')));
@@ -213,9 +215,9 @@ void main() {
     await gesture2.up();
     await tester.pump();
 
-    // The position should be clamped to the maximum boundaries: X = 2460.0, Y = 2470.0
-    expect(state.positionsForTesting['normal-1']!.dx, equals(2460.0));
-    expect(state.positionsForTesting['normal-1']!.dy, equals(2470.0));
+    // The position should be clamped to the maximum boundaries: X = 2450.0, Y = 2460.0
+    expect(state.positionsForTesting['normal-1']!.dx, equals(2450.0));
+    expect(state.positionsForTesting['normal-1']!.dy, equals(2460.0));
 
     // Clean up ticker
     await tester.pumpWidget(const SizedBox());

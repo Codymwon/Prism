@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -171,4 +171,24 @@ class KeepVoiceRecordingsNotifier extends AsyncNotifier<bool> {
     await prefs.setBool('keepVoiceRecordings', enabled);
   }
 }
+
+// ─── Drag to Pin Enabled Provider ──────────────────────────────────────────
+final dragToPinEnabledProvider =
+    AsyncNotifierProvider<DragToPinEnabledNotifier, bool>(
+        DragToPinEnabledNotifier.new);
+
+class DragToPinEnabledNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('dragToPinEnabled') ?? false;
+  }
+
+  Future<void> setDragToPinEnabled(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dragToPinEnabled', enabled);
+  }
+}
+
 

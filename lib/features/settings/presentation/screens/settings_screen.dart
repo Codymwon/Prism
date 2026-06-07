@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
@@ -70,6 +70,7 @@ class SettingsScreen extends ConsumerWidget {
                   // ── Gestures & Feedback ──────────────────────────────────
                   const SettingsSectionHeader(title: 'Gestures & Feedback'),
                   const HapticToggleTile(),
+                  const DragToPinToggleTile(),
                   SettingsTile(
                     icon: Icons.explore_outlined,
                     title: 'Replay interactive tutorial',

@@ -189,4 +189,36 @@ class SpatialGroupRepository {
     results.remove(noteId);
     return results.toList();
   }
+
+  /// Get all connected notes in the component (BFS).
+  Future<List<String>> getAllConnectedHops(String noteId) async {
+    final db = await _db;
+    final links = await db.query('note_links', columns: ['source_id', 'target_id']);
+    
+    final Map<String, List<String>> adjList = {};
+    for (final link in links) {
+      final src = link['source_id'] as String;
+      final tgt = link['target_id'] as String;
+      adjList.putIfAbsent(src, () => []).add(tgt);
+      adjList.putIfAbsent(tgt, () => []).add(src);
+    }
+
+    final Set<String> visited = {noteId};
+    final List<String> queue = [noteId];
+    int head = 0;
+
+    while (head < queue.length) {
+      final current = queue[head++];
+      final neighbors = adjList[current] ?? [];
+      for (final neighbor in neighbors) {
+        if (!visited.contains(neighbor)) {
+          visited.add(neighbor);
+          queue.add(neighbor);
+        }
+      }
+    }
+
+    visited.remove(noteId);
+    return visited.toList();
+  }
 }

@@ -167,8 +167,8 @@ class GraphNodeRepository {
     if (nodeId.startsWith('week-') || nodeId.startsWith('year-')) {
       throw ArgumentError('Cannot pin temporal node: $nodeId');
     }
-    final noteExists = await _ref.read(noteRepositoryProvider).getNoteById(nodeId) != null;
-    if (!noteExists) {
+    final note = await _ref.read(noteRepositoryProvider).getNoteById(nodeId);
+    if (note == null || note.isGhost) {
       return;
     }
     try {
