@@ -4,8 +4,6 @@ import '../../../../core/database/database_providers.dart';
 import '../../../../core/utils/utils.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
-import '../../../graph/data/graph_models.dart';
-import '../../../graph/data/spatial_group_repository.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_repository.dart';
 import '../../../folders/data/folder_model.dart';
@@ -103,59 +101,6 @@ final backlinksProvider = FutureProvider.autoDispose.family<List<Backlink>, Stri
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getBacklinks(noteId);
-});
-
-final graphDataProvider = FutureProvider.autoDispose<({
-  List<GraphNode> nodes,
-  List<GraphEdge> edges,
-  List<SpatialGroup> spatialGroups,
-  Map<String, String> nodeToGroup,
-  Map<String, List<String>> groupNodes,
-})>((ref) async {
-  await ref.watch(databaseProvider.future);
-  ref.watch(notesVersionProvider);
-  ref.watch(foldersVersionProvider);
-  ref.watch(spatialGroupsVersionProvider);
-  final repo = ref.watch(noteRepositoryProvider);
-  final groupRepo = ref.watch(spatialGroupRepositoryProvider);
-  
-  final data = await repo.getGraphData();
-  final Map<String, GraphNodePosition> pinnedCoords = await repo.getPinnedCoordinates();
-
-  final updatedNodes = data.nodes.map((node) {
-    final pinned = pinnedCoords[node.id];
-    if (pinned != null) {
-      return node.copyWith(
-        isPinned: true,
-        pinnedX: pinned.x,
-        pinnedY: pinned.y,
-      );
-    }
-    return node;
-  }).toList();
-
-  final groups = await groupRepo.getAllSpatialGroups();
-  final mappings = await groupRepo.getSpatialGroupNodeMappings();
-  
-  final Map<String, String> nodeToGroup = {};
-  final Map<String, List<String>> groupNodes = {};
-
-  for (final entry in mappings.entries) {
-    final groupId = entry.key;
-    final noteIds = entry.value;
-    groupNodes[groupId] = noteIds;
-    for (final noteId in noteIds) {
-      nodeToGroup[noteId] = groupId;
-    }
-  }
-
-  return (
-    nodes: updatedNodes,
-    edges: data.edges,
-    spatialGroups: groups,
-    nodeToGroup: nodeToGroup,
-    groupNodes: groupNodes,
-  );
 });
 
 class HomeScreenData {

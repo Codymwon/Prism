@@ -1,14 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../data/graph_models.dart';
+import '../../data/graph_node_repository.dart';
+import '../providers/graph_providers.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
-import '../../../notes/data/note_repository.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../widgets/graph_settings_panel.dart';
 import '../widgets/graph_header.dart';
@@ -303,7 +303,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
         temporalType: gn.temporalType,
         isGhost: gn.isGhost,
         isPinned: gn.isPinned,
-        onUnpin: () => ref.read(noteRepositoryProvider).unpinNode(gn.id),
+        onUnpin: () => ref.read(graphNodeRepositoryProvider).unpinNode(gn.id),
         onTap: () {
           if (gn.isTemporal) return;
           setState(() {
@@ -560,7 +560,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                       if (!mounted) return;
                       final finalPos = _positions[gn.id];
                       if (finalPos != null) {
-                        ref.read(noteRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
+                        ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
                       }
                     },
                     child: SizedBox(

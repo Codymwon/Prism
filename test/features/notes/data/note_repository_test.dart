@@ -8,6 +8,7 @@ import 'package:meridian/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
 import 'package:meridian/features/notes/data/vault_storage.dart';
+import 'package:meridian/features/graph/data/graph_node_repository.dart';
 
 class FakeVaultStorage implements VaultStorage {
   final Map<String, String> files = {};
@@ -142,6 +143,7 @@ void main() {
   group('NoteRepository getGraphData tests with temporal nodes', () {
     test('should generate virtual temporal nodes and hierarchical connecting edges for daily notes', () async {
       final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       // Create a normal general note
       final generalNote = await repository.createNote(
@@ -157,7 +159,7 @@ void main() {
         dailyDate: '2026-06-04',
       );
 
-      final graphData = await repository.getGraphData();
+      final graphData = await graphNodeRepository.getGraphData();
 
       // Check nodes: generalNote + dailyNote + week + year (month removed)
       expect(graphData.nodes.length, equals(4));
@@ -197,6 +199,7 @@ void main() {
 
     test('should prevent duplicate temporal nodes and duplicate connecting edges across multiple daily notes', () async {
       final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       // Create first daily note for June 4, 2026 (Thursday of Week 23, 2026)
       final dailyNote1 = await repository.createNote(
@@ -214,7 +217,7 @@ void main() {
         dailyDate: '2026-06-05',
       );
 
-      final graphData = await repository.getGraphData();
+      final graphData = await graphNodeRepository.getGraphData();
 
       // Nodes: dailyNote1 + dailyNote2 + 1 week + 1 year = 4 nodes (month removed)
       expect(graphData.nodes.length, equals(4));
@@ -233,6 +236,7 @@ void main() {
 
     test('should include ghost notes in graph data with isGhost set to true', () async {
       final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       // Create a ghost note and a real note that wikilinks to it so it has an
       // edge and is not pruned as an unreferenced orphan.
@@ -242,7 +246,7 @@ void main() {
         initialContent: '---\ntitle: "Linking Note"\n---\n\nSee [[Future Topic]] for details.',
       );
 
-      final graphData = await repository.getGraphData();
+      final graphData = await graphNodeRepository.getGraphData();
 
       // Find the ghost note node
       final ghostNodeRef = graphData.nodes.firstWhere((n) => n.id == ghostNote.id);
@@ -253,6 +257,7 @@ void main() {
    group('ISO Week Number calculation edge cases', () {
       test('ISO week calculations for boundary dates', () async {
         final repository = container.read(noteRepositoryProvider);
+        final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
         // Jan 1, 2026 is a Thursday, so it should be week 1
         await repository.createNote(
@@ -262,7 +267,7 @@ void main() {
           dailyDate: '2026-01-01',
         );
 
-        final graphData = await repository.getGraphData();
+        final graphData = await graphNodeRepository.getGraphData();
         final weekNode = graphData.nodes.firstWhere((n) => n.temporalType == 'week');
         expect(weekNode.id, equals('week-2026-01'));
       });

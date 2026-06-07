@@ -8,7 +8,8 @@ import 'package:meridian/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
 import 'package:meridian/features/notes/data/vault_storage.dart';
-import 'package:meridian/features/notes/presentation/providers/notes_providers.dart';
+import 'package:meridian/features/graph/data/graph_node_repository.dart';
+import 'package:meridian/features/graph/presentation/providers/graph_providers.dart';
 
 class FakeVaultStorage implements VaultStorage {
   final Map<String, String> files = {};
@@ -180,6 +181,7 @@ void main() {
   group('Interactive Node Pinning Tests', () {
     test('pinNode correctly persists coordinates to database', () async {
       final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       // Create a test note
       final note = await repository.createNote(
@@ -188,10 +190,10 @@ void main() {
       );
 
       // Pin the note
-      await repository.pinNode(note.id, 150.5, 300.75);
+      await graphNodeRepository.pinNode(note.id, 150.5, 300.75);
 
       // Retrieve pinned coordinates
-      final pinnedCoords = await repository.getPinnedCoordinates();
+      final pinnedCoords = await graphNodeRepository.getPinnedCoordinates();
 
       expect(pinnedCoords.containsKey(note.id), isTrue);
       final position = pinnedCoords[note.id]!;
@@ -202,34 +204,35 @@ void main() {
     });
 
     test('pinNode throws ArgumentError when target is a temporal node (week-)', () async {
-      final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       expect(
-        () => repository.pinNode('week-2026-23', 100.0, 200.0),
+        () => graphNodeRepository.pinNode('week-2026-23', 100.0, 200.0),
         throwsArgumentError,
       );
     });
 
     test('pinNode throws ArgumentError when target is a temporal node (year-)', () async {
-      final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       expect(
-        () => repository.pinNode('year-2026', 100.0, 200.0),
+        () => graphNodeRepository.pinNode('year-2026', 100.0, 200.0),
         throwsArgumentError,
       );
     });
 
     test('unpinNode throws ArgumentError when target is a temporal node', () async {
-      final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       expect(
-        () => repository.unpinNode('week-2026-23'),
+        () => graphNodeRepository.unpinNode('week-2026-23'),
         throwsArgumentError,
       );
     });
 
     test('unpinNode deletes coordinates from graph_node_positions table', () async {
       final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       // Create a test note
       final note = await repository.createNote(
@@ -238,33 +241,34 @@ void main() {
       );
 
       // Pin the note
-      await repository.pinNode(note.id, 100.0, 200.0);
+      await graphNodeRepository.pinNode(note.id, 100.0, 200.0);
 
       // Verify it is pinned
-      var pinnedCoords = await repository.getPinnedCoordinates();
+      var pinnedCoords = await graphNodeRepository.getPinnedCoordinates();
       expect(pinnedCoords.containsKey(note.id), isTrue);
 
       // Unpin the note
-      await repository.unpinNode(note.id);
+      await graphNodeRepository.unpinNode(note.id);
 
       // Verify it is unpinned
-      pinnedCoords = await repository.getPinnedCoordinates();
+      pinnedCoords = await graphNodeRepository.getPinnedCoordinates();
       expect(pinnedCoords.containsKey(note.id), isFalse);
     });
 
     test('pinNode does not save if the note does not exist', () async {
-      final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       // Pin a non-existent note
-      await repository.pinNode('non-existent-id', 400.0, 500.0);
+      await graphNodeRepository.pinNode('non-existent-id', 400.0, 500.0);
 
       // Verify no pinned coordinates are returned
-      final pinnedCoords = await repository.getPinnedCoordinates();
+      final pinnedCoords = await graphNodeRepository.getPinnedCoordinates();
       expect(pinnedCoords.containsKey('non-existent-id'), isFalse);
     });
 
     test('graphDataProvider correctly merges pinned coordinates into graph nodes list', () async {
       final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
 
       // Create a test note
       final note = await repository.createNote(
@@ -273,7 +277,7 @@ void main() {
       );
 
       // Pin the note
-      await repository.pinNode(note.id, 123.0, 456.0);
+      await graphNodeRepository.pinNode(note.id, 123.0, 456.0);
 
       // Read graphDataProvider
       final graphAsync = await container.read(graphDataProvider.future);
