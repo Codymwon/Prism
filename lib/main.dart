@@ -8,7 +8,7 @@ import 'core/utils/storage_permission_helper.dart';
 import 'shared/widgets/storage_permission_screen.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
 import 'features/widgets/widget_helper.dart';
-import 'features/notes/presentation/providers/notes_providers.dart';
+import 'features/journal/presentation/providers/journal_providers.dart';
 import 'shared/design_system/design_system.dart';
 import 'core/utils/utils.dart';
 

@@ -6,6 +6,7 @@ import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
+import '../providers/journal_providers.dart';
 import '../widgets/journal_calendar.dart';
 import '../widgets/journal_entry_card.dart';
 import '../widgets/journal_header.dart';

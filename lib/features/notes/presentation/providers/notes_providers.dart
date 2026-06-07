@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
-import '../../../../core/utils/utils.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
@@ -181,67 +180,3 @@ String _getCleanSnippet(String content) {
   return clean;
 }
 
-// ─── Daily Journal Log & Streak Providers ─────────────────────────────────────
-
-final allDailyDatesProvider = FutureProvider.autoDispose<Set<String>>((ref) async {
-  await ref.watch(databaseProvider.future);
-  ref.watch(notesVersionProvider);
-  
-  final db = await ref.watch(databaseProvider.future);
-  final maps = await db.query(
-    'notes',
-    columns: ['daily_date'],
-    where: 'is_daily = 1 AND is_ghost = 0',
-  );
-  final datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
-  return maps
-      .map((m) => m['daily_date'] as String?)
-      .where((d) => d != null && d.isNotEmpty && datePattern.hasMatch(d))
-      .cast<String>()
-      .toSet();
-});
-
-final journalStreakProvider = FutureProvider.autoDispose<({int streak, int totalCount})>((ref) async {
-  final datesSet = await ref.watch(allDailyDatesProvider.future);
-  if (datesSet.isEmpty) {
-    return (streak: 0, totalCount: 0);
-  }
-
-  // Compute current consecutive writing streak
-  int streak = 0;
-  DateTime checkDate = DateTime.now();
-  String checkStr = formatDailyDate(checkDate);
-
-  // If no entry for today, check starting from yesterday to allow today's entry to be pending
-  if (!datesSet.contains(checkStr)) {
-    checkDate = checkDate.subtract(const Duration(days: 1));
-    checkStr = formatDailyDate(checkDate);
-  }
-
-  while (datesSet.contains(checkStr)) {
-    streak++;
-    checkDate = checkDate.subtract(const Duration(days: 1));
-    checkStr = formatDailyDate(checkDate);
-  }
-
-  return (streak: streak, totalCount: datesSet.length);
-});
-
-// ─── Daily Note Content Provider (family by date string) ──────────────────────
-// Properly named family provider — avoids the inline FutureProvider anti-pattern
-// which creates a new provider instance on every build() call causing flicker.
-final dailyNoteProvider = FutureProvider.autoDispose.family<({Note note, String content})?, String>((ref, dateStr) async {
-  await ref.watch(databaseProvider.future);
-  ref.watch(notesVersionProvider);
-
-  final repo = ref.watch(noteRepositoryProvider);
-  final note = await repo.getDailyNote(dateStr);
-  if (note == null) return null;
-
-  String content = '';
-  try {
-    content = await repo.readNoteContent(note.id);
-  } catch (_) {}
-
-  return (note: note, content: content);
-});

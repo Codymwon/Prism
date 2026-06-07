@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/utils.dart';
 import '../../../../shared/design_system/design_system.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
+import '../providers/journal_providers.dart';
 
 class JournalStreakGrid extends ConsumerWidget {
   const JournalStreakGrid({super.key});

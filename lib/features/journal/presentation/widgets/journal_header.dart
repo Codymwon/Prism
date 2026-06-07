@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
+import '../providers/journal_providers.dart';
 
 class JournalHeader extends ConsumerWidget {
   final DateTime selectedDay;

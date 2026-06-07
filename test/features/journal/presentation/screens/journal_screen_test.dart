@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meridian/features/journal/presentation/screens/journal_screen.dart';
-import 'package:meridian/features/notes/presentation/providers/notes_providers.dart';
+import 'package:meridian/features/journal/presentation/providers/journal_providers.dart';
 import 'package:meridian/features/notes/data/note_model.dart';
 import 'package:meridian/core/utils/utils.dart';
 import 'package:meridian/features/journal/presentation/widgets/journal_week_strip.dart';

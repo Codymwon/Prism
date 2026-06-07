@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/utils/utils.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
+import '../providers/journal_providers.dart';
 import '../screens/journal_screen.dart';
 
 class JournalWeekStrip extends ConsumerWidget {
