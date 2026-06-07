@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart' as p;
@@ -192,6 +192,32 @@ void main() {
 
       final noteFolders = await db.query('note_folders');
       expect(noteFolders, isEmpty);
+    });
+
+    test('should automatically create Tutorial folder and link welcome notes', () async {
+      final file = File(p.join(tempDir.path, 'Welcome to Prism.md'));
+      await file.writeAsString('# Welcome to Prism\n\nWelcome text');
+
+      // Trigger sync
+      await service.syncVault(tempDir.path);
+
+      // Verify the note is in DB
+      final notes = await db.query('notes');
+      expect(notes.length, equals(1));
+      expect(notes.first['title'], equals('Welcome to Prism'));
+
+      // Verify Tutorial virtual folder was automatically created
+      final folders = await db.query('virtual_folders');
+      expect(folders.length, equals(1));
+      expect(folders.first['name'], equals('Tutorial'));
+
+      // Verify note is mapped to the folder
+      final folderId = folders.first['id'];
+      final noteId = notes.first['id'];
+      final noteFolders = await db.query('note_folders');
+      expect(noteFolders.length, equals(1));
+      expect(noteFolders.first['note_id'], equals(noteId));
+      expect(noteFolders.first['folder_id'], equals(folderId));
     });
   });
 }

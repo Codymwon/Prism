@@ -18,6 +18,7 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 import '../providers/editor_controller.dart';
 import '../widgets/conflict_banner.dart';
 import '../widgets/editor_write_mode.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum EditorMode { write, preview }
 
@@ -52,12 +53,46 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   String? _processedWikilinksText;
   String? _lastProcessedText;
 
+  Set<String> _collapsedHeadings = {};
+
+  Future<void> _loadCollapsedHeadings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList('collapsed_${widget.noteId}') ?? [];
+      if (mounted) {
+        setState(() {
+          _collapsedHeadings = list.toSet();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading collapsed headings: $e');
+    }
+  }
+
+  Future<void> _toggleHeadingCollapse(String headingText) async {
+    setState(() {
+      if (_collapsedHeadings.contains(headingText)) {
+        _collapsedHeadings.remove(headingText);
+      } else {
+        _collapsedHeadings.add(headingText);
+      }
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('collapsed_${widget.noteId}', _collapsedHeadings.toList());
+    } catch (e) {
+      debugPrint('Error saving collapsed headings: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _editorController = ref.read(editorControllerProvider(widget.noteId).notifier);
     _editorModeController = ref.read(editorModeProvider.notifier);
     _loadNote();
+    _loadCollapsedHeadings();
     _titleController.addListener(_onTextChanged);
     _controller.addListener(_onTextChanged);
 
@@ -378,6 +413,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   ) {
     final processedData = _getProcessedMarkdown();
     final segments = splitAudioLinks(processedData);
+    final sections = groupSegmentsByH1(segments);
     int checkboxIndex = 0;
 
     final styleSheet = buildMarkdownStyleSheet(context, family, size, colorScheme);
@@ -404,65 +440,117 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             color: DesignColors.border(context),
           ),
           const SizedBox(height: 16),
-          for (final segment in segments)
-            if (segment.isAudio)
-              InlineAudioWaveformPlayer(
-                key: ValueKey('audio_${segment.audioPath}'),
-                filePath: segment.audioPath!,
-                fileName: segment.audioLabel ?? p.basename(segment.audioPath!),
-                noteId: widget.noteId,
-              )
-            else
-              MarkdownBody(
-                data: segment.text!,
-                inlineSyntaxes: [HighlightSyntax()],
-                builders: {
-                  'mark': HighlightElementBuilder(context),
-                },
-                imageBuilder: (uri, title, alt) {
-                  return buildMarkdownImage(
-                    uri: uri,
-                    noteId: widget.noteId,
-                    ref: ref,
-                    context: context,
-                  );
-                },
-                onTapLink: (text, href, title) async {
-                  handleWikilinkTap(
-                    href: href,
-                    ref: ref,
-                    context: context,
-                  );
-                },
-                styleSheet: styleSheet,
-                checkboxBuilder: (bool value) {
-                  final index = checkboxIndex++;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6, top: 3),
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: Checkbox(
-                        value: value,
-                        activeColor: colorScheme.primary,
-                        checkColor: colorScheme.onPrimary,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        side: BorderSide(
-                          color: DesignColors.textSecondary(context)
-                              .withValues(alpha: 0.7),
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        onChanged: (bool? newValue) {
-                          _toggleCheckbox(index);
-                        },
-                      ),
+          for (final section in sections) ...[
+            if (section.headingText != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: AnimatedRotation(
+                      turns: _collapsedHeadings.contains(section.headingText) ? 0.0 : 0.25,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.chevron_right, size: 24),
                     ),
-                  );
-                },
+                    onPressed: () => _toggleHeadingCollapse(section.headingText!),
+                    splashRadius: 20,
+                  ),
+                  Expanded(
+                    child: MarkdownBody(
+                      data: '# ${section.headingText}',
+                      inlineSyntaxes: [HighlightSyntax()],
+                      builders: {
+                        'mark': HighlightElementBuilder(context),
+                      },
+                      styleSheet: styleSheet,
+                      onTapLink: (text, href, title) async {
+                        handleWikilinkTap(
+                          href: href,
+                          ref: ref,
+                          context: context,
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 8),
+            ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topLeft,
+              child: _collapsedHeadings.contains(section.headingText)
+                  ? const SizedBox.shrink()
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final segment in section.segments)
+                          if (segment.isAudio)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: InlineAudioWaveformPlayer(
+                                key: ValueKey('audio_${segment.audioPath}'),
+                                filePath: segment.audioPath!,
+                                fileName: segment.audioLabel ?? p.basename(segment.audioPath!),
+                                noteId: widget.noteId,
+                              ),
+                            )
+                          else
+                            MarkdownBody(
+                              data: segment.text!,
+                              inlineSyntaxes: [HighlightSyntax()],
+                              builders: {
+                                'mark': HighlightElementBuilder(context),
+                              },
+                              imageBuilder: (uri, title, alt) {
+                                return buildMarkdownImage(
+                                  uri: uri,
+                                  noteId: widget.noteId,
+                                  ref: ref,
+                                  context: context,
+                                );
+                              },
+                              onTapLink: (text, href, title) async {
+                                handleWikilinkTap(
+                                  href: href,
+                                  ref: ref,
+                                  context: context,
+                                );
+                              },
+                              styleSheet: styleSheet,
+                              checkboxBuilder: (bool value) {
+                                final index = checkboxIndex++;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6, top: 3),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: Checkbox(
+                                      value: value,
+                                      activeColor: colorScheme.primary,
+                                      checkColor: colorScheme.onPrimary,
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      side: BorderSide(
+                                        color: DesignColors.textSecondary(context)
+                                            .withValues(alpha: 0.7),
+                                        width: 1.5,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      onChanged: (bool? newValue) {
+                                        _toggleCheckbox(index);
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                      ],
+                    ),
+            ),
+          ],
         ],
       ),
     );

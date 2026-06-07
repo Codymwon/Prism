@@ -41,10 +41,10 @@ class MarkdownContentParser implements NoteContentParser {
     clean = clean.replaceAll(RegExp(r'\*\*|\*|__|_|`'), '');
 
     // 4. Strip wikilinks brackets (preserving the text inside)
-    clean = clean.replaceAllMapped(RegExp(r'\[\[(.*?)\]\]'), (match) => match[1] ?? '');
+    clean = clean.replaceAllMapped(RegExp(r'\[\[([^\[\]\r\n]+)\]\]'), (match) => match[1] ?? '');
 
     // 5. Strip standard link markdown (preserving the label)
-    clean = clean.replaceAllMapped(RegExp(r'\[(.*?)\]\((.*?)\)'), (match) => match[1] ?? '');
+    clean = clean.replaceAllMapped(RegExp(r'\[([^\[\]\r\n]+)\]\(([^)]+)\)'), (match) => match[1] ?? '');
 
     // 6. Strip inline tags
     clean = clean.replaceAll(RegExp(r'#\w+'), '');

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_helper.dart';
 import 'prism_metadata_store.dart';
+import '../utils/utils.dart';
 import '../../features/settings/presentation/providers/settings_provider.dart';
 import '../../features/notes/data/vault_service.dart';
 
@@ -16,6 +17,9 @@ final databaseProvider = FutureProvider<Database>((ref) async {
   if (vaultPath.isEmpty) {
     throw Exception('Active vault path is empty');
   }
+
+  // Ensure welcome notes are seeded if the vault is new/empty before opening
+  await seedWelcomeNotes(vaultPath);
 
   final db = await DatabaseHelper.instance.openDatabaseForPath(vaultPath);
 

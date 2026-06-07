@@ -56,8 +56,8 @@
     </radialGradient>
   </defs>
 
-  <!-- Background Squircle -->
-  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#charcoal-bg)" stroke="url(#border-gradient)" stroke-width="1.5" />
+  <!-- Background Square (Full-bleed) -->
+  <rect x="0.75" y="0.75" width="510.5" height="510.5" fill="url(#charcoal-bg)" stroke="url(#border-gradient)" stroke-width="1.5" />
 
   <!-- Soft Ambient Floor Shadow under the Prism -->
   <ellipse cx="256" cy="415" rx="76" ry="14" fill="url(#prism-shadow)" />

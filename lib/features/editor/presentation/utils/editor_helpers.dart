@@ -398,3 +398,77 @@ List<MarkdownSegment> splitAudioLinks(String markdown) {
 
   return segments;
 }
+
+/// A section of a note grouped under a specific H1 heading.
+class HeadingSection {
+  final String? headingText;
+  final List<MarkdownSegment> segments;
+
+  HeadingSection({this.headingText, required this.segments});
+}
+
+/// Groups alternating text/audio markdown segments into H1 collapsible sections.
+List<HeadingSection> groupSegmentsByH1(List<MarkdownSegment> segments) {
+  final sections = <HeadingSection>[];
+  String? currentHeading;
+  var currentSegments = <MarkdownSegment>[];
+
+  for (final segment in segments) {
+    if (segment.isAudio) {
+      currentSegments.add(segment);
+    } else {
+      final text = segment.text!;
+      final lines = text.split('\n');
+      var isInCodeBlock = false;
+      var buffer = StringBuffer();
+
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        if (line.trim().startsWith('```')) {
+          isInCodeBlock = !isInCodeBlock;
+        }
+
+        if (!isInCodeBlock && line.startsWith('# ')) {
+          // If we have accumulated content, save it
+          if (buffer.isNotEmpty) {
+            currentSegments.add(MarkdownSegment.text(buffer.toString()));
+            buffer = StringBuffer();
+          }
+
+          // Finalize current section
+          if (currentHeading != null || currentSegments.isNotEmpty) {
+            sections.add(HeadingSection(
+              headingText: currentHeading,
+              segments: List.from(currentSegments),
+            ));
+            currentSegments.clear();
+          }
+
+          // Start a new section
+          currentHeading = line.substring(2).trim();
+        } else {
+          buffer.write(line);
+          // Keep newlines except for the very last line of the segment
+          if (i < lines.length - 1) {
+            buffer.write('\n');
+          }
+        }
+      }
+
+      if (buffer.isNotEmpty) {
+        currentSegments.add(MarkdownSegment.text(buffer.toString()));
+      }
+    }
+  }
+
+  // Finalize the last section
+  if (currentHeading != null || currentSegments.isNotEmpty) {
+    sections.add(HeadingSection(
+      headingText: currentHeading,
+      segments: List.from(currentSegments),
+    ));
+  }
+
+  return sections;
+}
+

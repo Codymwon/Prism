@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
@@ -8,6 +8,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/database/database_helper.dart';
 import '../../../../core/utils/storage_permission_helper.dart';
 import '../../data/onboarding_provider.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 
 class VaultSetupForm extends ConsumerStatefulWidget {
   final VoidCallback onStartSetup;
@@ -140,13 +141,14 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('vaultType', _selectedVaultType);
-      await prefs.setString('activeVaultName', vaultName);
-      
+
       if (_selectedVaultType == 'sandbox') {
         await prefs.remove('baseVaultsDirectory');
+        ref.invalidate(baseVaultsDirectoryProvider);
       } else {
-        await prefs.setString('baseVaultsDirectory', _customLocationPath);
+        await ref.read(baseVaultsDirectoryProvider.notifier).setDirectory(_customLocationPath);
       }
+      await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
 
       // Close any existing database connection before re-initialising.
       await DatabaseHelper.instance.closeDatabase();

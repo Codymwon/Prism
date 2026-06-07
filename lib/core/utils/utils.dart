@@ -20,8 +20,13 @@ Future<String> getVaultPath() async {
   }
   final activeVault = prefs.getString('activeVaultName') ?? 'My Vault';
   final vaultPath = p.join(baseDir, activeVault);
+  await seedWelcomeNotes(vaultPath);
+  return vaultPath;
+}
+
+/// Seeds default welcome notes inside the vault if it is new or empty.
+Future<void> seedWelcomeNotes(String vaultPath) async {
   final vault = Directory(vaultPath);
-  
   bool isNew = !await vault.exists();
   if (isNew) {
     await vault.create(recursive: true);
@@ -51,8 +56,6 @@ Future<String> getVaultPath() async {
       debugPrint('Error seeding default welcome notes: $e');
     }
   }
-
-  return vault.path;
 }
 
 /// Converts a note title to a safe filename slug.
@@ -151,14 +154,26 @@ int countWords(String text) {
 
 /// Extracts all #tags from markdown content (e.g. #productivity, #ideas).
 List<String> extractTags(String content) {
-  final regex = RegExp(r'(?<!\w)#([a-zA-Z][a-zA-Z0-9_]*)');
-  return regex.allMatches(content).map((m) => m.group(1)!.toLowerCase()).toList();
+  final tags = <String>[];
+  final pattern = RegExp(r'(```[\s\S]*?```)|(`+[^`]+`+)|((?<!\w)#([a-zA-Z][a-zA-Z0-9_]*))');
+  for (final match in pattern.allMatches(content)) {
+    if (match.group(3) != null) {
+      tags.add(match.group(4)!.toLowerCase());
+    }
+  }
+  return tags;
 }
 
 /// Extracts all [[wikilink]] targets from content.
 List<String> extractWikilinks(String content) {
-  final regex = RegExp(r'\[\[([^\]]+)\]\]');
-  return regex.allMatches(content).map((m) => m.group(1)!.trim()).toList();
+  final links = <String>[];
+  final pattern = RegExp(r'(```[\s\S]*?```)|(`+[^`]+`+)|(\[\[([^\[\]\r\n]+)\]\])');
+  for (final match in pattern.allMatches(content)) {
+    if (match.group(3) != null) {
+      links.add(match.group(4)!.trim());
+    }
+  }
+  return links;
 }
 
 /// Gets the context snippet around a wikilink mention.
@@ -185,8 +200,15 @@ bool isToday(String dateStr) {
 
 /// Processes [[wikilinks]] within markdown content to make them standard Markdown links.
 String processWikilinks(String text) {
-  return text.replaceAllMapped(RegExp(r'\[\[([^\]]+)\]\]'), (match) {
-    final title = match.group(1)!;
+  final pattern = RegExp(r'(```[\s\S]*?```)|(`+[^`]+`+)|(\[\[([^\[\]\r\n]+)\]\])');
+  return text.replaceAllMapped(pattern, (match) {
+    if (match.group(1) != null) {
+      return match.group(1)!;
+    }
+    if (match.group(2) != null) {
+      return match.group(2)!;
+    }
+    final title = match.group(4)!;
     final encodedTitle = Uri.encodeComponent(title);
     return '[$title](wikilink:$encodedTitle)';
   });

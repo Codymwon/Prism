@@ -241,8 +241,12 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
   Future<void> syncVault(String vaultPath) async {
     try {
       final database = await getDb();
+      if (!database.isOpen) return;
+
       final files = await storage.listDocumentIdentifiers(vaultPath);
       if (files.isEmpty) return;
+
+      if (!database.isOpen) return;
 
       // Query existing notes along with their updated_at time and ghost flag
       final existingNotes = await database.query('notes', columns: ['id', 'file_path', 'updated_at', 'is_ghost']);
@@ -256,11 +260,14 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
             )
       };
 
+      if (!database.isOpen) return;
+
       // Perform insertions and updates inside a single transaction
       await database.transaction((txn) async {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
 
         for (final filePath in files) {
+          if (!database.isOpen) return;
           final lastMod = await storage.getLastModified(filePath);
           final lastModMs = lastMod.millisecondsSinceEpoch;
 
@@ -311,6 +318,45 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
                 await txn.insert('virtual_folders', {
                   'id': folderId,
                   'name': 'Inbox',
+                  'color_hex': '#7C6FF7',
+                  'icon': 'folder',
+                  'created_at': nowMs,
+                  'sort_order': maxSort + 1,
+                });
+              } else {
+                folderId = folderMaps.first['id'] as String;
+              }
+
+              await txn.insert(
+                'note_folders',
+                {'note_id': noteId, 'folder_id': folderId},
+                conflictAlgorithm: ConflictAlgorithm.ignore,
+              );
+            }
+
+            // If the note is a welcome note, ensure it is in the virtual folder 'Tutorial'
+            final isWelcomeNote = filePath.toLowerCase().endsWith('${Platform.pathSeparator}welcome to prism.md') ||
+                filePath.toLowerCase().endsWith('/welcome to prism.md') ||
+                filePath.toLowerCase().endsWith('${Platform.pathSeparator}productivity tools guide.md') ||
+                filePath.toLowerCase().endsWith('/productivity tools guide.md');
+            if (isWelcomeNote) {
+              final folderMaps = await txn.query(
+                'virtual_folders',
+                columns: ['id'],
+                where: 'LOWER(name) = ?',
+                whereArgs: ['tutorial'],
+              );
+
+              String folderId;
+              if (folderMaps.isEmpty) {
+                folderId = utils.generateId();
+                final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
+                final rawMax = maxSortMap.first['max_sort'];
+                final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
+
+                await txn.insert('virtual_folders', {
+                  'id': folderId,
+                  'name': 'Tutorial',
                   'color_hex': '#7C6FF7',
                   'icon': 'folder',
                   'created_at': nowMs,

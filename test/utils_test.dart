@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/core/utils/utils.dart';
 
 void main() {
@@ -93,6 +93,11 @@ void main() {
       test('should ignore inline hash symbols without letters', () {
         expect(extractTags('Hash without tag # 123'), isEmpty);
       });
+
+      test('should ignore tags inside inline and fenced code blocks', () {
+        final content = 'Do not extract `#inlinecode` or \n```\n#fencedcode\n```\nbut extract #validtag.';
+        expect(extractTags(content), equals(['validtag']));
+      });
     });
 
     group('extractWikilinks', () {
@@ -107,6 +112,16 @@ void main() {
 
       test('should ignore standard single brackets', () {
         expect(extractWikilinks('Standard [Markdown link](https://google.com) example.'), isEmpty);
+      });
+
+      test('should ignore unclosed double-brackets and not group across lines or other double brackets', () {
+        final content = 'Try typing two brackets `[[` followed by the name of another note. For example:\n- Read the [[Productivity Tools Guide]].';
+        expect(extractWikilinks(content), equals(['Productivity Tools Guide']));
+      });
+
+      test('should ignore wikilinks inside inline and fenced code blocks', () {
+        final content = 'Do not extract `[[Inline Code Link]]` or \n```\n[[Fenced Code Link]]\n```\nbut extract [[Valid Link]].';
+        expect(extractWikilinks(content), equals(['Valid Link']));
       });
     });
 
@@ -124,6 +139,22 @@ void main() {
       test('should leave text without wikilinks untouched', () {
         final text = 'Just standard text with [standard link](url).';
         expect(processWikilinks(text), equals(text));
+      });
+
+      test('should handle unclosed double brackets correctly without processing them', () {
+        final text = 'Try typing two brackets `[[` followed by the name of another note. For example:\n- Read the [[Productivity Tools Guide]].';
+        expect(
+          processWikilinks(text),
+          equals('Try typing two brackets `[[` followed by the name of another note. For example:\n- Read the [Productivity Tools Guide](wikilink:Productivity%20Tools%20Guide).'),
+        );
+      });
+
+      test('should not process wikilinks inside inline and fenced code blocks', () {
+        final text = 'Do not change `[[Inline Code Link]]` or \n```\n[[Fenced Code Link]]\n```\nbut process [[Valid Link]].';
+        expect(
+          processWikilinks(text),
+          equals('Do not change `[[Inline Code Link]]` or \n```\n[[Fenced Code Link]]\n```\nbut process [Valid Link](wikilink:Valid%20Link).'),
+        );
       });
     });
 
