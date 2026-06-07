@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../data/note_model.dart';
@@ -145,38 +144,8 @@ final noteDetailsProvider = FutureProvider.autoDispose.family<({List<String> tag
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   
-  // 1. Get tags
   final tags = await repo.getTagsForNote(note.id);
   
-  // 2. Read first few lines of the file as snippet
-  String snippet = '';
-  try {
-    final content = await repo.readNoteContent(note.id);
-    snippet = _getCleanSnippet(content);
-  } catch (e) {
-    debugPrint('Error reading note snippet: $e');
-  }
-  
-  return (tags: tags, snippet: snippet);
+  return (tags: tags, snippet: note.snippet);
 });
-
-String _getCleanSnippet(String content) {
-  // 1. Remove title header (usually # Title)
-  var clean = content.replaceFirst(RegExp(r'^#\s+.*$', multiLine: true), '');
-  // 2. Remove other markdown formatting
-  clean = clean.replaceAll(RegExp(r'#+\s+'), ''); // headings
-  clean = clean.replaceAll(RegExp(r'\*\*|\*|__|_|`'), ''); // bold, italic, code
-  clean = clean.replaceAllMapped(RegExp(r'\[\[(.*?)\]\]'), (match) => match[1] ?? ''); // wikilinks: remove brackets
-  clean = clean.replaceAllMapped(RegExp(r'\[(.*?)\]\((.*?)\)'), (match) => match[1] ?? ''); // standard links
-  clean = clean.replaceAll(RegExp(r'#\w+'), ''); // inline tags
-  
-  // Clean up whitespace
-  clean = clean.replaceAll(RegExp(r'\s+'), ' ').trim();
-  
-  // Take first 100 characters
-  if (clean.length > 100) {
-    return '${clean.substring(0, 97)}...';
-  }
-  return clean;
-}
 

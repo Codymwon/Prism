@@ -41,6 +41,7 @@ class SqliteMetadataIndexer implements MetadataIndexer {
         'daily_date': dailyDate,
         'is_conflicted': 0,
         'original_note_id': null,
+        'snippet': metadata.snippet,
       });
     } else {
       final old = existing.first;
@@ -52,6 +53,7 @@ class SqliteMetadataIndexer implements MetadataIndexer {
         'is_ghost': isGhost ? 1 : 0,
         'is_daily': isDaily ? 1 : (old['is_daily'] ?? 0),
         'daily_date': dailyDate ?? old['daily_date'],
+        'snippet': metadata.snippet,
       }, where: 'id = ?', whereArgs: [id]);
     }
 
@@ -95,6 +97,7 @@ class SqliteMetadataIndexer implements MetadataIndexer {
           'daily_date': null,
           'is_conflicted': 0,
           'original_note_id': null,
+          'snippet': '',
         });
       } else {
         targetId = targetMaps.first['id'] as String;

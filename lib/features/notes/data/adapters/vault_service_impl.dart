@@ -145,6 +145,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
           tags: [],
           wikilinks: [],
           wikilinkContexts: {},
+          snippet: '',
         ),
       );
     });

@@ -7,7 +7,7 @@ import '../utils/utils.dart';
 
 class DatabaseHelper {
   static const _dbName = '.prism.db';
-  static const _dbVersion = 4; // Upgraded to v4 for spatial groups and coordinates
+  static const _dbVersion = 5; // Upgraded to v5 to add note snippets
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -141,7 +141,8 @@ class DatabaseHelper {
         is_daily INTEGER DEFAULT 0,
         daily_date TEXT,
         is_conflicted INTEGER DEFAULT 0,
-        original_note_id TEXT
+        original_note_id TEXT,
+        snippet TEXT DEFAULT ''
       )
     ''');
 
@@ -373,6 +374,10 @@ class DatabaseHelper {
       // Version 4 Indexes
       await db.execute('CREATE INDEX IF NOT EXISTS idx_spatial_group_nodes_note ON spatial_group_nodes(note_id)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_audio_bookmarks_note ON audio_bookmarks(note_id)');
+    }
+
+    if (oldVersion < 5) {
+      await db.execute("ALTER TABLE notes ADD COLUMN snippet TEXT DEFAULT ''");
     }
   }
 

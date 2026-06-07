@@ -14,6 +14,7 @@ class Note {
   final String? dailyDate;
   final bool isConflicted;
   final String? originalNoteId;
+  final String snippet;
 
   const Note({
     required this.id,
@@ -27,6 +28,7 @@ class Note {
     this.dailyDate,
     this.isConflicted = false,
     this.originalNoteId,
+    this.snippet = '',
   });
 
   factory Note.fromMap(Map<String, dynamic> map) {
@@ -53,6 +55,7 @@ class Note {
       dailyDate: map['daily_date'] as String?,
       isConflicted: map['is_conflicted'] == 1 || map['is_conflicted'] == true,
       originalNoteId: map['original_note_id'] as String?,
+      snippet: map['snippet'] as String? ?? '',
     );
   }
 
@@ -69,6 +72,7 @@ class Note {
       'daily_date': dailyDate,
       'is_conflicted': isConflicted ? 1 : 0,
       'original_note_id': originalNoteId,
+      'snippet': snippet,
     };
   }
 
@@ -84,6 +88,7 @@ class Note {
     String? dailyDate,
     bool? isConflicted,
     String? originalNoteId,
+    String? snippet,
   }) {
     return Note(
       id: id ?? this.id,
@@ -97,6 +102,7 @@ class Note {
       dailyDate: dailyDate ?? this.dailyDate,
       isConflicted: isConflicted ?? this.isConflicted,
       originalNoteId: originalNoteId ?? this.originalNoteId,
+      snippet: snippet ?? this.snippet,
     );
   }
 

@@ -28,7 +28,8 @@ void main() {
               is_daily INTEGER DEFAULT 0,
               daily_date TEXT,
               is_conflicted INTEGER DEFAULT 0,
-              original_note_id TEXT
+              original_note_id TEXT,
+              snippet TEXT DEFAULT ''
             )
           ''');
 
@@ -87,6 +88,7 @@ void main() {
         tags: ['productivity', 'work'],
         wikilinks: ['Target Note'],
         wikilinkContexts: {'Target Note': '...linking to [[Target Note]]...'},
+        snippet: 'Note snippet',
       );
 
       // Index the note
@@ -150,6 +152,7 @@ void main() {
           tags: ['old-tag'],
           wikilinks: [],
           wikilinkContexts: {},
+          snippet: '',
         ),
       );
 
@@ -171,6 +174,7 @@ void main() {
           tags: ['new-tag'],
           wikilinks: [],
           wikilinkContexts: {},
+          snippet: '',
         ),
       );
 
@@ -199,6 +203,7 @@ void main() {
           tags: ['tag1'],
           wikilinks: [],
           wikilinkContexts: {},
+          snippet: '',
         ),
       );
 

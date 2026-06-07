@@ -77,7 +77,8 @@ void main() {
               is_daily INTEGER DEFAULT 0,
               daily_date TEXT,
               is_conflicted INTEGER DEFAULT 0,
-              original_note_id TEXT
+              original_note_id TEXT,
+              snippet TEXT DEFAULT ''
             )
           ''');
 

@@ -148,4 +148,62 @@ void main() {
     // Close database connection
     await helper.closeDatabaseConnection(upgradedDb);
   });
+
+  test('Database migration from v4 to v5 preserves notes and adds snippet column', () async {
+    final dbPath = p.join(tempDir.path, '.prism.db');
+
+    // 1. Initialize a Version 4 Database manually
+    final v4Db = await databaseFactory.openDatabase(
+      dbPath,
+      options: OpenDatabaseOptions(
+        version: 4,
+        onCreate: (db, version) async {
+          // Create v4 notes table (no snippet column)
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS notes (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              file_path TEXT NOT NULL UNIQUE,
+              word_count INTEGER DEFAULT 0,
+              created_at INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL,
+              is_ghost INTEGER DEFAULT 0,
+              is_daily INTEGER DEFAULT 0,
+              daily_date TEXT,
+              is_conflicted INTEGER DEFAULT 0,
+              original_note_id TEXT
+            )
+          ''');
+        },
+      ),
+    );
+
+    // Insert dummy note in v4 database
+    await v4Db.insert('notes', {
+      'id': 'note-v4-1',
+      'title': 'V4 Saved Note',
+      'file_path': 'note-v4-1.md',
+      'word_count': 15,
+      'created_at': 100000,
+      'updated_at': 200000,
+      'is_ghost': 0,
+      'is_daily': 0,
+      'is_conflicted': 0,
+    });
+
+    await v4Db.close();
+
+    // 2. Open via DatabaseHelper (which upgrades to version 5)
+    final helper = DatabaseHelper.instance;
+    final upgradedDb = await helper.openDatabaseForPath(tempDir.path);
+
+    // 3. Verify note data is preserved and snippet column exists with default value
+    final notes = await upgradedDb.query('notes', where: 'id = ?', whereArgs: ['note-v4-1']);
+    expect(notes, isNotEmpty);
+    expect(notes.first['title'], equals('V4 Saved Note'));
+    expect(notes.first['snippet'], equals(''));
+
+    // Close database connection
+    await helper.closeDatabaseConnection(upgradedDb);
+  });
 }
