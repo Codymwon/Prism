@@ -260,7 +260,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                             ),
                             Switch(
                               value: ref.watch(dragToPinEnabledProvider).valueOrNull ?? false,
-                              activeColor: colorScheme.primary,
+                              activeThumbColor: colorScheme.primary,
                               onChanged: (val) {
                                 ref.read(dragToPinEnabledProvider.notifier).setDragToPinEnabled(val);
                               },
