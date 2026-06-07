@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
@@ -73,7 +73,7 @@ class SettingsScreen extends ConsumerWidget {
                   SettingsTile(
                     icon: Icons.explore_outlined,
                     title: 'Replay interactive tutorial',
-                    subtitle: 'Walk through the core features of Meridian',
+                    subtitle: 'Walk through the core features of Prism',
                     trailing: const Icon(Icons.refresh_rounded, size: 20),
                     onTap: () async {
                       await ref.read(tutorialStateProvider.notifier).resetTutorial();
@@ -165,7 +165,7 @@ class SettingsScreen extends ConsumerWidget {
                     trailing: const SizedBox.shrink(),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Meridian v1.0.0 — private offline notebook.')),
+                        const SnackBar(content: Text('Prism v1.0.0 — private offline notebook.')),
                       );
                     },
                   ),

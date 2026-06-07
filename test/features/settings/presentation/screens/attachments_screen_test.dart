@@ -1,10 +1,10 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
-import 'package:meridian/features/notes/data/note_repository.dart';
-import 'package:meridian/features/settings/presentation/screens/attachments_screen.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/notes/data/note_repository.dart';
+import 'package:prism/features/settings/presentation/screens/attachments_screen.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,7 +24,7 @@ void main() {
   late Directory attachmentsDir;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('meridian_attachments_test');
+    tempDir = await Directory.systemTemp.createTemp('prism_attachments_test');
     attachmentsDir = Directory(p.join(tempDir.path, 'My Vault', 'attachments'));
     await attachmentsDir.create(recursive: true);
 

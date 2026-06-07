@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/core/utils/utils.dart';
-import 'package:meridian/features/journal/presentation/widgets/journal_streak_grid.dart';
-import 'package:meridian/features/journal/presentation/providers/journal_providers.dart';
+import 'package:prism/core/utils/utils.dart';
+import 'package:prism/features/journal/presentation/widgets/journal_streak_grid.dart';
+import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
 
 void main() {
   testWidgets('JournalStreakGrid renders active streak number and label', (WidgetTester tester) async {

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.meridian" "\0"
-            VALUE "FileDescription", "meridian" "\0"
+            VALUE "CompanyName", "com.prism" "\0"
+            VALUE "FileDescription", "prism" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "meridian" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.meridian. All rights reserved." "\0"
-            VALUE "OriginalFilename", "meridian.exe" "\0"
-            VALUE "ProductName", "meridian" "\0"
+            VALUE "InternalName", "prism" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.prism. All rights reserved." "\0"
+            VALUE "OriginalFilename", "prism.exe" "\0"
+            VALUE "ProductName", "prism" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

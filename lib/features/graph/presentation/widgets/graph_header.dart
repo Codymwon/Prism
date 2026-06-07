@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/design_system/design_system.dart';
@@ -32,7 +32,7 @@ class GraphHeader extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+                  color: isDark ? PrismColors.darkText : PrismColors.lightText,
                   letterSpacing: -0.5,
                 ),
               ),

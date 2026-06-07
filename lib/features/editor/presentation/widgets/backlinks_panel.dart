@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -39,10 +39,10 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+        color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
         border: Border(
           top: BorderSide(
-            color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+            color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
             width: 0.5,
           ),
         ),
@@ -78,7 +78,7 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
                     child: Icon(
                       Icons.expand_less_rounded,
                       size: 18,
-                      color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                      color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -95,7 +95,7 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
               separatorBuilder: (ctx, idx) => Divider(
                 height: 0.5,
                 indent: 20,
-                color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+                color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
               ),
               itemBuilder: (context, i) {
                 final bl = backlinks[i];
@@ -153,7 +153,7 @@ class _BacklinkTile extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   height: 1.5,
-                  color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                  color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                   fontStyle: FontStyle.italic,
                 ),
                 maxLines: 2,

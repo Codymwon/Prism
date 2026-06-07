@@ -1,11 +1,11 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart' as p;
-import 'package:meridian/features/notes/data/adapters/vault_service_impl.dart';
-import 'package:meridian/features/notes/data/adapters/local_vault_storage.dart';
-import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
-import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
+import 'package:prism/features/notes/data/adapters/vault_service_impl.dart';
+import 'package:prism/features/notes/data/adapters/local_vault_storage.dart';
+import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
+import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 
 void main() {
   // Initialize FFI for local tests
@@ -81,7 +81,7 @@ void main() {
     );
 
     // Create a temporary vault folder
-    tempDir = await Directory.systemTemp.createTemp('meridian_test_vault');
+    tempDir = await Directory.systemTemp.createTemp('prism_test_vault');
     
     // Initialize our VaultService
     service = NoteIngestionServiceImpl(

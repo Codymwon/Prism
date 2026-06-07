@@ -10,13 +10,13 @@ const _uuid = Uuid();
 /// Generates a new unique UUID v4.
 String generateId() => _uuid.v4();
 
-/// Returns the vault folder path (DocumentDirectory/meridian_vaults/activeVault).
+/// Returns the vault folder path (DocumentDirectory/prism_vaults/activeVault).
 Future<String> getVaultPath() async {
   final prefs = await SharedPreferences.getInstance();
   String? baseDir = prefs.getString('baseVaultsDirectory');
   if (baseDir == null || baseDir.isEmpty) {
     final docDir = await getApplicationDocumentsDirectory();
-    baseDir = p.join(docDir.path, 'meridian_vaults');
+    baseDir = p.join(docDir.path, 'prism_vaults');
   }
   final activeVault = prefs.getString('activeVaultName') ?? 'My Vault';
   final vaultPath = p.join(baseDir, activeVault);
@@ -42,7 +42,7 @@ Future<String> getVaultPath() async {
 
   if (isNew || isEmpty) {
     try {
-      final welcomeFile = File(p.join(vaultPath, 'Welcome to Meridian.md'));
+      final welcomeFile = File(p.join(vaultPath, 'Welcome to Prism.md'));
       await welcomeFile.writeAsString(_welcomeNoteContent);
 
       final guideFile = File(p.join(vaultPath, 'Productivity Tools Guide.md'));
@@ -227,9 +227,9 @@ extension ColorParsing on String {
   }
 }
 
-const String _welcomeNoteContent = '''# Welcome to Meridian
+const String _welcomeNoteContent = '''# Welcome to Prism
 
-Welcome to your new digital garden! Meridian is a premium, privacy-first markdown journal and notebook that runs entirely offline. All your notes are saved as standard `.md` text files inside your local vault folder.
+Welcome to your new digital garden! Prism is a premium, privacy-first markdown journal and notebook that runs entirely offline. All your notes are saved as standard `.md` text files inside your local vault folder.
 
 ## 🚀 Key Features
 
@@ -256,7 +256,7 @@ Speed up your writing using macros. The horizontal toolbar has custom macro butt
 Tap the **Graph** tab in the bottom bar to see your notes as nodes and links as edges. Swipe, zoom, and explore your mind map dynamically.
 
 ### 5. Daily Reflection Logs
-Tap the **Journal** tab in the bottom bar to start a daily reflection. Meridian tracks your daily writing streak 🔥 and word count progress!
+Tap the **Journal** tab in the bottom bar to start a daily reflection. Prism tracks your daily writing streak 🔥 and word count progress!
 
 ---
 Tag this note to organize it: #tutorial #welcome
@@ -264,14 +264,14 @@ Tag this note to organize it: #tutorial #welcome
 
 const String _productivityGuideContent = '''# Productivity Tools Guide
 
-This guide explains how to master the smart productivity tools in Meridian: offline voice-to-text dictation and customizable macros.
+This guide explains how to master the smart productivity tools in Prism: offline voice-to-text dictation and customizable macros.
 
 ## 🎙️ Offline Voice Dictation
 
-Meridian features built-in offline dictation that respects your privacy.
+Prism features built-in offline dictation that respects your privacy.
 - **How to use**: Tap the text editor to open the keyboard. On the formatting toolbar, tap the 🎙️ icon.
 - **Real-time transcription**: Speak clearly. The text is inserted right where your cursor is.
-- **Audio Attachments**: When you finish dictation, Meridian asks if you want to keep the raw audio file. If you save it, it is saved as an `.m4a` file in your vault's `attachments/` folder and linked in your note like this: `[Audio Note](attachments/audio_xxxx.m4a)`.
+- **Audio Attachments**: When you finish dictation, Prism asks if you want to keep the raw audio file. If you save it, it is saved as an `.m4a` file in your vault's `attachments/` folder and linked in your note like this: `[Audio Note](attachments/audio_xxxx.m4a)`.
 
 ## ⚡ Custom Macros & Shortcuts
 
@@ -288,7 +288,7 @@ Save time on repetitive typing by creating custom shortcuts.
   4. The macro will instantly appear on your editor toolbar!
 
 ---
-Go back to the main page: [[Welcome to Meridian]]
+Go back to the main page: [[Welcome to Prism]]
 
 #tutorial #productivity #guide
 ''';

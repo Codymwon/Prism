@@ -1,8 +1,8 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart' as p;
-import 'package:meridian/core/database/prism_metadata_store.dart';
+import 'package:prism/core/database/prism_metadata_store.dart';
 
 // ─── Shared schema helpers ─────────────────────────────────────────────────────
 // Foreign keys are intentionally omitted here so tests are self-contained

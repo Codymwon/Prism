@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,10 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:meridian/features/editor/presentation/screens/merge_comparison_screen.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
-import 'package:meridian/features/notes/data/note_repository.dart';
-import 'package:meridian/features/notes/presentation/providers/notes_providers.dart';
+import 'package:prism/features/editor/presentation/screens/merge_comparison_screen.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/notes/data/note_repository.dart';
+import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 
 import 'dart:convert';
 
@@ -104,7 +104,7 @@ void main() {
     );
 
     SharedPreferences.setMockInitialValues({});
-    tempDir = await Directory.systemTemp.createTemp('meridian_conflict_test_vault');
+    tempDir = await Directory.systemTemp.createTemp('prism_conflict_test_vault');
     originalFile = File(p.join(tempDir.path, 'original.md'));
     conflictFile = File(p.join(tempDir.path, 'conflict.md'));
 

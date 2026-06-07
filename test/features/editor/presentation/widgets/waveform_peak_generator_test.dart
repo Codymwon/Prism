@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/editor/presentation/utils/audio_waveform_peak_generator.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:prism/features/editor/presentation/utils/audio_waveform_peak_generator.dart';
 
 void main() {
   group('AudioWaveformPeakGenerator', () {

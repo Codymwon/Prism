@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
-import 'package:meridian/features/folders/data/folder_model.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/folders/data/folder_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Context

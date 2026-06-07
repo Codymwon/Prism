@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
@@ -120,7 +120,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Please enable All Files Access for Meridian and tap Confirm again.'),
+                content: Text('Please enable All Files Access for Prism and tap Confirm again.'),
               ),
             );
           }
@@ -206,7 +206,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
           const SizedBox(height: 12),
           Text(
-            'Meridian stores all your notes directly on your device. Choose where your vault folder lives. You can switch between multiple vaults later.',
+            'Prism stores all your notes directly on your device. Choose where your vault folder lives. You can switch between multiple vaults later.',
             style: DesignTypography.body(
               context,
               fontSize: 14,
@@ -501,7 +501,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                           Text(
                             locationSelected
                                 ? _customLocationPath
-                                : 'Meridian will store all your notes inside this folder.',
+                                : 'Prism will store all your notes inside this folder.',
                             style: DesignTypography.details(
                               context,
                               fontSize: 12,

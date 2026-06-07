@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:meridian/core/utils/utils.dart';
-import 'package:meridian/features/journal/presentation/widgets/journal_entry_card.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
+import 'package:prism/core/utils/utils.dart';
+import 'package:prism/features/journal/presentation/widgets/journal_entry_card.dart';
+import 'package:prism/features/notes/data/note_model.dart';
 
 void main() {
   testWidgets('JournalEntryCard extracts custom title and formats subtitle date/time', (WidgetTester tester) async {

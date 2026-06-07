@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -19,7 +19,7 @@ class BaseVaultsDirectoryNotifier extends AsyncNotifier<String> {
       return saved;
     }
     final docDir = await getApplicationDocumentsDirectory();
-    return p.join(docDir.path, 'meridian_vaults');
+    return p.join(docDir.path, 'prism_vaults');
   }
 
   Future<void> setDirectory(String path) async {

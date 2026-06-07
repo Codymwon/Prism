@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/core/utils/utils.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:prism/core/utils/utils.dart';
 
 void main() {
   group('Core Note Utilities Test Suite', () {
@@ -32,7 +32,7 @@ void main() {
       });
 
       test('should extract title from standard markdown H1 header if no frontmatter title', () {
-        expect(extractTitle('# Welcome to Meridian\n\nSome body text.'), equals('Welcome to Meridian'));
+        expect(extractTitle('# Welcome to Prism\n\nSome body text.'), equals('Welcome to Prism'));
       });
 
       test('should trim H1 header title whitespaces', () {

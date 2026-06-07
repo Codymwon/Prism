@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -42,10 +42,10 @@ class WikilinkAutocomplete extends ConsumerWidget {
             return Container(
               constraints: const BoxConstraints(maxHeight: 220),
               decoration: BoxDecoration(
-                color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+                color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+                  color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -70,7 +70,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                            color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -80,7 +80,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                           child: Icon(
                             Icons.close_rounded,
                             size: 14,
-                            color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+                            color: isDark ? PrismColors.darkTextTertiary : PrismColors.lightTextTertiary,
                           ),
                         ),
                       ],
@@ -88,7 +88,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                   ),
                   Divider(
                     height: 0.5,
-                    color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+                    color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
                   ),
                   // Suggestions list
                   Flexible(
@@ -128,10 +128,10 @@ class WikilinkAutocomplete extends ConsumerWidget {
           loading: () => Container(
             height: 60,
             decoration: BoxDecoration(
-              color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+              color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+                color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
               ),
               boxShadow: [
                 BoxShadow(
@@ -177,8 +177,8 @@ class WikilinkAutocomplete extends ConsumerWidget {
               color: isCreate
                   ? colorScheme.primary
                   : (isGhost
-                      ? (isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary)
-                      : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary)),
+                      ? (isDark ? PrismColors.darkTextTertiary : PrismColors.lightTextTertiary)
+                      : (isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -192,7 +192,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                       fontWeight: FontWeight.w500,
                       color: isCreate
                           ? colorScheme.primary
-                          : (isDark ? MeridianColors.darkText : MeridianColors.lightText),
+                          : (isDark ? PrismColors.darkText : PrismColors.lightText),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -202,7 +202,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                       subtitle,
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+                        color: isDark ? PrismColors.darkTextTertiary : PrismColors.lightTextTertiary,
                       ),
                     ),
                 ],

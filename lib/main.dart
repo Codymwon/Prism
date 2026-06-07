@@ -49,7 +49,7 @@ void main() async {
           } catch (e) {
             debugPrint('Failed to warm up database after permission grant: $e');
           }
-          runApp(const ProviderScope(child: MeridianApp()));
+          runApp(const ProviderScope(child: PrismApp()));
         },
       ));
       return; // Stop execution here to let the permission screen run
@@ -61,17 +61,17 @@ void main() async {
   } catch (e) {
     debugPrint('Failed to warm up database at startup: $e');
   }
-  runApp(const ProviderScope(child: MeridianApp()));
+  runApp(const ProviderScope(child: PrismApp()));
 }
 
-class MeridianApp extends ConsumerStatefulWidget {
-  const MeridianApp({super.key});
+class PrismApp extends ConsumerStatefulWidget {
+  const PrismApp({super.key});
 
   @override
-  ConsumerState<MeridianApp> createState() => _MeridianAppState();
+  ConsumerState<PrismApp> createState() => _PrismAppState();
 }
 
-class _MeridianAppState extends ConsumerState<MeridianApp> {
+class _PrismAppState extends ConsumerState<PrismApp> {
   @override
   void initState() {
     super.initState();
@@ -128,7 +128,7 @@ class _MeridianAppState extends ConsumerState<MeridianApp> {
     });
 
     return MaterialApp.router(
-      title: 'Meridian',
+      title: 'Prism',
       debugShowCheckedModeBanner: false,
       theme: themeData,
       darkTheme: darkThemeData,

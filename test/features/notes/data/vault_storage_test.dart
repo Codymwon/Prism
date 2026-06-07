@@ -1,8 +1,8 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:meridian/features/notes/data/adapters/local_vault_storage.dart';
-import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
+import 'package:prism/features/notes/data/adapters/local_vault_storage.dart';
+import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
 
 void main() {
   late Directory tempDir;
@@ -10,7 +10,7 @@ void main() {
   late MarkdownContentParser parser;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('meridian_storage_test');
+    tempDir = await Directory.systemTemp.createTemp('prism_storage_test');
     storage = LocalVaultStorage();
     parser = MarkdownContentParser();
   });
@@ -65,14 +65,14 @@ void main() {
       const content = '''# My Awesome Note
 
 This is some content with #productivity and #tutorial tags.
-I am linking to [[Productivity Tools Guide]] and [[Welcome to Meridian]].
+I am linking to [[Productivity Tools Guide]] and [[Welcome to Prism]].
       ''';
 
       final metadata = parser.parse(content);
       expect(metadata.title, equals('My Awesome Note'));
       expect(metadata.wordCount, equals(24)); // 24 words in text
       expect(metadata.tags, containsAll(['productivity', 'tutorial']));
-      expect(metadata.wikilinks, containsAll(['Productivity Tools Guide', 'Welcome to Meridian']));
+      expect(metadata.wikilinks, containsAll(['Productivity Tools Guide', 'Welcome to Prism']));
     });
 
     test('should parse metadata cleanly with frontmatter', () {

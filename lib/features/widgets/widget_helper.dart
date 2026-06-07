@@ -13,7 +13,7 @@ final widgetHelperProvider = Provider<WidgetHelper>((ref) {
 
 class WidgetHelper {
   final Ref _ref;
-  static const _channel = MethodChannel('com.meridian.app/widget');
+  static const _channel = MethodChannel('com.prism.app/widget');
 
   WidgetHelper(this._ref);
 

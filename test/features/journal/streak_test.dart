@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/journal/presentation/providers/journal_providers.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
 
 void main() {
   group('Journal Streak Calculation Tests', () {

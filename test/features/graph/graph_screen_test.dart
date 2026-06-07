@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:meridian/features/graph/presentation/screens/graph_screen.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
-import 'package:meridian/features/graph/presentation/widgets/graph_node_widget.dart';
-import 'package:meridian/shared/widgets/tactile_wrapper.dart';
+import 'package:prism/features/graph/presentation/screens/graph_screen.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/graph/presentation/widgets/graph_node_widget.dart';
+import 'package:prism/shared/widgets/tactile_wrapper.dart';
 
 void main() {
   testWidgets('Graph nodes within Flow are constrained to 80x60 and do not take up 2500x2500', (WidgetTester tester) async {

@@ -1,8 +1,8 @@
-# Meridian
+﻿# Prism
 
 *An elegant, private, offline-first personal workspace and relational markdown journal.*
 
-Meridian is built to be a premium, secure, and quiet space for your thoughts. Unlike traditional linear note-taking apps, Meridian allows you to connect ideas together using standard double-bracket `[[wikilinks]]`, forming a dynamic, force-directed graph of your personal notebook.
+Prism is built to be a premium, secure, and quiet space for your thoughts. Unlike traditional linear note-taking apps, Prism allows you to connect ideas together using standard double-bracket `[[wikilinks]]`, forming a dynamic, force-directed graph of your personal notebook.
 
 ---
 
@@ -17,7 +17,7 @@ Meridian is built to be a premium, secure, and quiet space for your thoughts. Un
 
 ## ── Technical Architecture & Infrastructure ────────────────────
 
-Meridian utilizes a robust, modern local-first architectural engine:
+Prism utilizes a robust, modern local-first architectural engine:
 
 * **State Management**: Orchestrated entirely via **Riverpod (v2)**. Dynamic data updates are reactively synced across providers through centralized version increments (`notesVersionProvider` and `foldersVersionProvider`).
 * **Storage Engine**: Integrated **SQLite (`sqflite`)** with **WAL (Write-Ahead Logging)** mode enabled, reducing file lock conflicts and providing fast, asynchronous read/write speeds.
@@ -77,7 +77,7 @@ flutter pub get
 ```
 
 ### 2. Run Code Generation
-Meridian uses `build_runner` to generate providers and serialization maps:
+Prism uses `build_runner` to generate providers and serialization maps:
 ```bash
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
@@ -92,7 +92,7 @@ flutter run
 
 ## ── Verification & Test Suites ────────────────────────────────
 
-Verify system stability using Meridian's clean compilation and high-coverage test suites:
+Verify system stability using Prism's clean compilation and high-coverage test suites:
 
 ### Run Static Analysis
 Ensure that code matches our zero-warning clean compilation baseline:

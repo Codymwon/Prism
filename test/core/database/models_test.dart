@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/graph/data/graph_models.dart';
-import 'package:meridian/features/notes/data/audio_bookmark_model.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:prism/features/graph/data/graph_models.dart';
+import 'package:prism/features/notes/data/audio_bookmark_model.dart';
 
 void main() {
   group('GraphNodePosition model type safety', () {

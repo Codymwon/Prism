@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -155,7 +155,7 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
       ),
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+        color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: _isLoading
@@ -169,7 +169,7 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+                      color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -183,7 +183,7 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                       style: GoogleFonts.inter(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+                        color: isDark ? PrismColors.darkText : PrismColors.lightText,
                       ),
                     ),
                     IconButton(
@@ -213,7 +213,7 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                    color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -280,7 +280,7 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                    color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -346,7 +346,7 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                    color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -387,7 +387,7 @@ class _SpatialGroupEditBottomSheetState extends ConsumerState<SpatialGroupEditBo
                               note.title,
                               style: GoogleFonts.inter(
                                 fontSize: 13,
-                                color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+                                color: isDark ? PrismColors.darkText : PrismColors.lightText,
                               ),
                             ),
                             value: isChecked,

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class StoragePermissionHelper {
-  static const _channel = MethodChannel('com.meridian.app/storage');
+  static const _channel = MethodChannel('com.prism.app/storage');
 
   /// Checks if the app has MANAGE_EXTERNAL_STORAGE permission on Android 11+
   static Future<bool> hasAllFilesAccess() async {

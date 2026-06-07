@@ -1,4 +1,4 @@
-package com.meridian.meridian
+package com.prism.prism
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

@@ -1,14 +1,14 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:meridian/core/database/database_providers.dart';
-import 'package:meridian/features/notes/data/note_repository.dart';
-import 'package:meridian/features/notes/data/vault_service.dart';
-import 'package:meridian/features/notes/data/adapters/vault_service_impl.dart';
-import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
-import 'package:meridian/features/notes/data/adapters/markdown_content_parser.dart';
-import 'package:meridian/features/notes/data/vault_storage.dart';
-import 'package:meridian/features/graph/data/graph_node_repository.dart';
+import 'package:prism/core/database/database_providers.dart';
+import 'package:prism/features/notes/data/note_repository.dart';
+import 'package:prism/features/notes/data/vault_service.dart';
+import 'package:prism/features/notes/data/adapters/vault_service_impl.dart';
+import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
+import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
+import 'package:prism/features/notes/data/vault_storage.dart';
+import 'package:prism/features/graph/data/graph_node_repository.dart';
 
 class FakeVaultStorage implements VaultStorage {
   final Map<String, String> files = {};

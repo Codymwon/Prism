@@ -1,15 +1,15 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/editor/presentation/screens/editor_screen.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
-import 'package:meridian/features/notes/data/note_repository.dart';
-import 'package:meridian/features/notes/presentation/providers/notes_providers.dart';
+import 'package:prism/features/editor/presentation/screens/editor_screen.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/notes/data/note_repository.dart';
+import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:meridian/core/utils/utils.dart';
+import 'package:prism/core/utils/utils.dart';
 
 class FakeRef implements Ref<Object?> {
   @override
@@ -43,7 +43,7 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    tempDir = await Directory.systemTemp.createTemp('meridian_test_vault');
+    tempDir = await Directory.systemTemp.createTemp('prism_test_vault');
     noteFile = File(p.join(tempDir.path, 'note1.md'));
     await noteFile.writeAsString('# Test Note\n\n![image](attachments/test.png)\n');
 

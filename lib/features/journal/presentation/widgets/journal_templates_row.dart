@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -19,19 +19,19 @@ class JournalTemplatesRow extends StatelessWidget {
         icon: DesignIcons.gratitude,
         label: 'Gratitude',
         emoji: '🙏',
-        baseColor: MeridianColors.darkAccentRose,
+        baseColor: PrismColors.darkAccentRose,
       ),
       const JournalTemplateItem(
         icon: DesignIcons.dailyPlan,
         label: 'Daily Plan',
         emoji: '📋',
-        baseColor: MeridianColors.darkAccentGreen,
+        baseColor: PrismColors.darkAccentGreen,
       ),
       const JournalTemplateItem(
         icon: DesignIcons.reflection,
         label: 'Reflection',
         emoji: '💭',
-        baseColor: MeridianColors.darkAccentAmber,
+        baseColor: PrismColors.darkAccentAmber,
       ),
       const JournalTemplateItem(
         icon: DesignIcons.goals,

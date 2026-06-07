@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="charcoal-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D2A26" />
+      <stop offset="50%" stop-color="#1C1C1E" />
+      <stop offset="100%" stop-color="#121214" />
+    </linearGradient>
+
+    <!-- Squircle Outer Border Gradient -->
+    <linearGradient id="border-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#44413C" />
+      <stop offset="50%" stop-color="#2D2A26" />
+      <stop offset="100%" stop-color="#1A1A1C" />
+    </linearGradient>
+
+    <!-- Facet Gradients -->
+    <!-- Top-Right (Brightest, Gold-heavy) -->
+    <linearGradient id="facet-tr" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C8A97E" />
+      <stop offset="60%" stop-color="#E5D3B8" />
+      <stop offset="100%" stop-color="#FFF5E6" />
+    </linearGradient>
+
+    <!-- Top-Left (Transitional, Terracotta to Gold) -->
+    <linearGradient id="facet-tl" x1="0%" y1="60%" x2="100%" y2="40%">
+      <stop offset="0%" stop-color="#DE6B48" />
+      <stop offset="50%" stop-color="#E07A5F" />
+      <stop offset="100%" stop-color="#C8A97E" />
+    </linearGradient>
+
+    <!-- Bottom-Right (Rich Terracotta with Warm Shadow) -->
+    <linearGradient id="facet-br" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C8A97E" />
+      <stop offset="40%" stop-color="#E07A5F" />
+      <stop offset="100%" stop-color="#9C3A21" />
+    </linearGradient>
+
+    <!-- Bottom-Left (Deep Shadow, Bronze/Charcoal/Terracotta) -->
+    <linearGradient id="facet-bl" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9A7E56" />
+      <stop offset="40%" stop-color="#5E3023" />
+      <stop offset="100%" stop-color="#2D2A26" />
+    </linearGradient>
+
+    <!-- Soft White Reflection Overlay for Glassy Look -->
+    <linearGradient id="white-reflection" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0" />
+    </linearGradient>
+
+    <!-- Radial Shadow under the Prism -->
+    <radialGradient id="prism-shadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#charcoal-bg)" stroke="url(#border-gradient)" stroke-width="1.5" />
+
+  <!-- Soft Ambient Floor Shadow under the Prism -->
+  <ellipse cx="256" cy="415" rx="76" ry="14" fill="url(#prism-shadow)" />
+
+  <!-- The 3D Prism Structure -->
+  <g id="prism-body">
+    <!-- Facet 3: Bottom-Left (Deep Shadow) -->
+    <polygon points="256,402 140,256 235,275" fill="url(#facet-bl)" stroke="url(#facet-bl)" stroke-width="0.5" stroke-linejoin="round" />
+
+    <!-- Facet 4: Bottom-Right (Rich Terracotta/Bronze) -->
+    <polygon points="256,402 372,256 235,275" fill="url(#facet-br)" stroke="url(#facet-br)" stroke-width="0.5" stroke-linejoin="round" />
+
+    <!-- Facet 1: Top-Left (Transitional Gold/Terracotta) -->
+    <polygon points="256,110 140,256 235,275" fill="url(#facet-tl)" stroke="url(#facet-tl)" stroke-width="0.5" stroke-linejoin="round" />
+
+    <!-- Facet 2: Top-Right (Bright Gold/Refraction) -->
+    <polygon points="256,110 372,256 235,275" fill="url(#facet-tr)" stroke="url(#facet-tr)" stroke-width="0.5" stroke-linejoin="round" />
+
+    <!-- Glassy Light Reflection Overlay on Top-Right Facet -->
+    <polygon points="256,110 372,256 235,275" fill="url(#white-reflection)" pointer-events="none" />
+
+    <!-- Crisp Specular Highlights / Polished Inner Edges -->
+    <!-- Center-to-Top Edge -->
+    <line x1="235" y1="275" x2="256" y2="110" stroke="#FFF5E6" stroke-width="1.5" stroke-linecap="round" opacity="0.75" />
+    
+    <!-- Center-to-Right Edge -->
+    <line x1="235" y1="275" x2="372" y2="256" stroke="#FFF5E6" stroke-width="1.5" stroke-linecap="round" opacity="0.65" />
+
+    <!-- Center-to-Left Edge -->
+    <line x1="235" y1="275" x2="140" y2="256" stroke="#FFE9C4" stroke-width="1.2" stroke-linecap="round" opacity="0.45" />
+
+    <!-- Center-to-Bottom Edge -->
+    <line x1="235" y1="275" x2="256" y2="402" stroke="#E07A5F" stroke-width="1.2" stroke-linecap="round" opacity="0.5" />
+    
+    <!-- Outer Top-Right Specular Edge -->
+    <line x1="256" y1="110" x2="372" y2="256" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round" opacity="0.4" />
+  </g>
+</svg>

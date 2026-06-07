@@ -84,7 +84,7 @@ class AppThemePalette {
     tertiary: Color(0xFFF2CC8F), // darkAccentAmber
   );
 
-  // Clean Paper (light default) - Premium Meridian Light Theme
+  // Clean Paper (light default) - Premium Prism Light Theme
   static const AppThemePalette light = AppThemePalette(
     brightness: Brightness.light,
     background: Color(0xFFFAF8F4),
@@ -480,7 +480,7 @@ class AppTheme {
 }
 
 // ─── Backward Compatible Colors Interface (For Safety) ────────────────────────
-class MeridianColors {
+class PrismColors {
   static const Color darkBackground = Color(0xFF1C1C1E);
   static const Color darkSurface = Color(0xFF262628);
   static const Color darkSurfaceVariant = Color(0xFF2C2C2E);

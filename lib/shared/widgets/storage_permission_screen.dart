@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage_permission_helper.dart';
 import '../design_system/design_system.dart';
@@ -68,7 +68,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
     final mode = resolution.mode;
 
     return MaterialApp(
-      title: 'Meridian',
+      title: 'Prism',
       debugShowCheckedModeBanner: false,
       theme: themeData,
       darkTheme: darkThemeData,
@@ -121,7 +121,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
 
                     // ── Description ──
                     Text(
-                      'Meridian is private and offline-first. Your notes are stored directly inside your custom folder on this device.\n\nTo read and write note files in your documents vault, Android requires the "All Files Access" permission.',
+                      'Prism is private and offline-first. Your notes are stored directly inside your custom folder on this device.\n\nTo read and write note files in your documents vault, Android requires the "All Files Access" permission.',
                       style: DesignTypography.body(
                         context,
                         fontSize: 14,
@@ -142,7 +142,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
 
                     // ── Secondary instructions ──
                     Text(
-                      'Tap above, then enable the toggle for Meridian in the Android settings screen. Once enabled, press back to return here.',
+                      'Tap above, then enable the toggle for Prism in the Android settings screen. Once enabled, press back to return here.',
                       style: DesignTypography.details(
                         context,
                         fontSize: 12,

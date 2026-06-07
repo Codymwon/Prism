@@ -1,7 +1,7 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:meridian/features/notes/data/adapters/sqlite_metadata_indexer.dart';
-import 'package:meridian/features/notes/data/note_content_parser.dart';
+import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
+import 'package:prism/features/notes/data/note_content_parser.dart';
 
 void main() {
   sqfliteFfiInit();

@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -212,7 +212,7 @@ $_conflictContent
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark ? MeridianColors.darkBackground : MeridianColors.lightBackground,
+      backgroundColor: isDark ? PrismColors.darkBackground : PrismColors.lightBackground,
       appBar: AppBar(
         title: Text(
           'Compare & Resolve',
@@ -228,7 +228,7 @@ $_conflictContent
                 controller: _tabController,
                 indicatorColor: colorScheme.primary,
                 labelColor: colorScheme.primary,
-                unselectedLabelColor: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                unselectedLabelColor: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                 tabs: const [
                   Tab(text: 'Original Note'),
                   Tab(text: 'Conflicted Copy'),
@@ -269,7 +269,7 @@ $_conflictContent
         child: Text(
           'Note is empty.',
           style: GoogleFonts.inter(
-            color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+            color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
           ),
         ),
       );
@@ -292,22 +292,22 @@ $_conflictContent
         h1: GoogleFonts.inter(
           fontSize: 24,
           fontWeight: FontWeight.w700,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: isDark ? PrismColors.darkText : PrismColors.lightText,
         ),
         h2: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: isDark ? PrismColors.darkText : PrismColors.lightText,
         ),
         p: GoogleFonts.inter(
           fontSize: 15,
           height: 1.7,
-          color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+          color: isDark ? PrismColors.darkText : PrismColors.lightText,
         ),
         code: GoogleFonts.robotoMono(
           fontSize: 13,
-          color: isDark ? MeridianColors.darkAccentGreen : MeridianColors.lightAccentGreen,
-          backgroundColor: isDark ? MeridianColors.darkSurfaceVariant : MeridianColors.lightSurfaceVariant,
+          color: isDark ? PrismColors.darkAccentGreen : PrismColors.lightAccentGreen,
+          backgroundColor: isDark ? PrismColors.darkSurfaceVariant : PrismColors.lightSurfaceVariant,
         ),
         a: GoogleFonts.inter(
           color: colorScheme.primary,
@@ -322,10 +322,10 @@ $_conflictContent
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface,
+        color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
         border: Border(
           top: BorderSide(
-            color: isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder,
+            color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
             width: 0.5,
           ),
         ),
@@ -340,7 +340,7 @@ $_conflictContent
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -419,7 +419,7 @@ $_conflictContent
             const SizedBox(height: 8),
             Text(
               _error,
-              style: GoogleFonts.inter(color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+              style: GoogleFonts.inter(color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

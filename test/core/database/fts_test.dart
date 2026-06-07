@@ -1,7 +1,7 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:meridian/core/database/database_helper.dart';
+import 'package:prism/core/database/database_helper.dart';
 
 void main() {
   sqfliteFfiInit();
@@ -11,7 +11,7 @@ void main() {
   late Directory tempDir;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('meridian_fts_test_vault');
+    tempDir = await Directory.systemTemp.createTemp('prism_fts_test_vault');
     db = await DatabaseHelper.instance.openDatabaseForPath(tempDir.path);
   });
 

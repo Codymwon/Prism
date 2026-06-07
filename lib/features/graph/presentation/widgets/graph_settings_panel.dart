@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -94,11 +94,11 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: (isDark ? MeridianColors.darkSurface : MeridianColors.lightSurface)
+                  color: (isDark ? PrismColors.darkSurface : PrismColors.lightSurface)
                       .withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: (isDark ? MeridianColors.darkBorder : MeridianColors.lightBorder)
+                    color: (isDark ? PrismColors.darkBorder : PrismColors.lightBorder)
                         .withValues(alpha: 0.5),
                     width: 1,
                   ),
@@ -138,8 +138,8 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                                     fontSize: 14,
                                     fontWeight: _activeTab == 0 ? FontWeight.w700 : FontWeight.w500,
                                     color: _activeTab == 0
-                                        ? (isDark ? MeridianColors.darkText : MeridianColors.lightText)
-                                        : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                                        ? (isDark ? PrismColors.darkText : PrismColors.lightText)
+                                        : (isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary),
                                   ),
                                 ),
                               ),
@@ -163,8 +163,8 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                                     fontSize: 14,
                                     fontWeight: _activeTab == 1 ? FontWeight.w700 : FontWeight.w500,
                                     color: _activeTab == 1
-                                        ? (isDark ? MeridianColors.darkText : MeridianColors.lightText)
-                                        : (isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary),
+                                        ? (isDark ? PrismColors.darkText : PrismColors.lightText)
+                                        : (isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary),
                                   ),
                                 ),
                               ),
@@ -308,7 +308,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
               ),
             ),
             TextButton.icon(
@@ -342,7 +342,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                     'No spatial groups created yet.',
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+                      color: isDark ? PrismColors.darkTextTertiary : PrismColors.lightTextTertiary,
                     ),
                   ),
                 ),
@@ -381,14 +381,14 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? MeridianColors.darkText : MeridianColors.lightText,
+                                  color: isDark ? PrismColors.darkText : PrismColors.lightText,
                                 ),
                               ),
                               Text(
                                 '${nodeIds.length} notes',
                                 style: GoogleFonts.inter(
                                   fontSize: 11,
-                                  color: isDark ? MeridianColors.darkTextTertiary : MeridianColors.lightTextTertiary,
+                                  color: isDark ? PrismColors.darkTextTertiary : PrismColors.lightTextTertiary,
                                 ),
                               ),
                             ],
@@ -498,7 +498,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isDark ? MeridianColors.darkTextSecondary : MeridianColors.lightTextSecondary,
+                  color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
                 ),
               ),
               Text(

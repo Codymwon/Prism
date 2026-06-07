@@ -1,4 +1,4 @@
-package com.meridian.meridian
+package com.prism.prism
 
 import android.content.Intent
 import android.net.Uri
@@ -12,8 +12,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val STORAGE_CHANNEL = "com.meridian.app/storage"
-    private val WIDGET_CHANNEL = "com.meridian.app/widget"
+    private val STORAGE_CHANNEL = "com.prism.app/storage"
+    private val WIDGET_CHANNEL = "com.prism.app/widget"
     
     private var pendingWidgetAction: String? = null
     private var widgetChannel: MethodChannel? = null

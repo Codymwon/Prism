@@ -1,4 +1,4 @@
-package com.meridian.meridian
+package com.prism.prism
 
 import android.app.Activity
 import android.content.Context
@@ -40,7 +40,7 @@ class ShareActivity : Activity() {
         if (baseDir.isNullOrEmpty()) {
             Toast.makeText(
                 this,
-                "Please open Meridian first to initialize your vault.",
+                "Please open Prism first to initialize your vault.",
                 Toast.LENGTH_LONG
             ).show()
             finish()
@@ -51,7 +51,7 @@ class ShareActivity : Activity() {
         if (!vaultFile.exists()) {
             Toast.makeText(
                 this,
-                "Active vault not found. Please open Meridian first.",
+                "Active vault not found. Please open Prism first.",
                 Toast.LENGTH_LONG
             ).show()
             finish()

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
-/// Sync-safe sidecar store for Meridian's five app-only metadata categories.
+/// Sync-safe sidecar store for Prism's five app-only metadata categories.
 ///
 /// The sidecar file `.prism-metadata.json` lives alongside `.prism.db` in
 /// every vault directory. It is the **source of truth** for:

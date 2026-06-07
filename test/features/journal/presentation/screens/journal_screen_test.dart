@@ -1,13 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/journal/presentation/screens/journal_screen.dart';
-import 'package:meridian/features/journal/presentation/providers/journal_providers.dart';
-import 'package:meridian/features/notes/data/note_model.dart';
-import 'package:meridian/core/utils/utils.dart';
-import 'package:meridian/features/journal/presentation/widgets/journal_week_strip.dart';
-import 'package:meridian/features/journal/presentation/widgets/journal_streak_grid.dart';
-import 'package:meridian/features/journal/presentation/widgets/journal_empty_state.dart';
+import 'package:prism/features/journal/presentation/screens/journal_screen.dart';
+import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/core/utils/utils.dart';
+import 'package:prism/features/journal/presentation/widgets/journal_week_strip.dart';
+import 'package:prism/features/journal/presentation/widgets/journal_streak_grid.dart';
+import 'package:prism/features/journal/presentation/widgets/journal_empty_state.dart';
 
 void main() {
   testWidgets('Journal screen content starts immediately below the date strip without a large vertical gap', (WidgetTester tester) async {

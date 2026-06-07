@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
 
 class OnboardingLoading extends StatelessWidget {
@@ -22,7 +22,7 @@ class OnboardingLoading extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Setting up Meridian…',
+            'Setting up Prism…',
             style: DesignTypography.heading(
               context,
               fontSize: 16,

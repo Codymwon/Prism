@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meridian/features/editor/presentation/widgets/formatting_toolbar.dart';
-import 'package:meridian/features/settings/presentation/providers/custom_macro_provider.dart';
+import 'package:prism/features/editor/presentation/widgets/formatting_toolbar.dart';
+import 'package:prism/features/settings/presentation/providers/custom_macro_provider.dart';
 
 void main() {
   testWidgets('FormattingToolbar renders without overflowing with many custom macros', (WidgetTester tester) async {

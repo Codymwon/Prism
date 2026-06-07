@@ -1,7 +1,7 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:meridian/core/database/database_helper.dart';
+import 'package:prism/core/database/database_helper.dart';
 
 void main() {
   sqfliteFfiInit();
@@ -12,7 +12,7 @@ void main() {
   late Database db;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('meridian_cascade_test');
+    tempDir = await Directory.systemTemp.createTemp('prism_cascade_test');
     helper = DatabaseHelper.instance;
     db = await helper.openDatabaseForPath(tempDir.path);
   });
