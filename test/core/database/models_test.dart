@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/graph/data/graph_models.dart';
 import 'package:prism/features/notes/data/audio_bookmark_model.dart';
 
@@ -34,55 +34,7 @@ void main() {
     });
   });
 
-  group('SpatialGroup model type safety', () {
-    test('fromMap parses date and string correctly', () {
-      final map = {
-        'id': 'g-1',
-        'name': 'Group A',
-        'color_hex': '#123456',
-        'created_at': 1700000000000.0, // double timestamp
-      };
-      final group = SpatialGroup.fromMap(map);
-      expect(group.id, equals('g-1'));
-      expect(group.name, equals('Group A'));
-      expect(group.colorHex, equals('#123456'));
-      expect(group.createdAt.millisecondsSinceEpoch, equals(1700000000000));
-    });
 
-    test('toMap and copyWith work correctly', () {
-      final date = DateTime.fromMillisecondsSinceEpoch(1700000000000);
-      final group = SpatialGroup(id: 'g-1', name: 'Group A', colorHex: '#123456', createdAt: date);
-      final map = group.toMap();
-      expect(map['id'], equals('g-1'));
-      expect(map['name'], equals('Group A'));
-      expect(map['color_hex'], equals('#123456'));
-      expect(map['created_at'], equals(1700000000000));
-
-      final copied = group.copyWith(name: 'Group B');
-      expect(copied.name, equals('Group B'));
-      expect(copied.colorHex, equals('#123456'));
-    });
-  });
-
-  group('SpatialGroupNode model', () {
-    test('fromMap and toMap and copyWith work correctly', () {
-      final map = {
-        'group_id': 'g-1',
-        'note_id': 'n-1',
-      };
-      final mapping = SpatialGroupNode.fromMap(map);
-      expect(mapping.groupId, equals('g-1'));
-      expect(mapping.noteId, equals('n-1'));
-
-      final outMap = mapping.toMap();
-      expect(outMap['group_id'], equals('g-1'));
-      expect(outMap['note_id'], equals('n-1'));
-
-      final copied = mapping.copyWith(noteId: 'n-2');
-      expect(copied.groupId, equals('g-1'));
-      expect(copied.noteId, equals('n-2'));
-    });
-  });
 
   group('AudioBookmark model type safety', () {
     test('fromMap parses ints, doubles and dates correctly', () {

@@ -51,8 +51,6 @@ class PrismMetadataStore {
     try {
       await db.transaction((txn) async {
         // Replace-all strategy: sidecar is source of truth.
-        await txn.delete('spatial_group_nodes');
-        await txn.delete('spatial_groups');
         await txn.delete('graph_node_positions');
         await txn.delete('note_folders');
         await txn.delete('virtual_folders');
@@ -83,22 +81,6 @@ class PrismMetadataStore {
             'is_pinned': item['is_pinned'],
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
-
-        for (final item in _list(json, 'spatial_groups')) {
-          await txn.insert('spatial_groups', {
-            'id': item['id'],
-            'name': item['name'],
-            'color_hex': item['color_hex'],
-            'created_at': item['created_at'],
-          }, conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-
-        for (final item in _list(json, 'spatial_group_nodes')) {
-          await txn.insert('spatial_group_nodes', {
-            'group_id': item['group_id'],
-            'note_id': item['note_id'],
-          }, conflictAlgorithm: ConflictAlgorithm.replace);
-        }
       });
     } finally {
       await db.execute('PRAGMA foreign_keys = ON');
@@ -117,8 +99,6 @@ class PrismMetadataStore {
     final folders = await db.query('virtual_folders');
     final noteFolders = await db.query('note_folders');
     final graphPins = await db.query('graph_node_positions');
-    final spatialGroups = await db.query('spatial_groups');
-    final spatialGroupNodes = await db.query('spatial_group_nodes');
 
     final payload = <String, dynamic>{
       'version': _schemaVersion,
@@ -144,20 +124,6 @@ class PrismMetadataStore {
                 'x': gp['x'],
                 'y': gp['y'],
                 'is_pinned': gp['is_pinned'],
-              })
-          .toList(),
-      'spatial_groups': spatialGroups
-          .map((sg) => {
-                'id': sg['id'],
-                'name': sg['name'],
-                'color_hex': sg['color_hex'],
-                'created_at': sg['created_at'],
-              })
-          .toList(),
-      'spatial_group_nodes': spatialGroupNodes
-          .map((sgn) => {
-                'group_id': sgn['group_id'],
-                'note_id': sgn['note_id'],
               })
           .toList(),
     };

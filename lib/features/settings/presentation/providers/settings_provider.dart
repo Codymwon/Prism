@@ -1,63 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
-// ─── Base Vaults Directory Provider ──────────────────────────────────────────
-// Uses AsyncNotifier so consumers can await the initial SharedPreferences load
-// instead of receiving an empty string during the async gap.
-final baseVaultsDirectoryProvider =
-    AsyncNotifierProvider<BaseVaultsDirectoryNotifier, String>(
-        BaseVaultsDirectoryNotifier.new);
+export '../../../../core/database/vault_providers.dart';
 
-class BaseVaultsDirectoryNotifier extends AsyncNotifier<String> {
-  @override
-  Future<String> build() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('baseVaultsDirectory');
-    if (saved != null && saved.isNotEmpty) {
-      return saved;
-    }
-    final docDir = await getApplicationDocumentsDirectory();
-    return p.join(docDir.path, 'prism_vaults');
-  }
-
-  Future<void> setDirectory(String path) async {
-    state = const AsyncLoading();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('baseVaultsDirectory', path);
-    state = AsyncData(path);
-  }
-}
-
-// ─── Active Vault Name Provider ──────────────────────────────────────────────
-final activeVaultNameProvider =
-    AsyncNotifierProvider<ActiveVaultNameNotifier, String>(
-        ActiveVaultNameNotifier.new);
-
-class ActiveVaultNameNotifier extends AsyncNotifier<String> {
-  @override
-  Future<String> build() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('activeVaultName') ?? 'My Vault';
-  }
-
-  Future<void> setVaultName(String name) async {
-    state = const AsyncLoading();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('activeVaultName', name);
-    state = AsyncData(name);
-  }
-}
-
-// ─── Active Vault Path Provider (Derived) ────────────────────────────────────
-// FutureProvider that waits for both async notifiers before computing the path.
-final activeVaultPathProvider = FutureProvider<String>((ref) async {
-  final baseDir = await ref.watch(baseVaultsDirectoryProvider.future);
-  final activeVault = await ref.watch(activeVaultNameProvider.future);
-  if (baseDir.isEmpty) return '';
-  return p.join(baseDir, activeVault);
-});
 
 // ─── Font Family Provider ────────────────────────────────────────────────────
 class FontFamilyNotifier extends StateNotifier<String> {

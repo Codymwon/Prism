@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/database/prism_metadata_store.dart';
-import '../../../features/settings/presentation/providers/settings_provider.dart';
+import '../../../core/database/vault_providers.dart';
 import '../../notes/data/note_repository.dart';
 import '../../notes/data/note_model.dart';
 import 'graph_models.dart';

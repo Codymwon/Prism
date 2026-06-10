@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
-import '../../../../core/utils/utils.dart';
+import '../../../../core/database/vault_providers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../editor/presentation/widgets/audio_player_bottom_sheet.dart';
 
@@ -38,7 +38,7 @@ class AttachmentFile {
 }
 
 final attachmentsProvider = FutureProvider<List<AttachmentFile>>((ref) async {
-  final vaultPath = await getVaultPath();
+  final vaultPath = await ref.watch(activeVaultPathProvider.future);
   final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
   if (!await attachmentsDir.exists()) {
     return [];

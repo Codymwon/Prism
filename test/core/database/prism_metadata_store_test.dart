@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart' as p;
@@ -36,22 +36,7 @@ Future<void> _createSchema(Database db) async {
     )
   ''');
 
-  await db.execute('''
-    CREATE TABLE IF NOT EXISTS spatial_groups (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      color_hex TEXT NOT NULL DEFAULT '#7C6FF7',
-      created_at INTEGER NOT NULL
-    )
-  ''');
 
-  await db.execute('''
-    CREATE TABLE IF NOT EXISTS spatial_group_nodes (
-      group_id TEXT NOT NULL,
-      note_id TEXT NOT NULL,
-      PRIMARY KEY (group_id, note_id)
-    )
-  ''');
 }
 
 void main() {
@@ -229,58 +214,7 @@ void main() {
     });
   });
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // Cycle 6 — Spatial groups round-trip
-  // ══════════════════════════════════════════════════════════════════════════
-  group('Cycle 6 — Spatial groups', () {
-    test('spatial_groups fields survive a round-trip', () async {
-      await db.insert('spatial_groups', {
-        'id': 'sg-1',
-        'name': 'Cluster Alpha',
-        'color_hex': '#AABBCC',
-        'created_at': 7_777_777,
-      });
 
-      await store.flushFromDatabase(db, tempDir.path);
-      await db.delete('spatial_groups');
-      await store.loadIntoDatabase(db, tempDir.path);
-
-      final groups = await db.query('spatial_groups');
-      expect(groups.length, 1);
-      expect(groups.first['id'], 'sg-1');
-      expect(groups.first['name'], 'Cluster Alpha');
-      expect(groups.first['color_hex'], '#AABBCC');
-      expect(groups.first['created_at'], 7_777_777);
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // Cycle 7 — Spatial group nodes round-trip
-  // ══════════════════════════════════════════════════════════════════════════
-  group('Cycle 7 — Spatial group nodes', () {
-    test('spatial_group_nodes memberships survive a round-trip', () async {
-      await db.insert('spatial_groups', {
-        'id': 'sg-1',
-        'name': 'Group',
-        'color_hex': '#000000',
-        'created_at': 1,
-      });
-      await db.insert('spatial_group_nodes', {'group_id': 'sg-1', 'note_id': 'note-x'});
-      await db.insert('spatial_group_nodes', {'group_id': 'sg-1', 'note_id': 'note-y'});
-
-      await store.flushFromDatabase(db, tempDir.path);
-      await db.delete('spatial_group_nodes');
-      await db.delete('spatial_groups');
-
-      await store.loadIntoDatabase(db, tempDir.path);
-
-      final nodes = await db.query('spatial_group_nodes', orderBy: 'note_id ASC');
-      expect(nodes.length, 2);
-      expect(nodes[0]['group_id'], 'sg-1');
-      expect(nodes[0]['note_id'], 'note-x');
-      expect(nodes[1]['note_id'], 'note-y');
-    });
-  });
 
   // ══════════════════════════════════════════════════════════════════════════
   // Cycle 8 — Sidecar is source of truth (replaces stale SQLite rows)

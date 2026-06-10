@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'core/database/database_helper.dart';
+import 'core/database/database_providers.dart';
 import 'core/utils/storage_permission_helper.dart';
 import 'shared/widgets/storage_permission_screen.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
@@ -31,6 +31,8 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final vaultType = prefs.getString('vaultType') ?? 'sandbox';
 
+  final container = ProviderContainer();
+
   if (vaultType == 'custom') {
     // Check if we have Android Scoped Storage (All Files Access) permission
     final hasAccess = await StoragePermissionHelper.hasAllFilesAccess();
@@ -45,23 +47,26 @@ void main() async {
         fontFamily: fontFamily,
         onPermissionGranted: () async {
           try {
-            await DatabaseHelper.instance.database; // warm up DB
+            await container.read(databaseProvider.future); // warm up DB via Riverpod
           } catch (e) {
             debugPrint('Failed to warm up database after permission grant: $e');
           }
-          runApp(const ProviderScope(child: PrismApp()));
+          runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));
         },
       ));
       return; // Stop execution here to let the permission screen run
     }
   }
 
-  try {
-    await DatabaseHelper.instance.database; // warm up DB
-  } catch (e) {
-    debugPrint('Failed to warm up database at startup: $e');
+  final hasOnboarded = prefs.getBool('hasOnboarded') ?? false;
+  if (hasOnboarded) {
+    try {
+      await container.read(databaseProvider.future); // warm up DB via Riverpod
+    } catch (e) {
+      debugPrint('Failed to warm up database at startup: $e');
+    }
   }
-  runApp(const ProviderScope(child: PrismApp()));
+  runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));
 }
 
 class PrismApp extends ConsumerStatefulWidget {

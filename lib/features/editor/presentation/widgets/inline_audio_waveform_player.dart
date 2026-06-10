@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import '../../../../core/utils/utils.dart';
+import '../../../../core/database/vault_providers.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../features/notes/data/audio_bookmark_model.dart';
 import '../providers/audio_player_providers.dart';
@@ -52,7 +52,7 @@ class _InlineAudioWaveformPlayerState
 
   Future<void> _resolvePath() async {
     try {
-      final vaultPath = await getVaultPath();
+      final vaultPath = await ref.read(activeVaultPathProvider.future);
       final absPath = p.join(vaultPath, widget.filePath);
       final file = File(absPath);
       if (await file.exists()) {

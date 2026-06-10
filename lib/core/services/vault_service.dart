@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../../features/folders/presentation/providers/folders_providers.dart';
-import '../../features/settings/presentation/providers/settings_provider.dart';
+import '../database/vault_providers.dart';
 
 final vaultManagementServiceProvider = Provider<VaultManagementService>((ref) {
   return VaultManagementService();

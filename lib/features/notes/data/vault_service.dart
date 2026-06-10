@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
-import '../../../../core/utils/utils.dart';
+import '../../../../core/database/vault_providers.dart';
 import 'adapters/vault_service_impl.dart';
 import 'adapters/local_vault_storage.dart';
 import 'adapters/markdown_content_parser.dart';
@@ -35,6 +35,6 @@ final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
     storage: LocalVaultStorage(),
     parser: MarkdownContentParser(),
     indexer: SqliteMetadataIndexer(),
-    getVaultPath: () => getVaultPath(),
+    getVaultPath: () => ref.read(activeVaultPathProvider.future),
   );
 });

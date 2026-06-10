@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
-import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../../../core/database/vault_providers.dart';
 
 class VaultStatusPanel extends ConsumerWidget {
   const VaultStatusPanel({super.key});

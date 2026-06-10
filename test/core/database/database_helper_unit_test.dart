@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart' as p;
@@ -81,6 +81,28 @@ void main() {
       final dbNew = await DatabaseHelper.instance.openDatabaseForPath(tempDir1.path);
       expect(dbNew.isOpen, isTrue);
       expect(dbNew, isNot(equals(db)));
+    });
+
+    test('closeDatabase does not deadlock when an async transaction is in progress and can reopen', () async {
+      final db = await DatabaseHelper.instance.openDatabaseForPath(tempDir1.path);
+      
+      // Start an async transaction that does a slow operation (delay)
+      final txnFuture = db.transaction((txn) async {
+        await Future.delayed(const Duration(milliseconds: 50));
+        await txn.execute('CREATE TABLE IF NOT EXISTS temp_test (id INTEGER)');
+      });
+
+      // While transaction is active, close the database connection
+      final closeFuture = DatabaseHelper.instance.closeDatabase();
+
+      // Both should complete without hanging
+      await expectLater(Future.wait([txnFuture, closeFuture]).timeout(const Duration(seconds: 2)), throwsA(anything));
+
+      // Now open the database again and verify it succeeds
+      final dbNewFuture = DatabaseHelper.instance.openDatabaseForPath(tempDir1.path);
+      await expectLater(dbNewFuture.timeout(const Duration(seconds: 2)), completes);
+      final dbNew = await dbNewFuture;
+      expect(dbNew.isOpen, isTrue);
     });
   });
 

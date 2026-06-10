@@ -138,24 +138,7 @@ void main() {
             )
           ''');
 
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS spatial_groups (
-              id TEXT PRIMARY KEY,
-              name TEXT NOT NULL,
-              color_hex TEXT NOT NULL DEFAULT '#7C6FF7',
-              created_at INTEGER NOT NULL
-            )
-          ''');
 
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS spatial_group_nodes (
-              group_id TEXT NOT NULL,
-              note_id TEXT NOT NULL,
-              PRIMARY KEY (group_id, note_id),
-              FOREIGN KEY(group_id) REFERENCES spatial_groups(id) ON DELETE CASCADE,
-              FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
-            )
-          ''');
         },
       ),
     );

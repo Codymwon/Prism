@@ -7,7 +7,7 @@ import '../utils/utils.dart';
 
 class DatabaseHelper {
   static const _dbName = '.prism.db';
-  static const _dbVersion = 5; // Upgraded to v5 to add note snippets
+  static const _dbVersion = 6; // Upgraded to v6 to remove spatial groups
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -243,25 +243,6 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS spatial_groups (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        color_hex TEXT NOT NULL DEFAULT '#7C6FF7',
-        created_at INTEGER NOT NULL
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS spatial_group_nodes (
-        group_id TEXT NOT NULL,
-        note_id TEXT NOT NULL,
-        PRIMARY KEY (group_id, note_id),
-        FOREIGN KEY(group_id) REFERENCES spatial_groups(id) ON DELETE CASCADE,
-        FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
-      )
-    ''');
-
-    await db.execute('''
       CREATE TABLE IF NOT EXISTS audio_bookmarks (
         id TEXT PRIMARY KEY,
         note_id TEXT NOT NULL,
@@ -274,7 +255,6 @@ class DatabaseHelper {
     ''');
 
     // Version 4 Indexes
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_spatial_group_nodes_note ON spatial_group_nodes(note_id)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_audio_bookmarks_note ON audio_bookmarks(note_id)');
   }
 
@@ -378,6 +358,11 @@ class DatabaseHelper {
 
     if (oldVersion < 5) {
       await db.execute("ALTER TABLE notes ADD COLUMN snippet TEXT DEFAULT ''");
+    }
+
+    if (oldVersion < 6) {
+      await db.execute('DROP TABLE IF EXISTS spatial_group_nodes');
+      await db.execute('DROP TABLE IF EXISTS spatial_groups');
     }
   }
 

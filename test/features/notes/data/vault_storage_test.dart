@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:prism/features/notes/data/adapters/local_vault_storage.dart';
@@ -70,7 +70,7 @@ I am linking to [[Productivity Tools Guide]] and [[Welcome to Prism]].
 
       final metadata = parser.parse(content);
       expect(metadata.title, equals('My Awesome Note'));
-      expect(metadata.wordCount, equals(24)); // 24 words in text
+      expect(metadata.wordCount, equals(20)); // 20 words in text (title line excluded)
       expect(metadata.tags, containsAll(['productivity', 'tutorial']));
       expect(metadata.wikilinks, containsAll(['Productivity Tools Guide', 'Welcome to Prism']));
     });

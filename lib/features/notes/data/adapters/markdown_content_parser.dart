@@ -5,7 +5,40 @@ class MarkdownContentParser implements NoteContentParser {
   @override
   NoteMetadata parse(String content) {
     final title = utils.extractTitle(content);
-    final cleanContent = utils.stripFrontmatter(content);
+    var cleanContent = utils.stripFrontmatter(content);
+
+    // Strip the H1 header or first non-empty line from the body if the note doesn't have frontmatter title
+    final hasFrontmatter = content.trimLeft().startsWith('---\n') || content.trimLeft().startsWith('---\r\n');
+    if (!hasFrontmatter) {
+      final lines = cleanContent.split('\n');
+      int titleIndex = -1;
+      for (int i = 0; i < lines.length; i++) {
+        final trimmed = lines[i].trim();
+        if (trimmed.isEmpty) continue;
+
+        // Check if it's the H1 header representing the title
+        if (trimmed.startsWith('# ')) {
+          final cleanText = trimmed.substring(2).trim();
+          if (cleanText == title) {
+            titleIndex = i;
+            break;
+          }
+        }
+
+        // Check if the line matches the title exactly (first non-empty line fallback)
+        if (trimmed == title) {
+          titleIndex = i;
+          break;
+        }
+
+        break;
+      }
+      if (titleIndex != -1) {
+        lines.removeAt(titleIndex);
+        cleanContent = lines.join('\n');
+      }
+    }
+
     final wordCount = utils.countWords(cleanContent);
     final tags = utils.extractTags(cleanContent);
     final wikilinks = utils.extractWikilinks(cleanContent);

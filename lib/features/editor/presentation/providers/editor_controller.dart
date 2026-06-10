@@ -388,7 +388,7 @@ class DictationController extends StateNotifier<DictationState> {
     if (keepVoice) {
       if (!isRestart) {
         try {
-          final vaultPath = await getVaultPath();
+          final vaultPath = await ref.read(activeVaultPathProvider.future);
           final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
           if (!await attachmentsDir.exists()) {
             await attachmentsDir.create(recursive: true);

@@ -113,7 +113,7 @@ void main() {
       final notes = await db.query('notes');
       expect(notes.length, equals(1));
       expect(notes.first['title'], equals('My Test Title'));
-      expect(notes.first['word_count'], equals(10));
+      expect(notes.first['word_count'], equals(6));
 
       // Assert tags were synced
       final tags = await db.query('note_tags');
@@ -131,7 +131,7 @@ void main() {
       final notesBefore = await db.query('notes');
       expect(notesBefore.length, equals(1));
       expect(notesBefore.first['title'], equals('Initial Title'));
-      expect(notesBefore.first['word_count'], equals(4));
+      expect(notesBefore.first['word_count'], equals(1));
 
       // Wait a moment, modify file, and update modification date
       // We explicitly set last modified to be 2 seconds in the future to ensure sync picks it up
@@ -145,7 +145,7 @@ void main() {
       final notesAfter = await db.query('notes');
       expect(notesAfter.length, equals(1));
       expect(notesAfter.first['title'], equals('Updated Title'));
-      expect(notesAfter.first['word_count'], equals(6));
+      expect(notesAfter.first['word_count'], equals(3));
     });
 
     test('should automatically create Inbox folder and link Inbox note', () async {

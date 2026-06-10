@@ -8,7 +8,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/database/database_helper.dart';
 import '../../../../core/utils/storage_permission_helper.dart';
 import '../../data/onboarding_provider.dart';
-import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../../../core/database/vault_providers.dart';
 
 class VaultSetupForm extends ConsumerStatefulWidget {
   final VoidCallback onStartSetup;

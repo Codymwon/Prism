@@ -1,6 +1,7 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:prism/core/database/database_helper.dart';
 
@@ -105,28 +106,16 @@ void main() {
     expect(positions.first['y'], equals(-200.5));
     expect(positions.first['is_pinned'], equals(1));
 
-    // spatial_groups
-    await upgradedDb.insert('spatial_groups', {
-      'id': 'group-1',
-      'name': 'Project Space',
-      'color_hex': '#FF5733',
-      'created_at': 300000,
-    });
-    final groups = await upgradedDb.query('spatial_groups');
-    expect(groups.length, equals(1));
-    expect(groups.first['id'], equals('group-1'));
-    expect(groups.first['name'], equals('Project Space'));
-    expect(groups.first['color_hex'], equals('#FF5733'));
+    // Verify spatial groups tables are dropped on upgrade to version 6
+    final spatialGroupsTableExists = Sqflite.firstIntValue(await upgradedDb.rawQuery(
+      "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='spatial_groups'"
+    ));
+    expect(spatialGroupsTableExists, equals(0));
 
-    // spatial_group_nodes
-    await upgradedDb.insert('spatial_group_nodes', {
-      'group_id': 'group-1',
-      'note_id': 'note-v3-1',
-    });
-    final groupNodes = await upgradedDb.query('spatial_group_nodes');
-    expect(groupNodes.length, equals(1));
-    expect(groupNodes.first['group_id'], equals('group-1'));
-    expect(groupNodes.first['note_id'], equals('note-v3-1'));
+    final spatialGroupNodesTableExists = Sqflite.firstIntValue(await upgradedDb.rawQuery(
+      "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='spatial_group_nodes'"
+    ));
+    expect(spatialGroupNodesTableExists, equals(0));
 
     // audio_bookmarks
     await upgradedDb.insert('audio_bookmarks', {

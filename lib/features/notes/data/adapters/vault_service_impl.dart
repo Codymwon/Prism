@@ -262,116 +262,147 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
       if (!database.isOpen) return;
 
-      // Perform insertions and updates inside a single transaction
+      // 1. Scan files and parse metadata outside of transaction
+      final List<({
+        String id,
+        String title,
+        String filePath,
+        int wordCount,
+        DateTime updatedAt,
+        NoteMetadata metadata,
+        bool isClipperInbox,
+        bool isWelcomeNote,
+      })> notesToSync = [];
+
+      for (final filePath in files) {
+        if (!database.isOpen) return;
+        final lastMod = await storage.getLastModified(filePath);
+        final lastModMs = lastMod.millisecondsSinceEpoch;
+
+        final exists = existingPathsMap.containsKey(filePath);
+        final existing = existingPathsMap[filePath];
+
+        // Determine if we need to insert or update (allow 1 second discrepancy)
+        final shouldInsert = !exists;
+        final shouldUpdate = exists && (lastModMs > (existing!.updatedAt + 1000));
+
+        if (shouldInsert || shouldUpdate) {
+          final content = await storage.readContent(filePath);
+          final metadata = parser.parse(content);
+          final noteId = shouldInsert ? utils.generateId() : existing!.id;
+
+          final isClipperInbox = filePath.toLowerCase().endsWith('${Platform.pathSeparator}inbox.md') ||
+              filePath.toLowerCase().endsWith('/inbox.md');
+
+          final isWelcomeNote = filePath.toLowerCase().endsWith('${Platform.pathSeparator}welcome to prism.md') ||
+              filePath.toLowerCase().endsWith('/welcome to prism.md') ||
+              filePath.toLowerCase().endsWith('${Platform.pathSeparator}productivity tools guide.md') ||
+              filePath.toLowerCase().endsWith('/productivity tools guide.md');
+
+          notesToSync.add((
+            id: noteId,
+            title: metadata.title,
+            filePath: filePath,
+            wordCount: metadata.wordCount,
+            updatedAt: lastMod,
+            metadata: metadata,
+            isClipperInbox: isClipperInbox,
+            isWelcomeNote: isWelcomeNote,
+          ));
+        }
+      }
+
+      if (!database.isOpen) return;
+
+      // 2. Perform all database modifications inside a single fast transaction
       await database.transaction((txn) async {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-        for (final filePath in files) {
+        for (final item in notesToSync) {
           if (!database.isOpen) return;
-          final lastMod = await storage.getLastModified(filePath);
-          final lastModMs = lastMod.millisecondsSinceEpoch;
 
-          final exists = existingPathsMap.containsKey(filePath);
-          final existing = existingPathsMap[filePath];
+          await indexer.indexNote(
+            txn,
+            id: item.id,
+            title: item.title,
+            filePath: item.filePath,
+            wordCount: item.wordCount,
+            updatedAt: item.updatedAt,
+            isGhost: false,
+            isDaily: false,
+            dailyDate: null,
+            vaultPath: vaultPath,
+            metadata: item.metadata,
+          );
 
-          // Determine if we need to insert or update (allow 1 second discrepancy)
-          final shouldInsert = !exists;
-          final shouldUpdate = exists && (lastModMs > (existing!.updatedAt + 1000));
-
-          if (shouldInsert || shouldUpdate) {
-            final content = await storage.readContent(filePath);
-            final metadata = parser.parse(content);
-            final noteId = shouldInsert ? utils.generateId() : existing!.id;
-
-            await indexer.indexNote(
-              txn,
-              id: noteId,
-              title: metadata.title,
-              filePath: filePath,
-              wordCount: metadata.wordCount,
-              updatedAt: lastMod,
-              isGhost: false,
-              isDaily: false,
-              dailyDate: null,
-              vaultPath: vaultPath,
-              metadata: metadata,
+          // If the note is the clipper's Inbox note, ensure it is in the virtual folder 'Inbox'
+          if (item.isClipperInbox) {
+            final folderMaps = await txn.query(
+              'virtual_folders',
+              columns: ['id'],
+              where: 'LOWER(name) = ?',
+              whereArgs: ['inbox'],
             );
 
-            // If the note is the clipper's Inbox note, ensure it is in the virtual folder 'Inbox'
-            final isClipperInbox = filePath.toLowerCase().endsWith('${Platform.pathSeparator}inbox.md') ||
-                filePath.toLowerCase().endsWith('/inbox.md');
-            if (isClipperInbox) {
-              final folderMaps = await txn.query(
-                'virtual_folders',
-                columns: ['id'],
-                where: 'LOWER(name) = ?',
-                whereArgs: ['inbox'],
-              );
+            String folderId;
+            if (folderMaps.isEmpty) {
+              folderId = utils.generateId();
+              final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
+              final rawMax = maxSortMap.first['max_sort'];
+              final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
 
-              String folderId;
-              if (folderMaps.isEmpty) {
-                folderId = utils.generateId();
-                final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
-                final rawMax = maxSortMap.first['max_sort'];
-                final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
-
-                await txn.insert('virtual_folders', {
-                  'id': folderId,
-                  'name': 'Inbox',
-                  'color_hex': '#7C6FF7',
-                  'icon': 'folder',
-                  'created_at': nowMs,
-                  'sort_order': maxSort + 1,
-                });
-              } else {
-                folderId = folderMaps.first['id'] as String;
-              }
-
-              await txn.insert(
-                'note_folders',
-                {'note_id': noteId, 'folder_id': folderId},
-                conflictAlgorithm: ConflictAlgorithm.ignore,
-              );
+              await txn.insert('virtual_folders', {
+                'id': folderId,
+                'name': 'Inbox',
+                'color_hex': '#7C6FF7',
+                'icon': 'folder',
+                'created_at': nowMs,
+                'sort_order': maxSort + 1,
+              });
+            } else {
+              folderId = folderMaps.first['id'] as String;
             }
 
-            // If the note is a welcome note, ensure it is in the virtual folder 'Tutorial'
-            final isWelcomeNote = filePath.toLowerCase().endsWith('${Platform.pathSeparator}welcome to prism.md') ||
-                filePath.toLowerCase().endsWith('/welcome to prism.md') ||
-                filePath.toLowerCase().endsWith('${Platform.pathSeparator}productivity tools guide.md') ||
-                filePath.toLowerCase().endsWith('/productivity tools guide.md');
-            if (isWelcomeNote) {
-              final folderMaps = await txn.query(
-                'virtual_folders',
-                columns: ['id'],
-                where: 'LOWER(name) = ?',
-                whereArgs: ['tutorial'],
-              );
+            await txn.insert(
+              'note_folders',
+              {'note_id': item.id, 'folder_id': folderId},
+              conflictAlgorithm: ConflictAlgorithm.ignore,
+            );
+          }
 
-              String folderId;
-              if (folderMaps.isEmpty) {
-                folderId = utils.generateId();
-                final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
-                final rawMax = maxSortMap.first['max_sort'];
-                final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
+          // If the note is a welcome note, ensure it is in the virtual folder 'Tutorial'
+          if (item.isWelcomeNote) {
+            final folderMaps = await txn.query(
+              'virtual_folders',
+              columns: ['id'],
+              where: 'LOWER(name) = ?',
+              whereArgs: ['tutorial'],
+            );
 
-                await txn.insert('virtual_folders', {
-                  'id': folderId,
-                  'name': 'Tutorial',
-                  'color_hex': '#7C6FF7',
-                  'icon': 'folder',
-                  'created_at': nowMs,
-                  'sort_order': maxSort + 1,
-                });
-              } else {
-                folderId = folderMaps.first['id'] as String;
-              }
+            String folderId;
+            if (folderMaps.isEmpty) {
+              folderId = utils.generateId();
+              final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
+              final rawMax = maxSortMap.first['max_sort'];
+              final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
 
-              await txn.insert(
-                'note_folders',
-                {'note_id': noteId, 'folder_id': folderId},
-                conflictAlgorithm: ConflictAlgorithm.ignore,
-              );
+              await txn.insert('virtual_folders', {
+                'id': folderId,
+                'name': 'Tutorial',
+                'color_hex': '#7C6FF7',
+                'icon': 'folder',
+                'created_at': nowMs,
+                'sort_order': maxSort + 1,
+              });
+            } else {
+              folderId = folderMaps.first['id'] as String;
             }
+
+            await txn.insert(
+              'note_folders',
+              {'note_id': item.id, 'folder_id': folderId},
+              conflictAlgorithm: ConflictAlgorithm.ignore,
+            );
           }
         }
 

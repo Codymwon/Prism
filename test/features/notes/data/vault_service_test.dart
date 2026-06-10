@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
@@ -136,7 +136,7 @@ void main() {
       );
 
       expect(note.title, equals('New Note'));
-      expect(note.wordCount, equals(6));
+      expect(note.wordCount, equals(3));
 
       // Verify file written to fake storage
       final fileWritten = await storage.exists(note.filePath);

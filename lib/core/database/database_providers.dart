@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'database_helper.dart';
 import 'prism_metadata_store.dart';
 import '../utils/utils.dart';
-import '../../features/settings/presentation/providers/settings_provider.dart';
+import 'vault_providers.dart';
 import '../../features/notes/data/vault_service.dart';
 
 // ─── Database Connection Provider (Reactive Lifecycle) ────────────────────────
