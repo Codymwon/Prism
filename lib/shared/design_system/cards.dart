@@ -112,7 +112,7 @@ class DesignNoteCard extends ConsumerWidget {
               ),
 
               // Rich note details from Riverpod (Snippet & Tags)
-              ...ref.watch(noteDetailsProvider(note)).maybeWhen(
+              ...ref.watch(noteDetailsProvider(note.id)).maybeWhen(
                 data: (details) => [
                   if (details.snippet.isNotEmpty) ...[
                     const SizedBox(height: 6),

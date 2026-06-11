@@ -178,12 +178,16 @@ class _DesignSearchBarState extends State<DesignSearchBar> {
                 setState(() {});
                 widget.onClear();
               },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Icon(
-                  DesignIcons.close,
-                  size: 16,
-                  color: DesignColors.textSecondary(context),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 48,
+                height: double.infinity,
+                child: Center(
+                  child: Icon(
+                    DesignIcons.close,
+                    size: 16,
+                    color: DesignColors.textSecondary(context),
+                  ),
                 ),
               ),
             ),

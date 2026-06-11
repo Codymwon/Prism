@@ -62,7 +62,7 @@ class WikilinksVisual extends StatelessWidget {
             child: SizedBox(
               height: 20,
               child: CustomPaint(
-                painter: _BeamPainter(color: primary),
+                painter: BeamPainter(color: primary),
               ),
             ),
           ),
@@ -124,9 +124,9 @@ class WikilinksVisual extends StatelessWidget {
   }
 }
 
-class _BeamPainter extends CustomPainter {
+class BeamPainter extends CustomPainter {
   final Color color;
-  _BeamPainter({required this.color});
+  BeamPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -146,5 +146,7 @@ class _BeamPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant BeamPainter oldDelegate) {
+    return oldDelegate.color != color;
+  }
 }

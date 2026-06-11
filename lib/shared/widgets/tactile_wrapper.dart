@@ -16,6 +16,7 @@ class TactileWrapper extends ConsumerStatefulWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onDoubleTap;
   final TactileFeedbackStyle style;
+  final bool ignoreChildPointer;
 
   const TactileWrapper({
     super.key,
@@ -24,6 +25,7 @@ class TactileWrapper extends ConsumerStatefulWidget {
     this.onLongPress,
     this.onDoubleTap,
     this.style = TactileFeedbackStyle.standard,
+    this.ignoreChildPointer = true,
   });
 
   @override
@@ -139,6 +141,7 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
     Widget resultWidget = ScaleTransition(
       scale: _scaleAnimation,
       child: IgnorePointer(
+        ignoring: widget.ignoreChildPointer,
         child: widget.child,
       ),
     );
@@ -171,16 +174,16 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
       resultWidget = AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, childWidget) {
-          final isLifted = _scaleAnimation.value > 1.0;
+          final t = ((_scaleAnimation.value - 1.0) / 0.03).clamp(0.0, 1.0);
           return Container(
             decoration: BoxDecoration(
-              boxShadow: isLifted
+              boxShadow: t > 0.0
                   ? [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 16,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 8),
+                        color: Colors.black.withValues(alpha: 0.08 * t),
+                        blurRadius: 16.0 * t,
+                        spreadRadius: 1.0 * t,
+                        offset: Offset(0, 8.0 * t),
                       )
                     ]
                   : [],

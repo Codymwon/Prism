@@ -128,7 +128,7 @@ class AudioBookmarkNotifier extends StateNotifier<AudioBookmarkState> {
 /// final key = BookmarkKey(noteId: noteId, attachmentPath: attachmentPath);
 /// ref.watch(audioBookmarkProvider(key));
 /// ```
-final audioBookmarkProvider = StateNotifierProvider.family<
+final audioBookmarkProvider = StateNotifierProvider.autoDispose.family<
     AudioBookmarkNotifier,
     AudioBookmarkState,
     BookmarkKey>((ref, key) {

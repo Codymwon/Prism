@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 
@@ -19,7 +18,6 @@ class WikilinkAutocomplete extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
     final suggestionsAsync = ref.watch(autocompleteSuggestionsProvider(query));
 
     return Positioned(
@@ -63,16 +61,16 @@ class WikilinkAutocomplete extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
                     child: Row(
                       children: [
-                        Icon(Icons.link_rounded, size: 13, color: colorScheme.primary),
+                        Icon(Icons.link_rounded, size: 13, color: DesignColors.primary(context)),
                         const SizedBox(width: 6),
                         Text(
                           'Link to note',
-                          style: GoogleFonts.inter(
+                          style: DesignTypography.heading(
+                            context,
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: DesignColors.textSecondary(context),
-                            letterSpacing: 0.3,
-                          ),
+                          ).copyWith(letterSpacing: 0.3),
                         ),
                         const Spacer(),
                         GestureDetector(
@@ -99,7 +97,6 @@ class WikilinkAutocomplete extends ConsumerWidget {
                         ...items.map((note) => _buildSuggestionTile(
                               context,
                               isDark,
-                              colorScheme,
                               note.title,
                               subtitle: note.isGhost ? 'Ghost note' : '${note.wordCount} words',
                               icon: note.isGhost
@@ -112,7 +109,6 @@ class WikilinkAutocomplete extends ConsumerWidget {
                           _buildSuggestionTile(
                             context,
                             isDark,
-                            colorScheme,
                             query,
                             subtitle: 'Create new note',
                             icon: Icons.add_circle_outline_rounded,
@@ -158,7 +154,6 @@ class WikilinkAutocomplete extends ConsumerWidget {
   Widget _buildSuggestionTile(
     BuildContext context,
     bool isDark,
-    ColorScheme colorScheme,
     String title, {
     String? subtitle,
     required IconData icon,
@@ -175,7 +170,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
               icon,
               size: 16,
               color: isCreate
-                  ? colorScheme.primary
+                  ? DesignColors.primary(context)
                   : (isGhost
                       ? DesignColors.textTertiary(context)
                       : DesignColors.textSecondary(context)),
@@ -187,11 +182,12 @@ class WikilinkAutocomplete extends ConsumerWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.inter(
+                    style: DesignTypography.heading(
+                      context,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: isCreate
-                          ? colorScheme.primary
+                          ? DesignColors.primary(context)
                           : DesignColors.text(context),
                     ),
                     maxLines: 1,
@@ -200,7 +196,8 @@ class WikilinkAutocomplete extends ConsumerWidget {
                   if (subtitle != null)
                     Text(
                       subtitle,
-                      style: GoogleFonts.inter(
+                      style: DesignTypography.metadata(
+                        context,
                         fontSize: 11,
                         color: DesignColors.textTertiary(context),
                       ),

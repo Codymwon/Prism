@@ -45,6 +45,7 @@ dependencies:
   uuid: ^4.5.1                      # Unique ID generation for notes
   shared_preferences: ^2.3.5       # Simple key-value persistence (settings)
   file_picker: ^8.3.7               # Import existing vault
+  collection: ^1.18.0
 
   # Speech & Audio
   speech_to_text: ^7.4.0
@@ -60,6 +61,7 @@ dev_dependencies:
   riverpod_generator: ^2.6.5
   json_annotation: ^4.9.0
   json_serializable: ^6.9.5
+  vector_math: ^2.2.0
   flutter_launcher_icons: ^0.14.4
 
 flutter:

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -87,62 +87,62 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                 ],
               ),
             ),
-
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
+              child: CustomScrollView(
+                slivers: [
                   // ── Interactive Screen Mockup Selector (Tabs) ────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'LIVE SCREEN PREVIEW',
-                          style: DesignTypography.metadata(
-                            context,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w700,
-                            color: DesignColors.textTertiary(context),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'LIVE SCREEN PREVIEW',
+                            style: DesignTypography.metadata(
+                              context,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              color: DesignColors.textTertiary(context),
+                            ),
                           ),
-                        ),
-                        // Screen tabs selector
-                        _buildSegmentedTabs(),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Live Scaffold Preview Card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _AppMockupPreview(tabIndex: _previewTab)
-                        .animate(key: ValueKey(_previewTab))
-                        .fadeIn(duration: 300.ms)
-                        .slideY(begin: 0.03, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // ── Editorial Light Themes Section ─────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      'LIGHT EDITORIAL PALETTES',
-                      style: DesignTypography.metadata(
-                        context,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        color: DesignColors.textTertiary(context),
+                          // Screen tabs selector
+                          _buildSegmentedTabs(),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Padding(
+                  
+                  // Live Scaffold Preview Card
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _AppMockupPreview(tabIndex: _previewTab)
+                          .animate(key: ValueKey(_previewTab))
+                          .fadeIn(duration: 300.ms)
+                          .slideY(begin: 0.03, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                  // ── Editorial Light Themes Section ─────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Text(
+                        'LIGHT EDITORIAL PALETTES',
+                        style: DesignTypography.metadata(
+                          context,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: DesignColors.textTertiary(context),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                    sliver: SliverGrid.builder(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         crossAxisSpacing: 8,
@@ -165,27 +165,26 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
                   // ── Editorial Dark Themes Section ──────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      'DARK EDITORIAL PALETTES',
-                      style: DesignTypography.metadata(
-                        context,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        color: DesignColors.textTertiary(context),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Text(
+                        'DARK EDITORIAL PALETTES',
+                        style: DesignTypography.metadata(
+                          context,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: DesignColors.textTertiary(context),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Padding(
+                  SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                    sliver: SliverGrid.builder(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         crossAxisSpacing: 8,
@@ -208,7 +207,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
                 ],
               ),
             ),
@@ -837,7 +836,10 @@ class _MockLinksPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MockLinksPainter oldDelegate) {
+    return oldDelegate.primaryColor != primaryColor ||
+        oldDelegate.secondaryColor != secondaryColor;
+  }
 }
 
 class _GalleryThemeCard extends StatelessWidget {

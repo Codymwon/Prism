@@ -19,7 +19,7 @@ class TestImageWidget extends ConsumerWidget {
     );
     return MaterialApp(
       home: Scaffold(
-        body: widgetResult ?? const SizedBox.shrink(),
+        body: widgetResult,
       ),
     );
   }

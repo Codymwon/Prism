@@ -139,13 +139,15 @@ final homeScreenDataProvider = Provider.autoDispose<AsyncValue<HomeScreenData>>(
   return const AsyncLoading<HomeScreenData>();
 });
 
-final noteDetailsProvider = FutureProvider.autoDispose.family<({List<String> tags, String snippet}), Note>((ref, note) async {
+final noteDetailsProvider = FutureProvider.autoDispose.family<({List<String> tags, String snippet}), String>((ref, noteId) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   
-  final tags = await repo.getTagsForNote(note.id);
+  final note = await repo.getNoteById(noteId);
+  final snippet = note?.snippet ?? '';
+  final tags = await repo.getTagsForNote(noteId);
   
-  return (tags: tags, snippet: note.snippet);
+  return (tags: tags, snippet: snippet);
 });
 

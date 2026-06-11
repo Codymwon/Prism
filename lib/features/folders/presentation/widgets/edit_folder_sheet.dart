@@ -199,13 +199,16 @@ class _EditFolderSheetState extends ConsumerState<EditFolderSheet> {
                       ..._kSwatches.map((color) {
                         final isSelected =
                             color.toARGB32() == _selectedColor.toARGB32();
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: GestureDetector(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() => _selectedColor = color);
-                            },
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _selectedColor = color);
+                          },
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.only(right: 8),
+                            alignment: Alignment.center,
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
                               width: 28,
@@ -249,21 +252,26 @@ class _EditFolderSheetState extends ConsumerState<EditFolderSheet> {
                       // Custom color button
                       GestureDetector(
                         onTap: _openCustomColorPicker,
+                        behavior: HitTestBehavior.opaque,
                         child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: DesignColors.surfaceVariant(context),
-                            border: Border.all(
-                              color: DesignColors.border(context),
-                              width: 1.5,
+                          height: 48,
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: DesignColors.surfaceVariant(context),
+                              border: Border.all(
+                                color: DesignColors.border(context),
+                                width: 1.5,
+                              ),
                             ),
-                          ),
-                          child: Icon(
-                            Icons.add_rounded,
-                            size: 16,
-                            color: DesignColors.textSecondary(context),
+                            child: Icon(
+                              Icons.add_rounded,
+                              size: 16,
+                              color: DesignColors.textSecondary(context),
+                            ),
                           ),
                         ),
                       ),

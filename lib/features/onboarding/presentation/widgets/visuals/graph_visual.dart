@@ -21,7 +21,7 @@ class GraphVisual extends StatelessWidget {
           // Connection lines underneath
           Positioned.fill(
             child: CustomPaint(
-              painter: _GraphLinesPainter(
+              painter: GraphLinesPainter(
                 color: border,
                 center: const Offset(110, 90),
                 points: const [
@@ -125,12 +125,12 @@ class GraphVisual extends StatelessWidget {
   }
 }
 
-class _GraphLinesPainter extends CustomPainter {
+class GraphLinesPainter extends CustomPainter {
   final Color color;
   final Offset center;
   final List<Offset> points;
 
-  _GraphLinesPainter({
+  GraphLinesPainter({
     required this.color,
     required this.center,
     required this.points,
@@ -149,5 +149,18 @@ class _GraphLinesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant GraphLinesPainter oldDelegate) {
+    if (oldDelegate.color != color || oldDelegate.center != center) {
+      return true;
+    }
+    if (oldDelegate.points.length != points.length) {
+      return true;
+    }
+    for (int i = 0; i < points.length; i++) {
+      if (oldDelegate.points[i] != points[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

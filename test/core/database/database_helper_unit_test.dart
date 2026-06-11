@@ -106,6 +106,36 @@ void main() {
     });
   });
 
+  group('DatabaseHelper Index Tests', () {
+    test('verify idx_notes_title index is created and used for COLLATE NOCASE queries', () async {
+      final db = await DatabaseHelper.instance.openDatabaseForPath(tempDir1.path);
+
+      // Check if idx_notes_title exists in sqlite_master
+      final indexCheck = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_notes_title'"
+      );
+      expect(indexCheck, isNotEmpty, reason: 'Index idx_notes_title should exist');
+
+      // Insert a note to test query plan
+      await db.insert('notes', {
+        'id': 'test-note-1',
+        'title': 'Case Sensitive Title',
+        'file_path': 'test-note-1.md',
+        'word_count': 10,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      // Query plan check
+      final queryPlan = await db.rawQuery(
+        "EXPLAIN QUERY PLAN SELECT id FROM notes WHERE title = ? COLLATE NOCASE",
+        ['case sensitive title']
+      );
+      final planStr = queryPlan.toString();
+      expect(planStr, contains('USING INDEX idx_notes_title'));
+    });
+  });
+
   group('DatabaseHelper Concurrent Initialization', () {
     test('concurrent database getters return same database instance', () async {
       final dbFutures = await Future.wait([

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../shared/design_system/design_system.dart';
 
 class HsvColorPickerDialog extends StatefulWidget {
   final Color initialColor;
@@ -56,15 +56,14 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textStyle = GoogleFonts.inter(
+    final textStyle = DesignTypography.body(
+      context,
       fontSize: 14,
       fontWeight: FontWeight.w500,
-      color: isDark ? Colors.white : Colors.black87,
     );
 
     return Dialog(
-      backgroundColor: isDark ? const Color(0xFF262628) : const Color(0xFFFDFBFA),
+      backgroundColor: DesignColors.surface(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
@@ -75,10 +74,10 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
             // Header
             Text(
               'Select Color',
-              style: GoogleFonts.inter(
+              style: DesignTypography.heading(
+                context,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black,
               ),
               textAlign: TextAlign.center,
             ),
@@ -95,7 +94,7 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
                     color: _currentColor,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE5DEC9),
+                      color: DesignColors.border(context),
                       width: 2,
                     ),
                     boxShadow: [
@@ -113,22 +112,23 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
                   child: TextField(
                     controller: _hexController,
                     onChanged: _updateFromHex,
-                    style: GoogleFonts.robotoMono(
+                    style: DesignTypography.mono(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
+                      color: DesignColors.text(context),
+                    ).copyWith(fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       labelText: 'HEX CODE',
-                      labelStyle: GoogleFonts.inter(
+                      labelStyle: DesignTypography.metadata(
+                        context,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
+                      ).copyWith(letterSpacing: 0.5),
                       prefixText: '# ',
-                      prefixStyle: GoogleFonts.robotoMono(fontWeight: FontWeight.bold),
+                      prefixStyle: DesignTypography.mono(
+                        color: DesignColors.textSecondary(context),
+                      ).copyWith(fontWeight: FontWeight.bold),
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF3EFE8),
+                      fillColor: DesignColors.surfaceVariant(context),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -164,7 +164,7 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                    style: DesignTypography.body(context, fontWeight: FontWeight.w600, color: DesignColors.primary(context)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -179,7 +179,7 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
                   ),
                   child: Text(
                     'Select',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                    style: DesignTypography.body(context, fontWeight: FontWeight.w700, color: Colors.white),
                   ),
                 ),
               ],

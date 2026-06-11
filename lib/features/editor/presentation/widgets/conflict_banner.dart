@@ -14,14 +14,15 @@ class ConflictBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final amberColor = DesignColors.accentAmber(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: isDark ? 0.15 : 0.08),
+        color: amberColor.withValues(alpha: isDark ? 0.15 : 0.08),
         border: Border(
           bottom: BorderSide(
-            color: Colors.orange.withValues(alpha: 0.3),
+            color: amberColor.withValues(alpha: 0.3),
             width: 0.5,
           ),
         ),
@@ -30,7 +31,7 @@ class ConflictBanner extends StatelessWidget {
         children: [
           Icon(
             DesignIcons.warning,
-            color: isDark ? Colors.orange[300] : Colors.orange[800],
+            color: amberColor,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -41,7 +42,7 @@ class ConflictBanner extends StatelessWidget {
                 context,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.orange[200] : Colors.orange[900],
+                color: amberColor,
               ),
             ),
           ),
@@ -49,9 +50,7 @@ class ConflictBanner extends StatelessWidget {
             onPressed: () => context.push('/editor/$noteId/merge'),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              backgroundColor: isDark
-                  ? Colors.orange[800]!.withValues(alpha: 0.3)
-                  : Colors.orange[100],
+              backgroundColor: amberColor.withValues(alpha: isDark ? 0.3 : 0.15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -65,14 +64,14 @@ class ConflictBanner extends StatelessWidget {
                     context,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.orange[200] : Colors.orange[900],
+                    color: amberColor,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   DesignIcons.chevronRight,
                   size: 14,
-                  color: isDark ? Colors.orange[200] : Colors.orange[900],
+                  color: amberColor,
                 ),
               ],
             ),

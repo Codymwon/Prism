@@ -165,7 +165,7 @@ void insertDivider({
   // Determine prefix: if current line is not empty, insert a newline first
   final String prefix = currentLine.trim().isEmpty ? '' : '\n';
   // Determine suffix: always insert a newline after the horizontal rule to keep markdown valid
-  final String dividerText = '${prefix}---';
+  final String dividerText = '$prefix---';
   final String suffix = '\n';
 
   final start = selection.isValid ? selection.start : text.length;

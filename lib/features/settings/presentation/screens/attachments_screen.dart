@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,21 +48,24 @@ final attachmentsProvider = FutureProvider<List<AttachmentFile>>((ref) async {
   // Get all note files to check references
   final noteRepo = ref.read(noteRepositoryProvider);
   final notes = await noteRepo.getAllNotes();
+  final filePaths = notes.map((n) => n.filePath).toList();
   
-  final referencedNames = <String>{};
-  final regex = RegExp(r'attachments/([^)\s]+)');
-  
-  for (final note in notes) {
-    try {
-      final file = File(note.filePath);
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        for (final match in regex.allMatches(content)) {
-          referencedNames.add(match.group(1)!);
+  final referencedNames = await Isolate.run(() {
+    final names = <String>{};
+    final regex = RegExp(r'attachments/([^)\s]+)');
+    for (final path in filePaths) {
+      try {
+        final file = File(path);
+        if (file.existsSync()) {
+          final content = file.readAsStringSync();
+          for (final match in regex.allMatches(content)) {
+            names.add(match.group(1)!);
+          }
         }
-      }
-    } catch (_) {}
-  }
+      } catch (_) {}
+    }
+    return names;
+  });
 
   final List<AttachmentFile> result = [];
   try {

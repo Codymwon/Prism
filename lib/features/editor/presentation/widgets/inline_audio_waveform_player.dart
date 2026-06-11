@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -56,8 +57,11 @@ class _InlineAudioWaveformPlayerState
       final absPath = p.join(vaultPath, widget.filePath);
       final file = File(absPath);
       if (await file.exists()) {
-        final seed = await AudioWaveformPeakGenerator.generateSeedFromFile(file);
-        final peaks = AudioWaveformPeakGenerator.generatePeaks(seed: seed, count: 45);
+        final peaks = await Isolate.run(() async {
+          final f = File(absPath);
+          final seed = await AudioWaveformPeakGenerator.generateSeedFromFile(f);
+          return AudioWaveformPeakGenerator.generatePeaks(seed: seed, count: 45);
+        });
         if (mounted) {
           setState(() {
             _absolutePath = absPath;

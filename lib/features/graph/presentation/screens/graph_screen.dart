@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'dart:typed_data';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../data/graph_node_repository.dart';
 import '../providers/graph_providers.dart';
@@ -225,6 +227,11 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   String? _selectedNodeId;
   bool _playedEntranceAnimation = false;
 
+  final Map<String, int> _nodeIndices = {};
+  Float64List? _flatPositions;
+  Float64List? _flatVelocities;
+  Float64List? _flatForces;
+
   // Cache to store pre-built static subtrees of node widgets
   final Map<String, Widget> _nodeContentCache = {};
 
@@ -261,7 +268,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     bool needsWake = false;
 
     // If nodes changed, initialize positions for any new ones
-    if (oldWidget.nodes != widget.nodes) {
+    if (!const ListEquality().equals(oldWidget.nodes, widget.nodes)) {
       _initializePositions(widget.nodes);
       _nodeContentCache.clear();
       needsWake = true;
@@ -349,6 +356,16 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     _positions.removeWhere((key, _) => !validIds.contains(key));
     _velocities.removeWhere((key, _) => !validIds.contains(key));
 
+    _nodeIndices.clear();
+    for (int i = 0; i < nodes.length; i++) {
+      _nodeIndices[nodes[i].id] = i;
+    }
+
+    final n = nodes.length;
+    _flatPositions = Float64List(2 * n);
+    _flatVelocities = Float64List(2 * n);
+    _flatForces = Float64List(2 * n);
+
     for (final gn in nodes) {
       if (gn.isPinned &&
           gn.pinnedX != null &&
@@ -376,141 +393,192 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     const centerX = 2500.0;
     const centerY = 2500.0;
 
-    // 1. Initialize forces vector
-    final Map<String, Offset> forces = {
-      for (final id in _positions.keys) id: Offset.zero
-    };
+    final n = widget.nodes.length;
+    // Ensure lists are allocated and correct size
+    if (_flatPositions == null || _flatPositions!.length != 2 * n) {
+      _flatPositions = Float64List(2 * n);
+      _flatVelocities = Float64List(2 * n);
+      _flatForces = Float64List(2 * n);
+      _nodeIndices.clear();
+      for (int i = 0; i < n; i++) {
+        _nodeIndices[widget.nodes[i].id] = i;
+      }
+    }
+
+    // Copy positions and velocities from Map to flat array
+    for (int i = 0; i < n; i++) {
+      final id = widget.nodes[i].id;
+      final pos = _positions[id] ?? const Offset(centerX, centerY);
+      _flatPositions![2 * i] = pos.dx;
+      _flatPositions![2 * i + 1] = pos.dy;
+
+      final vel = _velocities[id] ?? Offset.zero;
+      _flatVelocities![2 * i] = vel.dx;
+      _flatVelocities![2 * i + 1] = vel.dy;
+    }
+
+    // 1. Initialize forces to zero
+    _flatForces!.fillRange(0, 2 * n, 0.0);
 
     // 2. Coulomb Repulsion: push all nodes apart (n^2 complexity but fast for small sets)
-    final keys = _positions.keys.toList();
-    for (int i = 0; i < keys.length; i++) {
-      final idA = keys[i];
-      final posA = _positions[idA];
-      if (posA == null) continue;
-      for (int j = i + 1; j < keys.length; j++) {
-        final idB = keys[j];
-        final posB = _positions[idB];
-        if (posB == null) continue;
+    final double repulsionRateVal = widget.repulsionRate;
+    for (int i = 0; i < n; i++) {
+      final double pxA = _flatPositions![2 * i];
+      final double pyA = _flatPositions![2 * i + 1];
+      for (int j = i + 1; j < n; j++) {
+        final double pxB = _flatPositions![2 * j];
+        final double pyB = _flatPositions![2 * j + 1];
 
-        var delta = posA - posB;
-        if (delta == Offset.zero) {
+        double dx = pxA - pxB;
+        double dy = pyA - pyB;
+        double distSq = dx * dx + dy * dy;
+        if (distSq == 0.0) {
           final rand = Random();
           final angle = rand.nextDouble() * 2 * pi;
-          delta = Offset(cos(angle) * 0.1, sin(angle) * 0.1);
+          dx = cos(angle) * 0.1;
+          dy = sin(angle) * 0.1;
+          distSq = 0.01;
         }
-        final distance = delta.distance + 0.1; // division by zero safety
+        final double distance = sqrt(distSq);
 
         if (distance < 500.0) { // Repelling cutoff range
           // Coulomb Force = (ChargeStrength) / dist^2
-          final forceMagnitude = (widget.repulsionRate * 12000.0) / (distance * distance);
-          final forceVector = delta / distance * forceMagnitude;
+          final double forceMagnitude = (repulsionRateVal * 12000.0) / (distSq + 0.1);
+          final double fX = (dx / distance) * forceMagnitude;
+          final double fY = (dy / distance) * forceMagnitude;
 
-          forces[idA] = forces[idA]! + forceVector;
-          forces[idB] = forces[idB]! - forceVector;
+          _flatForces![2 * i] += fX;
+          _flatForces![2 * i + 1] += fY;
+          _flatForces![2 * j] -= fX;
+          _flatForces![2 * j + 1] -= fY;
         }
       }
     }
 
     // 3. Hooke Spring Attraction: pull connected nodes together
+    final double attractionRateVal = widget.attractionRate;
+    final double restLength = 120.0 * (1.0 / (widget.repulsionPercentage + 0.1));
     for (final edge in widget.edges) {
-      final idA = edge.sourceId;
-      final idB = edge.targetId;
+      final idxA = _nodeIndices[edge.sourceId];
+      final idxB = _nodeIndices[edge.targetId];
 
-      final posA = _positions[idA];
-      final posB = _positions[idB];
+      if (idxA != null && idxB != null) {
+        final double pxA = _flatPositions![2 * idxA];
+        final double pyA = _flatPositions![2 * idxA + 1];
+        final double pxB = _flatPositions![2 * idxB];
+        final double pyB = _flatPositions![2 * idxB + 1];
 
-      if (posA != null && posB != null) {
-        final delta = posB - posA;
-        final distance = delta.distance + 0.1;
+        final double dx = pxB - pxA;
+        final double dy = pyB - pyA;
+        final double distance = sqrt(dx * dx + dy * dy) + 0.1;
 
-        // Dynamic Rest Length based on slider
-        final restLength = 120.0 * (1.0 / (widget.repulsionPercentage + 0.1));
-        final displacement = distance - restLength;
-        
+        final double displacement = distance - restLength;
+
         // Elastic Force = stiffness * displacement
-        final forceMagnitude = widget.attractionRate * 0.12 * displacement;
-        final forceVector = delta / distance * forceMagnitude;
+        final double forceMagnitude = attractionRateVal * 0.12 * displacement;
+        final double fX = (dx / distance) * forceMagnitude;
+        final double fY = (dy / distance) * forceMagnitude;
 
-        forces[idA] = forces[idA]! + forceVector;
-        forces[idB] = forces[idB]! - forceVector;
+        _flatForces![2 * idxA] += fX;
+        _flatForces![2 * idxA + 1] += fY;
+        _flatForces![2 * idxB] -= fX;
+        _flatForces![2 * idxB + 1] -= fY;
       }
     }
 
     // 4. Center Gravity Force: keep nodes centered in viewport
-    const gravityStrength = 0.008;
-    for (final id in _positions.keys) {
-      final pos = _positions[id]!;
-      final delta = Offset(centerX, centerY) - pos;
-      forces[id] = forces[id]! + delta * gravityStrength;
+    const double gravityStrength = 0.008;
+    for (int i = 0; i < n; i++) {
+      final double px = _flatPositions![2 * i];
+      final double py = _flatPositions![2 * i + 1];
+      _flatForces![2 * i] += (centerX - px) * gravityStrength;
+      _flatForces![2 * i + 1] += (centerY - py) * gravityStrength;
     }
 
     // 5. Update Velocities & Coordinate Positions
     double maxVelocity = 0.0;
     final pinnedNodeIds = widget.nodes.where((n) => n.isPinned).map((n) => n.id).toSet();
 
-    for (final id in _positions.keys) {
+    for (int i = 0; i < n; i++) {
+      final id = widget.nodes[i].id;
       if (id == _draggedNodeId) continue; // Dragged node stays pinned under user's finger!
 
       if (pinnedNodeIds.contains(id)) {
-        _velocities[id] = Offset.zero;
+        _flatVelocities![2 * i] = 0.0;
+        _flatVelocities![2 * i + 1] = 0.0;
         continue;
       }
 
-      final force = forces[id]!;
-      final vel = _velocities[id]!;
+      final double fx = _flatForces![2 * i];
+      final double fy = _flatForces![2 * i + 1];
+      final double vx = _flatVelocities![2 * i];
+      final double vy = _flatVelocities![2 * i + 1];
 
       // Sanity check force and velocity
-      if (!force.dx.isFinite || !force.dy.isFinite ||
-          !vel.dx.isFinite || !vel.dy.isFinite) {
-        _velocities[id] = Offset.zero;
-        _positions[id] = const Offset(centerX, centerY);
+      if (!fx.isFinite || !fy.isFinite || !vx.isFinite || !vy.isFinite) {
+        _flatVelocities![2 * i] = 0.0;
+        _flatVelocities![2 * i + 1] = 0.0;
+        _flatPositions![2 * i] = centerX;
+        _flatPositions![2 * i + 1] = centerY;
         continue;
       }
 
       // Euler Integration: velocity = (velocity + force) * damping
-      var newVel = (vel + force) * widget.damping;
+      double newVx = (vx + fx) * widget.damping;
+      double newVy = (vy + fy) * widget.damping;
 
       // Clamp speed to prevent numeric explosion (cosmic safety limit)
-      const maxSpeed = 16.0;
-      if (newVel.distance > maxSpeed) {
-        newVel = newVel / newVel.distance * maxSpeed;
+      final double speed = sqrt(newVx * newVx + newVy * newVy);
+      const double maxSpeed = 16.0;
+      if (speed > maxSpeed) {
+        newVx = (newVx / speed) * maxSpeed;
+        newVy = (newVy / speed) * maxSpeed;
       }
 
-      var newPos = _positions[id]! + newVel;
+      double finalX = _flatPositions![2 * i] + newVx;
+      double finalY = _flatPositions![2 * i + 1] + newVy;
 
       // Validate positions are finite
-      if (!newPos.dx.isFinite || !newPos.dy.isFinite) {
-        newPos = const Offset(centerX, centerY);
-        newVel = Offset.zero;
+      if (!finalX.isFinite || !finalY.isFinite) {
+        finalX = centerX;
+        finalY = centerY;
+        newVx = 0.0;
+        newVy = 0.0;
       }
 
       // Clamp to canvas boundaries and zero matching velocity components
-      double finalX = newPos.dx;
-      double finalY = newPos.dy;
-
       if (finalX < 50.0) {
         finalX = 50.0;
-        newVel = Offset(0.0, newVel.dy);
+        newVx = 0.0;
       } else if (finalX > 4950.0) {
         finalX = 4950.0;
-        newVel = Offset(0.0, newVel.dy);
+        newVx = 0.0;
       }
 
       if (finalY < 40.0) {
         finalY = 40.0;
-        newVel = Offset(newVel.dx, 0.0);
+        newVy = 0.0;
       } else if (finalY > 4960.0) {
         finalY = 4960.0;
-        newVel = Offset(newVel.dx, 0.0);
+        newVy = 0.0;
       }
 
-      _velocities[id] = newVel;
-      _positions[id] = Offset(finalX, finalY);
+      _flatVelocities![2 * i] = newVx;
+      _flatVelocities![2 * i + 1] = newVy;
+      _flatPositions![2 * i] = finalX;
+      _flatPositions![2 * i + 1] = finalY;
 
-      final speed = newVel.distance;
-      if (speed > maxVelocity) {
-        maxVelocity = speed;
+      final double currentSpeed = sqrt(newVx * newVx + newVy * newVy);
+      if (currentSpeed > maxVelocity) {
+        maxVelocity = currentSpeed;
       }
+    }
+
+    // Sync the flat array back to the position coordinate map once at the end of the tick
+    for (int i = 0; i < n; i++) {
+      final id = widget.nodes[i].id;
+      _positions[id] = Offset(_flatPositions![2 * i], _flatPositions![2 * i + 1]);
+      _velocities[id] = Offset(_flatVelocities![2 * i], _flatVelocities![2 * i + 1]);
     }
 
     _repaintNotifier.notify();

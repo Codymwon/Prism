@@ -531,7 +531,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             icon: Icons.check_rounded,
             onTap: (!_isCompleting && (_selectedVaultType == 'sandbox' || locationSelected))
                 ? _completeOnboarding
-                : () {},
+                : null,
           ).animate().fadeIn(delay: 350.ms),
 
           if (_selectedVaultType == 'custom' && !locationSelected) ...[

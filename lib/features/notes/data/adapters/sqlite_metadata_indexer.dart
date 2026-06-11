@@ -73,8 +73,8 @@ class SqliteMetadataIndexer implements MetadataIndexer {
       final targetMaps = await executor.query(
         'notes',
         columns: ['id'],
-        where: 'LOWER(title) = ?',
-        whereArgs: [target.toLowerCase()],
+        where: 'title = ? COLLATE NOCASE',
+        whereArgs: [target],
       );
 
       String targetId;

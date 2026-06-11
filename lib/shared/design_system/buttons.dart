@@ -6,7 +6,7 @@ import 'spacing.dart';
 
 class DesignPrimaryButton extends StatelessWidget {
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final IconData? icon;
   final Color? backgroundColor;
   final Color? foregroundColor;
@@ -16,7 +16,7 @@ class DesignPrimaryButton extends StatelessWidget {
   const DesignPrimaryButton({
     super.key,
     required this.label,
-    required this.onTap,
+    this.onTap,
     this.icon,
     this.backgroundColor,
     this.foregroundColor,
@@ -26,47 +26,63 @@ class DesignPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = backgroundColor ?? DesignColors.primary(context);
-    final fg = foregroundColor ?? Colors.white;
+    final isEnabled = onTap != null;
+    final bg = isEnabled
+        ? (backgroundColor ?? DesignColors.primary(context))
+        : Colors.grey;
+    final fg = isEnabled
+        ? (foregroundColor ?? Colors.white)
+        : Colors.white.withValues(alpha: 0.7);
+
+    Widget buttonContent = Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+        boxShadow: isEnabled
+            ? [
+                BoxShadow(
+                  color: bg.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: height * 0.36, color: fg),
+              SizedBox(width: height * 0.16),
+            ],
+            Text(
+              label,
+              style: DesignTypography.heading(
+                context,
+                fontSize: fontSize ?? (height > 40 ? 15 : 13),
+                fontWeight: FontWeight.w700,
+                color: fg,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!isEnabled) {
+      buttonContent = Opacity(
+        opacity: 0.6,
+        child: buttonContent,
+      );
+    }
 
     return TactileWrapper(
       onTap: onTap,
       style: TactileFeedbackStyle.highImpact,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-          boxShadow: [
-            BoxShadow(
-              color: bg.withValues(alpha: 0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: height * 0.36, color: fg),
-                SizedBox(width: height * 0.16),
-              ],
-              Text(
-                label,
-                style: DesignTypography.heading(
-                  context,
-                  fontSize: fontSize ?? (height > 40 ? 15 : 13),
-                  fontWeight: FontWeight.w700,
-                  color: fg,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: buttonContent,
     );
   }
 }

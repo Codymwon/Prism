@@ -209,7 +209,6 @@ $_conflictContent
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final fontFamily = ref.watch(fontFamilyProvider);
     final fontSize = ref.watch(fontSizeProvider);

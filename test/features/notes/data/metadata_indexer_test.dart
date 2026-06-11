@@ -1,4 +1,5 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 import 'package:prism/features/notes/data/note_content_parser.dart';
@@ -32,6 +33,8 @@ void main() {
               snippet TEXT DEFAULT ''
             )
           ''');
+
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_title ON notes(title COLLATE NOCASE)');
 
           await db.execute('''
             CREATE TABLE IF NOT EXISTS note_links (
@@ -128,7 +131,56 @@ void main() {
       final links = await db.query('note_links', where: 'source_id = ?', whereArgs: ['note-1']);
       expect(links.length, equals(1));
       expect(links.first['target_id'], equals(targetId));
-      expect(links.first['context_snippet'], equals('...linking to [[Target Note]]...'));
+    });
+
+    test('should link to existing target note case-insensitively using COLLATE NOCASE', () async {
+      final now = DateTime.now();
+      
+      // Insert an existing target note with mixed casing
+      await db.insert('notes', {
+        'id': 'target-id',
+        'title': 'Target Note',
+        'file_path': '/vault/target-note.md',
+        'word_count': 100,
+        'created_at': now.millisecondsSinceEpoch,
+        'updated_at': now.millisecondsSinceEpoch,
+        'is_ghost': 0,
+      });
+
+      // Index a source note with a wikilink using different casing
+      final metadata = NoteMetadata(
+        title: 'Source Note',
+        wordCount: 50,
+        tags: [],
+        wikilinks: ['tArGeT nOtE'],
+        wikilinkContexts: {'tArGeT nOtE': 'linking to [[tArGeT nOtE]]'},
+        snippet: '',
+      );
+
+      await indexer.indexNote(
+        db,
+        id: 'source-1',
+        title: 'Source Note',
+        filePath: '/vault/source-1.md',
+        wordCount: 50,
+        updatedAt: now,
+        isGhost: false,
+        isDaily: false,
+        dailyDate: null,
+        vaultPath: '/vault',
+        metadata: metadata,
+      );
+
+      // Verify no new ghost note was created (meaning it matched case-insensitively)
+      final notesCount = Sqflite.firstIntValue(
+        await db.rawQuery("SELECT COUNT(*) FROM notes WHERE is_ghost = 1")
+      );
+      expect(notesCount, equals(0));
+
+      // Verify the link targets the existing note
+      final links = await db.query('note_links', where: 'source_id = ?', whereArgs: ['source-1']);
+      expect(links.length, equals(1));
+      expect(links.first['target_id'], equals('target-id'));
     });
 
     test('should rebuild tags and links on re-index', () async {

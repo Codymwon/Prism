@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 import 'package:prism/features/graph/presentation/screens/graph_screen.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/graph/presentation/widgets/graph_node_widget.dart';
@@ -232,7 +233,7 @@ void main() {
     final transformationController = TransformationController();
     
     // Zoom in to 2.0x scale
-    transformationController.value = Matrix4.identity()..scale(2.0);
+    transformationController.value = Matrix4.identity()..scaleByVector3(Vector3(2.0, 2.0, 2.0));
 
     await tester.pumpWidget(
       ProviderScope(
@@ -259,8 +260,8 @@ void main() {
     // Now manually zoom to 2.0x scale and translate so the center (1250, 1250) is at screen (400, 300)
     // S = 2.0 * C + T => T = (400, 300) - 2.0 * (1250, 1250) = (-2100, -2200)
     transformationController.value = Matrix4.identity()
-      ..translate(-2100.0, -2200.0)
-      ..scale(2.0);
+      ..translateByVector3(Vector3(-2100.0, -2200.0, 0.0))
+      ..scaleByVector3(Vector3(2.0, 2.0, 2.0));
     await tester.pump();
 
     final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));

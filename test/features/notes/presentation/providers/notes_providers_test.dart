@@ -1,7 +1,8 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
+import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/utils/utils.dart';
 
@@ -189,5 +190,73 @@ void main() {
     // Should gracefully skip these invalid entries and count streak as 0, totalCount as 0
     expect(streakData.streak, equals(0));
     expect(streakData.totalCount, equals(0));
+  });
+
+  test('noteDetailsProvider caches data per noteId and invalidates correctly when version changes', () async {
+    // Create note_tags table needed for noteDetailsProvider
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS note_tags (
+        note_id TEXT NOT NULL,
+        tag TEXT NOT NULL,
+        PRIMARY KEY (note_id, tag)
+      )
+    ''');
+
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWith((ref) async => db),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // Insert initial note and tags
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.insert('notes', {
+      'id': 'note-abc',
+      'title': 'Test Note ABC',
+      'file_path': '/vault/abc.md',
+      'word_count': 50,
+      'created_at': now,
+      'updated_at': now,
+      'snippet': 'Initial snippet content',
+    });
+    await db.insert('note_tags', {
+      'note_id': 'note-abc',
+      'tag': 'first',
+    });
+
+    // Listen to the provider to keep it alive in cache
+    final sub = container.listen(noteDetailsProvider('note-abc'), (prev, next) {});
+
+    // Read provider first time
+    var details = await container.read(noteDetailsProvider('note-abc').future);
+    expect(details.snippet, equals('Initial snippet content'));
+    expect(details.tags, equals(['first']));
+
+    // Modify note in DB directly (simulation of update)
+    await db.update(
+      'notes',
+      {'snippet': 'Updated snippet content'},
+      where: 'id = ?',
+      whereArgs: ['note-abc'],
+    );
+    await db.insert('note_tags', {
+      'note_id': 'note-abc',
+      'tag': 'second',
+    });
+
+    // Reading again before bumping version should still return cached info (due to provider cache)
+    var detailsCached = await container.read(noteDetailsProvider('note-abc').future);
+    expect(detailsCached.snippet, equals('Initial snippet content'));
+
+    // Bump version to invalidate cache
+    container.read(notesVersionProvider.notifier).state++;
+
+    // Read provider again - should have updated snippet and tags
+    var detailsUpdated = await container.read(noteDetailsProvider('note-abc').future);
+    expect(detailsUpdated.snippet, equals('Updated snippet content'));
+    expect(detailsUpdated.tags, containsAll(['first', 'second']));
+
+    sub.close();
   });
 }

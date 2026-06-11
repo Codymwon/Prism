@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
@@ -60,15 +59,16 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
                   Icon(
                     Icons.link_rounded,
                     size: 15,
-                    color: colorScheme.primary,
+                    color: DesignColors.primary(context),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '${backlinks.length} backlink${backlinks.length == 1 ? '' : 's'}',
-                    style: GoogleFonts.inter(
+                    style: DesignTypography.heading(
+                      context,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: colorScheme.primary,
+                      color: DesignColors.primary(context),
                     ),
                   ),
                   const Spacer(),
@@ -134,14 +134,15 @@ class _BacklinkTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.article_outlined, size: 13, color: colorScheme.primary),
+                Icon(Icons.article_outlined, size: 13, color: DesignColors.primary(context)),
                 const SizedBox(width: 6),
                 Text(
                   backlink.sourceTitle,
-                  style: GoogleFonts.inter(
+                  style: DesignTypography.heading(
+                    context,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: colorScheme.primary,
+                    color: DesignColors.primary(context),
                   ),
                 ),
               ],
@@ -150,12 +151,12 @@ class _BacklinkTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 backlink.contextSnippet!,
-                style: GoogleFonts.inter(
+                style: DesignTypography.body(
+                  context,
                   fontSize: 12,
                   height: 1.5,
                   color: DesignColors.textSecondary(context),
-                  fontStyle: FontStyle.italic,
-                ),
+                ).copyWith(fontStyle: FontStyle.italic),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

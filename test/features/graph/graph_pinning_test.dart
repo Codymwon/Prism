@@ -296,6 +296,76 @@ void main() {
     });
   });
 
+  group('GraphNodeRepository Link Count and Query Plan Tests', () {
+    test('getGraphData correctly calculates link counts', () async {
+      final repository = container.read(noteRepositoryProvider);
+      final graphNodeRepository = container.read(graphNodeRepositoryProvider);
+
+      // Add target_id index for query plan verification
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_note_links_target ON note_links(target_id)');
+
+      // Create three notes
+      final noteA = await repository.createNote(
+        title: 'Note A',
+        initialContent: 'Link to [[Note B]]',
+      );
+      final noteB = await repository.createNote(
+        title: 'Note B',
+        initialContent: 'Link to [[Note C]]',
+      );
+      final noteC = await repository.createNote(
+        title: 'Note C',
+        initialContent: 'No links',
+      );
+
+      // Add links between A->B and B->C
+      final time = DateTime.now().millisecondsSinceEpoch;
+      await db.insert('note_links', {
+        'source_id': noteA.id,
+        'target_id': noteB.id,
+        'created_at': time,
+      });
+      await db.insert('note_links', {
+        'source_id': noteB.id,
+        'target_id': noteC.id,
+        'created_at': time,
+      });
+
+      // Get graph data
+      final data = await graphNodeRepository.getGraphData();
+      final nodes = data.nodes;
+
+      final nodeANode = nodes.firstWhere((n) => n.id == noteA.id);
+      final nodeBNode = nodes.firstWhere((n) => n.id == noteB.id);
+      final nodeCNode = nodes.firstWhere((n) => n.id == noteC.id);
+
+      // Verify link counts:
+      // Note A: 1 link (outgoing: A->B)
+      // Note B: 2 links (incoming: A->B, outgoing: B->C)
+      // Note C: 1 link (incoming: B->C)
+      expect(nodeANode.linkCount, equals(1));
+      expect(nodeBNode.linkCount, equals(2));
+      expect(nodeCNode.linkCount, equals(1));
+
+      // Verify query plan uses indexes
+      final queryPlan = await db.rawQuery('''
+        EXPLAIN QUERY PLAN
+        SELECT n.id,
+          (SELECT COUNT(*) FROM (
+            SELECT 1 FROM note_links WHERE source_id = n.id
+            UNION ALL
+            SELECT 1 FROM note_links WHERE target_id = n.id
+          )) as link_count
+        FROM notes n
+      ''');
+      final planStr = queryPlan.toString();
+      // Verify that query plan indicates index usage and no table scan on note_links
+      expect(planStr, contains('idx_note_links_target'));
+      expect(planStr, contains('sqlite_autoindex_note_links_1'));
+      expect(planStr, isNot(contains('SCAN note_links')));
+    });
+  });
+
   group('Graph Dragging and Pinning Behaviors (dragToPin enabled vs disabled)', () {
     testWidgets('With dragToPin ENABLED: dragging normal note calls pinNode', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(2500.0, 2500.0);
