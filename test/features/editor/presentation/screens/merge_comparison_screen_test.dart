@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -494,4 +494,79 @@ This is conflicted content.
     // Verify snackbar is displayed
     expect(find.text('Notes merged with Git conflict markers. Please resolve manually.'), findsOneWidget);
   });
+
+  testWidgets('MergeComparisonScreen renders hashtags in theme primary color', (WidgetTester tester) async {
+    final originalNote = Note(
+      id: 'original-id',
+      title: 'Original Title',
+      filePath: originalFile.path,
+      wordCount: 5,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final conflictNote = Note(
+      id: 'conflict-id',
+      title: 'Conflict Title',
+      filePath: conflictFile.path,
+      wordCount: 5,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      isConflicted: true,
+      originalNoteId: 'original-id',
+    );
+
+    final mockRepo = MockNoteRepository(
+      notes: {
+        'original-id': originalNote,
+        'conflict-id': conflictNote,
+      },
+      noteContents: {},
+    );
+
+    final router = GoRouter(
+      initialLocation: '/compare',
+      routes: [
+        GoRoute(
+          path: '/compare',
+          builder: (context, state) => const MergeComparisonScreen(noteId: 'conflict-id'),
+        ),
+      ],
+    );
+
+    await tester.runAsync(() async {
+      // Write the contents containing hashtags directly to the files since the screen reads files from disk
+      await originalFile.writeAsString('# Original Title\n\nOriginal content with #tagone.');
+      await conflictFile.writeAsString('# Conflict Title\n\nConflicted content with #tagtwo.');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            noteRepositoryProvider.overrideWithValue(mockRepo),
+            noteByIdProvider('conflict-id').overrideWith((ref) => conflictNote),
+            noteByIdProvider('original-id').overrideWith((ref) => originalNote),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await Future.delayed(const Duration(seconds: 1));
+    });
+
+
+    await tester.pump();
+
+    // Verify #tagone is rendered in Original Note tab
+    final tag1Finder = find.text('#tagone');
+    expect(tag1Finder, findsOneWidget);
+
+    final tag1Text = tester.widget<Text>(tag1Finder);
+    expect(tag1Text.style?.color, isNotNull);
+
+    final BuildContext context = tester.element(find.byType(MergeComparisonScreen));
+    final expectedColor = Theme.of(context).colorScheme.primary;
+    expect(tag1Text.style?.color, equals(expectedColor));
+  });
 }
+

@@ -282,7 +282,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           isDark, colorScheme, fontFamily, sizeVal, paddingVal, editorState),
                 ),
                 // Backlinks panel
-                BacklinksPanel(noteId: widget.noteId),
+                if (MediaQuery.of(context).viewInsets.bottom == 0)
+                  BacklinksPanel(noteId: widget.noteId),
               ],
             ),
 
@@ -458,9 +459,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   Expanded(
                     child: MarkdownBody(
                       data: '# ${section.headingText}',
-                      inlineSyntaxes: [HighlightSyntax()],
+                      inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
                       builders: {
                         'mark': HighlightElementBuilder(context),
+                        'hashtag': HashtagElementBuilder(context),
                       },
                       styleSheet: styleSheet,
                       onTapLink: (text, href, title) async {
@@ -499,9 +501,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           else
                             MarkdownBody(
                               data: segment.text!,
-                              inlineSyntaxes: [HighlightSyntax()],
+                              softLineBreak: true,
+                              inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
                               builders: {
                                 'mark': HighlightElementBuilder(context),
+                                'hashtag': HashtagElementBuilder(context),
                               },
                               imageBuilder: (uri, title, alt) {
                                 return buildMarkdownImage(

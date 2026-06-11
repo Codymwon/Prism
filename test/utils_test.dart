@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/core/utils/utils.dart';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   group('Core Note Utilities Test Suite', () {
@@ -171,5 +174,48 @@ void main() {
       });
     });
 
+    group('seedWelcomeNotes', () {
+      late Directory tempDir;
+
+      setUp(() async {
+        tempDir = await Directory.systemTemp.createTemp('prism_test_vault');
+        SharedPreferences.setMockInitialValues({});
+      });
+
+      tearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+
+      test('should seed welcome notes on first launch and set welcomeNotesSeeded to true', () async {
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getBool('welcomeNotesSeeded'), isNull);
+
+        await seedWelcomeNotes(tempDir.path);
+
+        final welcomeFile = File(p.join(tempDir.path, 'Welcome to Prism.md'));
+        final guideFile = File(p.join(tempDir.path, 'Productivity Tools Guide.md'));
+
+        expect(await welcomeFile.exists(), isTrue);
+        expect(await guideFile.exists(), isTrue);
+        expect(prefs.getBool('welcomeNotesSeeded'), isTrue);
+      });
+
+      test('should not seed welcome notes again if welcomeNotesSeeded is true', () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('welcomeNotesSeeded', true);
+
+        await seedWelcomeNotes(tempDir.path);
+
+        final welcomeFile = File(p.join(tempDir.path, 'Welcome to Prism.md'));
+        final guideFile = File(p.join(tempDir.path, 'Productivity Tools Guide.md'));
+
+        expect(await welcomeFile.exists(), isFalse);
+        expect(await guideFile.exists(), isFalse);
+      });
+    });
+
   });
 }
+

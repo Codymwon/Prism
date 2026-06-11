@@ -137,19 +137,16 @@ class SettingsScreen extends ConsumerWidget {
 
                   // ── Sync ────────────────────────────────────────────────
                   const SettingsSectionHeader(title: 'Sync'),
-                  const ProGateTile(
-                    icon: Icons.cloud_upload_outlined,
-                    title: 'Google Drive Sync',
-                    subtitle: 'Sync your vault to Google Drive',
+                  SettingsTile(
+                    icon: Icons.sync_rounded,
+                    title: 'Backup & Sync',
+                    subtitle: 'Google Drive sync, vault export, and more',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/settings/backup-and-sync'),
                   ),
 
                   // ── Data ─────────────────────────────────────────────────
                   const SettingsSectionHeader(title: 'Data'),
-                  const ProGateTile(
-                    icon: Icons.file_download_outlined,
-                    title: 'Export vault',
-                    subtitle: 'Download all notes as ZIP or PDF',
-                  ),
                   SettingsTile(
                     icon: Icons.folder_open_outlined,
                     title: 'Base Vaults Location',
@@ -174,12 +171,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy policy',
                     subtitle: 'All data stays on your device',
-                    trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Standard Offline Privacy: 100% of your notes remain securely on this physical device.')),
-                      );
-                    },
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/settings/privacy-policy'),
                   ),
                   const SizedBox(height: 80),
                 ],

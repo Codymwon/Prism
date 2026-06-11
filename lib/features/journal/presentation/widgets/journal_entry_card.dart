@@ -11,6 +11,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
+import '../../../editor/presentation/utils/editor_helpers.dart';
 
 class JournalEntryCard extends ConsumerWidget {
   final Note note;
@@ -307,6 +308,12 @@ class JournalEntryCard extends ConsumerWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         child: MarkdownBody(
                           data: bodyMarkdown,
+                          softLineBreak: true,
+                          inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                          builders: {
+                            'mark': HighlightElementBuilder(context),
+                            'hashtag': HashtagElementBuilder(context),
+                          },
                           styleSheet: MarkdownStyleSheet(
                             p: DesignTypography.body(
                               context,

@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -278,9 +278,11 @@ $_conflictContent
     final processedData = preprocessMarkdown(content);
     return Markdown(
       data: processedData,
-      inlineSyntaxes: [HighlightSyntax()],
+      softLineBreak: true,
+      inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
       builders: {
         'mark': HighlightElementBuilder(context),
+        'hashtag': HashtagElementBuilder(context),
       },
       onTapLink: (text, href, title) => handleWikilinkTap(
         href: href,

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/editor/presentation/widgets/formatting_toolbar.dart';
@@ -97,5 +97,209 @@ void main() {
 
     await tester.tap(attachImageFinder);
     expect(attachImageTriggered, isTrue);
+  });
+
+  testWidgets('Heading chooser does not crash and inserts prefix at cursor 0', (WidgetTester tester) async {
+    final controller = TextEditingController(text: 'Initial text');
+    controller.selection = const TextSelection.collapsed(offset: 0);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final headingBtnFinder = find.byTooltip('Heading (H1–H4)');
+    expect(headingBtnFinder, findsOneWidget);
+    await tester.tap(headingBtnFinder);
+    await tester.pumpAndSettle();
+
+    final h1Finder = find.text('Heading 1');
+    expect(h1Finder, findsOneWidget);
+    await tester.tap(h1Finder);
+    await tester.pumpAndSettle();
+
+    expect(controller.text, equals('# Initial text'));
+    expect(controller.selection.baseOffset, equals(14));
+  });
+
+  testWidgets('Bullet List button formats single line without extra newlines', (WidgetTester tester) async {
+    final controller = TextEditingController(text: 'Single line text');
+    controller.selection = const TextSelection.collapsed(offset: 0);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final listBtnFinder = find.byTooltip('Bullet List');
+    expect(listBtnFinder, findsOneWidget);
+    await tester.tap(listBtnFinder);
+    await tester.pumpAndSettle();
+
+    expect(controller.text, equals('- Single line text'));
+  });
+
+  testWidgets('Bullet List button formats multiple lines', (WidgetTester tester) async {
+    final controller = TextEditingController(text: 'line 1\nline 2\nline 3');
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 20);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final listBtnFinder = find.byTooltip('Bullet List');
+    expect(listBtnFinder, findsOneWidget);
+    await tester.tap(listBtnFinder);
+    await tester.pumpAndSettle();
+
+    expect(controller.text, equals('- line 1\n- line 2\n- line 3'));
+  });
+
+  testWidgets('Checklist button formats single and multiple lines', (WidgetTester tester) async {
+    final controller = TextEditingController(text: 'line 1\nline 2');
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 13);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final checklistBtnFinder = find.byTooltip('Checklist');
+    expect(checklistBtnFinder, findsOneWidget);
+    await tester.tap(checklistBtnFinder);
+    await tester.pumpAndSettle();
+
+    expect(controller.text, equals('- [ ] line 1\n- [ ] line 2'));
+  });
+
+  testWidgets('Blockquote button formats single and multiple lines', (WidgetTester tester) async {
+    final controller = TextEditingController(text: 'line 1\nline 2');
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 13);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final quoteBtnFinder = find.byTooltip('Blockquote');
+    expect(quoteBtnFinder, findsOneWidget);
+    await tester.tap(quoteBtnFinder);
+    await tester.pumpAndSettle();
+
+    expect(controller.text, equals('> line 1\n> line 2'));
+  });
+
+  testWidgets('Divider button inserts divider dynamically', (WidgetTester tester) async {
+    final controller = TextEditingController(text: 'Some text');
+    controller.selection = const TextSelection.collapsed(offset: 9);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final dividerBtnFinder = find.byTooltip('Divider');
+    expect(dividerBtnFinder, findsOneWidget);
+    await tester.tap(dividerBtnFinder);
+    await tester.pumpAndSettle();
+
+    expect(controller.text, equals('Some text\n---\n'));
   });
 }

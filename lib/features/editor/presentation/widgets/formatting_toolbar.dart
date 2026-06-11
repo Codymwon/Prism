@@ -32,7 +32,6 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
     final RenderBox? box = _headingKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
 
-    final Offset offset = box.localToGlobal(Offset.zero);
     final Size size = box.size;
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -43,6 +42,15 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
       ('H3', '### ', 'Heading 3'),
       ('H4', '#### ', 'Heading 4'),
     ];
+
+    final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        box.localToGlobal(const Offset(0, -178), ancestor: overlay),
+        box.localToGlobal(Offset(size.width, 0), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
 
     showMenu<String>(
       context: context,
@@ -56,12 +64,7 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
       ),
       elevation: 8,
       shadowColor: Colors.black26,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy - 178, // above the button
-        offset.dx + size.width,
-        offset.dy,
-      ),
+      position: position,
       items: headings.map((h) {
         final label = h.$1;
         final prefix = h.$2;
@@ -123,7 +126,7 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
     final cursor = selection.isValid ? selection.baseOffset : text.length;
 
     // Find start of current line
-    final lineStart = text.lastIndexOf('\n', cursor - 1) + 1;
+    final lineStart = cursor == 0 ? 0 : text.lastIndexOf('\n', cursor - 1) + 1;
     final lineEnd = text.indexOf('\n', cursor);
     final actualLineEnd = lineEnd == -1 ? text.length : lineEnd;
     final currentLine = text.substring(lineStart, actualLineEnd);
@@ -231,20 +234,20 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
                 context,
                 icon: Icons.format_list_bulleted_rounded,
                 tooltip: 'Bullet List',
-                onTap: () => insertFormatting(
+                onTap: () => toggleBlockStyle(
                   controller: widget.controller,
                   focusNode: widget.focusNode,
-                  prefix: '\n- ',
+                  prefix: '- ',
                 ),
               ),
               _buildFormattingButton(
                 context,
                 icon: Icons.checklist_rounded,
                 tooltip: 'Checklist',
-                onTap: () => insertFormatting(
+                onTap: () => toggleBlockStyle(
                   controller: widget.controller,
                   focusNode: widget.focusNode,
-                  prefix: '\n- [ ] ',
+                  prefix: '- [ ] ',
                 ),
               ),
               _buildFormattingButton(
@@ -262,10 +265,10 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
                 context,
                 icon: Icons.format_quote_rounded,
                 tooltip: 'Blockquote',
-                onTap: () => insertFormatting(
+                onTap: () => toggleBlockStyle(
                   controller: widget.controller,
                   focusNode: widget.focusNode,
-                  prefix: '\n> ',
+                  prefix: '> ',
                 ),
               ),
               _buildFormattingButton(
@@ -294,10 +297,9 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
                 context,
                 icon: Icons.horizontal_rule_rounded,
                 tooltip: 'Divider',
-                onTap: () => insertFormatting(
+                onTap: () => insertDivider(
                   controller: widget.controller,
                   focusNode: widget.focusNode,
-                  prefix: '\n---\n',
                 ),
               ),
               _buildFormattingButton(

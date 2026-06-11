@@ -43,11 +43,13 @@ final databaseProvider = FutureProvider<Database>((ref) async {
 void _triggerBackgroundSync(Database db, String vaultPath, Ref ref) {
   ref.read(noteIngestionServiceProvider).syncVault(vaultPath).then((_) {
     ref.read(notesVersionProvider.notifier).update((state) => state + 1);
+    ref.read(foldersVersionProvider.notifier).update((state) => state + 1);
     debugPrint('Background physical files sync completed for vault: $vaultPath');
   }).catchError((e) {
     debugPrint('Error during background files sync: $e');
   });
 }
+
 
 // ─── Centralized Data Version State Providers ──────────────────────────────────
 final notesVersionProvider = StateProvider<int>((ref) => 0);

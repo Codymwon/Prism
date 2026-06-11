@@ -215,9 +215,83 @@ void main() {
     await gesture2.up();
     await tester.pump();
 
-    // The position should be clamped to the maximum boundaries: X = 2450.0, Y = 2460.0
-    expect(state.positionsForTesting['normal-1']!.dx, equals(2450.0));
-    expect(state.positionsForTesting['normal-1']!.dy, equals(2460.0));
+    // The position should be clamped to the maximum boundaries: X = 4950.0, Y = 4960.0
+    expect(state.positionsForTesting['normal-1']!.dx, equals(4950.0));
+    expect(state.positionsForTesting['normal-1']!.dy, equals(4960.0));
+
+    // Clean up ticker
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Node dragging is scale-invariant under different zoom levels', (WidgetTester tester) async {
+    final nodes = [
+      const GraphNode(id: 'node-1', title: 'Test Node', linkCount: 1, isTemporal: false, isPinned: true),
+    ];
+    final edges = <GraphEdge>[];
+
+    final transformationController = TransformationController();
+    
+    // Zoom in to 2.0x scale
+    transformationController.value = Matrix4.identity()..scale(2.0);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: GraphSimulationCanvas(
+              nodes: nodes,
+              edges: edges,
+              repulsionRate: 1.0,
+              repulsionPercentage: 0.5,
+              attractionRate: 0.35,
+              damping: 0.85,
+              transformationController: transformationController,
+              disableEntranceAnimation: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Let the widget layout and _centerView execute first
+    await tester.pump();
+
+    // Now manually zoom to 2.0x scale and translate so the center (1250, 1250) is at screen (400, 300)
+    // S = 2.0 * C + T => T = (400, 300) - 2.0 * (1250, 1250) = (-2100, -2200)
+    transformationController.value = Matrix4.identity()
+      ..translate(-2100.0, -2200.0)
+      ..scale(2.0);
+    await tester.pump();
+
+    final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
+    state.setNodePositionForTesting('node-1', const Offset(1250.0, 1250.0));
+    await tester.pump();
+
+    // Calculate node center in canvas coordinates:
+    // dx = pos.dx - 50.0 (so center X is pos.dx)
+    // dy = pos.dy - dotSize/2 (so center Y is pos.dy - dotSize/2 + 40)
+    // node-1 has linkCount = 1, so dotSize = 8.0 + 1.5 = 9.5
+    const dotSize = 9.5;
+    const canvasCenter = Offset(1250.0, 1250.0 - (dotSize / 2) + 40.0);
+    final globalCenter = MatrixUtils.transformPoint(transformationController.value, canvasCenter);
+
+    final gesture = await tester.startGesture(globalCenter);
+    await tester.pump();
+    await gesture.moveBy(const Offset(30.0, 30.0)); // win arena (exceeds kTouchSlop of 18)
+    await tester.pump();
+    await gesture.moveBy(const Offset(100.0, 100.0)); // move 100 logical pixels on screen
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    final endPos = state.positionsForTesting['node-1']!;
+    
+    // At scale 2.0, moving finger by 100 logical pixels on screen should move the node
+    // by exactly 100 / 2.0 = 50 units in canvas coordinates.
+    // In the buggy implementation, it gets divided by scale twice, moving by 25 units.
+    // Expected end position: (1250 + 50, 1250 + 50) = (1300.0, 1300.0)
+    expect(endPos.dx, closeTo(1300.0, 0.01));
+    expect(endPos.dy, closeTo(1300.0, 0.01));
 
     // Clean up ticker
     await tester.pumpWidget(const SizedBox());

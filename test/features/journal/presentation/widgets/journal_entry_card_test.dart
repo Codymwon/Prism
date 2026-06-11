@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -275,4 +275,53 @@ No images here, just plain text.
     // If it overflows, it will throw an exception and fail.
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('JournalEntryCard renders hashtags in theme primary color', (WidgetTester tester) async {
+    final noteDate = DateTime(2026, 6, 3, 8, 30);
+    final dummyNote = Note(
+      id: 'test-note-id',
+      title: '2026-06-03',
+      filePath: 'test_path.md',
+      wordCount: 15,
+      createdAt: noteDate,
+      updatedAt: noteDate,
+      isDaily: true,
+      dailyDate: '2026-06-03',
+    );
+
+    const contentWithHashtag = '''# 2026-06-03
+Writing a entry with a #journaling hashtag.
+''';
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return JournalEntryCard(
+                  note: dummyNote,
+                  content: contentWithHashtag,
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    // Verify the hashtag #journaling is rendered as a styled widget
+    final hashtagFinder = find.text('#journaling');
+    expect(hashtagFinder, findsOneWidget);
+
+    final hashtagText = tester.widget<Text>(hashtagFinder);
+    expect(hashtagText.style?.color, isNotNull);
+
+    final BuildContext context = tester.element(find.byType(JournalEntryCard));
+    final expectedColor = Theme.of(context).colorScheme.primary;
+    expect(hashtagText.style?.color, equals(expectedColor));
+  });
 }
+

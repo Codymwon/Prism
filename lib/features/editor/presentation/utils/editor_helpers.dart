@@ -68,6 +68,117 @@ void insertFormatting({
   focusNode.requestFocus();
 }
 
+/// Helper to insert/toggle block formatting (e.g. lists, blockquotes) for all lines in the selection.
+void toggleBlockStyle({
+  required TextEditingController controller,
+  required FocusNode focusNode,
+  required String prefix,
+}) {
+  final text = controller.text;
+  final selection = controller.selection;
+
+  if (!selection.isValid) {
+    final cursor = text.length;
+    final lineStart = cursor == 0 ? 0 : text.lastIndexOf('\n', cursor - 1) + 1;
+    final currentLine = text.substring(lineStart);
+    
+    final String newLine;
+    final int diff;
+    if (currentLine.startsWith(prefix)) {
+      newLine = currentLine.substring(prefix.length);
+      diff = -prefix.length;
+    } else {
+      newLine = '$prefix$currentLine';
+      diff = prefix.length;
+    }
+    
+    final newText = text.replaceRange(lineStart, text.length, newLine);
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: (cursor + diff).clamp(0, newText.length)),
+    );
+    focusNode.requestFocus();
+    return;
+  }
+
+  final start = selection.start;
+  final end = selection.end;
+
+  final startLineOffset = start == 0 ? 0 : text.lastIndexOf('\n', start - 1) + 1;
+  final endLineOffset = text.indexOf('\n', end);
+  final actualEndLineOffset = endLineOffset == -1 ? text.length : endLineOffset;
+
+  final selectedLinesText = text.substring(startLineOffset, actualEndLineOffset);
+  final lines = selectedLinesText.split('\n');
+
+  final allHavePrefix = lines.every((line) => line.startsWith(prefix));
+  final updatedLines = lines.map((line) {
+    if (allHavePrefix) {
+      return line.substring(prefix.length);
+    } else {
+      if (line.startsWith(prefix)) {
+        return line;
+      } else {
+        return '$prefix$line';
+      }
+    }
+  }).toList();
+
+  final newSelectedLinesText = updatedLines.join('\n');
+  final newText = text.replaceRange(startLineOffset, actualEndLineOffset, newSelectedLinesText);
+
+  final difference = newSelectedLinesText.length - selectedLinesText.length;
+  if (start == end) {
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: (start + difference).clamp(0, newText.length),
+      ),
+    );
+  } else {
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection(
+        baseOffset: startLineOffset,
+        extentOffset: actualEndLineOffset + difference,
+      ),
+    );
+  }
+  focusNode.requestFocus();
+}
+
+/// Helper to insert a horizontal rule (divider) dynamically on its own line.
+void insertDivider({
+  required TextEditingController controller,
+  required FocusNode focusNode,
+}) {
+  final text = controller.text;
+  final selection = controller.selection;
+  final cursor = selection.isValid ? selection.baseOffset : text.length;
+
+  // Find start of current line
+  final lineStart = cursor == 0 ? 0 : text.lastIndexOf('\n', cursor - 1) + 1;
+  final lineEnd = text.indexOf('\n', cursor);
+  final actualLineEnd = lineEnd == -1 ? text.length : lineEnd;
+  final currentLine = text.substring(lineStart, actualLineEnd);
+
+  // Determine prefix: if current line is not empty, insert a newline first
+  final String prefix = currentLine.trim().isEmpty ? '' : '\n';
+  // Determine suffix: always insert a newline after the horizontal rule to keep markdown valid
+  final String dividerText = '${prefix}---';
+  final String suffix = '\n';
+
+  final start = selection.isValid ? selection.start : text.length;
+  final end = selection.isValid ? selection.end : text.length;
+
+  final newText = text.replaceRange(start, end, '$dividerText$suffix');
+  controller.value = TextEditingValue(
+    text: newText,
+    selection: TextSelection.collapsed(offset: (start + dividerText.length).clamp(0, newText.length)),
+  );
+  focusNode.requestFocus();
+}
+
 /// Helper to resolve template variables inside a macro and insert the resolved text.
 void insertMacro({
   required TextEditingController controller,
@@ -122,6 +233,45 @@ class HighlightElementBuilder extends MarkdownElementBuilder {
           color: DesignColors.text(context),
           fontWeight: preferredStyle?.fontWeight,
           fontStyle: preferredStyle?.fontStyle,
+        ),
+      ),
+    );
+  }
+}
+
+/// Custom Inline Markdown Syntax for Hashtags (#tag)
+class HashtagSyntax extends md.InlineSyntax {
+  HashtagSyntax() : super(r'(?<!\w)#([a-zA-Z][a-zA-Z0-9_]*)');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    parser.addNode(md.Element.text('hashtag', match.group(0)!));
+    return true;
+  }
+}
+
+/// Custom Element Builder to render the custom 'hashtag' tag
+class HashtagElementBuilder extends MarkdownElementBuilder {
+  final BuildContext context;
+  HashtagElementBuilder(this.context);
+
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final primary = DesignColors.primary(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        element.textContent,
+        style: DesignTypography.metadata(
+          context,
+          fontSize: (preferredStyle?.fontSize ?? 12) * 0.85,
+          fontWeight: FontWeight.bold,
+          color: primary,
         ),
       ),
     );

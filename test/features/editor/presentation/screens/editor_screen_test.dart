@@ -1,12 +1,16 @@
-﻿import 'dart:io';
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/editor/presentation/screens/editor_screen.dart';
+import 'package:prism/features/editor/presentation/widgets/backlinks_panel.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/core/utils/utils.dart';
@@ -42,6 +46,49 @@ void main() {
   late File imageFile;
 
   setUp(() async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+
+    // Intercept asset loading to load google_fonts from the local directory
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(
+      'flutter/assets',
+      (ByteData? message) async {
+        if (message == null) return null;
+        final key = utf8.decode(message.buffer.asUint8List());
+        if (key == 'AssetManifest.json') {
+          final manifest = {
+            'google_fonts/Inter-Bold.ttf': ['google_fonts/Inter-Bold.ttf'],
+            'google_fonts/Inter-Medium.ttf': ['google_fonts/Inter-Medium.ttf'],
+            'google_fonts/Inter-Regular.ttf': ['google_fonts/Inter-Regular.ttf'],
+            'google_fonts/Inter-SemiBold.ttf': ['google_fonts/Inter-SemiBold.ttf'],
+            'google_fonts/RobotoMono-Regular.ttf': ['google_fonts/RobotoMono-Regular.ttf'],
+          };
+          final jsonStr = json.encode(manifest);
+          final bytes = utf8.encode(jsonStr);
+          return ByteData.view(Uint8List.fromList(bytes).buffer);
+        }
+        if (key == 'AssetManifest.bin') {
+          final manifest = {
+            'google_fonts/Inter-Bold.ttf': ['google_fonts/Inter-Bold.ttf'],
+            'google_fonts/Inter-Medium.ttf': ['google_fonts/Inter-Medium.ttf'],
+            'google_fonts/Inter-Regular.ttf': ['google_fonts/Inter-Regular.ttf'],
+            'google_fonts/Inter-SemiBold.ttf': ['google_fonts/Inter-SemiBold.ttf'],
+            'google_fonts/RobotoMono-Regular.ttf': ['google_fonts/RobotoMono-Regular.ttf'],
+          };
+          return const StandardMessageCodec().encodeMessage(manifest);
+        }
+        
+        if (key.endsWith('.ttf')) {
+          final filename = p.basename(key);
+          final file = File('google_fonts/$filename');
+          if (file.existsSync()) {
+            final bytes = file.readAsBytesSync();
+            return ByteData.view(bytes.buffer);
+          }
+        }
+        return null;
+      },
+    );
+
     SharedPreferences.setMockInitialValues({});
     tempDir = await Directory.systemTemp.createTemp('prism_test_vault');
     noteFile = File(p.join(tempDir.path, 'note1.md'));
@@ -299,5 +346,123 @@ void main() {
     // Verify that the parser correctly processed the empty newlines to &nbsp; while keeping blank lines
     final processedData = preprocessMarkdown(rawContent);
     expect(processedData, equals('# Test Note\n\n&nbsp;\n\nParagraph A\n\n&nbsp;\n\n\n&nbsp;\n\nParagraph B\n'));
+  });
+
+  testWidgets('EditorScreen in preview mode enables softLineBreak on MarkdownBody', (WidgetTester tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('com.llfbandit.record/messages'),
+      (methodCall) async {
+        return null;
+      },
+    );
+
+    final noteId = 'test-note-soft-breaks';
+    final rawContent = '[[Wikilink Target]]\nSome text content on next line\n';
+    noteFile.writeAsStringSync(rawContent);
+
+    final note = Note(
+      id: noteId,
+      title: 'Test Note',
+      filePath: noteFile.path,
+      wordCount: 10,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final mockRepo = MockNoteRepository(note);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteRepositoryProvider.overrideWithValue(mockRepo),
+          noteByIdProvider(noteId).overrideWith((ref) => note),
+          backlinksProvider(noteId).overrideWith((ref) => []),
+        ],
+        child: MaterialApp(
+          home: EditorScreen(
+            noteId: noteId,
+            isNew: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+
+    final markdownBodyFinder = find.byType(MarkdownBody);
+    expect(markdownBodyFinder, findsAtLeastNWidgets(1));
+
+    bool foundSoftLineBreak = false;
+    for (final element in tester.widgetList<MarkdownBody>(markdownBodyFinder)) {
+      if (element.softLineBreak == true) {
+        foundSoftLineBreak = true;
+      }
+    }
+    expect(foundSoftLineBreak, isTrue);
+  });
+
+  testWidgets('EditorScreen hides BacklinksPanel when keyboard is open (non-zero bottom view inset)', (WidgetTester tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('com.llfbandit.record/messages'),
+      (methodCall) async {
+        return null;
+      },
+    );
+
+    final noteId = 'test-note-backlinks-keyboard';
+    final note = Note(
+      id: noteId,
+      title: 'Test Note',
+      filePath: noteFile.path,
+      wordCount: 10,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final backlinks = [
+      Backlink(sourceId: 'src-1', sourceTitle: 'Source Title', contextSnippet: 'Mention [[Test Note]]'),
+    ];
+
+    final mockRepo = MockNoteRepository(note);
+
+    // Ensure we start with keyboard closed
+    tester.view.viewInsets = const FakeViewPadding(bottom: 0);
+    addTearDown(() {
+      tester.view.resetViewInsets();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteRepositoryProvider.overrideWithValue(mockRepo),
+          noteByIdProvider(noteId).overrideWith((ref) => note),
+          backlinksProvider(noteId).overrideWith((ref) => backlinks),
+        ],
+        child: MaterialApp(
+          home: EditorScreen(
+            noteId: noteId,
+            isNew: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+
+    // Verify BacklinksPanel is visible when keyboard is closed
+    expect(find.byType(BacklinksPanel), findsOneWidget);
+
+    // Simulate keyboard opening (non-zero bottom view inset)
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pump();
+
+    // Verify BacklinksPanel is hidden
+    expect(find.byType(BacklinksPanel), findsNothing);
   });
 }

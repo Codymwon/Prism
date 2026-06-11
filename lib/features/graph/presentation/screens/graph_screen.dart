@@ -65,8 +65,8 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
   void _centerView() {
     if (!mounted) return;
     final size = MediaQuery.of(context).size;
-    const canvasWidth = 2500.0;
-    const canvasHeight = 2500.0;
+    const canvasWidth = 5000.0;
+    const canvasHeight = 5000.0;
     final x = -(canvasWidth - size.width) / 2;
     final y = -(canvasHeight - size.height) / 2;
     _transformationController.value = Matrix4.translationValues(x, y, 0.0);
@@ -323,8 +323,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   void triggerReLayout() {
     final rand = Random();
-    const centerX = 1250.0;
-    const centerY = 1250.0;
+    const centerX = 2500.0;
+    const centerY = 2500.0;
     
     for (final node in widget.nodes) {
       final angle = rand.nextDouble() * 2 * pi;
@@ -341,8 +341,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   void _initializePositions(List<GraphNode> nodes) {
     final rand = Random();
-    const centerX = 1250.0;
-    const centerY = 1250.0;
+    const centerX = 2500.0;
+    const centerY = 2500.0;
 
     // Clean up orphaned node coordinates
     final validIds = nodes.map((n) => n.id).toSet();
@@ -373,8 +373,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   void _tick(Duration elapsed) {
     if (!mounted || _positions.isEmpty || widget.nodes.isEmpty) return;
 
-    const centerX = 1250.0;
-    const centerY = 1250.0;
+    const centerX = 2500.0;
+    const centerY = 2500.0;
 
     // 1. Initialize forces vector
     final Map<String, Offset> forces = {
@@ -491,16 +491,16 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
       if (finalX < 50.0) {
         finalX = 50.0;
         newVel = Offset(0.0, newVel.dy);
-      } else if (finalX > 2450.0) {
-        finalX = 2450.0;
+      } else if (finalX > 4950.0) {
+        finalX = 4950.0;
         newVel = Offset(0.0, newVel.dy);
       }
 
       if (finalY < 40.0) {
         finalY = 40.0;
         newVel = Offset(newVel.dx, 0.0);
-      } else if (finalY > 2460.0) {
-        finalY = 2460.0;
+      } else if (finalY > 4960.0) {
+        finalY = 4960.0;
         newVel = Offset(newVel.dx, 0.0);
       }
 
@@ -534,8 +534,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     }
 
     final colorScheme = Theme.of(context).colorScheme;
-    const canvasWidth = 2500.0;
-    const canvasHeight = 2500.0;
+    const canvasWidth = 5000.0;
+    const canvasHeight = 5000.0;
 
     Widget graphContent = InteractiveViewer(
       transformationController: widget.transformationController,
@@ -578,10 +578,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                       _wakeSimulation();
                     },
                     onPanUpdate: gn.isTemporal ? null : (details) {
-                      final scale = widget.transformationController.value.getMaxScaleOnAxis();
-                      final delta = scale > 0 ? details.delta / scale : details.delta;
-                      final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(50.0, 2450.0);
-                      final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(40.0, 2460.0);
+                      final delta = details.delta;
+                      final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(50.0, 4950.0);
+                      final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(40.0, 4960.0);
                       _positions[gn.id] = Offset(newX, newY);
                       _velocities[gn.id] = Offset.zero;
                       _repaintNotifier.notify();
@@ -675,7 +674,7 @@ class GraphFlowDelegate extends FlowDelegate {
 
   @override
   Size getSize(BoxConstraints constraints) {
-    return const Size(2500.0, 2500.0);
+    return const Size(5000.0, 5000.0);
   }
 }
 
