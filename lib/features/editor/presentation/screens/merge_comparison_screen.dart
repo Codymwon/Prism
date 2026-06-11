@@ -4,11 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/data/note_model.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 
 class MergeComparisonScreen extends ConsumerStatefulWidget {
   final String noteId;
@@ -210,16 +211,20 @@ $_conflictContent
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    final fontFamily = ref.watch(fontFamilyProvider);
+    final fontSize = ref.watch(fontSizeProvider);
+    final sizeVal = double.tryParse(fontSize.replaceAll('pt', '')) ?? 16.0;
 
     return Scaffold(
-      backgroundColor: isDark ? PrismColors.darkBackground : PrismColors.lightBackground,
+      backgroundColor: DesignColors.background(context),
       appBar: AppBar(
         title: Text(
           'Compare & Resolve',
-          style: GoogleFonts.inter(
+          style: getEditorFont(
+            fontFamily,
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
+            color: DesignColors.text(context),
           ),
         ),
         bottom: _isLoading || _error.isNotEmpty
@@ -228,7 +233,7 @@ $_conflictContent
                 controller: _tabController,
                 indicatorColor: colorScheme.primary,
                 labelColor: colorScheme.primary,
-                unselectedLabelColor: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                unselectedLabelColor: DesignColors.textSecondary(context),
                 tabs: const [
                   Tab(text: 'Original Note'),
                   Tab(text: 'Conflicted Copy'),
@@ -238,12 +243,12 @@ $_conflictContent
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
-              ? _buildErrorState(isDark)
-              : _buildCompareBody(isDark, colorScheme),
+              ? _buildErrorState(fontFamily)
+              : _buildCompareBody(colorScheme, fontFamily, sizeVal),
     );
   }
 
-  Widget _buildCompareBody(bool isDark, ColorScheme colorScheme) {
+  Widget _buildCompareBody(ColorScheme colorScheme, String fontFamily, double sizeVal) {
     return Column(
       children: [
         // Tab views showing scrollable markdown previews of the notes
@@ -251,25 +256,27 @@ $_conflictContent
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildMarkdownPreview(_originalContent, isDark, colorScheme, 'Original Note'),
-              _buildMarkdownPreview(_conflictContent, isDark, colorScheme, 'Conflicted Copy'),
+              _buildMarkdownPreview(_originalContent, colorScheme, 'Original Note', fontFamily, sizeVal),
+              _buildMarkdownPreview(_conflictContent, colorScheme, 'Conflicted Copy', fontFamily, sizeVal),
             ],
           ),
         ),
 
         // Action Buttons Panel
-        _buildActionPanel(isDark, colorScheme),
+        _buildActionPanel(colorScheme, fontFamily),
       ],
     );
   }
 
-  Widget _buildMarkdownPreview(String content, bool isDark, ColorScheme colorScheme, String title) {
+  Widget _buildMarkdownPreview(String content, ColorScheme colorScheme, String title, String family, double size) {
     if (content.trim().isEmpty) {
       return Center(
         child: Text(
           'Note is empty.',
-          style: GoogleFonts.inter(
-            color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+          style: getEditorFont(
+            family,
+            fontSize: size,
+            color: DesignColors.textSecondary(context),
           ),
         ),
       );
@@ -290,44 +297,18 @@ $_conflictContent
         context: context,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      styleSheet: MarkdownStyleSheet(
-        h1: GoogleFonts.inter(
-          fontSize: 24,
-          fontWeight: FontWeight.w700,
-          color: isDark ? PrismColors.darkText : PrismColors.lightText,
-        ),
-        h2: GoogleFonts.inter(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: isDark ? PrismColors.darkText : PrismColors.lightText,
-        ),
-        p: GoogleFonts.inter(
-          fontSize: 15,
-          height: 1.7,
-          color: isDark ? PrismColors.darkText : PrismColors.lightText,
-        ),
-        code: GoogleFonts.robotoMono(
-          fontSize: 13,
-          color: isDark ? PrismColors.darkAccentGreen : PrismColors.lightAccentGreen,
-          backgroundColor: isDark ? PrismColors.darkSurfaceVariant : PrismColors.lightSurfaceVariant,
-        ),
-        a: GoogleFonts.inter(
-          color: colorScheme.primary,
-          decoration: TextDecoration.underline,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      styleSheet: buildMarkdownStyleSheet(context, family, size, colorScheme),
     );
   }
 
-  Widget _buildActionPanel(bool isDark, ColorScheme colorScheme) {
+  Widget _buildActionPanel(ColorScheme colorScheme, String fontFamily) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
+        color: DesignColors.surface(context),
         border: Border(
           top: BorderSide(
-            color: isDark ? PrismColors.darkBorder : PrismColors.lightBorder,
+            color: DesignColors.border(context),
             width: 0.5,
           ),
         ),
@@ -339,10 +320,11 @@ $_conflictContent
           children: [
             Text(
               'How would you like to resolve this conflict?',
-              style: GoogleFonts.inter(
+              style: getEditorFont(
+                fontFamily,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                color: DesignColors.textSecondary(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -361,7 +343,11 @@ $_conflictContent
                     ),
                     child: Text(
                       'Keep Original',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                      style: getEditorFont(
+                        fontFamily,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
@@ -376,7 +362,11 @@ $_conflictContent
                     ),
                     child: Text(
                       'Keep Conflicted',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                      style: getEditorFont(
+                        fontFamily,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
@@ -396,7 +386,12 @@ $_conflictContent
               ),
               child: Text(
                 'Merge Both Copies',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
+                style: getEditorFont(
+                  fontFamily,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: colorScheme.onPrimary,
+                ),
               ),
             ),
           ],
@@ -405,7 +400,7 @@ $_conflictContent
     );
   }
 
-  Widget _buildErrorState(bool isDark) {
+  Widget _buildErrorState(String fontFamily) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -416,12 +411,20 @@ $_conflictContent
             const SizedBox(height: 16),
             Text(
               'Resolution Error',
-              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+              style: getEditorFont(
+                fontFamily,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: DesignColors.text(context),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               _error,
-              style: GoogleFonts.inter(color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary),
+              style: getEditorFont(
+                fontFamily,
+                color: DesignColors.textSecondary(context),
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

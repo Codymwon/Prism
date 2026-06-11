@@ -78,6 +78,29 @@ void main() {
       expect(sections[1].headingText, equals('Valid Section'));
       expect(sections[1].segments[0].text, equals('Body'));
     });
+
+    test('should calculate correct startingCheckboxIndex for segments', () {
+      final segments = splitAudioLinks(
+        '- [ ] task 1\n'
+        '# Section A\n'
+        '- [ ] task 2\n'
+        '- [ ] task 3\n'
+        '# Section B\n'
+        '- [ ] task 4\n'
+      );
+      
+      final sections = groupSegmentsByH1(segments);
+      expect(sections, hasLength(3));
+      
+      // Section 1: Intro (headingText is null)
+      expect(sections[0].segments[0].startingCheckboxIndex, 0);
+      
+      // Section 2: Section A
+      expect(sections[1].segments[0].startingCheckboxIndex, 1);
+      
+      // Section 3: Section B
+      expect(sections[2].segments[0].startingCheckboxIndex, 3);
+    });
   });
 
   group('EditorScreen Collapsible Heading Integration', () {

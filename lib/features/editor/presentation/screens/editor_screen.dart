@@ -415,7 +415,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final processedData = _getProcessedMarkdown();
     final segments = splitAudioLinks(processedData);
     final sections = groupSegmentsByH1(segments);
-    int checkboxIndex = 0;
 
     final styleSheet = buildMarkdownStyleSheet(context, family, size, colorScheme);
 
@@ -499,55 +498,60 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               ),
                             )
                           else
-                            MarkdownBody(
-                              data: segment.text!,
-                              softLineBreak: true,
-                              inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
-                              builders: {
-                                'mark': HighlightElementBuilder(context),
-                                'hashtag': HashtagElementBuilder(context),
-                              },
-                              imageBuilder: (uri, title, alt) {
-                                return buildMarkdownImage(
-                                  uri: uri,
-                                  noteId: widget.noteId,
-                                  ref: ref,
-                                  context: context,
-                                );
-                              },
-                              onTapLink: (text, href, title) async {
-                                handleWikilinkTap(
-                                  href: href,
-                                  ref: ref,
-                                  context: context,
-                                );
-                              },
-                              styleSheet: styleSheet,
-                              checkboxBuilder: (bool value) {
-                                final index = checkboxIndex++;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 6, top: 3),
-                                  child: SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: Checkbox(
-                                      value: value,
-                                      activeColor: colorScheme.primary,
-                                      checkColor: colorScheme.onPrimary,
-                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      side: BorderSide(
-                                        color: DesignColors.textSecondary(context)
-                                            .withValues(alpha: 0.7),
-                                        width: 1.5,
+                            Builder(
+                              builder: (context) {
+                                int localCheckboxIndex = 0;
+                                return MarkdownBody(
+                                  data: segment.text!,
+                                  softLineBreak: true,
+                                  inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                                  builders: {
+                                    'mark': HighlightElementBuilder(context),
+                                    'hashtag': HashtagElementBuilder(context),
+                                  },
+                                  imageBuilder: (uri, title, alt) {
+                                    return buildMarkdownImage(
+                                      uri: uri,
+                                      noteId: widget.noteId,
+                                      ref: ref,
+                                      context: context,
+                                    );
+                                  },
+                                  onTapLink: (text, href, title) async {
+                                    handleWikilinkTap(
+                                      href: href,
+                                      ref: ref,
+                                      context: context,
+                                    );
+                                  },
+                                  styleSheet: styleSheet,
+                                  checkboxBuilder: (bool value) {
+                                    final index = segment.startingCheckboxIndex + localCheckboxIndex++;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 6, top: 3),
+                                      child: SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: Checkbox(
+                                          value: value,
+                                          activeColor: colorScheme.primary,
+                                          checkColor: colorScheme.onPrimary,
+                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          side: BorderSide(
+                                            color: DesignColors.textSecondary(context)
+                                                .withValues(alpha: 0.7),
+                                            width: 1.5,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          onChanged: (bool? newValue) {
+                                            _toggleCheckbox(index);
+                                          },
+                                        ),
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      onChanged: (bool? newValue) {
-                                        _toggleCheckbox(index);
-                                      },
-                                    ),
-                                  ),
+                                    );
+                                  },
                                 );
                               },
                             ),

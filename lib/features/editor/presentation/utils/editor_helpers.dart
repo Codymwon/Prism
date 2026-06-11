@@ -440,6 +440,59 @@ Widget buildMarkdownImage({
   final isNetwork = uriStr.startsWith('http://') || uriStr.startsWith('https://');
   final isAbsolute = uriStr.startsWith('/') || uriStr.contains(':/') || uriStr.startsWith('file:');
 
+  if (isNetwork) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: DesignColors.border(context), width: 1),
+      ),
+      color: DesignColors.surface(context),
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      elevation: 0,
+      child: Image.network(
+        uriStr,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 150,
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.broken_image_outlined,
+                    color: DesignColors.textSecondary(context)),
+                const SizedBox(width: 12),
+                Text(
+                  'Failed to load image',
+                  style: DesignTypography.body(context,
+                      color: DesignColors.textSecondary(context)),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   if (!isNetwork && !isAbsolute) {
     final note = ref.read(noteByIdProvider(noteId)).valueOrNull;
     if (note != null) {
@@ -497,15 +550,18 @@ class MarkdownSegment {
   final String? text;
   final String? audioLabel;
   final String? audioPath;
+  final int startingCheckboxIndex;
 
-  const MarkdownSegment._({this.text, this.audioLabel, this.audioPath});
+  const MarkdownSegment._({this.text, this.audioLabel, this.audioPath, this.startingCheckboxIndex = 0});
 
-  factory MarkdownSegment.text(String text) => MarkdownSegment._(text: text);
+  factory MarkdownSegment.text(String text, {int startingCheckboxIndex = 0}) =>
+      MarkdownSegment._(text: text, startingCheckboxIndex: startingCheckboxIndex);
 
   factory MarkdownSegment.audio({
     required String label,
     required String path,
-  }) => MarkdownSegment._(audioLabel: label, audioPath: path);
+    int startingCheckboxIndex = 0,
+  }) => MarkdownSegment._(audioLabel: label, audioPath: path, startingCheckboxIndex: startingCheckboxIndex);
 
   bool get isAudio => audioPath != null;
 }
@@ -520,17 +576,28 @@ final RegExp _audioLinkRegex = RegExp(
 List<MarkdownSegment> splitAudioLinks(String markdown) {
   final segments = <MarkdownSegment>[];
   int lastEnd = 0;
+  int checkboxAccumulator = 0;
+
+  int countCheckboxes(String text) {
+    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
+    return regex.allMatches(text).length;
+  }
 
   for (final match in _audioLinkRegex.allMatches(markdown)) {
     if (match.start > lastEnd) {
       final textBefore = markdown.substring(lastEnd, match.start);
       if (textBefore.trim().isNotEmpty) {
-        segments.add(MarkdownSegment.text(textBefore));
+        segments.add(MarkdownSegment.text(
+          textBefore,
+          startingCheckboxIndex: checkboxAccumulator,
+        ));
+        checkboxAccumulator += countCheckboxes(textBefore);
       }
     }
     segments.add(MarkdownSegment.audio(
       label: match.group(1)!,
       path: match.group(2)!,
+      startingCheckboxIndex: checkboxAccumulator,
     ));
     lastEnd = match.end;
   }
@@ -538,12 +605,15 @@ List<MarkdownSegment> splitAudioLinks(String markdown) {
   if (lastEnd < markdown.length) {
     final remaining = markdown.substring(lastEnd);
     if (remaining.trim().isNotEmpty) {
-      segments.add(MarkdownSegment.text(remaining));
+      segments.add(MarkdownSegment.text(
+        remaining,
+        startingCheckboxIndex: checkboxAccumulator,
+      ));
     }
   }
 
   if (segments.isEmpty) {
-    segments.add(MarkdownSegment.text(markdown));
+    segments.add(MarkdownSegment.text(markdown, startingCheckboxIndex: 0));
   }
 
   return segments;
@@ -563,6 +633,11 @@ List<HeadingSection> groupSegmentsByH1(List<MarkdownSegment> segments) {
   String? currentHeading;
   var currentSegments = <MarkdownSegment>[];
 
+  int countCheckboxes(String text) {
+    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
+    return regex.allMatches(text).length;
+  }
+
   for (final segment in segments) {
     if (segment.isAudio) {
       currentSegments.add(segment);
@@ -571,6 +646,8 @@ List<HeadingSection> groupSegmentsByH1(List<MarkdownSegment> segments) {
       final lines = text.split('\n');
       var isInCodeBlock = false;
       var buffer = StringBuffer();
+      int currentStartIdx = segment.startingCheckboxIndex;
+      int accumulatedInSegment = 0;
 
       for (int i = 0; i < lines.length; i++) {
         final line = lines[i];
@@ -581,7 +658,12 @@ List<HeadingSection> groupSegmentsByH1(List<MarkdownSegment> segments) {
         if (!isInCodeBlock && line.startsWith('# ')) {
           // If we have accumulated content, save it
           if (buffer.isNotEmpty) {
-            currentSegments.add(MarkdownSegment.text(buffer.toString()));
+            final textChunk = buffer.toString();
+            currentSegments.add(MarkdownSegment.text(
+              textChunk,
+              startingCheckboxIndex: currentStartIdx,
+            ));
+            accumulatedInSegment += countCheckboxes(textChunk);
             buffer = StringBuffer();
           }
 
@@ -596,6 +678,7 @@ List<HeadingSection> groupSegmentsByH1(List<MarkdownSegment> segments) {
 
           // Start a new section
           currentHeading = line.substring(2).trim();
+          currentStartIdx = segment.startingCheckboxIndex + accumulatedInSegment;
         } else {
           buffer.write(line);
           // Keep newlines except for the very last line of the segment
@@ -606,7 +689,10 @@ List<HeadingSection> groupSegmentsByH1(List<MarkdownSegment> segments) {
       }
 
       if (buffer.isNotEmpty) {
-        currentSegments.add(MarkdownSegment.text(buffer.toString()));
+        currentSegments.add(MarkdownSegment.text(
+          buffer.toString(),
+          startingCheckboxIndex: currentStartIdx,
+        ));
       }
     }
   }

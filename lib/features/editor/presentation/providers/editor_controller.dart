@@ -514,6 +514,18 @@ class DictationController extends StateNotifier<DictationState> {
     try {
       _speechToText.stop();
     } catch (_) {}
+
+    if (state.isDictating && _dictationAudioPath.isNotEmpty) {
+      try {
+        final file = File(_dictationAudioPath);
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+      } catch (e) {
+        debugPrint('Error deleting orphan audio on dispose: $e');
+      }
+    }
+
     _audioRecorder.dispose();
     super.dispose();
   }
