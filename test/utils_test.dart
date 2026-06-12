@@ -190,7 +190,8 @@ void main() {
 
       test('should seed welcome notes on first launch and set welcomeNotesSeeded to true', () async {
         final prefs = await SharedPreferences.getInstance();
-        expect(prefs.getBool('welcomeNotesSeeded'), isNull);
+        final vaultKey = 'welcomeNotesSeeded_${tempDir.path.hashCode}';
+        expect(prefs.getBool(vaultKey), isNull);
 
         await seedWelcomeNotes(tempDir.path);
 
@@ -199,12 +200,13 @@ void main() {
 
         expect(await welcomeFile.exists(), isTrue);
         expect(await guideFile.exists(), isTrue);
-        expect(prefs.getBool('welcomeNotesSeeded'), isTrue);
+        expect(prefs.getBool(vaultKey), isTrue);
       });
 
       test('should not seed welcome notes again if welcomeNotesSeeded is true', () async {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('welcomeNotesSeeded', true);
+        final vaultKey = 'welcomeNotesSeeded_${tempDir.path.hashCode}';
+        await prefs.setBool(vaultKey, true);
 
         await seedWelcomeNotes(tempDir.path);
 

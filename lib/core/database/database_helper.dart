@@ -63,6 +63,13 @@ class DatabaseHelper {
         _db = null;
         _activeVaultPath = null;
       }
+
+      // Ensure the parent vault directory exists to prevent native openOrCreate failures
+      final dir = Directory(vaultPath);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+
       final path = join(vaultPath, _dbName);
       Database db;
       try {

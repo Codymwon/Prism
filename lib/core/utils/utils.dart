@@ -26,16 +26,19 @@ Future<String> getVaultPath() async {
 
 /// Seeds default welcome notes inside the vault if it is new or empty.
 Future<void> seedWelcomeNotes(String vaultPath) async {
-  final prefs = await SharedPreferences.getInstance();
-  final alreadySeeded = prefs.getBool('welcomeNotesSeeded') ?? false;
-  if (alreadySeeded) {
-    return;
-  }
-
+  // Always ensure the directory exists first to prevent database open/setup failures
   final vault = Directory(vaultPath);
   bool isNew = !await vault.exists();
   if (isNew) {
     await vault.create(recursive: true);
+  }
+
+  final prefs = await SharedPreferences.getInstance();
+  // Use a per-vault key so fresh/custom vaults get welcome notes seeded as well
+  final vaultKey = 'welcomeNotesSeeded_${vaultPath.hashCode}';
+  final alreadySeeded = prefs.getBool(vaultKey) ?? false;
+  if (alreadySeeded) {
+    return;
   }
 
   // Seed default notes if new or completely empty
@@ -59,7 +62,7 @@ Future<void> seedWelcomeNotes(String vaultPath) async {
       final guideFile = File(p.join(vaultPath, 'Productivity Tools Guide.md'));
       await guideFile.writeAsString(_productivityGuideContent);
 
-      await prefs.setBool('welcomeNotesSeeded', true);
+      await prefs.setBool(vaultKey, true);
     } catch (e) {
       debugPrint('Error seeding default welcome notes: $e');
     }
