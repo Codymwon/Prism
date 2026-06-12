@@ -34,50 +34,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 children: [
-                  // ── Premium Badge Header ──────────────────────────────────────────
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: DesignColors.primary(context).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.shield_outlined,
-                        size: 40,
-                        color: DesignColors.primary(context),
-                      ),
-                    ),
-                  ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      '100% Offline & Local-First',
-                      style: DesignTypography.heading(
-                        context,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: DesignColors.text(context),
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Prism is designed from the ground up to respect your digital privacy. All notes, records, and preferences reside solely on your physical device.',
-                        style: DesignTypography.body(
-                          context,
-                          fontSize: 13,
-                          color: DesignColors.textSecondary(context),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
-                  const SizedBox(height: 32),
-
                   // ── Privacy Policy Content Sections ────────────────────────────────
                   _buildSectionHeader(context, '1. DATA COLLECTION & STORAGE'),
                   _buildPrivacyCard(
@@ -86,7 +42,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     title: 'Offline Storage',
                     description:
                         'Your markdown files, journal entries, and configuration settings are stored locally on your device vault. We do not operate server databases, meaning we cannot read, sync, or sell your personal writing.',
-                  ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.05),
+                  ).animate().fadeIn(delay: 250.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
                   const SizedBox(height: 12),
                   _buildPrivacyCard(
                     context,
@@ -94,7 +50,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     title: 'No Telemetry & Analytics',
                     description:
                         'Prism does not run tracking SDKs, telemetry frameworks, or diagnostic reporting that sends data back to developers or advertising networks. Your in-app behavior is yours alone.',
-                  ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.05),
+                  ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
 
                   const SizedBox(height: 24),
                   _buildSectionHeader(context, '2. DEVICE PERMISSIONS'),
@@ -104,7 +60,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     title: 'Microphone Access',
                     description:
                         'Used exclusively when you activate the voice dictation toolbar button to record audio attachments or perform speech-to-text. Audio files are saved inside your vault and processed locally.',
-                  ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.05),
+                  ).animate().fadeIn(delay: 350.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
                   const SizedBox(height: 12),
                   _buildPrivacyCard(
                     context,
@@ -112,7 +68,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     title: 'Storage / Filesystem Access',
                     description:
                         'Required to let you select a local folder directory for your vaults, enabling Prism to read, write, and manage your standard markdown files.',
-                  ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05),
+                  ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
 
                   const SizedBox(height: 24),
                   _buildSectionHeader(context, '3. OPTIONAL CLOUD INTEGRATION'),
@@ -122,7 +78,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     title: 'Google Drive Sync',
                     description:
                         'If you choose to configure the Google Drive integration, connection is established directly between your device and Google servers. We never intercept, store, or have access to your Google credentials or synced notes.',
-                  ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.05),
+                  ).animate().fadeIn(delay: 450.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
 
                   const SizedBox(height: 24),
                   _buildSectionHeader(context, '4. COMPLIANCE WITH LAWS'),
@@ -132,7 +88,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     title: 'GDPR, CCPA & Privacy Rights',
                     description:
                         'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), users maintain the absolute right to view and purge their data. Because your notes are standard markdown text files stored locally, you hold complete access, modification, and deletion capability at all times. Simply delete your vault folders to purge your data.',
-                  ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.05),
+                  ).animate().fadeIn(delay: 500.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
 
                   const SizedBox(height: 24),
                   _buildSectionHeader(context, '5. CONTACT & UPDATES'),
@@ -142,7 +98,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     title: 'Privacy Queries',
                     description:
                         'We may update this policy occasionally as new features roll out. For privacy concerns, code transparency audits, or feedback, email us at privacy@prismnotes.com.',
-                  ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.05),
+                  ).animate().fadeIn(delay: 550.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
 
                   const SizedBox(height: 48),
                 ],

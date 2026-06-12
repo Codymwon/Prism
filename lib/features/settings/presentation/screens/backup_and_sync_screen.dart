@@ -44,7 +44,7 @@ class BackupAndSyncScreen extends StatelessWidget {
                   color: DesignColors.primary(context),
                 ),
               ),
-            ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+            ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOut),
             const SizedBox(height: 16),
             Center(
               child: Text(
@@ -56,7 +56,7 @@ class BackupAndSyncScreen extends StatelessWidget {
                   color: DesignColors.text(context),
                 ),
               ),
-            ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
+            ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
             const SizedBox(height: 8),
             Center(
               child: Padding(
@@ -71,30 +71,30 @@ class BackupAndSyncScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-            ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
+            ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
             const SizedBox(height: 32),
 
             // ── Cloud Services ────────────────────────────────────────────────
             const SettingsSectionHeader(title: 'Cloud Services')
                 .animate()
-                .fadeIn(delay: 250.ms),
+                .fadeIn(delay: 250.ms, duration: 400.ms),
             const ProGateTile(
               icon: Icons.cloud_upload_outlined,
               title: 'Google Drive Sync',
               subtitle: 'Sync your vault to Google Drive',
-            ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.05),
+            ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
 
             const SizedBox(height: 16),
 
             // ── Local Utilities ────────────────────────────────────────────────
             const SettingsSectionHeader(title: 'Local Utilities')
                 .animate()
-                .fadeIn(delay: 350.ms),
+                .fadeIn(delay: 350.ms, duration: 400.ms),
             const ProGateTile(
               icon: Icons.file_download_outlined,
               title: 'Export vault',
               subtitle: 'Download all notes as ZIP or PDF',
-            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05),
+            ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
           ],
         ),
       ),

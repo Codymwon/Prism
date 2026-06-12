@@ -245,6 +245,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final hasCompletedTutorial = ref.watch(tutorialStateProvider);
+    final hasCompletedJournalTutorial = ref.watch(journalTutorialStateProvider);
     final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
 
     final mainScaffold = isDesktop
@@ -252,6 +253,72 @@ class _AppShellState extends ConsumerState<AppShell> {
         : _buildMobileScaffold(context, colorScheme);
 
     if (hasCompletedTutorial) {
+      if (!hasCompletedJournalTutorial && _currentIndex == 1) {
+        final journalTutorialSteps = [
+          TutorialStep(
+            title: 'Calendar Navigation',
+            description: 'Tap the calendar icon to expand the monthly calendar view and navigate across all dates in your vault history.',
+            icon: Icons.calendar_month_outlined,
+            getTargetRect: (size) {
+              final topPadding = MediaQuery.of(context).padding.top;
+              return Rect.fromLTWH(size.width - 64, topPadding + 16, 48, 48);
+            },
+          ),
+          TutorialStep(
+            title: 'Weekly Quick Strip',
+            description: 'Quickly slide or tap between the last 7 days to keep your reflection streak alive without opening the full calendar view.',
+            icon: Icons.view_week_rounded,
+            getTargetRect: (size) {
+              final topPadding = MediaQuery.of(context).padding.top;
+              return Rect.fromLTWH(
+                16,
+                topPadding + 68,
+                size.width - 32,
+                56,
+              );
+            },
+          ),
+          TutorialStep(
+            title: 'Daily Streak & Grid',
+            description: 'Track your active daily writing streak and visualize your consistency over the last 28 days with the contribution grid.',
+            icon: Icons.local_fire_department_rounded,
+            getTargetRect: (size) {
+              final topPadding = MediaQuery.of(context).padding.top;
+              return Rect.fromLTWH(
+                16,
+                topPadding + 130,
+                size.width - 32,
+                102,
+              );
+            },
+          ),
+          TutorialStep(
+            title: 'Reflection Templates',
+            description: 'Select an expert journal template (Gratitude, Daily Plan, Reflection, Goals) to quickly structure your writing, or start typing in a blank daily page.',
+            icon: Icons.description_rounded,
+            getTargetRect: (size) {
+              final topPadding = MediaQuery.of(context).padding.top;
+              return Rect.fromLTWH(
+                16,
+                topPadding + 240,
+                size.width - 32,
+                64,
+              );
+            },
+          ),
+        ];
+
+        return Stack(
+          children: [
+            mainScaffold,
+            SpotlightTutorialOverlay(
+              steps: journalTutorialSteps,
+              onCompleted: () => ref.read(journalTutorialStateProvider.notifier).completeTutorial(),
+              onSkipped: () => ref.read(journalTutorialStateProvider.notifier).completeTutorial(),
+            ),
+          ],
+        );
+      }
       return mainScaffold;
     }
 
@@ -270,6 +337,15 @@ class _AppShellState extends ConsumerState<AppShell> {
         getTargetRect: (size) {
           final topPadding = MediaQuery.of(context).padding.top;
           return Rect.fromLTWH(6, topPadding + 4, 48, 48);
+        },
+      ),
+      TutorialStep(
+        title: 'Open Folders',
+        description: 'Tap "Open" on any folder card to isolate its notes and view only that folder\'s contents in a focused list view.',
+        icon: Icons.arrow_forward_rounded,
+        getTargetRect: (size) {
+          final topPadding = MediaQuery.of(context).padding.top;
+          return Rect.fromLTWH(size.width - 148, topPadding + 204, 56, 32);
         },
       ),
       TutorialStep(

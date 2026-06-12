@@ -16,6 +16,7 @@ import '../widgets/journal_templates_row.dart';
 import '../widgets/journal_empty_state.dart';
 
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
+final focusedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
 class JournalScreen extends ConsumerStatefulWidget {
   const JournalScreen({super.key});
@@ -51,6 +52,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
               JournalCalendar(
                 selectedDay: selectedDay,
                 selectedDayProvider: selectedDayProvider,
+                focusedDayProvider: focusedDayProvider,
               ),
             // 7-day quick-navigation strip (visible only when calendar is closed)
             if (!_showCalendar)
@@ -128,7 +130,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
     if (data != null) {
       return JournalEntryCard(
-        key: const ValueKey<String>('entry'),
+        key: ValueKey<String>('entry_${data.note.id}'),
         note: data.note,
         content: data.content,
       );
@@ -223,14 +225,14 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     }
   }
 
-  void _createWithTemplate(String emoji, String templateName) {
+  void _createWithTemplate(String templateName) {
     final selectedDay = ref.read(selectedDayProvider);
     final dateStr = formatDailyDate(selectedDay);
     final templates = {
-      'Gratitude': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 🙏 Gratitude & Focus\n- I am grateful for...\n- Today\'s positive highlight: \n\n## 🎙️ Mindful Recording\n*(Tap 🎙️ in the toolbar to record your voice reflection here)*\n\n## 🔗 Connections\n- Connected notes: [[Weekly Review]], [[My Future Ideas]]\n\n#journal #gratitude\n',
-      'Daily Plan': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 📋 Today\'s Focus\n- [ ] Top priority 1\n- [ ] Top priority 2\n- [ ] Top priority 3\n\n## 📅 Tasks & Schedule\n- [ ] Morning routine *(Tap ☑️ Todo in toolbar to add tasks)*\n- [ ] Work focus session\n- [ ] Evening wind-down\n\n## 🔗 Connections\n- Linked goals: [[Annual Goals]]\n\n#planning #tasks\n',
-      'Reflection': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 💭 Daily Reflection\n- **What went well today?** \n- **What could have been improved?** \n- **Key learning or breakthrough:** \n\n## 🎙️ Voice Journal\n*(Speak your mind with offline voice dictation in the toolbar)*\n\n## 🔗 Connections\n- Connected note: [[Personal Growth]]\n\n#reflection #mindfulness\n',
-      'Goals': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## 🎯 Goals Check-in\n- **Current focus:** \n- [ ] Goal milestone task 1\n- [ ] Goal milestone task 2\n\n## 🚧 Blockers & Next Steps\n- What is holding me back? \n- Next actionable step: \n\n## 🔗 Connections\n- Master board: [[Annual Goals]], [[Projects]]\n\n#goals #productivity\n',
+      'Gratitude': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n> "Gratitude turns what we have into enough."\n\n## Gratitude\n- I am grateful for: \n- Today\'s highlight: ==focus==\n\n## Mindful Space\n*Record a voice reflection using the microphone tool, or attach a photo.*\n\n## Daily Habits\n- [ ] Practice presence\n- [ ] Connect with a friend\n\n#journal/gratitude\n',
+      'Daily Plan': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## Today\'s Focus\n==Main objective for today: ==\n\n## Checklist\n- [ ] Priority task 1\n- [ ] Priority task 2\n- [ ] Priority task 3\n- [ ] Routine checklist item\n\n## Connected Context\n- Linked goals: [[Annual Goals]]\n- Ideas & notes: \n\n#journal/plan\n',
+      'Reflection': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## Reflection\n- **Wins & progress:** \n- **Lessons & challenges:** \n\n## Mindful Quote\n> What did today teach me?\n\n## End-of-Day Check\n- [ ] Reflection completed\n- [ ] Tomorrow planned\n\n- Linked review: [[Weekly Review]]\n\n#journal/reflection\n',
+      'Goals': '---\ntitle: "Daily Reflection"\ndate: $dateStr\n---\n\n## Goal Progress\n- **Active focus:** ==Target goal==\n- Next actionable milestone: \n\n## Actions\n- [ ] Goal milestone task 1\n- [ ] Goal milestone task 2\n- [ ] Resolve any blockers\n\n- Projects board: [[Projects]]\n\n#journal/goals\n',
     };
     _createDailyNote(context, dateStr, templates[templateName]!);
   }

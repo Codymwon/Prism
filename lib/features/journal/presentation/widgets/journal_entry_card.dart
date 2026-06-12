@@ -114,11 +114,20 @@ class JournalEntryCard extends ConsumerWidget {
       }
     }
     
-    // Filter out markdown checklist items from the body preview
+    // Filter out markdown checklist items and image tags from the body preview
     final checkboxRegExp = RegExp(r'^\s*[-*+]\s+\[([ xX])\]');
+    final imageRegExp = RegExp(r'!\[.*?\]\((.*?)\)');
     final bodyLines = <String>[];
     for (final line in remainingLines) {
       if (checkboxRegExp.hasMatch(line)) {
+        continue;
+      }
+      if (imageRegExp.hasMatch(line)) {
+        final cleanedLine = line.replaceAll(imageRegExp, '').trim();
+        if (cleanedLine.isEmpty) {
+          continue;
+        }
+        bodyLines.add(cleanedLine);
         continue;
       }
       bodyLines.add(line);
@@ -132,22 +141,7 @@ class JournalEntryCard extends ConsumerWidget {
     return preprocessMarkdown(bodyLines.join('\n'));
   }
 
-  List<_ChecklistItem> _getChecklist(String content) {
-    final lines = content.split('\n');
-    final items = <_ChecklistItem>[];
-    final checkboxRegExp = RegExp(r'^\s*[-*+]\s+\[([ xX])\](?:\s+(.*))?$');
-    for (final line in lines) {
-      final match = checkboxRegExp.firstMatch(line);
-      if (match != null) {
-        final isChecked = match.group(1)!.trim().isNotEmpty;
-        final label = match.group(2)?.trim() ?? '';
-        items.add(_ChecklistItem(label, isChecked));
-      }
-    }
-    return items;
-  }
-
-  Widget _buildChecklistWidget(BuildContext context, List<_ChecklistItem> items) {
+  Widget _buildChecklistWidget(BuildContext context, List<DailyChecklistItem> items) {
     final colorScheme = Theme.of(context).colorScheme;
     final listWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,22 +197,14 @@ class JournalEntryCard extends ConsumerWidget {
     return listWidget;
   }
 
-  String? _getImagePath(String content) {
-    final match = RegExp(r'!\[.*?\]\((.*?)\)').firstMatch(content);
-    if (match != null) {
-      return match.group(1);
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final cardTitle = _getCardTitle(content, note.title);
     final cardSubtitle = '${_getFormattedSubtitle(note)} • ${note.wordCount} words';
     final bodyMarkdown = _getBodyMarkdown(content, cardTitle);
-    final checklist = _getChecklist(content);
-    final imagePath = _getImagePath(content);
+    final checklist = extractChecklist(content);
+    final imagePath = extractPreviewImage(content);
     final showPrompt = note.isDaily && note.dailyDate != null && isToday(note.dailyDate!);
     final isDesktop = MediaQuery.of(context).size.width >= 800;
 
@@ -384,14 +370,31 @@ class JournalEntryCard extends ConsumerWidget {
               const SizedBox(height: 18),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(p.isAbsolute(imagePath) ? imagePath : p.join(p.dirname(note.filePath), imagePath)),
-                  fit: BoxFit.cover,
-                  height: 180,
-                  width: double.infinity,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const SizedBox.shrink();
-                  },
+                child: Builder(
+                  builder: (context) {
+                    final isNetwork = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+                    if (isNetwork) {
+                      return Image.network(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        height: 180,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
+                      );
+                    } else {
+                      return Image.file(
+                        File(p.isAbsolute(imagePath) ? imagePath : p.join(p.dirname(note.filePath), imagePath)),
+                        fit: BoxFit.cover,
+                        height: 180,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
+                      );
+                    }
+                  }
                 ),
               ),
             ],
@@ -425,10 +428,4 @@ class JournalEntryCard extends ConsumerWidget {
       ),
     );
   }
-}
-
-class _ChecklistItem {
-  final String label;
-  final bool isChecked;
-  const _ChecklistItem(this.label, this.isChecked);
 }

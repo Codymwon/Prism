@@ -57,3 +57,32 @@ class EditorTutorialNotifier extends StateNotifier<bool> {
   }
 }
 
+final journalTutorialStateProvider = StateNotifierProvider<JournalTutorialNotifier, bool>((ref) {
+  return JournalTutorialNotifier();
+});
+
+class JournalTutorialNotifier extends StateNotifier<bool> {
+  JournalTutorialNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Default to false (tutorial not completed) on first use
+    state = prefs.getBool('hasCompletedJournalTutorial') ?? false;
+  }
+
+  Future<void> completeTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasCompletedJournalTutorial', true);
+    state = true;
+  }
+
+  Future<void> resetTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasCompletedJournalTutorial', false);
+    state = false;
+  }
+}
+
+

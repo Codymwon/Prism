@@ -1,11 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'journal_template_button.dart';
 
 class JournalTemplatesRow extends StatelessWidget {
-  final Function(String emoji, String templateName) onTemplateSelected;
+  final Function(String templateName) onTemplateSelected;
 
   const JournalTemplatesRow({
     super.key,
@@ -52,7 +52,7 @@ class JournalTemplatesRow extends StatelessWidget {
             padding: const EdgeInsets.only(right: 8),
             child: TactileWrapper(
               style: TactileFeedbackStyle.highImpact,
-              onTap: () => onTemplateSelected(t.emoji, t.label),
+              onTap: () => onTemplateSelected(t.label),
               child: JournalTemplateButton(template: t),
             ),
           );

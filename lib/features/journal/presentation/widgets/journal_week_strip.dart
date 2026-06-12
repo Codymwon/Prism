@@ -46,6 +46,7 @@ class JournalWeekStrip extends ConsumerWidget {
                 style: TactileFeedbackStyle.standard,
                 onTap: isFuture ? null : () {
                   ref.read(selectedDayProvider.notifier).state = day;
+                  ref.read(focusedDayProvider.notifier).state = day;
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),

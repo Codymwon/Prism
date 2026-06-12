@@ -167,7 +167,7 @@ int countWords(String text) {
 /// Extracts all #tags from markdown content (e.g. #productivity, #ideas).
 List<String> extractTags(String content) {
   final tags = <String>[];
-  final pattern = RegExp(r'(```[\s\S]*?```)|(`+[^`]+`+)|((?<!\w)#([a-zA-Z][a-zA-Z0-9_]*))');
+  final pattern = RegExp(r'(```[\s\S]*?```)|(`+[^`]+`+)|((?<!\w)#([a-zA-Z][a-zA-Z0-9_]*(?:\/[a-zA-Z][a-zA-Z0-9_]*)*))');
   for (final match in pattern.allMatches(content)) {
     if (match.group(3) != null) {
       tags.add(match.group(4)!.toLowerCase());
@@ -326,3 +326,60 @@ Go back to the main page: [[Welcome to Prism]]
 
 #tutorial #productivity #guide
 ''';
+
+class DailyChecklistItem {
+  final String label;
+  final bool isChecked;
+  const DailyChecklistItem(this.label, this.isChecked);
+}
+
+List<DailyChecklistItem> extractChecklist(String content) {
+  final cleanContent = stripFrontmatter(content);
+  final lines = cleanContent.split('\n');
+  final items = <DailyChecklistItem>[];
+  final checkboxRegExp = RegExp(r'^\s*[-*+]\s+\[([ xX])\](?:\s+(.*))?$');
+
+  bool isInCodeBlock = false;
+  for (final line in lines) {
+    final trimmed = line.trim();
+    if (trimmed.startsWith('```')) {
+      isInCodeBlock = !isInCodeBlock;
+      continue;
+    }
+    if (isInCodeBlock) {
+      continue;
+    }
+
+    final match = checkboxRegExp.firstMatch(line);
+    if (match != null) {
+      final isChecked = match.group(1)!.trim().isNotEmpty;
+      final label = match.group(2)?.trim() ?? '';
+      items.add(DailyChecklistItem(label, isChecked));
+    }
+  }
+  return items;
+}
+
+String? extractPreviewImage(String content) {
+  final cleanContent = stripFrontmatter(content);
+  final lines = cleanContent.split('\n');
+  final imageRegExp = RegExp(r'!\[.*?\]\((.*?)\)');
+
+  bool isInCodeBlock = false;
+  for (final line in lines) {
+    final trimmed = line.trim();
+    if (trimmed.startsWith('```')) {
+      isInCodeBlock = !isInCodeBlock;
+      continue;
+    }
+    if (isInCodeBlock) {
+      continue;
+    }
+
+    final match = imageRegExp.firstMatch(line);
+    if (match != null) {
+      return match.group(1);
+    }
+  }
+  return null;
+}

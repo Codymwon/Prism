@@ -172,6 +172,49 @@ No images here, just plain text.
     expect(find.byType(Image), findsNothing);
   });
 
+  testWidgets('JournalEntryCard renders network image preview when image path starts with http/https', (WidgetTester tester) async {
+    final noteDate = DateTime(2026, 6, 3, 8, 30);
+    final dummyNote = Note(
+      id: 'test-note-id',
+      title: '2026-06-03',
+      filePath: 'test_path.md',
+      wordCount: 45,
+      createdAt: noteDate,
+      updatedAt: noteDate,
+      isDaily: true,
+      dailyDate: '2026-06-03',
+    );
+
+    const contentWithNetworkImage = '''# 2026-06-03
+Here is a web image:
+![web-sunset](https://example.com/sunset.jpg)
+''';
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: JournalEntryCard(
+              note: dummyNote,
+              content: contentWithNetworkImage,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    // Verify Image widget is rendered
+    final imageFinder = find.byType(Image);
+    expect(imageFinder, findsOneWidget);
+
+    final imageWidget = tester.widget<Image>(imageFinder);
+    expect(imageWidget.image, isA<NetworkImage>());
+    final networkImage = imageWidget.image as NetworkImage;
+    expect(networkImage.url, equals('https://example.com/sunset.jpg'));
+  });
+
   testWidgets('JournalEntryCard displays Tap to continue writing only for today\'s card', (WidgetTester tester) async {
     final todayStr = formatDailyDate(DateTime.now());
     final yesterdayStr = formatDailyDate(DateTime.now().subtract(const Duration(days: 1)));

@@ -8,22 +8,25 @@ import '../providers/journal_providers.dart';
 class JournalCalendar extends ConsumerWidget {
   final DateTime selectedDay;
   final StateProvider<DateTime> selectedDayProvider;
+  final StateProvider<DateTime> focusedDayProvider;
 
   const JournalCalendar({
     super.key,
     required this.selectedDay,
     required this.selectedDayProvider,
+    required this.focusedDayProvider,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final writtenDates = ref.watch(allDailyDatesProvider).valueOrNull ?? const <String>{};
+    final focusedDay = ref.watch(focusedDayProvider);
 
     return TableCalendar(
       firstDay: DateTime(2020),
       lastDay: DateTime(2030),
-      focusedDay: selectedDay,
+      focusedDay: focusedDay,
       selectedDayPredicate: (day) => isSameDay(day, selectedDay),
       calendarFormat: CalendarFormat.month,
       headerStyle: HeaderStyle(
@@ -109,6 +112,10 @@ class JournalCalendar extends ConsumerWidget {
       ),
       onDaySelected: (selected, focused) {
         ref.read(selectedDayProvider.notifier).state = selected;
+        ref.read(focusedDayProvider.notifier).state = selected;
+      },
+      onPageChanged: (focused) {
+        ref.read(focusedDayProvider.notifier).state = focused;
       },
     );
   }

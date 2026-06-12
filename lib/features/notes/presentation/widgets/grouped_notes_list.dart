@@ -254,13 +254,36 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
                     onTap: () {
                       ref.read(selectedFolderIdProvider.notifier).state = folderId;
                     },
-                    child: IconButton(
-                      icon: const Icon(DesignIcons.forward, size: 16),
-                      color: themeColor,
-                      onPressed: () {},
-                      tooltip: 'Focus folder',
-                      constraints: const BoxConstraints(),
-                      padding: const EdgeInsets.all(4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: themeColor.withValues(alpha: isDark ? 0.12 : 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: themeColor.withValues(alpha: 0.2),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            DesignIcons.forward,
+                            size: 11,
+                            color: themeColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Open',
+                            style: DesignTypography.body(
+                              context,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: themeColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 6),

@@ -575,47 +575,4 @@ class VoiceRecordingsToggleTile extends ConsumerWidget {
   }
 }
 
-class DragToPinToggleTile extends ConsumerWidget {
-  const DragToPinToggleTile({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dragToPin = ref.watch(dragToPinEnabledProvider).valueOrNull ?? false;
-
-    return SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-      secondary: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: DesignColors.surfaceVariant(context),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          Icons.touch_app_rounded,
-          size: 18,
-          color: DesignColors.textSecondary(context),
-        ),
-      ),
-      title: Text(
-        'Drag to Pin',
-        style: DesignTypography.body(
-          context,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(
-        'Automatically pin nodes when releasing them from a drag',
-        style: DesignTypography.details(context),
-      ),
-      value: dragToPin,
-      activeThumbColor: DesignColors.primary(context),
-      onChanged: (val) {
-        ref.read(dragToPinEnabledProvider.notifier).setDragToPinEnabled(val);
-      },
-    );
-  }
-}
-
 

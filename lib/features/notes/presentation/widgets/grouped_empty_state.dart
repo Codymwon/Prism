@@ -28,7 +28,7 @@ class GroupedEmptyState extends ConsumerWidget {
                 size: 64,
                 color: colorScheme.primary,
               ),
-            ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+            ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOut),
             const SizedBox(height: 24),
             Text(
               'Organize your thoughts',
@@ -38,7 +38,7 @@ class GroupedEmptyState extends ConsumerWidget {
                 fontWeight: FontWeight.w800,
               ),
               textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1),
+            ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
             const SizedBox(height: 12),
             Text(
               'Create virtual folders to categorize your notes by topic, project, or area of focus. All physical files remain safely on your device.',
@@ -49,7 +49,7 @@ class GroupedEmptyState extends ConsumerWidget {
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
+            ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
             const SizedBox(height: 36),
             
             // Clean premium CTA button
@@ -57,7 +57,7 @@ class GroupedEmptyState extends ConsumerWidget {
               label: 'Create First Folder',
               icon: DesignIcons.addFolder,
               onTap: () => FolderDrawer.showAddFolderSheet(context, ref),
-            ).animate().fadeIn(delay: 350.ms),
+            ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
           ],
         ),
       ),

@@ -101,6 +101,12 @@ void main() {
         final content = 'Do not extract `#inlinecode` or \n```\n#fencedcode\n```\nbut extract #validtag.';
         expect(extractTags(content), equals(['validtag']));
       });
+
+      test('should extract nested tags with forward slashes', () {
+        expect(extractTags('Logging today in #journal/gratitude/morning.'), equals(['journal/gratitude/morning']));
+        expect(extractTags('This note has #tag/subtag/subsubtag.'), equals(['tag/subtag/subsubtag']));
+        expect(extractTags('Invalid nested tag ending with slash #tag/'), equals(['tag']));
+      });
     });
 
     group('extractWikilinks', () {
@@ -215,6 +221,44 @@ void main() {
 
         expect(await welcomeFile.exists(), isFalse);
         expect(await guideFile.exists(), isFalse);
+      });
+    });
+
+    group('extractChecklist', () {
+      test('should extract checkable checklist items', () {
+        const content = 'Some text\n- [ ] Task 1\n- [x] Task 2\nOther text';
+        final result = extractChecklist(content);
+        expect(result.length, equals(2));
+        expect(result[0].label, equals('Task 1'));
+        expect(result[0].isChecked, isFalse);
+        expect(result[1].label, equals('Task 2'));
+        expect(result[1].isChecked, isTrue);
+      });
+
+      test('should ignore checklist items in YAML frontmatter', () {
+        const content = '---\ntitle: "Note"\ndescription: " - [ ] not a task"\n---\n- [ ] Real Task';
+        final result = extractChecklist(content);
+        expect(result.length, equals(1));
+        expect(result[0].label, equals('Real Task'));
+      });
+
+      test('should ignore checklist items in fenced code blocks', () {
+        const content = '```\n- [ ] Code task\n```\n- [ ] Real Task';
+        final result = extractChecklist(content);
+        expect(result.length, equals(1));
+        expect(result[0].label, equals('Real Task'));
+      });
+    });
+
+    group('extractPreviewImage', () {
+      test('should extract first image preview path', () {
+        const content = 'Some text\n![alt text](attachments/pic.png)\n![alt 2](pic2.png)';
+        expect(extractPreviewImage(content), equals('attachments/pic.png'));
+      });
+
+      test('should ignore image tags inside fenced code blocks', () {
+        const content = '```\n![code](code.png)\n```\n![real](real.png)';
+        expect(extractPreviewImage(content), equals('real.png'));
       });
     });
 

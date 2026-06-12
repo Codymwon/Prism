@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
 
 void main() {
@@ -42,6 +42,19 @@ void main() {
       final result = computeStreak(dates, today);
       expect(result.streak, equals(2));
       expect(result.totalCount, equals(2));
+    });
+
+    test('Case 6: DST boundary transition safety', () {
+      // Simulating DST Start transition (March 8, 2026 is a 23-hour day in timezones like EST)
+      // Reference date: March 9, 2026 at 00:30:00 (just after midnight after transition)
+      final reference = DateTime(2026, 3, 9, 0, 30);
+      final dates = {'2026-03-09', '2026-03-08', '2026-03-07'};
+      final result = computeStreak(dates, reference);
+      
+      // If we skip March 8 due to 24-hour subtraction subtraction skipping, streak would be 2 (or 1 depending on check).
+      // With correct day-based subtraction, the streak should be exactly 3.
+      expect(result.streak, equals(3));
+      expect(result.totalCount, equals(3));
     });
   });
 }

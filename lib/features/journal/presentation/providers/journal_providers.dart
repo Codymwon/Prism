@@ -23,13 +23,13 @@ final allDailyDatesProvider = FutureProvider.autoDispose<Set<String>>((ref) asyn
   String checkStr = formatDailyDate(checkDate);
 
   if (!dates.contains(checkStr)) {
-    checkDate = checkDate.subtract(const Duration(days: 1));
+    checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1, checkDate.hour, checkDate.minute, checkDate.second);
     checkStr = formatDailyDate(checkDate);
   }
 
   while (dates.contains(checkStr)) {
     streak++;
-    checkDate = checkDate.subtract(const Duration(days: 1));
+    checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1, checkDate.hour, checkDate.minute, checkDate.second);
     checkStr = formatDailyDate(checkDate);
   }
 

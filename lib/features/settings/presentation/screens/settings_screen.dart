@@ -70,7 +70,6 @@ class SettingsScreen extends ConsumerWidget {
                   // ── Gestures & Feedback ──────────────────────────────────
                   const SettingsSectionHeader(title: 'Gestures & Feedback'),
                   const HapticToggleTile(),
-                  const DragToPinToggleTile(),
                   SettingsTile(
                     icon: Icons.explore_outlined,
                     title: 'Replay interactive tutorial',
@@ -79,6 +78,7 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () async {
                       await ref.read(tutorialStateProvider.notifier).resetTutorial();
                       await ref.read(editorTutorialStateProvider.notifier).resetTutorial();
+                      await ref.read(journalTutorialStateProvider.notifier).resetTutorial();
                       if (context.mounted) {
                         context.go('/notes');
                       }
