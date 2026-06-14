@@ -1,35 +1,29 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'note_model.freezed.dart';
+
 /// Sorting order for retrieving notes from the database.
 enum NoteSort { updated, created, title }
 
 /// Note model representing a single .md file entry in the SQLite index.
-class Note {
-  final String id;
-  final String title;
-  final String filePath;
-  final int wordCount;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final bool isGhost;
-  final bool isDaily;
-  final String? dailyDate;
-  final bool isConflicted;
-  final String? originalNoteId;
-  final String snippet;
+@freezed
+class Note with _$Note {
+  const Note._();
 
-  const Note({
-    required this.id,
-    required this.title,
-    required this.filePath,
-    required this.wordCount,
-    required this.createdAt,
-    required this.updatedAt,
-    this.isGhost = false,
-    this.isDaily = false,
-    this.dailyDate,
-    this.isConflicted = false,
-    this.originalNoteId,
-    this.snippet = '',
-  });
+  const factory Note({
+    required String id,
+    required String title,
+    required String filePath,
+    required int wordCount,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    @Default(false) bool isGhost,
+    @Default(false) bool isDaily,
+    String? dailyDate,
+    @Default(false) bool isConflicted,
+    String? originalNoteId,
+    @Default('') String snippet,
+  }) = _Note;
 
   factory Note.fromMap(Map<String, dynamic> map) {
     // sqflite rawQuery JOINs (e.g. getNotesInFolder) can return INTEGER columns
@@ -76,36 +70,6 @@ class Note {
     };
   }
 
-  Note copyWith({
-    String? id,
-    String? title,
-    String? filePath,
-    int? wordCount,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    bool? isGhost,
-    bool? isDaily,
-    String? dailyDate,
-    bool? isConflicted,
-    String? originalNoteId,
-    String? snippet,
-  }) {
-    return Note(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      filePath: filePath ?? this.filePath,
-      wordCount: wordCount ?? this.wordCount,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      isGhost: isGhost ?? this.isGhost,
-      isDaily: isDaily ?? this.isDaily,
-      dailyDate: dailyDate ?? this.dailyDate,
-      isConflicted: isConflicted ?? this.isConflicted,
-      originalNoteId: originalNoteId ?? this.originalNoteId,
-      snippet: snippet ?? this.snippet,
-    );
-  }
-
   @override
   String toString() => 'Note(id: $id, title: $title, isGhost: $isGhost, isConflicted: $isConflicted)';
 
@@ -118,17 +82,15 @@ class Note {
 }
 
 /// A single backlink reference — which note links to this one and a snippet.
-class Backlink {
-  final String sourceId;
-  final String sourceTitle;
-  final String? contextSnippet;
-
-  const Backlink({
-    required this.sourceId,
-    required this.sourceTitle,
-    this.contextSnippet,
-  });
+@freezed
+class Backlink with _$Backlink {
+  const factory Backlink({
+    required String sourceId,
+    required String sourceTitle,
+    String? contextSnippet,
+  }) = _Backlink;
 }
+
 
 /// A graph node for the Graph View visualization.
 class GraphNode {

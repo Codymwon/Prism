@@ -7,15 +7,12 @@ import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:prism/features/folders/presentation/providers/folders_providers.dart';
 import 'package:prism/shared/widgets/app_shell.dart';
-import 'package:prism/shared/widgets/tutorial_overlay.dart';
 import 'package:prism/features/onboarding/data/tutorial_provider.dart';
 
 class MockTutorialNotifier extends TutorialNotifier {
   MockTutorialNotifier(bool value) : super() {
     state = value;
   }
-  @override
-  Future<void> _load() async {}
   @override
   Future<void> completeTutorial() async {
     state = true;

@@ -17,8 +17,6 @@ class MockTutorialNotifier extends TutorialNotifier {
     state = value;
   }
   @override
-  Future<void> _load() async {}
-  @override
   Future<void> completeTutorial() async {
     state = true;
   }
@@ -28,8 +26,6 @@ class MockJournalTutorialNotifier extends JournalTutorialNotifier {
   MockJournalTutorialNotifier(bool value) : super() {
     state = value;
   }
-  @override
-  Future<void> _load() async {}
   @override
   Future<void> completeTutorial() async {
     state = true;
