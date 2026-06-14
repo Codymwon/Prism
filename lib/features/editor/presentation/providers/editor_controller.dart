@@ -10,6 +10,8 @@ import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
+// ─── EditorState ──────────────────────────────────────────────────────────────
+
 /// Value class representing the state of the editor.
 class EditorState {
   final bool isLoaded;
@@ -67,6 +69,8 @@ class EditorState {
     );
   }
 }
+
+// ─── EditorController ─────────────────────────────────────────────────────────
 
 /// Controller managing the editor state, autosaves, and wikilink autocompletion.
 class EditorController extends StateNotifier<EditorState> {
@@ -238,7 +242,6 @@ class EditorController extends StateNotifier<EditorState> {
     _saveTimer?.cancel();
     super.dispose();
   }
-
 }
 
 /// Riverpod StateNotifierProvider for EditorController
@@ -247,6 +250,150 @@ final editorControllerProvider = StateNotifierProvider.autoDispose
   return EditorController(ref, noteId);
 });
 
+
+// ─── AudioRecorderService ─────────────────────────────────────────────────────
+
+/// Abstract seam for microphone permission and audio recording, decoupling
+/// [DictationController] from the concrete `record` plugin.
+abstract class AudioRecorderService {
+  /// Returns `true` if the app has microphone permission.
+  Future<bool> hasPermission();
+
+  /// Starts recording to [path].
+  Future<void> start(String path);
+
+  /// Stops recording and returns the file path of the recorded audio, if any.
+  Future<String?> stop();
+
+  /// Returns `true` if a recording is in progress.
+  Future<bool> isRecording();
+
+  /// Releases native resources.
+  void dispose();
+}
+
+// ─── AudioRecorderServiceImpl ─────────────────────────────────────────────────
+
+/// Production adapter wrapping the `record` plugin [AudioRecorder].
+class AudioRecorderServiceImpl implements AudioRecorderService {
+  final AudioRecorder _recorder = AudioRecorder();
+
+  @override
+  Future<bool> hasPermission() => _recorder.hasPermission();
+
+  @override
+  Future<void> start(String path) {
+    return _recorder.start(
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        sampleRate: 16000,
+        numChannels: 1,
+        bitRate: 32000,
+      ),
+      path: path,
+    );
+  }
+
+  @override
+  Future<String?> stop() => _recorder.stop();
+
+  @override
+  Future<bool> isRecording() => _recorder.isRecording();
+
+  @override
+  void dispose() => _recorder.dispose();
+}
+
+final audioRecorderServiceProvider = Provider<AudioRecorderService>((ref) {
+  final service = AudioRecorderServiceImpl();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+// ─── SpeechToTextService ──────────────────────────────────────────────────────
+
+/// Abstract seam for speech recognition, decoupling [DictationController] from
+/// the concrete `speech_to_text` plugin.
+abstract class SpeechToTextService {
+  /// Initialises the speech recogniser.  Returns `true` if available.
+  Future<bool> initialize({
+    required void Function(String status) onStatus,
+    required void Function(String error) onError,
+  });
+
+  /// Starts listening for speech.
+  Future<void> listen({
+    required void Function(String words, bool isFinal) onResult,
+    Duration? listenFor,
+    Duration? pauseFor,
+  });
+
+  /// Stops listening.
+  Future<void> stop();
+
+  /// Whether speech recognition is available on the current device.
+  bool get isAvailable;
+
+  /// Releases native resources.
+  void dispose();
+}
+
+// ─── SpeechToTextServiceImpl ──────────────────────────────────────────────────
+
+/// Production adapter wrapping the `speech_to_text` plugin [SpeechToText].
+class SpeechToTextServiceImpl implements SpeechToTextService {
+  final SpeechToText _stt = SpeechToText();
+
+  @override
+  Future<bool> initialize({
+    required void Function(String status) onStatus,
+    required void Function(String error) onError,
+  }) {
+    return _stt.initialize(
+      onStatus: onStatus,
+      onError: (e) => onError(e.toString()),
+    );
+  }
+
+  @override
+  Future<void> listen({
+    required void Function(String words, bool isFinal) onResult,
+    Duration? listenFor,
+    Duration? pauseFor,
+  }) {
+    return _stt.listen(
+      onResult: (result) => onResult(result.recognizedWords, result.finalResult),
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        listenMode: ListenMode.dictation,
+        listenFor: listenFor ?? const Duration(minutes: 10),
+        pauseFor: pauseFor ?? const Duration(seconds: 15),
+      ),
+    );
+  }
+
+  @override
+  Future<void> stop() => _stt.stop();
+
+  @override
+  bool get isAvailable => _stt.isAvailable;
+
+  @override
+  void dispose() {
+    // SpeechToText has no explicit dispose – stop any active session.
+    try {
+      _stt.stop();
+    } catch (_) {}
+  }
+}
+
+final speechToTextServiceProvider = Provider<SpeechToTextService>((ref) {
+  final service = SpeechToTextServiceImpl();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+// ─── DictationState ───────────────────────────────────────────────────────────
 
 /// Value class representing the state of the dictation.
 class DictationState {
@@ -276,13 +423,18 @@ class DictationState {
   }
 }
 
+// ─── DictationController ──────────────────────────────────────────────────────
+
 /// Controller managing live text speech transcribing or audio-memo recording.
 class DictationController extends StateNotifier<DictationState> {
-  final Ref ref;
+  // Injected service seams
+  final AudioRecorderService _audioRecorder;
+  final SpeechToTextService _speechToText;
+
+  // Optional Riverpod ref — null when constructed via withServices() in tests.
+  final Ref? _ref;
   final String noteId;
 
-  final SpeechToText _speechToText = SpeechToText();
-  final AudioRecorder _audioRecorder = AudioRecorder();
   bool _speechInitialized = false;
   int _dictationStartOffset = 0;
   String _dictationPreSpeechText = '';
@@ -295,24 +447,50 @@ class DictationController extends StateNotifier<DictationState> {
   FocusNode? _activeFocusNode;
   void Function()? _activeOnSave;
 
-  DictationController(this.ref, this.noteId) : super(DictationState.initial());
+  /// Provider constructor: injects services from the Riverpod tree.
+  DictationController(Ref ref, this.noteId)
+      : _ref = ref,
+        _audioRecorder = ref.read(audioRecorderServiceProvider),
+        _speechToText = ref.read(speechToTextServiceProvider),
+        super(DictationState.initial());
+
+  /// Test constructor: accepts arbitrary service implementations directly.
+  DictationController.withServices({
+    required AudioRecorderService recorder,
+    required SpeechToTextService speechToText,
+    required this.noteId,
+  })  : _ref = null,
+        _audioRecorder = recorder,
+        _speechToText = speechToText,
+        super(DictationState.initial());
 
   Future<void> toggleDictation({
     required TextEditingController textController,
     required FocusNode focusNode,
     required void Function() onSave,
+    bool keepVoice = false,
+    String? vaultPath,
   }) async {
     if (state.isDictating) {
-      await stopDictation(commit: true, textController: textController, focusNode: focusNode, onSave: onSave);
+      await stopDictation(
+        commit: true,
+        textController: textController,
+        focusNode: focusNode,
+        onSave: onSave,
+        keepVoice: keepVoice,
+      );
       return;
     }
 
-    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
+    // If using provider, read keepVoice from settings
+    final effectiveKeepVoice = _ref != null
+        ? (_ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false)
+        : keepVoice;
 
     try {
-      if (!keepVoice) {
+      if (!effectiveKeepVoice) {
         if (!_speechInitialized) {
-          bool available = await _speechToText.initialize(
+          final available = await _speechToText.initialize(
             onStatus: (status) {
               if (status == 'notListening' && state.isDictating) {
                 Future.delayed(const Duration(milliseconds: 100), () {
@@ -326,6 +504,8 @@ class DictationController extends StateNotifier<DictationState> {
                         textController: txtCtrl,
                         focusNode: fn,
                         onSave: os,
+                        keepVoice: effectiveKeepVoice,
+                        vaultPath: vaultPath,
                       );
                     }
                   }
@@ -350,6 +530,8 @@ class DictationController extends StateNotifier<DictationState> {
           textController: textController,
           focusNode: focusNode,
           onSave: onSave,
+          keepVoice: effectiveKeepVoice,
+          vaultPath: vaultPath,
         );
       } else {
         throw Exception('Microphone permission is required.');
@@ -364,12 +546,12 @@ class DictationController extends StateNotifier<DictationState> {
     required TextEditingController textController,
     required FocusNode focusNode,
     required void Function() onSave,
+    required bool keepVoice,
+    String? vaultPath,
   }) async {
     _activeTextController = textController;
     _activeFocusNode = focusNode;
     _activeOnSave = onSave;
-
-    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
 
     _speechSessionCount++;
     final currentSession = _speechSessionCount;
@@ -388,8 +570,8 @@ class DictationController extends StateNotifier<DictationState> {
     if (keepVoice) {
       if (!isRestart) {
         try {
-          final vaultPath = await ref.read(activeVaultPathProvider.future);
-          final attachmentsDir = Directory(p.join(vaultPath, 'attachments'));
+          final effectiveVaultPath = vaultPath ?? (_ref != null ? await _ref.read(activeVaultPathProvider.future) : '');
+          final attachmentsDir = Directory(p.join(effectiveVaultPath, 'attachments'));
           if (!await attachmentsDir.exists()) {
             await attachmentsDir.create(recursive: true);
           }
@@ -399,25 +581,17 @@ class DictationController extends StateNotifier<DictationState> {
           final audioPath = p.join(attachmentsDir.path, 'audio_${timestamp}_$_dictationSessionId.m4a');
           _dictationAudioPath = audioPath;
 
-          await _audioRecorder.start(
-            const RecordConfig(
-              encoder: AudioEncoder.aacLc,
-              sampleRate: 16000,
-              numChannels: 1,
-              bitRate: 32000,
-            ),
-            path: audioPath,
-          );
+          await _audioRecorder.start(audioPath);
         } catch (e) {
           debugPrint('Audio recording error: $e');
         }
       }
     } else {
       await _speechToText.listen(
-        onResult: (result) {
+        onResult: (words, isFinal) {
           if (!mounted || !state.isDictating || _speechSessionCount != currentSession) return;
 
-          String newWords = result.recognizedWords;
+          String newWords = words;
 
           if (newWords.isEmpty && state.currentWords.isNotEmpty) {
             _dictationStartOffset = (_dictationStartOffset + state.currentWords.length).clamp(0, textController.text.length);
@@ -444,12 +618,6 @@ class DictationController extends StateNotifier<DictationState> {
             selection: TextSelection.collapsed(offset: _dictationStartOffset + newWords.length),
           );
         },
-        listenOptions: SpeechListenOptions(
-          partialResults: true,
-          listenMode: ListenMode.dictation,
-          listenFor: const Duration(minutes: 10),
-          pauseFor: const Duration(seconds: 15),
-        ),
       );
     }
   }
@@ -459,14 +627,17 @@ class DictationController extends StateNotifier<DictationState> {
     required TextEditingController textController,
     required FocusNode focusNode,
     required void Function() onSave,
+    bool keepVoice = false,
   }) async {
     if (!state.isDictating) return;
 
     state = state.copyWith(isDictating: false);
 
-    final keepVoice = ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false;
+    final effectiveKeepVoice = _ref != null
+        ? (_ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false)
+        : keepVoice;
 
-    if (!keepVoice) {
+    if (!effectiveKeepVoice) {
       await _speechToText.stop();
     }
     final audioPath = await _audioRecorder.stop();
@@ -484,7 +655,7 @@ class DictationController extends StateNotifier<DictationState> {
         }
       }
     } else {
-      if (keepVoice && audioPath != null && _dictationAudioPath.isNotEmpty) {
+      if (effectiveKeepVoice && audioPath != null && _dictationAudioPath.isNotEmpty) {
         final filename = p.basename(_dictationAudioPath);
 
         final text = textController.text;
@@ -514,7 +685,6 @@ class DictationController extends StateNotifier<DictationState> {
     try {
       _speechToText.stop();
     } catch (_) {}
-
     if (state.isDictating && _dictationAudioPath.isNotEmpty) {
       try {
         final file = File(_dictationAudioPath);
@@ -525,8 +695,6 @@ class DictationController extends StateNotifier<DictationState> {
         debugPrint('Error deleting orphan audio on dispose: $e');
       }
     }
-
-    _audioRecorder.dispose();
     super.dispose();
   }
 }
