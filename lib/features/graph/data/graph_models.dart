@@ -1,16 +1,18 @@
-/// Model representing coordinates and pin state of a graph node.
-class GraphNodePosition {
-  final String noteId;
-  final double x;
-  final double y;
-  final bool isPinned;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const GraphNodePosition({
-    required this.noteId,
-    required this.x,
-    required this.y,
-    this.isPinned = false,
-  });
+part 'graph_models.freezed.dart';
+
+/// Model representing coordinates and pin state of a graph node.
+@freezed
+class GraphNodePosition with _$GraphNodePosition {
+  const GraphNodePosition._();
+
+  const factory GraphNodePosition({
+    required String noteId,
+    required double x,
+    required double y,
+    @Default(false) bool isPinned,
+  }) = _GraphNodePosition;
 
   factory GraphNodePosition.fromMap(Map<String, dynamic> map) {
     double safeDouble(dynamic v, {double fallback = 0.0}) {
@@ -36,20 +38,6 @@ class GraphNodePosition {
       'y': y,
       'is_pinned': isPinned ? 1 : 0,
     };
-  }
-
-  GraphNodePosition copyWith({
-    String? noteId,
-    double? x,
-    double? y,
-    bool? isPinned,
-  }) {
-    return GraphNodePosition(
-      noteId: noteId ?? this.noteId,
-      x: x ?? this.x,
-      y: y ?? this.y,
-      isPinned: isPinned ?? this.isPinned,
-    );
   }
 
   @override

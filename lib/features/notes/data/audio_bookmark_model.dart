@@ -1,20 +1,20 @@
-/// Model representing a timestamp bookmark on an audio note.
-class AudioBookmark {
-  final String id;
-  final String noteId;
-  final String attachmentPath;
-  final int timestampMs;
-  final String annotationText;
-  final DateTime createdAt;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const AudioBookmark({
-    required this.id,
-    required this.noteId,
-    required this.attachmentPath,
-    required this.timestampMs,
-    required this.annotationText,
-    required this.createdAt,
-  });
+part 'audio_bookmark_model.freezed.dart';
+
+/// Model representing a timestamp bookmark on an audio note.
+@freezed
+class AudioBookmark with _$AudioBookmark {
+  const AudioBookmark._();
+
+  const factory AudioBookmark({
+    required String id,
+    required String noteId,
+    required String attachmentPath,
+    required int timestampMs,
+    required String annotationText,
+    required DateTime createdAt,
+  }) = _AudioBookmark;
 
   factory AudioBookmark.fromMap(Map<String, dynamic> map) {
     int safeInt(dynamic v, {int fallback = 0}) {
@@ -44,24 +44,6 @@ class AudioBookmark {
       'annotation_text': annotationText,
       'created_at': createdAt.millisecondsSinceEpoch,
     };
-  }
-
-  AudioBookmark copyWith({
-    String? id,
-    String? noteId,
-    String? attachmentPath,
-    int? timestampMs,
-    String? annotationText,
-    DateTime? createdAt,
-  }) {
-    return AudioBookmark(
-      id: id ?? this.id,
-      noteId: noteId ?? this.noteId,
-      attachmentPath: attachmentPath ?? this.attachmentPath,
-      timestampMs: timestampMs ?? this.timestampMs,
-      annotationText: annotationText ?? this.annotationText,
-      createdAt: createdAt ?? this.createdAt,
-    );
   }
 
   @override
