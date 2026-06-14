@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:path/path.dart' as p;
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:record/record.dart';
@@ -10,62 +11,32 @@ import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
+part 'editor_controller.freezed.dart';
+
 /// Value class representing the state of the editor.
-class EditorState {
-  final bool isLoaded;
-  final bool isSaving;
-  final bool showWikilinkPopup;
-  final String wikilinkQuery;
-  final String loadedTitle;
-  final String loadedBody;
-  final String? dailyDate;
-  final String lastSaved;
-
-  const EditorState({
-    required this.isLoaded,
-    required this.isSaving,
-    required this.showWikilinkPopup,
-    required this.wikilinkQuery,
-    required this.loadedTitle,
-    required this.loadedBody,
-    this.dailyDate,
-    required this.lastSaved,
-  });
-
-  factory EditorState.initial() {
-    return const EditorState(
-      isLoaded: false,
-      isSaving: false,
-      showWikilinkPopup: false,
-      wikilinkQuery: '',
-      loadedTitle: '',
-      loadedBody: '',
-      dailyDate: null,
-      lastSaved: '',
-    );
-  }
-
-  EditorState copyWith({
-    bool? isLoaded,
-    bool? isSaving,
-    bool? showWikilinkPopup,
-    String? wikilinkQuery,
-    String? loadedTitle,
-    String? loadedBody,
+@freezed
+class EditorState with _$EditorState {
+  const factory EditorState({
+    @Default(false) bool isLoaded,
+    @Default(false) bool isSaving,
+    @Default(false) bool showWikilinkPopup,
+    @Default('') String wikilinkQuery,
+    @Default('') String loadedTitle,
+    @Default('') String loadedBody,
     String? dailyDate,
-    String? lastSaved,
-  }) {
-    return EditorState(
-      isLoaded: isLoaded ?? this.isLoaded,
-      isSaving: isSaving ?? this.isSaving,
-      showWikilinkPopup: showWikilinkPopup ?? this.showWikilinkPopup,
-      wikilinkQuery: wikilinkQuery ?? this.wikilinkQuery,
-      loadedTitle: loadedTitle ?? this.loadedTitle,
-      loadedBody: loadedBody ?? this.loadedBody,
-      dailyDate: dailyDate ?? this.dailyDate,
-      lastSaved: lastSaved ?? this.lastSaved,
-    );
-  }
+    @Default('') String lastSaved,
+  }) = _EditorState;
+
+  factory EditorState.initial() => const EditorState(
+        isLoaded: false,
+        isSaving: false,
+        showWikilinkPopup: false,
+        wikilinkQuery: '',
+        loadedTitle: '',
+        loadedBody: '',
+        dailyDate: null,
+        lastSaved: '',
+      );
 }
 
 /// Controller managing the editor state, autosaves, and wikilink autocompletion.
@@ -249,31 +220,17 @@ final editorControllerProvider = StateNotifierProvider.autoDispose
 
 
 /// Value class representing the state of the dictation.
-class DictationState {
-  final bool isDictating;
-  final String currentWords;
+@freezed
+class DictationState with _$DictationState {
+  const factory DictationState({
+    @Default(false) bool isDictating,
+    @Default('') String currentWords,
+  }) = _DictationState;
 
-  const DictationState({
-    required this.isDictating,
-    required this.currentWords,
-  });
-
-  factory DictationState.initial() {
-    return const DictationState(
-      isDictating: false,
-      currentWords: '',
-    );
-  }
-
-  DictationState copyWith({
-    bool? isDictating,
-    String? currentWords,
-  }) {
-    return DictationState(
-      isDictating: isDictating ?? this.isDictating,
-      currentWords: currentWords ?? this.currentWords,
-    );
-  }
+  factory DictationState.initial() => const DictationState(
+        isDictating: false,
+        currentWords: '',
+      );
 }
 
 /// Controller managing live text speech transcribing or audio-memo recording.
