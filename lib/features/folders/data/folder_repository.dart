@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
+import '../../../core/database/database_service.dart';
 import '../../../core/database/database_providers.dart';
-import '../../../core/database/prism_metadata_store.dart';
 import '../../../core/utils/utils.dart';
 import '../../../core/database/vault_providers.dart';
 import '../../notes/data/note_model.dart';
@@ -18,14 +18,12 @@ class FolderRepository {
 
   FolderRepository(this._ref);
 
-  Future<Database> get _db => _ref.read(databaseProvider.future);
+  Future<DatabaseService> get _db => _ref.read(databaseServiceProvider.future);
 
   /// Atomically re-serialises the five app-only SQLite tables to the sidecar.
-  Future<void> _flush(Database db) async {
+  Future<void> _flush(DatabaseService db) async {
     final vaultPath = await _ref.read(activeVaultPathProvider.future);
-    if (vaultPath.isNotEmpty) {
-      await PrismMetadataStore().flushFromDatabase(db, vaultPath);
-    }
+    await db.flushMetadata(vaultPath);
   }
 
   // ── READ ──────────────────────────────────────────────────────────────────
