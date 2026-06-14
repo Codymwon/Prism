@@ -1,16 +1,15 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+part 'vault_providers.g.dart';
+
 // ─── Base Vaults Directory Provider ──────────────────────────────────────────
 // Uses AsyncNotifier so consumers can await the initial SharedPreferences load
 // instead of receiving an empty string during the async gap.
-final baseVaultsDirectoryProvider =
-    AsyncNotifierProvider<BaseVaultsDirectoryNotifier, String>(
-        BaseVaultsDirectoryNotifier.new);
-
-class BaseVaultsDirectoryNotifier extends AsyncNotifier<String> {
+@riverpod
+class BaseVaultsDirectory extends _$BaseVaultsDirectory {
   @override
   Future<String> build() async {
     final prefs = await SharedPreferences.getInstance();
@@ -31,11 +30,8 @@ class BaseVaultsDirectoryNotifier extends AsyncNotifier<String> {
 }
 
 // ─── Active Vault Name Provider ──────────────────────────────────────────────
-final activeVaultNameProvider =
-    AsyncNotifierProvider<ActiveVaultNameNotifier, String>(
-        ActiveVaultNameNotifier.new);
-
-class ActiveVaultNameNotifier extends AsyncNotifier<String> {
+@riverpod
+class ActiveVaultName extends _$ActiveVaultName {
   @override
   Future<String> build() async {
     final prefs = await SharedPreferences.getInstance();
@@ -52,9 +48,11 @@ class ActiveVaultNameNotifier extends AsyncNotifier<String> {
 
 // ─── Active Vault Path Provider (Derived) ────────────────────────────────────
 // FutureProvider that waits for both async notifiers before computing the path.
-final activeVaultPathProvider = FutureProvider<String>((ref) async {
+@riverpod
+Future<String> activeVaultPath(ActiveVaultPathRef ref) async {
   final baseDir = await ref.watch(baseVaultsDirectoryProvider.future);
   final activeVault = await ref.watch(activeVaultNameProvider.future);
   if (baseDir.isEmpty) return '';
   return p.join(baseDir, activeVault);
-});
+}
+

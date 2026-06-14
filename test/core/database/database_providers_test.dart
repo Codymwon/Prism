@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/core/database/database_helper.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/features/notes/data/vault_service.dart';
@@ -90,6 +91,11 @@ void main() {
       ],
     );
 
+    // Keep the databaseProvider and version providers alive during the test
+    final subscription = container.listen(databaseProvider, (_, next) {});
+    final notesSub = container.listen(notesVersionProvider, (_, next) {});
+    final foldersSub = container.listen(foldersVersionProvider, (_, next) {});
+
     // Initial versions should be 0
     expect(container.read(notesVersionProvider), equals(0));
     expect(container.read(foldersVersionProvider), equals(0));
@@ -108,8 +114,12 @@ void main() {
     expect(container.read(notesVersionProvider), equals(1));
     expect(container.read(foldersVersionProvider), equals(1));
 
+    subscription.close();
+    notesSub.close();
+    foldersSub.close();
     container.dispose();
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Ensure database connection is closed to release file lock before tearing down
+    await DatabaseHelper.instance.closeDatabaseConnection(db);
   });
 
 
