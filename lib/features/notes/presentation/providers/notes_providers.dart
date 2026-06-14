@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
@@ -6,23 +6,56 @@ import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_repository.dart';
 import '../../../folders/data/folder_model.dart';
 
+part 'notes_providers.g.dart';
+
 // ─── Notes List Providers ─────────────────────────────────────────────────────
 
 /// On wide (desktop) windows the notes list and the editor sit side-by-side.
 /// This provider holds the id of the note currently open in the desktop pane.
 /// It is completely ignored on mobile — navigation there still uses GoRouter pushes.
-final activeDesktopNoteIdProvider = StateProvider<String?>((ref) => null);
+@riverpod
+class ActiveDesktopNoteId extends _$ActiveDesktopNoteId {
+  @override
+  String? build() => null;
 
-final noteSortProvider = StateProvider<NoteSort>((ref) => NoteSort.updated);
+  @override
+  String? get state => super.state;
 
-final selectedTagProvider = StateProvider<String?>((ref) => null);
+  @override
+  set state(String? value) => super.state = value;
+}
 
-final notesProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
+@riverpod
+class NoteSortNotifier extends _$NoteSortNotifier {
+  @override
+  NoteSort build() => NoteSort.updated;
+
+  @override
+  NoteSort get state => super.state;
+
+  @override
+  set state(NoteSort value) => super.state = value;
+}
+
+@riverpod
+class SelectedTag extends _$SelectedTag {
+  @override
+  String? build() => null;
+
+  @override
+  String? get state => super.state;
+
+  @override
+  set state(String? value) => super.state = value;
+}
+
+@riverpod
+Future<List<Note>> notes(NotesRef ref) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
-  final sort = ref.watch(noteSortProvider);
+  final sort = ref.watch(noteSortNotifierProvider);
   
   final tag = ref.watch(selectedTagProvider);
   if (tag != null) {
@@ -36,27 +69,50 @@ final notesProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
   }
   
   return repo.getAllNotes(sort: sort);
-});
+}
 
-final uniqueTagsProvider = FutureProvider.autoDispose<List<String>>((ref) async {
+@riverpod
+Future<List<String>> uniqueTags(UniqueTagsRef ref) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getUniqueTags();
-});
+}
 
-final vaultStatsProvider = FutureProvider.autoDispose<({int totalNotes, int totalWords, int totalLinks})>((ref) async {
+@riverpod
+Future<({int totalNotes, int totalWords, int totalLinks})> vaultStats(VaultStatsRef ref) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getVaultStats();
-});
+}
 
-final searchQueryProvider = StateProvider<String>((ref) => '');
+@riverpod
+class SearchQuery extends _$SearchQuery {
+  @override
+  String build() => '';
 
-final searchFocusProvider = StateProvider<bool>((ref) => false);
+  @override
+  String get state => super.state;
 
-final searchResultsProvider = FutureProvider.autoDispose<List<Note>>((ref) async {
+  @override
+  set state(String value) => super.state = value;
+}
+
+@riverpod
+class SearchFocus extends _$SearchFocus {
+  @override
+  bool build() => false;
+
+  @override
+  bool get state => super.state;
+
+  @override
+  set state(bool value) => super.state = value;
+}
+
+@riverpod
+Future<List<Note>> searchResults(SearchResultsRef ref) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final query = ref.watch(searchQueryProvider);
@@ -70,9 +126,10 @@ final searchResultsProvider = FutureProvider.autoDispose<List<Note>>((ref) async
   if (didDispose) return [];
   
   return repo.searchNotes(query);
-});
+}
 
-final autocompleteSuggestionsProvider = FutureProvider.autoDispose.family<List<Note>, String>((ref, query) async {
+@riverpod
+Future<List<Note>> autocompleteSuggestions(AutocompleteSuggestionsRef ref, String query) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
@@ -85,21 +142,23 @@ final autocompleteSuggestionsProvider = FutureProvider.autoDispose.family<List<N
   if (didDispose) return [];
   
   return repo.getTitleSuggestions(query);
-});
+}
 
-final noteByIdProvider = FutureProvider.autoDispose.family<Note?, String>((ref, id) async {
+@riverpod
+Future<Note?> noteById(NoteByIdRef ref, String id) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getNoteById(id);
-});
+}
 
-final backlinksProvider = FutureProvider.autoDispose.family<List<Backlink>, String>((ref, noteId) async {
+@riverpod
+Future<List<Backlink>> backlinks(BacklinksRef ref, String noteId) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getBacklinks(noteId);
-});
+}
 
 class HomeScreenData {
   final List<Note> notes;
@@ -113,7 +172,8 @@ class HomeScreenData {
   });
 }
 
-final homeScreenDataProvider = Provider.autoDispose<AsyncValue<HomeScreenData>>((ref) {
+@riverpod
+AsyncValue<HomeScreenData> homeScreenData(HomeScreenDataRef ref) {
   final notesAsync = ref.watch(notesProvider);
   final foldersAsync = ref.watch(foldersProvider);
   final mappingsAsync = ref.watch(noteFolderMappingsProvider);
@@ -137,9 +197,10 @@ final homeScreenDataProvider = Provider.autoDispose<AsyncValue<HomeScreenData>>(
   }
 
   return const AsyncLoading<HomeScreenData>();
-});
+}
 
-final noteDetailsProvider = FutureProvider.autoDispose.family<({List<String> tags, String snippet}), String>((ref, noteId) async {
+@riverpod
+Future<({List<String> tags, String snippet})> noteDetails(NoteDetailsRef ref, String noteId) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
@@ -149,5 +210,4 @@ final noteDetailsProvider = FutureProvider.autoDispose.family<({List<String> tag
   final tags = await repo.getTagsForNote(noteId);
   
   return (tags: tags, snippet: snippet);
-});
-
+}

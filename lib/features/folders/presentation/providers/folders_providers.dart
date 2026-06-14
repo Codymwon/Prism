@@ -1,31 +1,46 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../data/folder_model.dart';
 import '../../data/folder_repository.dart';
 
+part 'folders_providers.g.dart';
+
 // ─── Selected Folder Provider ────────────────────────────────────────────────
-final selectedFolderIdProvider = StateProvider<String?>((ref) => null);
+@riverpod
+class SelectedFolderId extends _$SelectedFolderId {
+  @override
+  String? build() => null;
+
+  @override
+  String? get state => super.state;
+
+  @override
+  set state(String? value) => super.state = value;
+}
 
 // ─── Folders Provider ─────────────────────────────────────────────────────────
-final foldersProvider = FutureProvider.autoDispose<List<VirtualFolder>>((ref) async {
+@riverpod
+Future<List<VirtualFolder>> folders(FoldersRef ref) async {
   await ref.watch(databaseProvider.future);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(folderRepositoryProvider);
   return repo.getAllFolders();
-});
+}
 
 // ─── Folders for Note Provider ────────────────────────────────────────────────
-final foldersForNoteProvider = FutureProvider.autoDispose.family<List<VirtualFolder>, String>((ref, noteId) async {
+@riverpod
+Future<List<VirtualFolder>> foldersForNote(FoldersForNoteRef ref, String noteId) async {
   await ref.watch(databaseProvider.future);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(folderRepositoryProvider);
   return repo.getFoldersForNote(noteId);
-});
+}
 
 // ─── Note-Folder Mappings Provider ────────────────────────────────────────────
-final noteFolderMappingsProvider = FutureProvider.autoDispose<Map<String, List<String>>>((ref) async {
+@riverpod
+Future<Map<String, List<String>>> noteFolderMappings(NoteFolderMappingsRef ref) async {
   await ref.watch(databaseProvider.future);
   ref.watch(foldersVersionProvider);
   final repo = ref.watch(folderRepositoryProvider);
   return repo.getNoteFolderMappings();
-});
+}

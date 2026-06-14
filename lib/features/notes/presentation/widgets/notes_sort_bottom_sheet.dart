@@ -53,7 +53,7 @@ class NotesSortBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final activeSort = ref.watch(noteSortProvider);
+    final activeSort = ref.watch(noteSortNotifierProvider);
 
     return SafeArea(
       child: Column(
@@ -127,7 +127,7 @@ class NotesSortBottomSheet extends ConsumerWidget {
       child: TactileWrapper(
         style: TactileFeedbackStyle.standard,
         onTap: () {
-          ref.read(noteSortProvider.notifier).state = value;
+          ref.read(noteSortNotifierProvider.notifier).state = value;
           Navigator.pop(context);
         },
         child: AnimatedContainer(
