@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/core/database/database_providers.dart';
@@ -272,6 +272,35 @@ void main() {
         final weekNode = graphData.nodes.firstWhere((n) => n.temporalType == 'week');
         expect(weekNode.id, equals('week-2026-01'));
       });
+    });
+  });
+
+  group('NoteRepository readNoteContent tests', () {
+    test('readNoteContent reads content strictly via the VaultStorage provider seam', () async {
+      final fakeStorage = FakeVaultStorage();
+      await fakeStorage.writeContent('some_path.md', 'hello from fake storage');
+
+      final overrideContainer = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) async => db),
+          vaultStorageProvider.overrideWith((ref) => fakeStorage),
+        ],
+      );
+      addTearDown(overrideContainer.dispose);
+
+      // We need to insert a note to DB so getNoteById works
+      await db.insert('notes', {
+        'id': 'test-note-id',
+        'title': 'Test Note',
+        'file_path': 'some_path.md',
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      final repo = overrideContainer.read(noteRepositoryProvider);
+      final content = await repo.readNoteContent('test-note-id');
+
+      expect(content, equals('hello from fake storage'));
     });
   });
 }

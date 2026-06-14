@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
 import 'note_model.dart';
 import 'vault_service.dart';
+import 'vault_storage.dart';
 
 // ─── Repository Provider ──────────────────────────────────────────────────────
 
@@ -92,22 +92,11 @@ class NoteRepository {
   }
 
   Future<String> readNoteContent(String noteId) async {
-    NoteIngestionService? service;
-    try {
-      service = _vaultService;
-    } catch (_) {
-      // In tests, _vaultService getter might throw due to FakeRef / uninitialized providers
-    }
-
-    if (service != null) {
-      return service.readNoteContent(noteId);
-    }
-
     final note = await getNoteById(noteId);
     if (note != null) {
-      final file = File(note.filePath);
-      if (file.existsSync()) {
-        return file.readAsStringSync();
+      final storage = _ref.read(vaultStorageProvider);
+      if (await storage.exists(note.filePath)) {
+        return storage.readContent(note.filePath);
       }
     }
     throw ArgumentError('Note not found or file does not exist for ID: $noteId');

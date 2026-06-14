@@ -2,10 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../../../core/database/vault_providers.dart';
 import 'adapters/vault_service_impl.dart';
-import 'adapters/local_vault_storage.dart';
 import 'adapters/markdown_content_parser.dart';
 import 'adapters/sqlite_metadata_indexer.dart';
 import 'note_model.dart';
+
+import 'vault_storage.dart';
 
 abstract class NoteIngestionService {
   Future<Note> createNote({
@@ -32,7 +33,7 @@ abstract class NoteIngestionService {
 final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
   return NoteIngestionServiceImpl(
     getDb: () => ref.read(databaseProvider.future),
-    storage: LocalVaultStorage(),
+    storage: ref.read(vaultStorageProvider),
     parser: MarkdownContentParser(),
     indexer: SqliteMetadataIndexer(),
     getVaultPath: () => ref.read(activeVaultPathProvider.future),
