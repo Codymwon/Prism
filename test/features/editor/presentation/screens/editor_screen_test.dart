@@ -32,6 +32,15 @@ class MockNoteRepository extends NoteRepository {
   Future<List<Backlink>> getBacklinks(String noteId) async => [];
 
   @override
+  Future<String> readNoteContent(String noteId) async {
+    final file = File(note.filePath);
+    if (file.existsSync()) {
+      return file.readAsStringSync();
+    }
+    throw ArgumentError('Note not found or file does not exist for ID: $noteId');
+  }
+
+  @override
   Future<void> saveNote(String id, String content) async {
     onSaveNote?.call(id, content);
   }
