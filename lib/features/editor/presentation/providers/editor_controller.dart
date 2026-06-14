@@ -1,17 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:path/path.dart' as p;
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:record/record.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
 part 'editor_controller.freezed.dart';
+part 'editor_controller.g.dart';
 
 /// Value class representing the state of the editor.
 @freezed
@@ -40,12 +41,17 @@ class EditorState with _$EditorState {
 }
 
 /// Controller managing the editor state, autosaves, and wikilink autocompletion.
-class EditorController extends StateNotifier<EditorState> {
-  final Ref ref;
-  final String noteId;
+@riverpod
+class EditorController extends _$EditorController {
   Timer? _saveTimer;
 
-  EditorController(this.ref, this.noteId) : super(EditorState.initial());
+  @override
+  EditorState build(String noteId) {
+    ref.onDispose(() {
+      _saveTimer?.cancel();
+    });
+    return EditorState.initial();
+  }
 
   Future<EditorState?> loadNote({required bool isNew, String? defaultDailyDate}) async {
     final repo = ref.read(noteRepositoryProvider);
@@ -204,19 +210,7 @@ class EditorController extends StateNotifier<EditorState> {
     }
   }
 
-  @override
-  void dispose() {
-    _saveTimer?.cancel();
-    super.dispose();
-  }
-
 }
-
-/// Riverpod StateNotifierProvider for EditorController
-final editorControllerProvider = StateNotifierProvider.autoDispose
-    .family<EditorController, EditorState, String>((ref, noteId) {
-  return EditorController(ref, noteId);
-});
 
 
 /// Value class representing the state of the dictation.
@@ -234,9 +228,9 @@ class DictationState with _$DictationState {
 }
 
 /// Controller managing live text speech transcribing or audio-memo recording.
-class DictationController extends StateNotifier<DictationState> {
-  final Ref ref;
-  final String noteId;
+@riverpod
+class DictationController extends _$DictationController {
+  bool _mounted = true;
 
   final SpeechToText _speechToText = SpeechToText();
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -252,7 +246,29 @@ class DictationController extends StateNotifier<DictationState> {
   FocusNode? _activeFocusNode;
   void Function()? _activeOnSave;
 
-  DictationController(this.ref, this.noteId) : super(DictationState.initial());
+  @override
+  DictationState build(String noteId) {
+    ref.onDispose(() {
+      _mounted = false;
+      try {
+        _speechToText.stop();
+      } catch (_) {}
+
+      if (state.isDictating && _dictationAudioPath.isNotEmpty) {
+        try {
+          final file = File(_dictationAudioPath);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        } catch (e) {
+          debugPrint('Error deleting orphan audio on dispose: $e');
+        }
+      }
+
+      _audioRecorder.dispose();
+    });
+    return DictationState.initial();
+  }
 
   Future<void> toggleDictation({
     required TextEditingController textController,
@@ -273,7 +289,7 @@ class DictationController extends StateNotifier<DictationState> {
             onStatus: (status) {
               if (status == 'notListening' && state.isDictating) {
                 Future.delayed(const Duration(milliseconds: 100), () {
-                  if (state.isDictating && mounted) {
+                  if (state.isDictating && _mounted) {
                     final txtCtrl = _activeTextController;
                     final fn = _activeFocusNode;
                     final os = _activeOnSave;
@@ -372,7 +388,7 @@ class DictationController extends StateNotifier<DictationState> {
     } else {
       await _speechToText.listen(
         onResult: (result) {
-          if (!mounted || !state.isDictating || _speechSessionCount != currentSession) return;
+          if (!_mounted || !state.isDictating || _speechSessionCount != currentSession) return;
 
           String newWords = result.recognizedWords;
 
@@ -466,30 +482,4 @@ class DictationController extends StateNotifier<DictationState> {
     }
   }
 
-  @override
-  void dispose() {
-    try {
-      _speechToText.stop();
-    } catch (_) {}
-
-    if (state.isDictating && _dictationAudioPath.isNotEmpty) {
-      try {
-        final file = File(_dictationAudioPath);
-        if (file.existsSync()) {
-          file.deleteSync();
-        }
-      } catch (e) {
-        debugPrint('Error deleting orphan audio on dispose: $e');
-      }
-    }
-
-    _audioRecorder.dispose();
-    super.dispose();
-  }
 }
-
-/// Riverpod StateNotifierProvider for DictationController
-final dictationControllerProvider = StateNotifierProvider.autoDispose
-    .family<DictationController, DictationState, String>((ref, noteId) {
-  return DictationController(ref, noteId);
-});

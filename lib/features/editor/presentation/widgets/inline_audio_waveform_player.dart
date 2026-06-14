@@ -282,7 +282,7 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
     );
 
     if (confirmed == true && mounted) {
-      await ref.read(audioBookmarkProvider(key).notifier).addBookmark(
+      await ref.read(audioBookmarkNotifierProvider(key).notifier).addBookmark(
             timestampMs: currentMs,
             annotation: controller.text.trim(),
           );
@@ -303,7 +303,7 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
 
     final key = _bookmarkKey;
     final bookmarkState =
-        key != null ? ref.watch(audioBookmarkProvider(key)) : null;
+        key != null ? ref.watch(audioBookmarkNotifierProvider(key)) : null;
     final bookmarks = bookmarkState?.bookmarks ?? const <AudioBookmark>[];
 
     // Calculate bookmark fractional positions for the waveform painter
@@ -455,7 +455,7 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
                   },
                   onDelete: key != null
                       ? () => ref
-                          .read(audioBookmarkProvider(key).notifier)
+                          .read(audioBookmarkNotifierProvider(key).notifier)
                           .deleteBookmark(bookmark.id)
                       : null,
                 );
