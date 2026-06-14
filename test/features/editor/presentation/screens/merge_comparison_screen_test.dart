@@ -54,6 +54,11 @@ class MockNoteRepository extends NoteRepository {
   }
 
   @override
+  Future<String> readNoteContent(String noteId) async {
+    return noteContents[noteId] ?? '';
+  }
+
+  @override
   Future<List<String>> getTagsForNote(String noteId) async => [];
 }
 
