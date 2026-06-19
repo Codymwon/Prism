@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../widgets/settings_widgets.dart';
+import '../widgets/export_bottom_sheet.dart';
 import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/services/two_way_sync_service.dart';
 
@@ -94,10 +95,16 @@ class BackupAndSyncScreen extends ConsumerWidget {
             const SettingsSectionHeader(title: 'Local Utilities')
                 .animate()
                 .fadeIn(delay: 350.ms, duration: 400.ms),
-            const ProGateTile(
+            SettingsTile(
               icon: Icons.file_download_outlined,
               title: 'Export vault',
-              subtitle: 'Download all notes as ZIP or PDF',
+              subtitle: 'Download all notes as ZIP, PDF or JSON',
+              onTap: () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => const ExportBottomSheet(),
+              ),
             ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
           ],
         ),
