@@ -51,6 +51,9 @@ dependencies:
   speech_to_text: ^7.4.0
   record: ^6.2.1
   audioplayers: ^6.0.0
+  purchases_flutter: ^10.3.0
+  purchases_ui_flutter: ^10.3.0
+  fpdart: ^1.2.0
 
 
 dev_dependencies:

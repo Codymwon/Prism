@@ -5,6 +5,8 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../subscription/domain/failures/subscription_failure.dart';
 
 class SettingsSectionHeader extends StatelessWidget {
   final String title;
@@ -406,7 +408,7 @@ class SettingsTile extends StatelessWidget {
   }
 }
 
-class ProGateTile extends StatelessWidget {
+class ProGateTile extends ConsumerWidget {
   final IconData icon;
   final String title;
   final String subtitle;
@@ -419,23 +421,44 @@ class ProGateTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = DesignColors.primary(context);
 
     return TactileWrapper(
       style: TactileFeedbackStyle.standard,
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Start your 14-day free trial to unlock this feature',
-              style: DesignTypography.body(context, color: Colors.white),
-            ),
-            action: SnackBarAction(
-              label: 'Try Pro',
-              onPressed: () {},
-            ),
-          ),
+      onTap: () async {
+        final repository = ref.read(subscriptionRepositoryProvider);
+        final result = await repository.presentPaywallIfNeeded();
+        result.fold(
+          (failure) {
+            if (failure is PlatformNotSupportedFailure) {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Platform Not Supported'),
+                  content: const Text(
+                    'Subscriptions are only available on Android/iOS. On Windows, this feature is simulated.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Failed to open store: ${failure.message}',
+                    style: DesignTypography.body(context, color: Colors.white),
+                  ),
+                ),
+              );
+            }
+          },
+          (_) {},
         );
       },
       child: ListTile(

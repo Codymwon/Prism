@@ -9,6 +9,7 @@ import 'shared/widgets/storage_permission_screen.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
 import 'features/widgets/widget_helper.dart';
 import 'features/journal/presentation/providers/journal_providers.dart';
+import 'features/subscription/presentation/providers/subscription_providers.dart';
 import 'shared/design_system/design_system.dart';
 import 'core/utils/utils.dart';
 
@@ -66,6 +67,14 @@ void main() async {
       debugPrint('Failed to warm up database at startup: $e');
     }
   }
+
+  // Initialize RevenueCat SDK
+  try {
+    await container.read(subscriptionRepositoryProvider).initialize();
+  } catch (e) {
+    debugPrint('Failed to initialize subscription repository at startup: $e');
+  }
+
   runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));
 }
 
