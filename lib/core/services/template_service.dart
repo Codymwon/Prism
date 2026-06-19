@@ -1,11 +1,13 @@
 import 'dart:io';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:path/path.dart' as p;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../database/vault_providers.dart';
 import '../utils/utils.dart' as utils;
+
+part 'template_service.g.dart';
 
 // ─── Failures ────────────────────────────────────────────────────────────────
 
@@ -45,7 +47,7 @@ bool isTemplateId(String id) => id.startsWith(templateIdPrefix);
 /// Templates bypass the SQLite FTS5/relations index by design — they are
 /// reusable note scaffolds, not searchable notes.
 class TemplateService {
-  final Ref _ref;
+  final TemplateServiceRef _ref;
 
   TemplateService(this._ref);
 
@@ -98,6 +100,7 @@ class TemplateService {
   ) async {
     try {
       await File(await _pathFor(name)).writeAsString(content);
+      _ref.read(templatesVersionProvider.notifier).increment();
       return const Right(unit);
     } catch (e) {
       return Left(TemplateIoFailure('$e'));
@@ -107,7 +110,10 @@ class TemplateService {
   Future<Either<TemplateFailure, Unit>> deleteTemplate(String name) async {
     try {
       final file = File(await _pathFor(name));
-      if (await file.exists()) await file.delete();
+      if (await file.exists()) {
+        await file.delete();
+        _ref.read(templatesVersionProvider.notifier).increment();
+      }
       return const Right(unit);
     } catch (e) {
       return Left(TemplateIoFailure('$e'));
@@ -123,6 +129,15 @@ class TemplateService {
   }
 }
 
-final templateServiceProvider = Provider<TemplateService>((ref) {
+@riverpod
+TemplateService templateService(TemplateServiceRef ref) {
   return TemplateService(ref);
-});
+}
+
+@riverpod
+class TemplatesVersion extends _$TemplatesVersion {
+  @override
+  int build() => 0;
+
+  void increment() => state++;
+}

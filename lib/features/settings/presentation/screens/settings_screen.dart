@@ -126,6 +126,12 @@ class SettingsScreen extends ConsumerWidget {
                     subtitle: 'Define 3–5 custom quick-insert macros',
                     onTap: () => context.push('/settings/custom-macros'),
                   ),
+                  ProGateTile(
+                    icon: Icons.note_add_rounded,
+                    title: 'Custom Templates',
+                    subtitle: 'Create reusable note templates',
+                    onTap: () => context.push('/settings/custom-templates'),
+                  ),
                   const VoiceRecordingsToggleTile(),
                   SettingsTile(
                     icon: Icons.audio_file_rounded,

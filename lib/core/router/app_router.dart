@@ -9,6 +9,7 @@ import '../../features/graph/presentation/screens/graph_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/theme_gallery_screen.dart';
 import '../../features/settings/presentation/screens/custom_macros_screen.dart';
+import '../../features/settings/presentation/screens/custom_templates_screen.dart';
 import '../../features/settings/presentation/screens/attachments_screen.dart';
 import '../../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../../features/settings/presentation/screens/backup_and_sync_screen.dart';
@@ -111,11 +112,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   reverseTransitionDuration: const Duration(milliseconds: 240),
                 ),
               ),
-              GoRoute(
+               GoRoute(
                 path: 'custom-macros',
                 pageBuilder: (context, state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const CustomMacrosScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                      opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.08, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: child,
+                      ),
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 280),
+                  reverseTransitionDuration: const Duration(milliseconds: 240),
+                ),
+              ),
+              GoRoute(
+                path: 'custom-templates',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const CustomTemplatesScreen(),
                   transitionsBuilder: (context, animation, secondaryAnimation, child) {
                     return FadeTransition(
                       opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),

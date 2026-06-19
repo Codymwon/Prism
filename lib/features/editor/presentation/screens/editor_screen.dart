@@ -41,6 +41,7 @@ class EditorScreen extends ConsumerStatefulWidget {
 }
 
 class _EditorScreenState extends ConsumerState<EditorScreen> {
+  bool get _isTemplate => widget.noteId.startsWith('template:');
   final _titleController = TextEditingController();
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
@@ -334,6 +335,31 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               },
             ),
           ),
+          if (_isTemplate)
+            Container(
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: DesignColors.primary(context).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.description_outlined, size: 12, color: DesignColors.primary(context)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'TEMPLATE',
+                    style: DesignTypography.metadata(
+                      context,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: DesignColors.primary(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
       actions: [
