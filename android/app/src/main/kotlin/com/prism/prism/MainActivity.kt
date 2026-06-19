@@ -82,30 +82,30 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(action)
                 }
                 "updateWidgets" -> {
-                    val appWidgetManager = AppWidgetManager.getInstance(context)
+                    val appWidgetManager = AppWidgetManager.getInstance(this)
                     
                     // Update Streak widget
                     val streakIds = appWidgetManager.getAppWidgetIds(
-                        ComponentName(context, StreakWidgetProvider::class.java)
+                        ComponentName(this, StreakWidgetProvider::class.java)
                     )
                     if (streakIds.isNotEmpty()) {
-                        val updateIntent = Intent(context, StreakWidgetProvider::class.java).apply {
+                        val updateIntent = Intent(this, StreakWidgetProvider::class.java).apply {
                             setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
                             putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, streakIds)
                         }
-                        context.sendBroadcast(updateIntent)
+                        sendBroadcast(updateIntent)
                     }
 
                     // Update Quick Action widget
                     val quickIds = appWidgetManager.getAppWidgetIds(
-                        ComponentName(context, QuickActionWidgetProvider::class.java)
+                        ComponentName(this, QuickActionWidgetProvider::class.java)
                     )
                     if (quickIds.isNotEmpty()) {
-                        val updateIntent = Intent(context, QuickActionWidgetProvider::class.java).apply {
+                        val updateIntent = Intent(this, QuickActionWidgetProvider::class.java).apply {
                             setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
                             putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, quickIds)
                         }
-                        context.sendBroadcast(updateIntent)
+                        sendBroadcast(updateIntent)
                     }
 
                     result.success(true)

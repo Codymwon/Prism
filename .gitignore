@@ -53,3 +53,11 @@ CONTEXT.md
 docs/
 
 .agents/
+
+# Client secrets
+android/app/client_secret_*.json
+
+# Reserved name files
+nul
+
+
