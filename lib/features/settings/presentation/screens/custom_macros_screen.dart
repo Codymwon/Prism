@@ -1,15 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../providers/custom_macro_provider.dart';
 
-class CustomMacrosScreen extends ConsumerWidget {
+class CustomMacrosScreen extends ConsumerStatefulWidget {
   const CustomMacrosScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CustomMacrosScreen> createState() => _CustomMacrosScreenState();
+}
+
+class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Defense-in-depth runtime guard: redirect to the paywall if the user is
+    // not Pro. Handles deep links that bypass the ProGateTile in Settings.
+    // We await the first subscription-status emission so we don't redirect a
+    // Pro user while RevenueCat status is still loading.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final status = await ref.read(subscriptionStatusProvider.future);
+      if (!mounted) return;
+      if (!status.isPro) {
+        context.go('/settings/paywall');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final macros = ref.watch(customMacrosProvider);
 
     return Scaffold(

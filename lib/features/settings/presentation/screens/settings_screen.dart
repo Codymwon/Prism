@@ -120,11 +120,10 @@ class SettingsScreen extends ConsumerWidget {
                       onSelected: (val) => ref.read(lineWidthProvider.notifier).setLineWidth(val),
                     ),
                   ),
-                  SettingsTile(
+                  ProGateTile(
                     icon: Icons.keyboard_command_key_rounded,
                     title: 'Custom Toolbar Macros',
                     subtitle: 'Define 3–5 custom quick-insert macros',
-                    trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/settings/custom-macros'),
                   ),
                   const VoiceRecordingsToggleTile(),
