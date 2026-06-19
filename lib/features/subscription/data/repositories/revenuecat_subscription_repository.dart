@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import '../../domain/entities/subscription_package.dart';
 import '../../domain/entities/subscription_status.dart';
 import '../../domain/failures/subscription_failure.dart';
 import '../../domain/repositories/subscription_repository.dart';
@@ -137,6 +138,98 @@ class RevenueCatSubscriptionRepository implements SubscriptionRepository {
         return Left(const PlatformNotSupportedFailure('Subscriptions are not supported on this platform.'));
       }
       final customerInfo = await _clientWrapper.restorePurchases();
+      final entitlements = customerInfo.entitlements.active.keys.toSet();
+      final isPro = customerInfo.entitlements.active.containsKey('Prism Pro') &&
+          customerInfo.entitlements.active['Prism Pro']?.isActive == true;
+
+      return Right(SubscriptionStatus(
+        isPro: isPro,
+        activeEntitlements: entitlements,
+      ));
+    } catch (e) {
+      return Left(_mapException(e));
+    }
+  }
+
+  @override
+  Future<Either<SubscriptionFailure, List<SubscriptionPackage>>> getAvailablePackages() async {
+    try {
+      if (!_isAndroid && !_isIOS) {
+        return const Right([
+          SubscriptionPackage(
+            id: 'mock_yearly',
+            identifier: 'yearly',
+            title: 'Prism Pro Yearly',
+            description: 'Yearly Subscription (best value)',
+            priceString: '\$36.00',
+            price: 36.0,
+            currencyCode: 'USD',
+            packageType: 'yearly',
+          ),
+          SubscriptionPackage(
+            id: 'mock_monthly',
+            identifier: 'monthly',
+            title: 'Prism Pro Monthly',
+            description: 'Monthly Subscription',
+            priceString: '\$4.00',
+            price: 4.0,
+            currencyCode: 'USD',
+            packageType: 'monthly',
+          ),
+        ]);
+      }
+
+      final offerings = await _clientWrapper.getOfferings();
+      final currentOffering = offerings.current;
+      if (currentOffering == null) {
+        return const Right([]);
+      }
+
+      final packages = currentOffering.availablePackages.where((pkg) {
+        return pkg.packageType == PackageType.annual || pkg.packageType == PackageType.monthly;
+      }).map((pkg) {
+        final prod = pkg.storeProduct;
+        final type = pkg.packageType == PackageType.annual ? 'yearly' : 'monthly';
+        return SubscriptionPackage(
+          id: pkg.identifier,
+          identifier: prod.identifier,
+          title: prod.title,
+          description: prod.description,
+          priceString: prod.priceString,
+          price: prod.price,
+          currencyCode: prod.currencyCode,
+          packageType: type,
+        );
+      }).toList();
+
+      return Right(packages);
+    } catch (e) {
+      return Left(_mapException(e));
+    }
+  }
+
+  @override
+  Future<Either<SubscriptionFailure, SubscriptionStatus>> purchasePackage(SubscriptionPackage package) async {
+    try {
+      if (!_isAndroid && !_isIOS) {
+        return const Right(SubscriptionStatus(
+          isPro: true,
+          activeEntitlements: {'Prism Pro'},
+        ));
+      }
+
+      final offerings = await _clientWrapper.getOfferings();
+      final currentOffering = offerings.current;
+      if (currentOffering == null) {
+        return Left(const StoreFailure('No offerings configured.'));
+      }
+
+      final nativePkg = currentOffering.availablePackages.firstWhere(
+        (pkg) => pkg.identifier == package.id,
+        orElse: () => throw StateError('Package ${package.id} not found in offerings.'),
+      );
+
+      final customerInfo = await _clientWrapper.purchasePackage(nativePkg);
       final entitlements = customerInfo.entitlements.active.keys.toSet();
       final isPro = customerInfo.entitlements.active.containsKey('Prism Pro') &&
           customerInfo.entitlements.active['Prism Pro']?.isActive == true;

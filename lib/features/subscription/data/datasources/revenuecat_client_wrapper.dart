@@ -10,4 +10,6 @@ abstract class RevenueCatClientWrapper {
   Future<void> presentCustomerCenter();
   Stream<CustomerInfo> get customerInfoStream;
   Future<bool> isConfigured();
+  Future<Offerings> getOfferings();
+  Future<CustomerInfo> purchasePackage(Package package);
 }

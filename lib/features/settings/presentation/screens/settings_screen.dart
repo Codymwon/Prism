@@ -11,7 +11,6 @@ import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
 import '../../../onboarding/data/tutorial_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
-import '../../../subscription/domain/failures/subscription_failure.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -174,37 +173,7 @@ class SettingsScreen extends ConsumerWidget {
                           title: 'Try Prism Pro',
                           subtitle: 'Unlock sync, custom templates & macros',
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () async {
-                            final result = await ref.read(subscriptionRepositoryProvider).presentPaywall();
-                            result.fold(
-                              (failure) {
-                                if (failure is PlatformNotSupportedFailure) {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Platform Not Supported'),
-                                      content: const Text(
-                                        'Subscriptions are only available on Android/iOS. On Windows, this feature is simulated.',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text('OK'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to open store: ${failure.message}'),
-                                    ),
-                                  );
-                                }
-                              },
-                              (_) {},
-                            );
-                          },
+                          onTap: () => context.push('/settings/paywall'),
                         ),
 
                   // ── Data ─────────────────────────────────────────────────

@@ -62,4 +62,15 @@ class DefaultRevenueCatClientWrapper implements RevenueCatClientWrapper {
   Future<bool> isConfigured() async {
     return await Purchases.isConfigured;
   }
+
+  @override
+  Future<Offerings> getOfferings() async {
+    return await Purchases.getOfferings();
+  }
+
+  @override
+  Future<CustomerInfo> purchasePackage(Package package) async {
+    final result = await Purchases.purchasePackage(package);
+    return result.customerInfo;
+  }
 }

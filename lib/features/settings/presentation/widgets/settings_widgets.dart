@@ -6,7 +6,6 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
-import '../../../subscription/domain/failures/subscription_failure.dart';
 
 class SettingsSectionHeader extends StatelessWidget {
   final String title;
@@ -412,54 +411,37 @@ class ProGateTile extends ConsumerWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   const ProGateTile({
     super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = DesignColors.primary(context);
+    final isPro = ref.watch(isProProvider);
 
     return TactileWrapper(
       style: TactileFeedbackStyle.standard,
-      onTap: () async {
-        final repository = ref.read(subscriptionRepositoryProvider);
-        final result = await repository.presentPaywallIfNeeded();
-        result.fold(
-          (failure) {
-            if (failure is PlatformNotSupportedFailure) {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Platform Not Supported'),
-                  content: const Text(
-                    'Subscriptions are only available on Android/iOS. On Windows, this feature is simulated.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Failed to open store: ${failure.message}',
-                    style: DesignTypography.body(context, color: Colors.white),
-                  ),
-                ),
-              );
-            }
-          },
-          (_) {},
-        );
+      onTap: () {
+        if (!isPro) {
+          context.push('/settings/paywall');
+        } else {
+          if (onTap != null) {
+            onTap!();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$title is coming soon!'),
+              ),
+            );
+          }
+        }
       },
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
@@ -482,30 +464,36 @@ class ProGateTile extends ConsumerWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: primaryColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'PRO',
-                style: DesignTypography.metadata(
-                  context,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  color: primaryColor,
+            if (!isPro) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'PRO',
+                  style: DesignTypography.metadata(
+                    context,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: primaryColor,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
         subtitle: Text(
           subtitle,
           style: DesignTypography.details(context),
         ),
-        trailing: const Icon(Icons.lock_outline_rounded, size: 18, color: Colors.grey),
+        trailing: Icon(
+          isPro ? Icons.chevron_right_rounded : Icons.lock_outline_rounded,
+          size: 18,
+          color: Colors.grey,
+        ),
       ),
     );
   }

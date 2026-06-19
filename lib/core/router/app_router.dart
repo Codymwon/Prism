@@ -12,6 +12,7 @@ import '../../features/settings/presentation/screens/custom_macros_screen.dart';
 import '../../features/settings/presentation/screens/attachments_screen.dart';
 import '../../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../../features/settings/presentation/screens/backup_and_sync_screen.dart';
+import '../../features/subscription/presentation/screens/custom_paywall_screen.dart';
 import '../../features/onboarding/data/onboarding_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../shared/widgets/app_shell.dart';
@@ -193,6 +194,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       child: SlideTransition(
                         position: Tween<Offset>(
                           begin: const Offset(0.08, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: child,
+                      ),
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 280),
+                  reverseTransitionDuration: const Duration(milliseconds: 240),
+                ),
+              ),
+              GoRoute(
+                path: 'paywall',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const CustomPaywallScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                      opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.0, 0.08),
                           end: Offset.zero,
                         ).animate(CurvedAnimation(
                           parent: animation,

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:prism/features/subscription/data/datasources/revenuecat_client_wrapper.dart';
 import 'package:prism/features/subscription/data/repositories/revenuecat_subscription_repository.dart';
+import 'package:prism/features/subscription/domain/entities/subscription_package.dart';
 import 'package:prism/features/subscription/domain/failures/subscription_failure.dart';
 
 class MockRevenueCatClientWrapper implements RevenueCatClientWrapper {
@@ -12,6 +13,8 @@ class MockRevenueCatClientWrapper implements RevenueCatClientWrapper {
   CustomerInfo? mockCustomerInfo;
   bool isConfiguredValue = false;
   PlatformException? exceptionToThrow;
+  Offerings? mockOfferings;
+  Package? lastPurchasedPackage;
   
   @override
   Future<void> configure(PurchasesConfiguration configuration) async {
@@ -53,6 +56,21 @@ class MockRevenueCatClientWrapper implements RevenueCatClientWrapper {
 
   @override
   Future<bool> isConfigured() async => isConfiguredValue;
+
+  @override
+  Future<Offerings> getOfferings() async {
+    if (exceptionToThrow != null) throw exceptionToThrow!;
+    if (mockOfferings != null) return mockOfferings!;
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<CustomerInfo> purchasePackage(Package package) async {
+    lastPurchasedPackage = package;
+    if (exceptionToThrow != null) throw exceptionToThrow!;
+    if (mockCustomerInfo != null) return mockCustomerInfo!;
+    throw UnimplementedError();
+  }
 }
 
 class FakeCustomerInfo extends Fake implements CustomerInfo {
@@ -76,6 +94,55 @@ class FakeEntitlementInfo extends Fake implements EntitlementInfo {
   final bool isActive;
 
   FakeEntitlementInfo(this.isActive);
+}
+
+class FakeOfferings extends Fake implements Offerings {
+  @override
+  final Offering? current;
+
+  FakeOfferings(this.current);
+}
+
+class FakeOffering extends Fake implements Offering {
+  @override
+  final List<Package> availablePackages;
+
+  FakeOffering(this.availablePackages);
+}
+
+class FakePackage extends Fake implements Package {
+  @override
+  final String identifier;
+  @override
+  final PackageType packageType;
+  @override
+  final StoreProduct storeProduct;
+
+  FakePackage(this.identifier, this.packageType, this.storeProduct);
+}
+
+class FakeStoreProduct extends Fake implements StoreProduct {
+  @override
+  final String identifier;
+  @override
+  final String title;
+  @override
+  final String description;
+  @override
+  final String priceString;
+  @override
+  final double price;
+  @override
+  final String currencyCode;
+
+  FakeStoreProduct({
+    required this.identifier,
+    required this.title,
+    required this.description,
+    required this.priceString,
+    required this.price,
+    required this.currencyCode,
+  });
 }
 
 void main() {
@@ -174,7 +241,6 @@ void main() {
   group('RevenueCatSubscriptionRepository - Error Mapping', () {
     test('should map PlatformException with code 1 (purchaseCancelledError) to PurchaseCancelledFailure', () async {
       // Arrange
-      // In purchases_flutter, the cancelled error index is 1. PurchasesErrorHelper maps code '1' to purchaseCancelledError.
       mockClient.exceptionToThrow = PlatformException(
         code: '1',
         message: 'User cancelled the purchase flow',
@@ -222,6 +288,165 @@ void main() {
           expect(failure.message, contains('No internet connection'));
         },
         (status) => fail('should fail'),
+      );
+    });
+  });
+
+  group('RevenueCatSubscriptionRepository - Offerings & Purchasing', () {
+    test('should fetch and map available packages (monthly & yearly) on Android', () async {
+      // Arrange
+      final yearlyProduct = FakeStoreProduct(
+        identifier: 'yearly_prod',
+        title: 'Prism Pro Yearly',
+        description: 'Yearly Subscription',
+        priceString: '\$36.00',
+        price: 36.0,
+        currencyCode: 'USD',
+      );
+      final monthlyProduct = FakeStoreProduct(
+        identifier: 'monthly_prod',
+        title: 'Prism Pro Monthly',
+        description: 'Monthly Subscription',
+        priceString: '\$4.00',
+        price: 4.0,
+        currencyCode: 'USD',
+      );
+
+      final yearlyPackage = FakePackage('yearly_pkg', PackageType.annual, yearlyProduct);
+      final monthlyPackage = FakePackage('monthly_pkg', PackageType.monthly, monthlyProduct);
+
+      mockClient.mockOfferings = FakeOfferings(FakeOffering([yearlyPackage, monthlyPackage]));
+
+      final repository = RevenueCatSubscriptionRepository(
+        clientWrapper: mockClient,
+        isAndroid: true,
+        isIOS: false,
+      );
+
+      // Act
+      final result = await repository.getAvailablePackages();
+
+      // Assert
+      expect(result.isRight(), true);
+      result.fold(
+        (failure) => fail('should not fail'),
+        (packages) {
+          expect(packages.length, 2);
+          final yearly = packages.firstWhere((p) => p.packageType == 'yearly');
+          final monthly = packages.firstWhere((p) => p.packageType == 'monthly');
+
+          expect(yearly.price, 36.0);
+          expect(yearly.priceString, '\$36.00');
+          expect(monthly.price, 4.0);
+          expect(monthly.priceString, '\$4.00');
+        },
+      );
+    });
+
+    test('should return mock packages on Windows without calling client', () async {
+      // Arrange
+      final repository = RevenueCatSubscriptionRepository(
+        clientWrapper: mockClient,
+        isAndroid: false,
+        isIOS: false,
+      );
+
+      // Act
+      final result = await repository.getAvailablePackages();
+
+      // Assert
+      expect(result.isRight(), true);
+      result.fold(
+        (failure) => fail('should not fail'),
+        (packages) {
+          expect(packages.length, 2);
+          final yearly = packages.firstWhere((p) => p.packageType == 'yearly');
+          final monthly = packages.firstWhere((p) => p.packageType == 'monthly');
+
+          expect(yearly.price, 36.00);
+          expect(monthly.price, 4.00);
+        },
+      );
+    });
+
+    test('should execute purchase on Android by resolving and passing package', () async {
+      // Arrange
+      final yearlyProduct = FakeStoreProduct(
+        identifier: 'yearly_prod',
+        title: 'Prism Pro Yearly',
+        description: 'Yearly Subscription',
+        priceString: '\$36.00',
+        price: 36.0,
+        currencyCode: 'USD',
+      );
+      final yearlyPackage = FakePackage('yearly_pkg', PackageType.annual, yearlyProduct);
+      mockClient.mockOfferings = FakeOfferings(FakeOffering([yearlyPackage]));
+      mockClient.mockCustomerInfo = FakeCustomerInfo({
+        'Prism Pro': FakeEntitlementInfo(true),
+      });
+
+      final repository = RevenueCatSubscriptionRepository(
+        clientWrapper: mockClient,
+        isAndroid: true,
+        isIOS: false,
+      );
+
+      final domainPackage = SubscriptionPackage(
+        id: 'yearly_pkg',
+        identifier: 'yearly_prod',
+        title: 'Prism Pro Yearly',
+        description: 'Yearly Subscription',
+        priceString: '\$36.00',
+        price: 36.0,
+        currencyCode: 'USD',
+        packageType: 'yearly',
+      );
+
+      // Act
+      final result = await repository.purchasePackage(domainPackage);
+
+      // Assert
+      expect(result.isRight(), true);
+      expect(mockClient.lastPurchasedPackage, isNotNull);
+      expect(mockClient.lastPurchasedPackage!.identifier, 'yearly_pkg');
+      result.fold(
+        (failure) => fail('should not fail'),
+        (status) {
+          expect(status.isPro, true);
+        },
+      );
+    });
+
+    test('should execute mock purchase on Windows returning isPro = true without calling client', () async {
+      // Arrange
+      final repository = RevenueCatSubscriptionRepository(
+        clientWrapper: mockClient,
+        isAndroid: false,
+        isIOS: false,
+      );
+
+      final domainPackage = SubscriptionPackage(
+        id: 'mock_yearly',
+        identifier: 'yearly',
+        title: 'Prism Pro Yearly',
+        description: 'Yearly',
+        priceString: '\$36.00',
+        price: 36.0,
+        currencyCode: 'USD',
+        packageType: 'yearly',
+      );
+
+      // Act
+      final result = await repository.purchasePackage(domainPackage);
+
+      // Assert
+      expect(result.isRight(), true);
+      expect(mockClient.lastPurchasedPackage, isNull);
+      result.fold(
+        (failure) => fail('should not fail'),
+        (status) {
+          expect(status.isPro, true);
+        },
       );
     });
   });

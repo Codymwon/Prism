@@ -1,4 +1,5 @@
 import 'package:fpdart/fpdart.dart';
+import '../entities/subscription_package.dart';
 import '../entities/subscription_status.dart';
 import '../failures/subscription_failure.dart';
 
@@ -23,4 +24,10 @@ abstract class SubscriptionRepository {
 
   /// Restores previous purchases
   Future<Either<SubscriptionFailure, SubscriptionStatus>> restorePurchases();
+
+  /// Fetches the list of subscription packages configured in offerings
+  Future<Either<SubscriptionFailure, List<SubscriptionPackage>>> getAvailablePackages();
+
+  /// Executes a purchase for a package
+  Future<Either<SubscriptionFailure, SubscriptionStatus>> purchasePackage(SubscriptionPackage package);
 }
