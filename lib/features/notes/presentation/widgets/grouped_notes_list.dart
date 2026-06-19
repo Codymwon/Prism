@@ -59,7 +59,7 @@ class _GroupedNotesListState extends ConsumerState<GroupedNotesList> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final primaryColor = colorScheme.primary;
-    final sort = ref.watch(noteSortProvider);
+    final sort = ref.watch(noteSortNotifierProvider);
 
     // 1. Single-pass pre-grouping: O(N) instead of O(F * N)
     final folderToNotes = <String, List<Note>>{};

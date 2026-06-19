@@ -1,21 +1,20 @@
-class VirtualFolder {
-  final String id;
-  final String name;
-  final String colorHex;
-  final String icon;
-  final DateTime createdAt;
-  final int sortOrder;
-  final int noteCount;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  VirtualFolder({
-    required this.id,
-    required this.name,
-    required this.colorHex,
-    required this.icon,
-    required this.createdAt,
-    required this.sortOrder,
-    this.noteCount = 0,
-  });
+part 'folder_model.freezed.dart';
+
+@freezed
+class VirtualFolder with _$VirtualFolder {
+  const VirtualFolder._();
+
+  const factory VirtualFolder({
+    required String id,
+    required String name,
+    @Default('#7C6FF7') String colorHex,
+    @Default('folder') String icon,
+    required DateTime createdAt,
+    required int sortOrder,
+    @Default(0) int noteCount,
+  }) = _VirtualFolder;
 
   factory VirtualFolder.fromMap(Map<String, dynamic> map) {
     // getAllFolders() uses rawQuery with LEFT JOIN — sqflite on Android can
@@ -50,26 +49,6 @@ class VirtualFolder {
     };
   }
 
-  VirtualFolder copyWith({
-    String? id,
-    String? name,
-    String? colorHex,
-    String? icon,
-    DateTime? createdAt,
-    int? sortOrder,
-    int? noteCount,
-  }) {
-    return VirtualFolder(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      colorHex: colorHex ?? this.colorHex,
-      icon: icon ?? this.icon,
-      createdAt: createdAt ?? this.createdAt,
-      sortOrder: sortOrder ?? this.sortOrder,
-      noteCount: noteCount ?? this.noteCount,
-    );
-  }
-
   @override
   String toString() => 'VirtualFolder(id: $id, name: $name, noteCount: $noteCount)';
 
@@ -80,3 +59,4 @@ class VirtualFolder {
   @override
   int get hashCode => id.hashCode;
 }
+

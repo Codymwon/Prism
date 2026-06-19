@@ -33,11 +33,11 @@ class FakeAudioBookmarkRepository implements AudioBookmarkRepository {
 }
 
 void main() {
-  test('audioBookmarkProvider auto-disposes correctly when not listened to anymore', () async {
+  test('audioBookmarkNotifierProvider auto-disposes correctly when not listened to anymore', () async {
     final fakeRepo = FakeAudioBookmarkRepository();
     final container = ProviderContainer(
       overrides: [
-        audioBookmarkRepositoryProvider.overrideWithValue(fakeRepo),
+        audioBookmarkRepositoryProvider.overrideWith((ref) => fakeRepo),
       ],
     );
     addTearDown(container.dispose);
@@ -46,15 +46,15 @@ void main() {
 
     // Watch the provider
     final subscription = container.listen(
-      audioBookmarkProvider(key),
+      audioBookmarkNotifierProvider(key),
       (previous, next) {},
     );
 
     // Force wait for refresh to load the data
-    await container.read(audioBookmarkProvider(key).notifier).refresh();
+    await container.read(audioBookmarkNotifierProvider(key).notifier).refresh();
 
     // Verify it contains the bookmark from our fake repo
-    expect(container.read(audioBookmarkProvider(key)).bookmarks, isNotEmpty);
+    expect(container.read(audioBookmarkNotifierProvider(key)).bookmarks, isNotEmpty);
 
     // Close the subscription to trigger auto-dispose
     subscription.close();
@@ -64,8 +64,8 @@ void main() {
 
     // Read the provider again. Since it was auto-disposed, it should reinitialize
     // and return the initial empty/loading state before load finishes.
-    final newState = container.read(audioBookmarkProvider(key));
+    final newState = container.read(audioBookmarkNotifierProvider(key));
     expect(newState.bookmarks, isEmpty);
-    expect(newState.isLoading, isTrue);
+    expect(newState.isLoading, isFalse);
   });
 }

@@ -1,70 +1,53 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../../features/notes/data/audio_bookmark_model.dart';
 import '../../data/audio_bookmark_repository.dart';
 
+part 'audio_bookmark_providers.freezed.dart';
+part 'audio_bookmark_providers.g.dart';
+
 /// Provider for the [AudioBookmarkRepository] singleton.
-final audioBookmarkRepositoryProvider = Provider<AudioBookmarkRepository>((ref) {
+@riverpod
+AudioBookmarkRepository audioBookmarkRepository(AudioBookmarkRepositoryRef ref) {
   return AudioBookmarkRepository();
-});
+}
 
 // ── State for a specific (noteId, attachmentPath) pair ───────────────────────
 
 /// Immutable parameters identifying a bookmark set.
-class BookmarkKey {
-  final String noteId;
-  final String attachmentPath;
-
-  const BookmarkKey({required this.noteId, required this.attachmentPath});
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is BookmarkKey &&
-          other.noteId == noteId &&
-          other.attachmentPath == attachmentPath;
-
-  @override
-  int get hashCode => Object.hash(noteId, attachmentPath);
+@freezed
+class BookmarkKey with _$BookmarkKey {
+  const factory BookmarkKey({
+    required String noteId,
+    required String attachmentPath,
+  }) = _BookmarkKey;
 }
 
 /// State held by [AudioBookmarkNotifier].
-class AudioBookmarkState {
-  final List<AudioBookmark> bookmarks;
-  final bool isLoading;
-  final String? error;
-
-  const AudioBookmarkState({
-    this.bookmarks = const [],
-    this.isLoading = false,
-    this.error,
-  });
-
-  AudioBookmarkState copyWith({
-    List<AudioBookmark>? bookmarks,
-    bool? isLoading,
+@freezed
+class AudioBookmarkState with _$AudioBookmarkState {
+  const factory AudioBookmarkState({
+    @Default([]) List<AudioBookmark> bookmarks,
+    @Default(false) bool isLoading,
     String? error,
-  }) {
-    return AudioBookmarkState(
-      bookmarks: bookmarks ?? this.bookmarks,
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
-    );
-  }
+  }) = _AudioBookmarkState;
 }
 
 /// Manages bookmark CRUD for one (noteId, attachmentPath) pair.
-class AudioBookmarkNotifier extends StateNotifier<AudioBookmarkState> {
-  final AudioBookmarkRepository _repository;
-  final String _noteId;
-  final String _attachmentPath;
+@riverpod
+class AudioBookmarkNotifier extends _$AudioBookmarkNotifier {
+  late AudioBookmarkRepository _repository;
+  late String _noteId;
+  late String _attachmentPath;
 
-  AudioBookmarkNotifier(
-    this._repository,
-    this._noteId,
-    this._attachmentPath,
-  ) : super(const AudioBookmarkState()) {
-    _load();
+  @override
+  AudioBookmarkState build(BookmarkKey key) {
+    _repository = ref.watch(audioBookmarkRepositoryProvider);
+    _noteId = key.noteId;
+    _attachmentPath = key.attachmentPath;
+    Future.microtask(() => _load());
+    return const AudioBookmarkState();
   }
 
   Future<void> _load() async {
@@ -121,17 +104,3 @@ class AudioBookmarkNotifier extends StateNotifier<AudioBookmarkState> {
   }
 }
 
-/// Family provider: one [AudioBookmarkNotifier] per [BookmarkKey].
-///
-/// Usage:
-/// ```dart
-/// final key = BookmarkKey(noteId: noteId, attachmentPath: attachmentPath);
-/// ref.watch(audioBookmarkProvider(key));
-/// ```
-final audioBookmarkProvider = StateNotifierProvider.autoDispose.family<
-    AudioBookmarkNotifier,
-    AudioBookmarkState,
-    BookmarkKey>((ref, key) {
-  final repo = ref.watch(audioBookmarkRepositoryProvider);
-  return AudioBookmarkNotifier(repo, key.noteId, key.attachmentPath);
-});

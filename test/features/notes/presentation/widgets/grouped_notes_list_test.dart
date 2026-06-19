@@ -19,6 +19,20 @@ class MockTutorialNotifier extends TutorialNotifier {
   }
 }
 
+class FakeSelectedFolderIdNotifier extends SelectedFolderId {
+  final String? initialValue;
+  FakeSelectedFolderIdNotifier(this.initialValue);
+  @override
+  String? build() => initialValue;
+}
+
+class FakeNoteSortNotifier extends NoteSortNotifier {
+  final NoteSort initialValue;
+  FakeNoteSortNotifier(this.initialValue);
+  @override
+  NoteSort build() => initialValue;
+}
+
 void main() {
   testWidgets('GroupedNotesList renders a styled Open button for virtual folders', (WidgetTester tester) async {
     final mockFolder = VirtualFolder(
@@ -42,8 +56,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          selectedFolderIdProvider.overrideWith((ref) => null),
-          noteSortProvider.overrideWith((ref) => NoteSort.title),
+          selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier(null)),
+          noteSortNotifierProvider.overrideWith(() => FakeNoteSortNotifier(NoteSort.title)),
         ],
         child: MaterialApp(
           home: Scaffold(

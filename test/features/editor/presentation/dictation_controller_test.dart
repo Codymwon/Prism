@@ -87,6 +87,7 @@ class FakeSpeechToTextService implements SpeechToTextService {
 void main() {
   late FakeAudioRecorderService fakeRecorder;
   late FakeSpeechToTextService fakeSpeech;
+  late ProviderContainer container;
   late DictationController dictation;
   late TextEditingController textCtrl;
   late FocusNode focusNode;
@@ -94,17 +95,19 @@ void main() {
   setUp(() {
     fakeRecorder = FakeAudioRecorderService();
     fakeSpeech = FakeSpeechToTextService();
-    dictation = DictationController.withServices(
-      recorder: fakeRecorder,
-      speechToText: fakeSpeech,
-      noteId: 'test-note',
+    container = ProviderContainer(
+      overrides: [
+        audioRecorderServiceProvider.overrideWithValue(fakeRecorder),
+        speechToTextServiceProvider.overrideWithValue(fakeSpeech),
+      ],
     );
+    dictation = container.read(dictationControllerProvider('test-note').notifier);
     textCtrl = TextEditingController();
     focusNode = FocusNode();
   });
 
   tearDown(() {
-    dictation.dispose();
+    container.dispose();
     textCtrl.dispose();
     focusNode.dispose();
   });

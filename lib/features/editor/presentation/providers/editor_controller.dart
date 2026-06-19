@@ -1,84 +1,61 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:path/path.dart' as p;
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:record/record.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
+part 'editor_controller.freezed.dart';
+part 'editor_controller.g.dart';
+
 // ─── EditorState ──────────────────────────────────────────────────────────────
 
 /// Value class representing the state of the editor.
-class EditorState {
-  final bool isLoaded;
-  final bool isSaving;
-  final bool showWikilinkPopup;
-  final String wikilinkQuery;
-  final String loadedTitle;
-  final String loadedBody;
-  final String? dailyDate;
-  final String lastSaved;
-
-  const EditorState({
-    required this.isLoaded,
-    required this.isSaving,
-    required this.showWikilinkPopup,
-    required this.wikilinkQuery,
-    required this.loadedTitle,
-    required this.loadedBody,
-    this.dailyDate,
-    required this.lastSaved,
-  });
-
-  factory EditorState.initial() {
-    return const EditorState(
-      isLoaded: false,
-      isSaving: false,
-      showWikilinkPopup: false,
-      wikilinkQuery: '',
-      loadedTitle: '',
-      loadedBody: '',
-      dailyDate: null,
-      lastSaved: '',
-    );
-  }
-
-  EditorState copyWith({
-    bool? isLoaded,
-    bool? isSaving,
-    bool? showWikilinkPopup,
-    String? wikilinkQuery,
-    String? loadedTitle,
-    String? loadedBody,
+@freezed
+class EditorState with _$EditorState {
+  const factory EditorState({
+    @Default(false) bool isLoaded,
+    @Default(false) bool isSaving,
+    @Default(false) bool showWikilinkPopup,
+    @Default('') String wikilinkQuery,
+    @Default('') String loadedTitle,
+    @Default('') String loadedBody,
     String? dailyDate,
-    String? lastSaved,
-  }) {
-    return EditorState(
-      isLoaded: isLoaded ?? this.isLoaded,
-      isSaving: isSaving ?? this.isSaving,
-      showWikilinkPopup: showWikilinkPopup ?? this.showWikilinkPopup,
-      wikilinkQuery: wikilinkQuery ?? this.wikilinkQuery,
-      loadedTitle: loadedTitle ?? this.loadedTitle,
-      loadedBody: loadedBody ?? this.loadedBody,
-      dailyDate: dailyDate ?? this.dailyDate,
-      lastSaved: lastSaved ?? this.lastSaved,
-    );
-  }
+    @Default('') String lastSaved,
+  }) = _EditorState;
+
+  factory EditorState.initial() => const EditorState(
+        isLoaded: false,
+        isSaving: false,
+        showWikilinkPopup: false,
+        wikilinkQuery: '',
+        loadedTitle: '',
+        loadedBody: '',
+        dailyDate: null,
+        lastSaved: '',
+      );
 }
 
 // ─── EditorController ─────────────────────────────────────────────────────────
 
 /// Controller managing the editor state, autosaves, and wikilink autocompletion.
-class EditorController extends StateNotifier<EditorState> {
-  final Ref ref;
-  final String noteId;
+@riverpod
+class EditorController extends _$EditorController {
   Timer? _saveTimer;
 
-  EditorController(this.ref, this.noteId) : super(EditorState.initial());
+  @override
+  EditorState build(String noteId) {
+    ref.onDispose(() {
+      _saveTimer?.cancel();
+    });
+    return EditorState.initial();
+  }
 
   Future<EditorState?> loadNote({required bool isNew, String? defaultDailyDate}) async {
     final repo = ref.read(noteRepositoryProvider);
@@ -237,18 +214,8 @@ class EditorController extends StateNotifier<EditorState> {
     }
   }
 
-  @override
-  void dispose() {
-    _saveTimer?.cancel();
-    super.dispose();
-  }
-}
 
-/// Riverpod StateNotifierProvider for EditorController
-final editorControllerProvider = StateNotifierProvider.autoDispose
-    .family<EditorController, EditorState, String>((ref, noteId) {
-  return EditorController(ref, noteId);
-});
+}
 
 
 // ─── AudioRecorderService ─────────────────────────────────────────────────────
@@ -396,44 +363,28 @@ final speechToTextServiceProvider = Provider<SpeechToTextService>((ref) {
 // ─── DictationState ───────────────────────────────────────────────────────────
 
 /// Value class representing the state of the dictation.
-class DictationState {
-  final bool isDictating;
-  final String currentWords;
+@freezed
+class DictationState with _$DictationState {
+  const factory DictationState({
+    @Default(false) bool isDictating,
+    @Default('') String currentWords,
+  }) = _DictationState;
 
-  const DictationState({
-    required this.isDictating,
-    required this.currentWords,
-  });
-
-  factory DictationState.initial() {
-    return const DictationState(
-      isDictating: false,
-      currentWords: '',
-    );
-  }
-
-  DictationState copyWith({
-    bool? isDictating,
-    String? currentWords,
-  }) {
-    return DictationState(
-      isDictating: isDictating ?? this.isDictating,
-      currentWords: currentWords ?? this.currentWords,
-    );
-  }
+  factory DictationState.initial() => const DictationState(
+        isDictating: false,
+        currentWords: '',
+      );
 }
 
 // ─── DictationController ──────────────────────────────────────────────────────
 
 /// Controller managing live text speech transcribing or audio-memo recording.
-class DictationController extends StateNotifier<DictationState> {
-  // Injected service seams
-  final AudioRecorderService _audioRecorder;
-  final SpeechToTextService _speechToText;
+@riverpod
+class DictationController extends _$DictationController {
+  bool _mounted = true;
 
-  // Optional Riverpod ref — null when constructed via withServices() in tests.
-  final Ref? _ref;
-  final String noteId;
+  late final AudioRecorderService _audioRecorder;
+  late final SpeechToTextService _speechToText;
 
   bool _speechInitialized = false;
   int _dictationStartOffset = 0;
@@ -447,22 +398,33 @@ class DictationController extends StateNotifier<DictationState> {
   FocusNode? _activeFocusNode;
   void Function()? _activeOnSave;
 
-  /// Provider constructor: injects services from the Riverpod tree.
-  DictationController(Ref ref, this.noteId)
-      : _ref = ref,
-        _audioRecorder = ref.read(audioRecorderServiceProvider),
-        _speechToText = ref.read(speechToTextServiceProvider),
-        super(DictationState.initial());
 
-  /// Test constructor: accepts arbitrary service implementations directly.
-  DictationController.withServices({
-    required AudioRecorderService recorder,
-    required SpeechToTextService speechToText,
-    required this.noteId,
-  })  : _ref = null,
-        _audioRecorder = recorder,
-        _speechToText = speechToText,
-        super(DictationState.initial());
+  @override
+  DictationState build(String noteId) {
+    _audioRecorder = ref.read(audioRecorderServiceProvider);
+    _speechToText = ref.read(speechToTextServiceProvider);
+
+    ref.onDispose(() {
+      _mounted = false;
+      try {
+        _speechToText.stop();
+      } catch (_) {}
+
+      if (state.isDictating && _dictationAudioPath.isNotEmpty) {
+        try {
+          final file = File(_dictationAudioPath);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        } catch (e) {
+          debugPrint('Error deleting orphan audio on dispose: $e');
+        }
+      }
+
+      _audioRecorder.dispose();
+    });
+    return DictationState.initial();
+  }
 
   Future<void> toggleDictation({
     required TextEditingController textController,
@@ -483,9 +445,7 @@ class DictationController extends StateNotifier<DictationState> {
     }
 
     // If using provider, read keepVoice from settings
-    final effectiveKeepVoice = _ref != null
-        ? (_ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false)
-        : keepVoice;
+    final effectiveKeepVoice = keepVoice || (ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false);
 
     try {
       if (!effectiveKeepVoice) {
@@ -494,7 +454,7 @@ class DictationController extends StateNotifier<DictationState> {
             onStatus: (status) {
               if (status == 'notListening' && state.isDictating) {
                 Future.delayed(const Duration(milliseconds: 100), () {
-                  if (state.isDictating && mounted) {
+                  if (state.isDictating && _mounted) {
                     final txtCtrl = _activeTextController;
                     final fn = _activeFocusNode;
                     final os = _activeOnSave;
@@ -570,8 +530,7 @@ class DictationController extends StateNotifier<DictationState> {
     if (keepVoice) {
       if (!isRestart) {
         try {
-          final localRef = _ref;
-          final String resolvedPath = localRef != null ? await localRef.read(activeVaultPathProvider.future) : '';
+          final String resolvedPath = await ref.read(activeVaultPathProvider.future);
           final effectiveVaultPath = vaultPath ?? resolvedPath;
           final attachmentsDir = Directory(p.join(effectiveVaultPath, 'attachments'));
           if (!await attachmentsDir.exists()) {
@@ -591,7 +550,7 @@ class DictationController extends StateNotifier<DictationState> {
     } else {
       await _speechToText.listen(
         onResult: (words, isFinal) {
-          if (!mounted || !state.isDictating || _speechSessionCount != currentSession) return;
+          if (!_mounted || !state.isDictating || _speechSessionCount != currentSession) return;
 
           String newWords = words;
 
@@ -635,9 +594,7 @@ class DictationController extends StateNotifier<DictationState> {
 
     state = state.copyWith(isDictating: false);
 
-    final effectiveKeepVoice = _ref != null
-        ? (_ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false)
-        : keepVoice;
+    final effectiveKeepVoice = keepVoice || (ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false);
 
     if (!effectiveKeepVoice) {
       await _speechToText.stop();
@@ -682,27 +639,5 @@ class DictationController extends StateNotifier<DictationState> {
     }
   }
 
-  @override
-  void dispose() {
-    try {
-      _speechToText.stop();
-    } catch (_) {}
-    if (state.isDictating && _dictationAudioPath.isNotEmpty) {
-      try {
-        final file = File(_dictationAudioPath);
-        if (file.existsSync()) {
-          file.deleteSync();
-        }
-      } catch (e) {
-        debugPrint('Error deleting orphan audio on dispose: $e');
-      }
-    }
-    super.dispose();
-  }
-}
 
-/// Riverpod StateNotifierProvider for DictationController
-final dictationControllerProvider = StateNotifierProvider.autoDispose
-    .family<DictationController, DictationState, String>((ref, noteId) {
-  return DictationController(ref, noteId);
-});
+}

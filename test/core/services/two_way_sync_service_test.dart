@@ -505,6 +505,9 @@ void main() {
     test('runSync detects conflict, keeps local modified file, saves remote content as conflict copy, and updates SQLite notes index', () async {
       final syncService = container.read(twoWaySyncServiceProvider);
       final encryptionService = container.read(syncEncryptionServiceProvider);
+      
+      // Keep databaseProvider alive during the test
+      final dbSub = container.listen(databaseProvider, (_, __) {});
       final db = await container.read(databaseProvider.future);
 
       // 1. Setup sync configuration
