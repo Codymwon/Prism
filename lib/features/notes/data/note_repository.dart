@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/services/template_service.dart';
 import 'note_model.dart';
 import 'vault_service.dart';
 import 'vault_storage.dart';
@@ -21,6 +22,21 @@ class NoteRepository {
   Future<Database> get _db => _ref.read(databaseProvider.future);
 
   NoteIngestionService get _vaultService => _ref.read(noteIngestionServiceProvider);
+
+  TemplateService get _templates => _ref.read(templateServiceProvider);
+
+  /// Synthetic [Note] for a virtual `template:<name>` ID. Templates have no
+  /// SQLite row by design — their content lives as Markdown in
+  /// `.prism/templates/` — so we fabricate a lightweight Note object for the
+  /// editor/other readers that expect a Note instance.
+  Note _syntheticTemplateNote(String id) => Note(
+        id: id,
+        title: _templates.nameFromId(id),
+        filePath: '',
+        wordCount: 0,
+        createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+        updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+      );
 
 
   // ── CREATE ────────────────────────────────────────────────────────────────
@@ -66,6 +82,7 @@ class NoteRepository {
   }
 
   Future<Note?> getNoteById(String id) async {
+    if (isTemplateId(id)) return _syntheticTemplateNote(id);
     final db = await _db;
     final maps = await db.query('notes', where: 'id = ?', whereArgs: [id]);
     return maps.isEmpty ? null : Note.fromMap(maps.first);
@@ -92,6 +109,14 @@ class NoteRepository {
   }
 
   Future<String> readNoteContent(String noteId) async {
+    // Template content lives in .prism/templates/, never the DB or VaultStorage.
+    if (isTemplateId(noteId)) {
+      final res = await _templates.readTemplate(_templates.nameFromId(noteId));
+      return res.fold(
+        (f) => throw ArgumentError(f.message),
+        (content) => content,
+      );
+    }
     final note = await getNoteById(noteId);
     if (note != null) {
       final storage = _ref.read(vaultStorageProvider);
@@ -175,6 +200,11 @@ class NoteRepository {
   // ── UPDATE ────────────────────────────────────────────────────────────────
 
   Future<void> saveNote(String id, String content) async {
+    // Templates bypass SQLite indexing entirely — write the Markdown file only.
+    if (isTemplateId(id)) {
+      await _templates.writeTemplate(_templates.nameFromId(id), content);
+      return;
+    }
     await _vaultService.saveNote(id, content);
     _ref.read(notesVersionProvider.notifier).state++;
   }
@@ -182,6 +212,10 @@ class NoteRepository {
   // ── DELETE ────────────────────────────────────────────────────────────────
 
   Future<void> deleteNote(String id) async {
+    if (isTemplateId(id)) {
+      await _templates.deleteTemplate(_templates.nameFromId(id));
+      return;
+    }
     await _vaultService.deleteNote(id);
     _ref.read(notesVersionProvider.notifier).state++;
   }
