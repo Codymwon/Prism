@@ -70,7 +70,8 @@ class DefaultRevenueCatClientWrapper implements RevenueCatClientWrapper {
 
   @override
   Future<CustomerInfo> purchasePackage(Package package) async {
-    final result = await Purchases.purchasePackage(package);
+    final purchaseParams = PurchaseParams.package(package);
+    final result = await Purchases.purchase(purchaseParams);
     return result.customerInfo;
   }
 }
