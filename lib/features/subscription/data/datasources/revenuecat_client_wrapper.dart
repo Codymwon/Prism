@@ -12,4 +12,7 @@ abstract class RevenueCatClientWrapper {
   Future<bool> isConfigured();
   Future<Offerings> getOfferings();
   Future<CustomerInfo> purchasePackage(Package package);
+  Future<LogInResult> logIn(String appUserId);
+  Future<CustomerInfo> logOut();
 }
+

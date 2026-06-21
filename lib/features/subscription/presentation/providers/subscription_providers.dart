@@ -6,9 +6,15 @@ import '../../domain/entities/subscription_package.dart';
 import '../../domain/entities/subscription_status.dart';
 import '../../domain/repositories/subscription_repository.dart';
 
+import '../../data/datasources/revenuecat_client_wrapper.dart';
+
+final revenueCatClientWrapperProvider = Provider<RevenueCatClientWrapper>((ref) {
+  return DefaultRevenueCatClientWrapper();
+});
+
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
   return RevenueCatSubscriptionRepository(
-    clientWrapper: DefaultRevenueCatClientWrapper(),
+    clientWrapper: ref.watch(revenueCatClientWrapperProvider),
     isAndroid: Platform.isAndroid,
     isIOS: Platform.isIOS,
   );

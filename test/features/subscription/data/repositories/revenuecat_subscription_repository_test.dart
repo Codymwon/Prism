@@ -15,6 +15,9 @@ class MockRevenueCatClientWrapper implements RevenueCatClientWrapper {
   PlatformException? exceptionToThrow;
   Offerings? mockOfferings;
   Package? lastPurchasedPackage;
+  String? loggedInUserId;
+  bool logInCalled = false;
+  bool logOutCalled = false;
   
   @override
   Future<void> configure(PurchasesConfiguration configuration) async {
@@ -71,7 +74,34 @@ class MockRevenueCatClientWrapper implements RevenueCatClientWrapper {
     if (mockCustomerInfo != null) return mockCustomerInfo!;
     throw UnimplementedError();
   }
+
+  @override
+  Future<LogInResult> logIn(String appUserId) async {
+    logInCalled = true;
+    loggedInUserId = appUserId;
+    if (exceptionToThrow != null) throw exceptionToThrow!;
+    final customerInfo = mockCustomerInfo ?? FakeCustomerInfo(const {});
+    return FakeLogInResult(customerInfo, true);
+  }
+
+  @override
+  Future<CustomerInfo> logOut() async {
+    logOutCalled = true;
+    loggedInUserId = null;
+    if (exceptionToThrow != null) throw exceptionToThrow!;
+    return mockCustomerInfo ?? FakeCustomerInfo(const {});
+  }
 }
+
+class FakeLogInResult extends Fake implements LogInResult {
+  @override
+  final CustomerInfo customerInfo;
+  @override
+  final bool created;
+
+  FakeLogInResult(this.customerInfo, this.created);
+}
+
 
 class FakeCustomerInfo extends Fake implements CustomerInfo {
   final Map<String, EntitlementInfo> _mockActiveEntitlements;

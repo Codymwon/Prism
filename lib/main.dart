@@ -12,6 +12,8 @@ import 'features/journal/presentation/providers/journal_providers.dart';
 import 'features/subscription/presentation/providers/subscription_providers.dart';
 import 'shared/design_system/design_system.dart';
 import 'core/utils/utils.dart';
+import 'core/database/vault_providers.dart';
+import 'features/notes/data/vault_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -85,13 +87,35 @@ class PrismApp extends ConsumerStatefulWidget {
   ConsumerState<PrismApp> createState() => _PrismAppState();
 }
 
-class _PrismAppState extends ConsumerState<PrismApp> {
+class _PrismAppState extends ConsumerState<PrismApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(widgetHelperProvider).init();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final vaultPath = ref.read(activeVaultPathProvider).valueOrNull;
+      if (vaultPath != null && vaultPath.isNotEmpty) {
+        ref.read(noteIngestionServiceProvider).syncVault(vaultPath).then((_) {
+          ref.read(notesVersionProvider.notifier).update((v) => v + 1);
+          ref.read(foldersVersionProvider.notifier).update((v) => v + 1);
+        }).catchError((e) {
+          debugPrint('Error syncing vault on resume: $e');
+        });
+      }
+    }
   }
 
   void _triggerWidgetUpdate(int streak, bool todayReflected, ColorScheme colorScheme, BuildContext context) {

@@ -62,7 +62,11 @@ dependencies:
   cryptography: ^2.9.0
   google_sign_in: ^6.2.1
   googleapis: ^11.4.0
+  googleapis_auth: ^1.6.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.1
+  supabase_flutter: ^2.6.0
   http: ^1.2.0
+
 
   # Code generation
   freezed_annotation: ^2.4.4

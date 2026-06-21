@@ -74,4 +74,15 @@ class DefaultRevenueCatClientWrapper implements RevenueCatClientWrapper {
     final result = await Purchases.purchase(purchaseParams);
     return result.customerInfo;
   }
+
+  @override
+  Future<LogInResult> logIn(String appUserId) async {
+    return await Purchases.logIn(appUserId);
+  }
+
+  @override
+  Future<CustomerInfo> logOut() async {
+    return await Purchases.logOut();
+  }
 }
+

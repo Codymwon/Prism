@@ -17,6 +17,7 @@ import '../../features/subscription/presentation/screens/custom_paywall_screen.d
 import '../../features/onboarding/data/onboarding_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../shared/widgets/app_shell.dart';
+import '../../features/auth/presentation/screens/account_registration_screen.dart';
 
 // ── Router Notifier ──────────────────────────────────────────────────────────
 // A ChangeNotifier that bridges Riverpod state → GoRouter's refreshListenable.
@@ -255,6 +256,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   transitionDuration: const Duration(milliseconds: 280),
                   reverseTransitionDuration: const Duration(milliseconds: 240),
                 ),
+              ),
+              GoRoute(
+                path: 'register',
+                pageBuilder: (context, state) {
+                  final mode = state.uri.queryParameters['mode'];
+                  final isRegisterMode = mode != 'login';
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    child: AccountRegistrationScreen(
+                      isRegisterMode: isRegisterMode,
+                      onSkip: () => context.go('/notes'),
+                    ),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.08, 0.0),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          )),
+                          child: child,
+                        ),
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 280),
+                    reverseTransitionDuration: const Duration(milliseconds: 240),
+                  );
+                },
               ),
             ],
           ),
