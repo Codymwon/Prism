@@ -86,14 +86,14 @@ class WidgetHelper {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('flutter.journal_streak', streak);
-      await prefs.setBool('flutter.today_reflected', todayReflected);
+      await prefs.setInt('journal_streak', streak);
+      await prefs.setBool('today_reflected', todayReflected);
       
       // Theme colors
-      await prefs.setString('flutter.theme_widget_bg', bgHex);
-      await prefs.setString('flutter.theme_widget_accent', accentHex);
-      await prefs.setString('flutter.theme_widget_text_primary', textPrimaryHex);
-      await prefs.setString('flutter.theme_widget_text_secondary', textSecondaryHex);
+      await prefs.setString('theme_widget_bg', bgHex);
+      await prefs.setString('theme_widget_accent', accentHex);
+      await prefs.setString('theme_widget_text_primary', textPrimaryHex);
+      await prefs.setString('theme_widget_text_secondary', textSecondaryHex);
 
       // Trigger native update
       await _channel.invokeMethod('updateWidgets');
