@@ -28,11 +28,12 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
               child: Row(
                 children: [
@@ -46,15 +47,17 @@ class SettingsScreen extends ConsumerWidget {
                 ],
               ).animate().fadeIn(duration: 400.ms),
             ),
-            Expanded(
-              child: ListView(
-                children: [
-                  // ── Appearance ───────────────────────────────────────────
-                  const SettingsSectionHeader(title: 'Appearance'),
-                  ThemeSelector(themeType: themeType, ref: ref),
-                  SettingsTile(
-                    icon: Icons.text_fields_rounded,
-                    title: 'Font family',
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 100),
+              children: [
+                // ── Appearance ───────────────────────────────────────────
+                const SettingsSectionHeader(title: 'Appearance'),
+                ThemeSelector(themeType: themeType, ref: ref),
+                SettingsTile(
+                  icon: Icons.text_fields_rounded,
+                  title: 'Font family',
                     subtitle: fontFamily == 'Inter (Sans)' ? 'Inter (Sans) (Default)' : fontFamily,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _showOptionSelector(
@@ -305,14 +308,12 @@ class SettingsScreen extends ConsumerWidget {
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/settings/privacy-policy'),
                   ),
-                  const SizedBox(height: 80),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   void _showOptionSelector({

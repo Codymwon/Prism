@@ -6,25 +6,25 @@ import '../../../../core/utils/utils.dart';
 import '../../../folders/data/folder_model.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
-import '../../../folders/presentation/widgets/folder_icon_display.dart';
 import '../../data/note_model.dart';
 
 class VirtualFoldersBentoRow extends ConsumerWidget {
   final List<Note> allNotes;
   final List<VirtualFolder> folders;
   final Map<String, List<String>> mappings;
+  final bool showAll;
 
   const VirtualFoldersBentoRow({
     super.key,
     required this.allNotes,
     required this.folders,
     required this.mappings,
+    this.showAll = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
-    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // 1. Calculate dynamic counts
@@ -34,33 +34,28 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
         .where((n) => !n.isDaily && !n.isGhost && (mappings[n.id] == null || mappings[n.id]!.isEmpty))
         .length;
 
+    // Color palette based on mockup (Dusk/Clean Paper adaptive)
+    final blueColor = isDark ? const Color(0xFF3E5A73) : const Color(0xFFA8C2D8);
+    final greenColor = isDark ? const Color(0xFF375E45) : const Color(0xFFA8D1B6);
+    final orangeColor = isDark ? const Color(0xFF8C4F3B) : const Color(0xFFE8B49A);
+
     // 2. Prepare Bento Cards definitions
     final List<_BentoCardData> cards = [
       // Card 0: All Notes
       _BentoCardData(
-        id: null,
+        id: '__all__',
         name: 'All Notes',
         icon: 'article',
-        color: colorScheme.primary,
+        color: blueColor,
         count: allNotesCount,
         isSystem: true,
       ),
-      // Card 1: Add Button (+)
-      _BentoCardData(
-        id: '__add__',
-        name: 'New Folder',
-        icon: 'add_folder',
-        color: colorScheme.primary,
-        count: 0,
-        isSystem: true,
-        isAdd: true,
-      ),
-      // Card 2: Daily Notes
+      // Card 1: Journal Logs (Daily Notes)
       _BentoCardData(
         id: '__daily__',
-        name: 'Daily Notes',
+        name: 'Journal Logs',
         icon: 'auto_stories',
-        color: Colors.amber,
+        color: greenColor,
         count: dailyNotesCount,
         isSystem: true,
       ),
@@ -69,7 +64,7 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
         id: '__uncategorized__',
         name: 'Uncategorized',
         icon: 'inbox',
-        color: Colors.blueGrey,
+        color: orangeColor,
         count: uncategorizedCount,
         isSystem: true,
       ),
@@ -87,137 +82,115 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
       ),
     ];
 
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: cards.length,
+    // 3. Grid Slicing & See All Injection (only when showAll is false)
+    List<_BentoCardData> displayCards = cards;
+    if (!showAll && cards.length > 6) {
+      displayCards = cards.take(5).toList();
+      displayCards.add(
+        _BentoCardData(
+          id: '__folders__',
+          name: 'See All',
+          icon: 'more_horiz',
+          color: isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5),
+          count: cards.length,
+          isSystem: true,
+        ),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      padding: showAll 
+          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      physics: showAll 
+          ? const ScrollPhysics() 
+          : const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.35, // Adjust for aspect ratio fits
+      ),
+      itemCount: displayCards.length,
       itemBuilder: (context, index) {
-        final card = cards[index];
+        final card = displayCards[index];
         final isSelected = selectedFolderId == card.id;
 
-        if (card.isAdd) {
-          // Render Outlined Add Folder Button
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: TactileWrapper(
-              style: TactileFeedbackStyle.highImpact,
-              onTap: () => FolderDrawer.showAddFolderSheet(context, ref),
-              child: Container(
-                width: 140,
-                decoration: BoxDecoration(
-                  color: isDark ? colorScheme.primary.withValues(alpha: 0.05) : colorScheme.primary.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: colorScheme.primary.withValues(alpha: 0.3),
-                    width: 1.0,
-                  ),
+        final cardBg = card.color;
+        final isLightBg = cardBg.computeLuminance() > 0.5;
+        final textColor = isLightBg ? const Color(0xFF2D2A26) : Colors.white;
+        final badgeBg = isLightBg ? Colors.black.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.25);
+
+        return TactileWrapper(
+          style: TactileFeedbackStyle.standard,
+          onTap: () {
+            ref.read(selectedFolderIdProvider.notifier).state = card.id;
+          },
+          onLongPress: card.folder != null
+              ? () => FolderDrawer.showFolderOptions(context, ref, card.folder!)
+              : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? textColor : Colors.black.withValues(alpha: 0.08),
+                width: isSelected ? 2.5 : 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(
-                      Icons.create_new_folder_outlined,
-                      color: colorScheme.primary,
-                      size: 24,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Create Folder',
-                      style: DesignTypography.body(
-                        context,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.primary,
+                    if (card.icon.isNotEmpty)
+                      Icon(
+                        DesignIcons.resolveFolder(card.icon),
+                        size: 16,
+                        color: textColor.withValues(alpha: 0.8),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${card.count}',
+                        style: DesignTypography.mono(
+                          fontSize: 8.5,
+                          color: textColor,
+                        ).copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-          );
-        }
-
-        // Render Standard Folder Bento Card
-        return Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: TactileWrapper(
-            style: TactileFeedbackStyle.standard,
-            onTap: () {
-              ref.read(selectedFolderIdProvider.notifier).state = card.id;
-            },
-            onLongPress: card.folder != null
-                ? () => FolderDrawer.showFolderOptions(context, ref, card.folder!)
-                : null,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 140,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? card.color.withValues(alpha: 0.12)
-                    : DesignColors.surface(context),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isSelected
-                      ? card.color
-                      : DesignColors.border(context),
-                  width: isSelected ? 1.5 : 0.8,
+                Text(
+                  card.name,
+                  style: DesignTypography.body(
+                    context,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                boxShadow: isSelected
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      FolderIconDisplay(
-                        iconKey: card.icon,
-                        color: card.color,
-                        size: 32,
-                        badgeSize: card.isSystem ? 0 : 8,
-                        useThemedIcon: true,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? card.color.withValues(alpha: 0.25)
-                              : card.color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${card.count}',
-                          style: DesignTypography.mono(
-                            fontSize: 10,
-                            color: card.color,
-                          ).copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    card.name,
-                    style: DesignTypography.body(
-                      context,
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: DesignColors.text(context),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
         );
@@ -233,7 +206,6 @@ class _BentoCardData {
   final Color color;
   final int count;
   final bool isSystem;
-  final bool isAdd;
   final VirtualFolder? folder;
 
   const _BentoCardData({
@@ -243,7 +215,6 @@ class _BentoCardData {
     required this.color,
     required this.count,
     this.isSystem = false,
-    this.isAdd = false,
     this.folder,
   });
 }

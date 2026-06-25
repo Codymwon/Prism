@@ -164,5 +164,27 @@ void main() {
 
     expect(mockAuth.signOutCalled, true);
   });
-}
 
+  testWidgets('Settings ListView has bottom padding to clear the floating navbar',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final mockAuth = MockAuthNotifier(mockUser: null);
+    await tester.pumpWidget(buildTestableWidget(isPro: false, mockAuth: mockAuth));
+    await tester.pumpAndSettle();
+
+    // Find the main scrollable ListView and check its padding
+    final listViewFinder = find.byType(ListView).first;
+    final listView = tester.widget<ListView>(listViewFinder);
+    final padding = listView.padding;
+
+    // Should have at least 80 bottom padding so content clears the floating nav bar
+    expect(padding, isNotNull);
+    expect(padding!.resolve(TextDirection.ltr).bottom, greaterThanOrEqualTo(80.0));
+  });
+}

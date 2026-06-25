@@ -95,14 +95,16 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
-      body: SafeArea(
-        child: Column(
-          children: [
-            GraphHeader(
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: GraphHeader(
               showSettings: _showSettings,
               onRefresh: () => ref.invalidate(graphDataProvider),
               onSettingsToggle: () => setState(() => _showSettings = !_showSettings),
             ),
+          ),
             Expanded(
               child: () {
                 if (graphAsync.hasValue) {
@@ -144,7 +146,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
                         
                       // Floating Focus Center Button
                       Positioned(
-                        bottom: 20,
+                        bottom: 88,
                         right: 20,
                         child: TactileWrapper(
                           onTap: _centerView,
@@ -186,8 +188,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 

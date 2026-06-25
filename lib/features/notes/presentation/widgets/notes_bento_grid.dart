@@ -25,7 +25,7 @@ class NotesBentoGrid extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: isMobile ? width : width / 2,
-        mainAxisExtent: 120,
+        mainAxisExtent: 136,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),

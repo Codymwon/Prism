@@ -38,6 +38,7 @@ class DesignIcons {
   static const Map<String, IconData> folderIcons = {
     // General
     'folder': Icons.folder_rounded,
+    'article': Icons.article_rounded,
     'inbox': Icons.inbox_rounded,
     'bookmark': Icons.bookmark_rounded,
     'star': Icons.star_rounded,

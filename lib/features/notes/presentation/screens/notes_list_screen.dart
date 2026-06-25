@@ -65,40 +65,87 @@ class NotesListScreen extends ConsumerWidget {
             data: (data) {
               final query = ref.watch(searchQueryProvider);
               final isSearching = query.trim().isNotEmpty;
+              final folderActive = selectedFolderId != null;
+
+              final activeFolder = data.folders.cast<VirtualFolder?>().firstWhere(
+                (f) => f?.id == selectedFolderId,
+                orElse: () => null,
+              );
 
               return Expanded(
                 child: Column(
                   children: [
-                    if (!isSearching) ...[
-                      SizedBox(
-                        height: 90,
-                        child: VirtualFoldersBentoRow(
-                          allNotes: data.notes,
-                          folders: data.folders,
-                          mappings: data.mappings,
+                    if (!isSearching && !folderActive) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'FOLDERS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.12,
+                                color: DesignColors.textSecondary(context),
+                              ),
+                            ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                Icons.add_circle_outline_rounded,
+                                size: 16,
+                                color: DesignColors.textSecondary(context),
+                              ),
+                              onPressed: () => FolderDrawer.navigateToAddFolderScreen(context),
+                              tooltip: 'New Folder',
+                            ),
+                          ],
                         ),
                       ),
+                      VirtualFoldersBentoRow(
+                        allNotes: data.notes,
+                        folders: data.folders,
+                        mappings: data.mappings,
+                      ),
                     ],
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          folderActive
+                              ? _getFolderHeaderString(selectedFolderId, data, activeFolder)
+                              : (isSearching ? 'SEARCH RESULTS' : 'RECENT NOTES'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.12,
+                            color: DesignColors.textSecondary(context),
+                          ),
+                        ),
+                      ),
+                    ),
                     Expanded(
                       child: Consumer(
                         builder: (context, ref, _) {
-                          final notesAsync = isSearching
-                              ? ref.watch(searchResultsProvider)
-                              : ref.watch(notesProvider);
-
-                          return notesAsync.maybeWhen(
-                            data: (notes) {
-                              if (notes.isEmpty) {
-                                return _buildEmptyState(context, ref);
-                              }
-                              return NotesBentoGrid(
-                                notes: notes,
-                                onDelete: (id) => _deleteNote(context, ref, id),
-                              );
-                            },
-                            orElse: () {
-                              if (notesAsync.hasValue) {
-                                final notes = notesAsync.value!;
+                          if (selectedFolderId == '__folders__') {
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                              child: VirtualFoldersBentoRow(
+                                allNotes: data.notes,
+                                folders: data.folders,
+                                mappings: data.mappings,
+                                showAll: true,
+                              ),
+                            );
+                          }
+                          if (isSearching) {
+                            final searchAsync = ref.watch(searchResultsProvider);
+                            return searchAsync.maybeWhen(
+                              data: (notes) {
                                 if (notes.isEmpty) {
                                   return _buildEmptyState(context, ref);
                                 }
@@ -106,13 +153,63 @@ class NotesListScreen extends ConsumerWidget {
                                   notes: notes,
                                   onDelete: (id) => _deleteNote(context, ref, id),
                                 );
-                              }
-                              return const SkeletonNoteList();
-                            },
-                            error: (e, s) => Center(
-                              child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-                            ),
-                          );
+                              },
+                              orElse: () => const SkeletonNoteList(),
+                            );
+                          }
+
+                          if (!folderActive) {
+                            final recentAsync = ref.watch(recentNotesProvider);
+                            return recentAsync.maybeWhen(
+                              data: (notes) {
+                                if (notes.isEmpty) {
+                                  return _buildEmptyState(context, ref);
+                                }
+                                return ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                                  itemCount: notes.length,
+                                  itemBuilder: (context, i) {
+                                    final note = notes[i];
+                                    return NoteCard(
+                                      note: note,
+                                      onTap: () => context.push('/editor/${note.id}'),
+                                      onDelete: () => _deleteNote(context, ref, note.id),
+                                    );
+                                  },
+                                );
+                              },
+                              orElse: () => const SkeletonNoteList(),
+                            );
+                          } else {
+                            final notesAsync = ref.watch(notesProvider);
+                            return notesAsync.maybeWhen(
+                              data: (notes) {
+                                if (notes.isEmpty) {
+                                  return _buildEmptyState(context, ref);
+                                }
+                                return NotesBentoGrid(
+                                  notes: notes,
+                                  onDelete: (id) => _deleteNote(context, ref, id),
+                                );
+                              },
+                              orElse: () {
+                                if (notesAsync.hasValue) {
+                                  final notes = notesAsync.value!;
+                                  if (notes.isEmpty) {
+                                    return _buildEmptyState(context, ref);
+                                  }
+                                  return NotesBentoGrid(
+                                    notes: notes,
+                                    onDelete: (id) => _deleteNote(context, ref, id),
+                                  );
+                                }
+                                return const SkeletonNoteList();
+                              },
+                              error: (e, s) => Center(
+                                child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                              ),
+                            );
+                          }
                         },
                       ),
                     ),
@@ -339,6 +436,28 @@ class NotesListScreen extends ConsumerWidget {
     if (confirmed == true) {
       await ref.read(noteRepositoryProvider).deleteNote(id);
     }
+  }
+
+  String _getFolderHeaderString(String folderId, HomeScreenData data, VirtualFolder? activeFolder) {
+    if (folderId == '__folders__') {
+      final total = data.folders.length + 3;
+      return 'Folders • $total folder${total == 1 ? "" : "s"}';
+    }
+    if (folderId == '__all__') {
+      final count = data.notes.length;
+      return 'All Notes • $count note${count == 1 ? "" : "s"}';
+    }
+    if (folderId == '__daily__') {
+      final count = data.notes.length;
+      return 'Journal Logs • $count note${count == 1 ? "" : "s"}';
+    }
+    if (folderId == '__uncategorized__') {
+      final count = data.notes.length;
+      return 'Uncategorized • $count note${count == 1 ? "" : "s"}';
+    }
+    final name = activeFolder?.name ?? 'Folder';
+    final count = activeFolder?.noteCount ?? data.notes.length;
+    return '$name • $count note${count == 1 ? "" : "s"}';
   }
 }
 

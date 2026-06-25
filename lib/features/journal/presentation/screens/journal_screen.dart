@@ -39,29 +39,36 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            JournalHeader(
-              selectedDay: selectedDay,
-              showCalendar: _showCalendar,
-              onToggleCalendar: () => setState(() => _showCalendar = !_showCalendar),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                JournalHeader(
+                  selectedDay: selectedDay,
+                  showCalendar: _showCalendar,
+                  onToggleCalendar: () => setState(() => _showCalendar = !_showCalendar),
+                ),
+                if (_showCalendar)
+                  JournalCalendar(
+                    selectedDay: selectedDay,
+                    selectedDayProvider: selectedDayProvider,
+                    focusedDayProvider: focusedDayProvider,
+                  ),
+                // 7-day quick-navigation strip (visible only when calendar is closed)
+                if (!_showCalendar)
+                  const JournalWeekStrip(),
+              ],
             ),
-            if (_showCalendar)
-              JournalCalendar(
-                selectedDay: selectedDay,
-                selectedDayProvider: selectedDayProvider,
-                focusedDayProvider: focusedDayProvider,
-              ),
-            // 7-day quick-navigation strip (visible only when calendar is closed)
-            if (!_showCalendar)
-              const JournalWeekStrip(),
-            Expanded(
-              child: _buildJournalContent(colorScheme, selectedDay),
-            ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _buildJournalContent(colorScheme, selectedDay),
+          ),
+        ],
       ),
     );
   }

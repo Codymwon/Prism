@@ -259,4 +259,105 @@ void main() {
 
     sub.close();
   });
+
+  test('recentNotesProvider returns 5 most recently updated notes (standard & daily) and excludes ghost notes', () async {
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWith((ref) async => db),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // Insert 6 notes with different update timestamps, plus 1 ghost note
+    // Note 1 (newest)
+    await db.insert('notes', {
+      'id': 'note-1',
+      'title': 'Note 1',
+      'file_path': '/vault/1.md',
+      'word_count': 10,
+      'created_at': 100,
+      'updated_at': 600, // Newest
+      'is_ghost': 0,
+      'is_daily': 0,
+    });
+    // Note 2 (daily note)
+    await db.insert('notes', {
+      'id': 'note-2',
+      'title': '2026-06-25',
+      'file_path': '/vault/2026-06-25.md',
+      'word_count': 10,
+      'created_at': 100,
+      'updated_at': 500,
+      'is_ghost': 0,
+      'is_daily': 1,
+      'daily_date': '2026-06-25',
+    });
+    // Note 3 (standard note)
+    await db.insert('notes', {
+      'id': 'note-3',
+      'title': 'Note 3',
+      'file_path': '/vault/3.md',
+      'word_count': 10,
+      'created_at': 100,
+      'updated_at': 400,
+      'is_ghost': 0,
+      'is_daily': 0,
+    });
+    // Note 4
+    await db.insert('notes', {
+      'id': 'note-4',
+      'title': 'Note 4',
+      'file_path': '/vault/4.md',
+      'word_count': 10,
+      'created_at': 100,
+      'updated_at': 300,
+      'is_ghost': 0,
+      'is_daily': 0,
+    });
+    // Note 5
+    await db.insert('notes', {
+      'id': 'note-5',
+      'title': 'Note 5',
+      'file_path': '/vault/5.md',
+      'word_count': 10,
+      'created_at': 100,
+      'updated_at': 200,
+      'is_ghost': 0,
+      'is_daily': 0,
+    });
+    // Note 6 (oldest real note)
+    await db.insert('notes', {
+      'id': 'note-6',
+      'title': 'Note 6',
+      'file_path': '/vault/6.md',
+      'word_count': 10,
+      'created_at': 100,
+      'updated_at': 100,
+      'is_ghost': 0,
+      'is_daily': 0,
+    });
+    // Note 7 (ghost note)
+    await db.insert('notes', {
+      'id': 'note-7',
+      'title': 'Ghost Note',
+      'file_path': '/vault/7.md',
+      'word_count': 0,
+      'created_at': 100,
+      'updated_at': 700, // Even newer but ghost!
+      'is_ghost': 1,
+      'is_daily': 0,
+    });
+
+    final recent = await container.read(recentNotesProvider.future);
+
+    // Verify it returned exactly 5 notes
+    expect(recent.length, equals(5));
+
+    // Verify correct order (newest first, excluding the ghost note 7)
+    expect(recent[0].id, equals('note-1')); // 600
+    expect(recent[1].id, equals('note-2')); // 500
+    expect(recent[2].id, equals('note-3')); // 400
+    expect(recent[3].id, equals('note-4')); // 300
+    expect(recent[4].id, equals('note-5')); // 200 (note-6 is excluded because of count limit 5)
+  });
 }

@@ -25,6 +25,9 @@ class FolderIconDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // When no icon is set, render nothing — the caller handles empty-state UI
+    if (iconKey.isEmpty) return const SizedBox.shrink();
+
     final iconData = DesignIcons.resolveFolder(iconKey);
     final iconSize = size * 0.52;
     final displayColor = useThemedIcon ? Theme.of(context).colorScheme.primary : color;
@@ -35,7 +38,7 @@ class FolderIconDisplay extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // ── Background container + icon ──────────────────────────────────
+          // ── Background container + icon ─────────────────────────────────
           Container(
             width: size,
             height: size,

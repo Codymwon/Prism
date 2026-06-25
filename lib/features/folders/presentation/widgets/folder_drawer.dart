@@ -9,8 +9,6 @@ import '../../data/folder_repository.dart';
 import '../providers/folders_providers.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
-import 'add_folder_sheet.dart';
-import 'edit_folder_sheet.dart';
 import 'folder_icon_display.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
@@ -194,7 +192,7 @@ class FolderDrawer extends ConsumerWidget {
               GestureDetector(
                 onTap: () {
                   Navigator.of(context).pop();
-                  showAddFolderSheet(context, ref);
+                  navigateToAddFolderScreen(context);
                 },
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8.0),
@@ -378,21 +376,14 @@ class FolderDrawer extends ConsumerWidget {
 
 
 
-  static void showAddFolderSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: DesignColors.background(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => const AddFolderSheet(),
-    );
+  static void navigateToAddFolderScreen(BuildContext context) {
+    context.push('/folders/create');
   }
 
   static void showFolderOptions(BuildContext context, WidgetRef ref, VirtualFolder folder) {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       backgroundColor: DesignColors.background(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -419,7 +410,7 @@ class FolderDrawer extends ConsumerWidget {
               title: Text('Edit details', style: DesignTypography.body(context)),
               onTap: () {
                 Navigator.pop(ctx);
-                showEditFolderSheet(context, ref, folder);
+                navigateToEditFolderScreen(context, folder.id);
               },
             ),
 
@@ -451,15 +442,7 @@ class FolderDrawer extends ConsumerWidget {
     );
   }
 
-  static void showEditFolderSheet(BuildContext context, WidgetRef ref, VirtualFolder folder) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: DesignColors.background(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => EditFolderSheet(folder: folder),
-    );
+  static void navigateToEditFolderScreen(BuildContext context, String folderId) {
+    context.push('/folders/edit/$folderId');
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
@@ -82,12 +82,16 @@ class VaultSelectorTitle extends ConsumerWidget {
                   Icon(DesignIcons.folderOpen, size: 12, color: DesignColors.textSecondary(context)),
                   const SizedBox(width: 4),
                 ],
-                Text(
-                  currentFolder != null ? '$activeVaultName / ${currentFolder.name}' : activeVaultName,
-                  style: DesignTypography.heading(
-                    context,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: Text(
+                    currentFolder != null ? '$activeVaultName / ${currentFolder.name}' : activeVaultName,
+                    style: DesignTypography.heading(
+                      context,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
                 const SizedBox(width: 4),

@@ -18,6 +18,8 @@ import '../../features/onboarding/data/onboarding_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../features/auth/presentation/screens/account_registration_screen.dart';
+import '../../features/folders/presentation/screens/add_folder_screen.dart';
+import '../../features/folders/presentation/screens/edit_folder_screen.dart';
 
 // ── Router Notifier ──────────────────────────────────────────────────────────
 // A ChangeNotifier that bridges Riverpod state → GoRouter's refreshListenable.
@@ -329,6 +331,57 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: MergeComparisonScreen(noteId: noteId),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.08, 0.0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  )),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 280),
+            reverseTransitionDuration: const Duration(milliseconds: 240),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/folders/create',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AddFolderScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.08, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                )),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: const Duration(milliseconds: 240),
+        ),
+      ),
+      GoRoute(
+        path: '/folders/edit/:id',
+        pageBuilder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: EditFolderScreen(folderId: id),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(
                 opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),

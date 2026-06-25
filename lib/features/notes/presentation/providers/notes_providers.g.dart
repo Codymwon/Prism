@@ -6,7 +6,7 @@ part of 'notes_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$notesHash() => r'a3d4439893597cc9b7c0ba3563ba70428d78db11';
+String _$notesHash() => r'fb36cc7c4fe6dd945f7d692ffd6addb227b5de86';
 
 /// See also [notes].
 @ProviderFor(notes)
@@ -23,6 +23,23 @@ final notesProvider = AutoDisposeFutureProvider<List<Note>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef NotesRef = AutoDisposeFutureProviderRef<List<Note>>;
+String _$recentNotesHash() => r'243da8eda55c5a460ca1ac4f56dc229b101e7bd5';
+
+/// See also [recentNotes].
+@ProviderFor(recentNotes)
+final recentNotesProvider = AutoDisposeFutureProvider<List<Note>>.internal(
+  recentNotes,
+  name: r'recentNotesProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$recentNotesHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RecentNotesRef = AutoDisposeFutureProviderRef<List<Note>>;
 String _$uniqueTagsHash() => r'c3e83713f4f61815506fff9d5d549666b90bcbf6';
 
 /// See also [uniqueTags].

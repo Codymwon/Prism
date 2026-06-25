@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:prism/core/router/app_router.dart';
+import 'package:prism/features/notes/presentation/screens/notes_list_screen.dart';
+import 'package:prism/features/folders/presentation/widgets/folder_drawer.dart';
+import 'package:prism/features/folders/presentation/screens/add_folder_screen.dart';
+import 'package:prism/features/folders/presentation/screens/edit_folder_screen.dart';
+import 'package:prism/features/folders/data/folder_model.dart';
+import 'package:prism/features/folders/data/folder_repository.dart';
+import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/notes/data/note_repository.dart';
+import 'package:prism/core/database/database_providers.dart';
+import 'package:prism/features/onboarding/data/tutorial_provider.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
+import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:prism/core/services/vault_service.dart';
+
+class FakeDatabase extends Fake implements Database {
+  @override
+  bool get isOpen => true;
+}
+
+class FakeNoteRepository extends Fake implements NoteRepository {
+  @override
+  Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) async => [];
+  @override
+  Future<Note?> getDailyNote(String dateStr) async => null;
+  @override
+  Stream<List<Note>> watchAllNotes() => Stream.value([]);
+}
+
+class FakeFolderRepository extends Fake implements FolderRepository {
+  @override
+  Future<List<VirtualFolder>> getAllFolders() async => [
+        VirtualFolder(id: '123', name: 'Work', colorHex: '#7C6FF7', icon: 'folder', noteCount: 0, createdAt: DateTime.now(), sortOrder: 0),
+      ];
+  @override
+  Future<Map<String, List<String>>> getNoteFolderMappings() async => {};
+  @override
+  Stream<List<VirtualFolder>> watchAllFolders() => Stream.value([
+        VirtualFolder(id: '123', name: 'Work', colorHex: '#7C6FF7', icon: 'folder', noteCount: 0, createdAt: DateTime.now(), sortOrder: 0),
+      ]);
+}
+
+class FakeTutorialNotifier extends TutorialNotifier {
+  FakeTutorialNotifier() : super() {
+    state = true;
+  }
+  @override
+  Future<void> _load() async {}
+}
+
+class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
+  FakeJournalTutorialNotifier() : super() {
+    state = true;
+  }
+  @override
+  Future<void> _load() async {}
+}
+
+class FakeOnboardingNotifier extends OnboardingNotifier {
+  FakeOnboardingNotifier() : super() {
+    state = true;
+  }
+  @override
+  Future<void> _load() async {}
+}
+
+void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({
+      'hasOnboarded': true,
+      'hasCompletedTutorial': true,
+      'hasCompletedJournalTutorial': true,
+    });
+  });
+
+  Widget buildTestApp(WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+    return MaterialApp.router(
+      routerConfig: router,
+    );
+  }
+
+  testWidgets('inline folder creation button and drawer add button navigate to AddFolderScreen', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWith((ref) async => FakeDatabase()),
+        noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
+        folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
+        tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier()),
+        journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier()),
+        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier()),
+        availableVaultsProvider.overrideWith((ref) async => ['Default']),
+        homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
+          notes: [],
+          folders: [
+            VirtualFolder(id: '123', name: 'Work', colorHex: '#7C6FF7', icon: 'folder', noteCount: 0, createdAt: DateTime.now(), sortOrder: 0),
+          ],
+          mappings: {},
+        ))),
+      ],
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: Consumer(
+          builder: (context, ref, _) => buildTestApp(ref),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(seconds: 1));
+
+    // Tap the inline "+" button on NotesListScreen to add a folder
+    final inlineAddFinder = find.byTooltip('New Folder');
+    expect(inlineAddFinder, findsOneWidget);
+
+    await tester.tap(inlineAddFinder);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    // Verify it navigated to AddFolderScreen
+    expect(find.byType(AddFolderScreen), findsOneWidget);
+  });
+}

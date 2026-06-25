@@ -64,6 +64,10 @@ Future<List<Note>> notes(NotesRef ref) async {
   
   final folderId = ref.watch(selectedFolderIdProvider);
   if (folderId != null) {
+    if (folderId == '__all__') {
+      final all = await repo.getAllNotes(sort: sort);
+      return all.where((n) => !n.isDaily).toList();
+    }
     if (folderId == '__daily__') {
       final all = await repo.getAllNotes(sort: sort);
       return all.where((n) => n.isDaily).toList();
@@ -79,6 +83,15 @@ Future<List<Note>> notes(NotesRef ref) async {
   
   final all = await repo.getAllNotes(sort: sort);
   return all.where((n) => !n.isDaily).toList();
+}
+
+@riverpod
+Future<List<Note>> recentNotes(RecentNotesRef ref) async {
+  await ref.watch(databaseProvider.future);
+  ref.watch(notesVersionProvider);
+  final repo = ref.watch(noteRepositoryProvider);
+  final all = await repo.getAllNotes(sort: NoteSort.updated);
+  return all.where((n) => !n.isGhost).take(5).toList();
 }
 
 @riverpod

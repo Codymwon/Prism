@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../features/onboarding/data/tutorial_provider.dart';
+import 'package:prism/features/onboarding/data/tutorial_provider.dart';
 import '../design_system/design_system.dart';
 import 'tactile_wrapper.dart';
 import 'tutorial_overlay.dart';
@@ -99,6 +99,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   // ─── Mobile scaffold (original, untouched) ─────────────────────────────────
   Widget _buildMobileScaffold(BuildContext context, ColorScheme colorScheme) {
     return Scaffold(
+      extendBody: true,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         switchInCurve: Curves.easeInOutCubic,
