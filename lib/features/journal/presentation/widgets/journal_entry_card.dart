@@ -11,9 +11,10 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
+import '../../../notes/data/note_repository.dart';
 import '../../../editor/presentation/utils/editor_helpers.dart';
 
-class JournalEntryCard extends ConsumerWidget {
+class JournalEntryCard extends ConsumerStatefulWidget {
   final Note note;
   final String content;
 
@@ -22,6 +23,25 @@ class JournalEntryCard extends ConsumerWidget {
     required this.note,
     required this.content,
   });
+
+  @override
+  ConsumerState<JournalEntryCard> createState() => _JournalEntryCardState();
+}
+
+class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   String _getCardTitle(String content, String fallback) {
     final fmTitle = extractFrontmatterValue(content, 'title');
@@ -146,79 +166,81 @@ class JournalEntryCard extends ConsumerWidget {
     final listWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: items.map((item) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                item.isChecked ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                color: item.isChecked
-                    ? colorScheme.primary
-                    : DesignColors.textSecondary(context).withValues(alpha: 0.5),
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  item.label,
-                  style: DesignTypography.body(
-                    context,
-                    fontSize: 13,
+      children: items.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              final updatedContent = toggleMarkdownCheckbox(widget.content, index);
+              await ref.read(noteRepositoryProvider).saveNote(widget.note.id, updatedContent);
+            },
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    item.isChecked ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
                     color: item.isChecked
-                        ? DesignColors.textSecondary(context).withValues(alpha: 0.6)
-                        : DesignColors.text(context),
-                  ).copyWith(
-                    decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                        ? colorScheme.primary
+                        : DesignColors.textSecondary(context).withValues(alpha: 0.5),
+                    size: 18,
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.label,
+                      style: DesignTypography.body(
+                        context,
+                        fontSize: 13,
+                        color: item.isChecked
+                            ? DesignColors.textSecondary(context).withValues(alpha: 0.6)
+                            : DesignColors.text(context),
+                      ).copyWith(
+                        decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       }).toList(),
     );
 
-    if (items.length > 4) {
-      return ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 120),
-        child: Scrollbar(
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: listWidget,
-            ),
-          ),
-        ),
-      );
-    }
     return listWidget;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final cardTitle = _getCardTitle(content, note.title);
-    final cardSubtitle = '${_getFormattedSubtitle(note)} • ${note.wordCount} words';
-    final bodyMarkdown = _getBodyMarkdown(content, cardTitle);
-    final checklist = extractChecklist(content);
-    final imagePath = extractPreviewImage(content);
-    final showPrompt = note.isDaily && note.dailyDate != null && isToday(note.dailyDate!);
+    final cardTitle = _getCardTitle(widget.content, widget.note.title);
+    final cardSubtitle = '${_getFormattedSubtitle(widget.note)} • ${widget.note.wordCount} words';
+    final bodyMarkdown = _getBodyMarkdown(widget.content, cardTitle);
+    final checklist = extractChecklist(widget.content);
+    final imagePath = extractPreviewImage(widget.content);
+    final showPrompt = widget.note.isDaily && widget.note.dailyDate != null && isToday(widget.note.dailyDate!);
     final isDesktop = MediaQuery.of(context).size.width >= 800;
 
     void openNote() {
       if (isDesktop) {
-        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
+        ref.read(activeDesktopNoteIdProvider.notifier).state = widget.note.id;
       } else {
-        context.push('/editor/${note.id}');
+        context.push('/editor/${widget.note.id}');
       }
     }
 
     final hasContent = bodyMarkdown.trim().isNotEmpty;
+    final showChecklist = checklist.isNotEmpty;
+    final showImage = imagePath != null;
+    final showSidebar = showChecklist || showImage;
 
-    return TactileWrapper(
+    final noteContentCard = TactileWrapper(
+      key: const ValueKey('bento_note_card'),
       style: TactileFeedbackStyle.highImpact,
       onTap: openNote,
       child: Container(
@@ -271,8 +293,7 @@ class JournalEntryCard extends ConsumerWidget {
 
             // Markdown Body Preview Block (Excluding Checklist items)
             if (hasContent)
-              SizedBox(
-                height: 180,
+              Expanded(
                 child: ClipRect(
                   child: ShaderMask(
                     shaderCallback: (Rect bounds) {
@@ -339,65 +360,17 @@ class JournalEntryCard extends ConsumerWidget {
                 ),
               )
             else
-              Text(
-                'No text written yet. Tap to start writing…',
-                style: DesignTypography.body(
-                  context,
-                  fontSize: 13,
-                  color: DesignColors.textSecondary(context),
-                  height: 1.6,
-                ).copyWith(fontStyle: FontStyle.italic),
-              ),
-
-            // Checklist Section (Separated at the bottom)
-            if (checklist.isNotEmpty) ...[
-              const SizedBox(height: 18),
-              Text(
-                'DAILY MINDFUL CHECKLIST',
-                style: DesignTypography.metadata(
-                  context,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.primary,
+              Expanded(
+                child: Text(
+                  'No text written yet. Tap to start writing…',
+                  style: DesignTypography.body(
+                    context,
+                    fontSize: 13,
+                    color: DesignColors.textSecondary(context),
+                    height: 1.6,
+                  ).copyWith(fontStyle: FontStyle.italic),
                 ),
               ),
-              const SizedBox(height: 8),
-              _buildChecklistWidget(context, checklist),
-            ],
-
-            // Image Preview Section
-            if (imagePath != null) ...[
-              const SizedBox(height: 18),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Builder(
-                  builder: (context) {
-                    final isNetwork = imagePath.startsWith('http://') || imagePath.startsWith('https://');
-                    if (isNetwork) {
-                      return Image.network(
-                        imagePath,
-                        fit: BoxFit.cover,
-                        height: 180,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox.shrink();
-                        },
-                      );
-                    } else {
-                      return Image.file(
-                        File(p.isAbsolute(imagePath) ? imagePath : p.join(p.dirname(note.filePath), imagePath)),
-                        fit: BoxFit.cover,
-                        height: 180,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox.shrink();
-                        },
-                      );
-                    }
-                  }
-                ),
-              ),
-            ],
 
             // Conditional "Tap to continue writing" Prompt
             if (showPrompt) ...[
@@ -406,7 +379,7 @@ class JournalEntryCard extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    'Tap to continue writing',
+                    'Continue writing',
                     style: DesignTypography.body(
                       context,
                       fontSize: 12,
@@ -427,5 +400,200 @@ class JournalEntryCard extends ConsumerWidget {
         ),
       ),
     );
+
+    final checklistCard = showChecklist
+        ? Container(
+            key: const ValueKey('bento_checklist_card'),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: DesignColors.surface(context),
+              borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.15),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'DAILY MINDFUL CHECKLIST',
+                  style: DesignTypography.metadata(
+                    context,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Scrollbar(
+                    controller: _scrollController,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: _buildChecklistWidget(context, checklist),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : const SizedBox.shrink();
+
+    final imageCard = showImage
+        ? TactileWrapper(
+            style: TactileFeedbackStyle.highImpact,
+            onTap: openNote,
+            child: Container(
+              key: const ValueKey('bento_image_card'),
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: DesignColors.surface(context),
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusLarge - 1),
+                child: Builder(
+                  builder: (context) {
+                    final isNetwork = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+                    if (isNetwork) {
+                      return Image.network(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        height: double.infinity,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
+                      );
+                    } else {
+                      return Image.file(
+                        File(p.isAbsolute(imagePath) ? imagePath : p.join(p.dirname(widget.note.filePath), imagePath)),
+                        fit: BoxFit.cover,
+                        height: double.infinity,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
+                      );
+                    }
+                  }
+                ),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
+
+    if (showSidebar) {
+      final Widget sidebar;
+      if (showChecklist && showImage) {
+        sidebar = Column(
+          key: const ValueKey('bento_sidebar'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(flex: 7, child: checklistCard),
+            const SizedBox(height: 10),
+            Expanded(flex: 3, child: imageCard),
+          ],
+        );
+      } else if (showChecklist) {
+        sidebar = Column(
+          key: const ValueKey('bento_sidebar'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: checklistCard),
+          ],
+        );
+      } else {
+        sidebar = Column(
+          key: const ValueKey('bento_sidebar'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: imageCard),
+          ],
+        );
+      }
+
+      return SizedBox(
+        height: 360.0,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 6,
+              child: noteContentCard,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 4,
+              child: sidebar,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 340.0,
+      child: noteContentCard,
+    );
   }
+}
+
+String toggleMarkdownCheckbox(String content, int targetIndex) {
+  final lines = content.split('\n');
+  int currentIndex = 0;
+  bool isInCodeBlock = false;
+  final checkboxRegExp = RegExp(r'^(\s*[-*+]\s+\[)([ xX])(\])(?:\s+(.*))?$');
+
+  for (int i = 0; i < lines.length; i++) {
+    final line = lines[i];
+    final trimmed = line.trim();
+    if (trimmed.startsWith('```')) {
+      isInCodeBlock = !isInCodeBlock;
+      continue;
+    }
+    if (isInCodeBlock) {
+      continue;
+    }
+
+    final match = checkboxRegExp.firstMatch(line);
+    if (match != null) {
+      if (currentIndex == targetIndex) {
+        final prefix = match.group(1)!;
+        final currentStatus = match.group(2)!;
+        final suffix = line.substring(match.group(1)!.length + match.group(2)!.length);
+        final newStatus = currentStatus.trim().isEmpty ? 'x' : ' ';
+        lines[i] = '$prefix$newStatus$suffix';
+        break;
+      }
+      currentIndex++;
+    }
+  }
+  return lines.join('\n');
 }

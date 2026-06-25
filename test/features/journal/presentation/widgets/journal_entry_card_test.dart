@@ -5,6 +5,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:prism/core/utils/utils.dart';
 import 'package:prism/features/journal/presentation/widgets/journal_entry_card.dart';
 import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/notes/data/note_repository.dart';
 
 void main() {
   testWidgets('JournalEntryCard extracts custom title and formats subtitle date/time', (WidgetTester tester) async {
@@ -366,5 +367,276 @@ Writing a entry with a #journaling hashtag.
     final expectedColor = Theme.of(context).colorScheme.primary;
     expect(hashtagText.style?.color, equals(expectedColor));
   });
+
+  group('JournalEntryCard Bento Layout (Option A)', () {
+    final noteDate = DateTime(2026, 6, 3, 8, 30);
+    final dummyNote = Note(
+      id: 'test-note-id',
+      title: '2026-06-03',
+      filePath: 'test_path.md',
+      wordCount: 45,
+      createdAt: noteDate,
+      updatedAt: noteDate,
+      isDaily: true,
+      dailyDate: '2026-06-03',
+    );
+
+    testWidgets('renders full-width NoteContentCard when checklist and image are empty', (WidgetTester tester) async {
+      const content = 'Just plain journal entry text with no checklist and no image.';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('bento_note_card')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_sidebar')), findsNothing);
+    });
+
+    testWidgets('renders side-by-side columns (flex 6 and flex 4) when both checklist and image are present', (WidgetTester tester) async {
+      const content = '''# 2026-06-03
+Here is the daily entry.
+- [ ] Checklist item 1
+- [ ] Checklist item 2
+
+![cabin](attachments/cabin.jpg)
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('bento_note_card')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_sidebar')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_checklist_card')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_image_card')), findsOneWidget);
+
+      // Verify they are children of a Row
+      final rowFinder = find.byWidgetPredicate(
+        (widget) => widget is Row && widget.children.any((c) => c is Expanded && (c.child.key == const ValueKey('bento_note_card') || (c.child is Column && (c.child as Column).key == const ValueKey('bento_sidebar'))))
+      );
+      expect(rowFinder, findsOneWidget);
+    });
+
+    testWidgets('renders side-by-side columns when only checklist is present', (WidgetTester tester) async {
+      const content = '''# 2026-06-03
+Here is the daily entry.
+- [ ] Checklist item 1
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('bento_note_card')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_sidebar')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_checklist_card')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_image_card')), findsNothing);
+    });
+
+    testWidgets('renders side-by-side columns when only image is present', (WidgetTester tester) async {
+      const content = '''# 2026-06-03
+Here is the daily entry.
+![cabin](attachments/cabin.jpg)
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('bento_note_card')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_sidebar')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bento_checklist_card')), findsNothing);
+      expect(find.byKey(const ValueKey('bento_image_card')), findsOneWidget);
+    });
+
+    testWidgets('parent Row container height is exactly 260px', (WidgetTester tester) async {
+      const content = '''# 2026-06-03
+Here is the daily entry.
+- [ ] Checklist item 1
+![cabin](attachments/cabin.jpg)
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final bentoRowFinder = find.byWidgetPredicate(
+        (widget) => widget is Row && widget.children.any((c) => c is Expanded && c.child.key == const ValueKey('bento_note_card'))
+      );
+      expect(bentoRowFinder, findsOneWidget);
+      final Size rowSize = tester.getSize(bentoRowFinder);
+      expect(rowSize.height, equals(360.0));
+    });
+
+    testWidgets('note content card has Expanded body preview to fill height', (WidgetTester tester) async {
+      const content = 'Just plain journal entry text with no checklist and no image.';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final noteCardFinder = find.byKey(const ValueKey('bento_note_card'));
+      expect(noteCardFinder, findsOneWidget);
+
+      final expandedFinder = find.descendant(
+        of: noteCardFinder,
+        matching: find.byWidgetPredicate((widget) => widget is Expanded),
+      );
+      expect(expandedFinder, findsAtLeastNWidgets(1));
+    });
+
+    testWidgets('checklist items are scrollable inside bento checklist card', (WidgetTester tester) async {
+      const content = '''# 2026-06-03
+- [ ] Item 1
+- [ ] Item 2
+- [ ] Item 3
+- [ ] Item 4
+- [ ] Item 5
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final checklistCardFinder = find.byKey(const ValueKey('bento_checklist_card'));
+      expect(checklistCardFinder, findsOneWidget);
+
+      final scrollFinder = find.descendant(
+        of: checklistCardFinder,
+        matching: find.byType(SingleChildScrollView),
+      );
+      expect(scrollFinder, findsOneWidget);
+    });
+
+    testWidgets('tapping checklist item triggers saveNote with updated markdown content', (WidgetTester tester) async {
+      String? savedId;
+      String? savedContent;
+
+      final mockRepo = MockJournalNoteRepository(
+        onSaveNote: (id, content) {
+          savedId = id;
+          savedContent = content;
+        },
+      );
+
+      const content = '''# 2026-06-03
+Here is the daily entry.
+- [ ] Checklist item 1
+- [x] Checklist item 2
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            noteRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final itemFinder = find.text('Checklist item 1');
+      expect(itemFinder, findsOneWidget);
+
+      await tester.tap(itemFinder);
+      await tester.pump();
+
+      expect(savedId, equals(dummyNote.id));
+      expect(savedContent, contains('- [x] Checklist item 1'));
+      expect(savedContent, contains('- [x] Checklist item 2'));
+    });
+  });
+}
+
+class FakeRef implements Ref {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class MockJournalNoteRepository extends NoteRepository {
+  final void Function(String id, String content)? onSaveNote;
+  MockJournalNoteRepository({this.onSaveNote}) : super(FakeRef());
+
+  @override
+  Future<void> saveNote(String id, String content) async {
+    onSaveNote?.call(id, content);
+  }
 }
 
