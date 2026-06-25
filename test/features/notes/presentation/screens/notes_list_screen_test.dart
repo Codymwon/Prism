@@ -10,6 +10,7 @@ import 'package:prism/features/notes/presentation/widgets/note_card.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/folders/data/folder_model.dart';
 import 'package:prism/core/services/vault_service.dart';
+import 'package:prism/core/database/vault_providers.dart';
 
 class FakeSearchQueryNotifier extends SearchQuery {
   final String initialValue;
@@ -23,6 +24,30 @@ class FakeSelectedFolderIdNotifier extends SelectedFolderId {
   FakeSelectedFolderIdNotifier(this.initialValue);
   @override
   String? build() => initialValue;
+}
+
+class FakeActiveVaultName extends ActiveVaultName {
+  final String initialValue;
+  FakeActiveVaultName(this.initialValue);
+  @override
+  Future<String> build() async => initialValue;
+}
+
+class MockRouterDelegate extends RouterDelegate<void> with ChangeNotifier, PopNavigatorRouterDelegateMixin<void> {
+  @override
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  final Widget child;
+  MockRouterDelegate({required this.child});
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      key: navigatorKey,
+      onPopPage: (route, result) => route.didPop(result),
+      pages: [MaterialPage(child: child)],
+    );
+  }
+  @override
+  Future<void> setNewRoutePath(void configuration) async {}
 }
 
 void main() {
@@ -60,8 +85,38 @@ void main() {
   }) {
     return UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(
-        home: NotesListScreen(),
+      child: MaterialApp(
+        home: Router(
+          routerDelegate: MockRouterDelegate(child: const NotesListScreen()),
+          backButtonDispatcher: RootBackButtonDispatcher(),
+        ),
+      ),
+    );
+  }
+
+  Widget buildNotesListScreenWithBackStack({
+    required ProviderContainer container,
+  }) {
+    return UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        home: Router(
+          routerDelegate: MockRouterDelegate(
+            child: Builder(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NotesListScreen()),
+                    );
+                  },
+                  child: const Text('Go'),
+                ),
+              ),
+            ),
+          ),
+          backButtonDispatcher: RootBackButtonDispatcher(),
+        ),
       ),
     );
   }
@@ -198,5 +253,76 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(selectedFolderIdProvider), isNull);
+  });
+
+  testWidgets('NotesListScreen intercepts back gesture and deselects active folder instead of popping route', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = ProviderContainer(
+      overrides: [
+        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+        foldersProvider.overrideWith((ref) => mockFolders),
+        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+        notesProvider.overrideWith((ref) => mockNotes),
+        recentNotesProvider.overrideWith((ref) => mockNotes),
+        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier('folder-work')),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildNotesListScreenWithBackStack(container: container));
+    await tester.pumpAndSettle();
+
+    // Push the NotesListScreen
+    await tester.tap(find.text('Go'));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(NotesListScreen));
+
+    expect(container.read(selectedFolderIdProvider), equals('folder-work'));
+
+    // Trigger back gesture via test binding handlePopRoute
+    final handled = await tester.binding.handlePopRoute();
+    expect(handled, isTrue);
+    await tester.pumpAndSettle();
+
+    // Verify folder selection is cleared
+    expect(container.read(selectedFolderIdProvider), isNull);
+  });
+
+  testWidgets('VaultSelectorTitle displays only active vault name (no folder suffix) when folder is selected', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = ProviderContainer(
+      overrides: [
+        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+        activeVaultNameProvider.overrideWith(() => FakeActiveVaultName('My Vault')),
+        foldersProvider.overrideWith((ref) => mockFolders),
+        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+        notesProvider.overrideWith((ref) => mockNotes),
+        recentNotesProvider.overrideWith((ref) => mockNotes),
+        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier('folder-work')),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildNotesListScreen(container: container));
+    await tester.pumpAndSettle();
+
+    // Verify app bar title displays "My Vault" and NOT "My Vault / Work"
+    expect(find.text('My Vault'), findsOneWidget);
+    expect(find.text('My Vault / Work'), findsNothing);
   });
 }

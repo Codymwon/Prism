@@ -34,10 +34,7 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
         .where((n) => !n.isDaily && !n.isGhost && (mappings[n.id] == null || mappings[n.id]!.isEmpty))
         .length;
 
-    // Color palette based on mockup (Dusk/Clean Paper adaptive)
-    final blueColor = isDark ? const Color(0xFF3E5A73) : const Color(0xFFA8C2D8);
-    final greenColor = isDark ? const Color(0xFF375E45) : const Color(0xFFA8D1B6);
-    final orangeColor = isDark ? const Color(0xFF8C4F3B) : const Color(0xFFE8B49A);
+    final systemCardColor = DesignColors.surfaceVariant(context);
 
     // 2. Prepare Bento Cards definitions
     final List<_BentoCardData> cards = [
@@ -46,7 +43,7 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
         id: '__all__',
         name: 'All Notes',
         icon: 'article',
-        color: blueColor,
+        color: systemCardColor,
         count: allNotesCount,
         isSystem: true,
       ),
@@ -55,7 +52,7 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
         id: '__daily__',
         name: 'Journal Logs',
         icon: 'auto_stories',
-        color: greenColor,
+        color: systemCardColor,
         count: dailyNotesCount,
         isSystem: true,
       ),
@@ -64,7 +61,7 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
         id: '__uncategorized__',
         name: 'Uncategorized',
         icon: 'inbox',
-        color: orangeColor,
+        color: systemCardColor,
         count: uncategorizedCount,
         isSystem: true,
       ),
@@ -91,8 +88,8 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
           id: '__folders__',
           name: 'See All',
           icon: 'more_horiz',
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5),
-          count: cards.length,
+          color: systemCardColor,
+          count: cards.length - 5,
           isSystem: true,
         ),
       );
@@ -101,16 +98,16 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
     return GridView.builder(
       shrinkWrap: true,
       padding: showAll 
-          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+          ? const EdgeInsets.symmetric(vertical: 12)
           : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       physics: showAll 
           ? const ScrollPhysics() 
           : const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.35, // Adjust for aspect ratio fits
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: showAll ? 2 : 3,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: showAll ? 1.6 : 1.35,
       ),
       itemCount: displayCards.length,
       itemBuilder: (context, index) {

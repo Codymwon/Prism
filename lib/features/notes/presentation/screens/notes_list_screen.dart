@@ -56,10 +56,18 @@ class NotesListScreen extends ConsumerWidget {
       backgroundColor: DesignColors.background(context),
       appBar: _buildAppBar(context, ref, colorScheme, activeFolder),
       drawer: const FolderDrawer(),
-      body: Column(
-        children: [
-          const NotesListSearchBar(),
-          const TagFilterBanner(),
+      body: BackButtonListener(
+        onBackButtonPressed: () async {
+          if (selectedFolderId != null) {
+            ref.read(selectedFolderIdProvider.notifier).state = null;
+            return true; // consumed
+          }
+          return false; // not consumed
+        },
+        child: Column(
+          children: [
+            const NotesListSearchBar(),
+            const TagFilterBanner(),
 
           homeDataAsync.when(
             data: (data) {
@@ -224,7 +232,7 @@ class NotesListScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ),);
   }
 
   // ─── Desktop two-pane layout ─────────────────────────────────────────────────
@@ -344,11 +352,22 @@ class NotesListScreen extends ConsumerWidget {
                 tooltip: 'Open drawer',
               ),
             ),
-      title: const Center(child: VaultSelectorTitle()),
-      centerTitle: true,
+      title: Text(
+        'PRISM',
+        style: DesignTypography.display(
+          context,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          color: colorScheme.primary,
+        ).copyWith(letterSpacing: 1.5),
+      ),
+      centerTitle: false,
       backgroundColor: DesignColors.background(context),
       actions: const [
-        SizedBox(width: 48), // Balanced invisible placeholder to keep title centered!
+        Padding(
+          padding: EdgeInsets.only(right: 16.0),
+          child: VaultSelectorTitle(),
+        ),
       ],
     );
   }
@@ -529,3 +548,4 @@ class _DesktopEditorPane extends ConsumerWidget {
     ).animate().fadeIn(duration: 300.ms);
   }
 }
+

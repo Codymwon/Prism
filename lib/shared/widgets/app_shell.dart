@@ -366,9 +366,21 @@ class _AppShellState extends ConsumerState<AppShell> {
     final hasCompletedJournalTutorial = ref.watch(journalTutorialStateProvider);
     final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
 
-    final mainScaffold = isDesktop
-        ? _buildDesktopScaffold(context, colorScheme)
-        : _buildMobileScaffold(context, colorScheme);
+    final selectedFolderId = ref.watch(selectedFolderIdProvider);
+    final isNotesTab = _currentIndex == 0;
+
+    final mainScaffold = PopScope(
+      canPop: !isNotesTab || selectedFolderId == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isNotesTab && selectedFolderId != null) {
+          ref.read(selectedFolderIdProvider.notifier).state = null;
+        }
+      },
+      child: isDesktop
+          ? _buildDesktopScaffold(context, colorScheme)
+          : _buildMobileScaffold(context, colorScheme),
+    );
 
     if (hasCompletedTutorial) {
       if (!hasCompletedJournalTutorial && _currentIndex == 1) {

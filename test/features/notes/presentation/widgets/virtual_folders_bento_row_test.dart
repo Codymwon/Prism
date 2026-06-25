@@ -169,5 +169,53 @@ void main() {
     // Verify selection is updated to '__all__'
     expect(container.read(selectedFolderIdProvider), equals('__all__'));
   });
+
+  testWidgets('See All card count displays remaining folders count', (WidgetTester tester) async {
+    // 3 system folders + 6 custom folders = 9 cards total.
+    // 5 cards shown, so 4 remaining.
+    final mockFolders = List.generate(6, (i) => VirtualFolder(
+      id: 'folder-$i',
+      name: 'Folder $i',
+      createdAt: DateTime.now(),
+      sortOrder: i,
+    ));
+
+    await tester.pumpWidget(
+      buildBentoRow(
+        allNotes: const [],
+        folders: mockFolders,
+        mappings: const {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify "See All" is displayed
+    expect(find.text('See All'), findsOneWidget);
+    // The count displayed on the See All card should be 4 (9 total cards - 5 shown cards)
+    expect(find.text('4'), findsOneWidget);
+  });
+
+  testWidgets('default folders use theme surfaceVariant color', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      buildBentoRow(
+        allNotes: const [],
+        folders: const [],
+        mappings: const {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.text('All Notes'));
+    final expectedColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+
+    // Find the container for "All Notes" card
+    final containerFinder = find.ancestor(
+      of: find.text('All Notes'),
+      matching: find.byType(AnimatedContainer),
+    );
+    final AnimatedContainer containerWidget = tester.widget(containerFinder.first);
+    final BoxDecoration boxDecoration = containerWidget.decoration as BoxDecoration;
+    expect(boxDecoration.color, equals(expectedColor));
+  });
 }
 
