@@ -25,7 +25,6 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // 1. Calculate dynamic counts
     final allNotesCount = allNotes.where((n) => !n.isDaily && !n.isGhost).length;

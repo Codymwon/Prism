@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
-import '../../data/folder_model.dart';
 import '../../data/folder_repository.dart';
 import '../providers/folders_providers.dart';
 import '../widgets/folder_icon_display.dart';

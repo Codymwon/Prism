@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:prism/core/router/app_router.dart';
-import 'package:prism/features/notes/presentation/screens/notes_list_screen.dart';
-import 'package:prism/features/folders/presentation/widgets/folder_drawer.dart';
 import 'package:prism/features/folders/presentation/screens/add_folder_screen.dart';
-import 'package:prism/features/folders/presentation/screens/edit_folder_screen.dart';
 import 'package:prism/features/folders/data/folder_model.dart';
 import 'package:prism/features/folders/data/folder_repository.dart';
 import 'package:prism/features/notes/data/note_model.dart';
@@ -29,7 +25,6 @@ class FakeNoteRepository extends Fake implements NoteRepository {
   Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) async => [];
   @override
   Future<Note?> getDailyNote(String dateStr) async => null;
-  @override
   Stream<List<Note>> watchAllNotes() => Stream.value([]);
 }
 
@@ -40,7 +35,6 @@ class FakeFolderRepository extends Fake implements FolderRepository {
       ];
   @override
   Future<Map<String, List<String>>> getNoteFolderMappings() async => {};
-  @override
   Stream<List<VirtualFolder>> watchAllFolders() => Stream.value([
         VirtualFolder(id: '123', name: 'Work', colorHex: '#7C6FF7', icon: 'folder', noteCount: 0, createdAt: DateTime.now(), sortOrder: 0),
       ]);
@@ -50,24 +44,18 @@ class FakeTutorialNotifier extends TutorialNotifier {
   FakeTutorialNotifier() : super() {
     state = true;
   }
-  @override
-  Future<void> _load() async {}
 }
 
 class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
   FakeJournalTutorialNotifier() : super() {
     state = true;
   }
-  @override
-  Future<void> _load() async {}
 }
 
 class FakeOnboardingNotifier extends OnboardingNotifier {
   FakeOnboardingNotifier() : super() {
     state = true;
   }
-  @override
-  Future<void> _load() async {}
 }
 
 void main() {

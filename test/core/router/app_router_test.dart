@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:prism/core/router/app_router.dart';
-import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:prism/features/folders/presentation/screens/add_folder_screen.dart';
 import 'package:prism/features/folders/presentation/screens/edit_folder_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/data/note_model.dart';
-import 'package:prism/features/folders/presentation/providers/folders_providers.dart';
 import 'package:prism/features/folders/data/folder_model.dart';
 import 'package:prism/features/folders/data/folder_repository.dart';
 import 'package:prism/core/database/database_providers.dart';
@@ -27,7 +23,6 @@ class FakeNoteRepository extends Fake implements NoteRepository {
   Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) async => [];
   @override
   Future<Note?> getDailyNote(String dateStr) async => null;
-  @override
   Stream<List<Note>> watchAllNotes() => Stream.value([]);
 }
 
@@ -38,7 +33,6 @@ class FakeFolderRepository extends Fake implements FolderRepository {
       ];
   @override
   Future<Map<String, List<String>>> getNoteFolderMappings() async => {};
-  @override
   Stream<List<VirtualFolder>> watchAllFolders() => Stream.value([
         VirtualFolder(id: '123', name: 'Work', colorHex: '#7C6FF7', icon: 'folder', noteCount: 0, createdAt: DateTime.now(), sortOrder: 0),
       ]);

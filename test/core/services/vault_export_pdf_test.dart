@@ -151,7 +151,7 @@ void main() => print('hello');
 
       final result = await container
           .read(vaultExportServiceProvider)
-          .export(ExportFormat.pdfCompiled, onProgress: (_, __) {});
+          .export(ExportFormat.pdfCompiled, onProgress: (_, _) {});
       expect(result.isLeft(), isTrue);
       expect(result.getLeft().toNullable(), isA<ExportEmptyFailure>());
     });
@@ -182,7 +182,7 @@ void main() => print('hello');
 
       final result = await container
           .read(vaultExportServiceProvider)
-          .export(ExportFormat.pdfCompiled, onProgress: (_, __) {});
+          .export(ExportFormat.pdfCompiled, onProgress: (_, _) {});
 
       expect(result.isRight(), isTrue,
           reason: 'Expected Right but got: ${result.getLeft().toNullable()}');
@@ -217,7 +217,7 @@ void main() => print('hello');
 
       final result = await container
           .read(vaultExportServiceProvider)
-          .export(ExportFormat.pdfZipped, onProgress: (_, __) {});
+          .export(ExportFormat.pdfZipped, onProgress: (_, _) {});
       expect(result.isLeft(), isTrue);
       expect(result.getLeft().toNullable(), isA<ExportEmptyFailure>());
     });
@@ -248,7 +248,7 @@ void main() => print('hello');
 
       final result = await container
           .read(vaultExportServiceProvider)
-          .export(ExportFormat.pdfZipped, onProgress: (_, __) {});
+          .export(ExportFormat.pdfZipped, onProgress: (_, _) {});
 
       expect(result.isRight(), isTrue,
           reason: 'Expected Right but got: ${result.getLeft().toNullable()}');
@@ -300,7 +300,7 @@ void main() => print('hello');
 
       final result = await container
           .read(vaultExportServiceProvider)
-          .export(ExportFormat.pdfZipped, onProgress: (_, __) {});
+          .export(ExportFormat.pdfZipped, onProgress: (_, _) {});
       expect(result.isRight(), isTrue);
 
       final zipBytes = await File(result.getRight().toNullable()!.savedPath).readAsBytes();

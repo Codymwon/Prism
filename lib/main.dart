@@ -12,7 +12,6 @@ import 'features/journal/presentation/providers/journal_providers.dart';
 import 'features/subscription/presentation/providers/subscription_providers.dart';
 import 'shared/design_system/design_system.dart';
 import 'core/utils/utils.dart';
-import 'core/database/vault_providers.dart';
 import 'features/notes/data/vault_service.dart';
 import 'features/onboarding/data/onboarding_provider.dart';
 
@@ -91,7 +90,7 @@ void main() async {
     if (url.isNotEmpty && anonKey.isNotEmpty) {
       await sb.Supabase.initialize(
         url: url,
-        anonKey: anonKey,
+        publishableKey: anonKey,
       );
     } else {
       debugPrint('Warning: Supabase URL/AnonKey are empty. Sync features will be disabled.');

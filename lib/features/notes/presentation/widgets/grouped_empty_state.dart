@@ -56,7 +56,7 @@ class GroupedEmptyState extends ConsumerWidget {
             DesignPrimaryButton(
               label: 'Create First Folder',
               icon: DesignIcons.addFolder,
-              onTap: () => FolderDrawer.showAddFolderSheet(context, ref),
+              onTap: () => FolderDrawer.navigateToAddFolderScreen(context),
             ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
           ],
         ),

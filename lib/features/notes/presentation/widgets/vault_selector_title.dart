@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
-import '../../../folders/presentation/providers/folders_providers.dart';
-import '../../../folders/data/folder_model.dart';
-import '../../../../core/utils/utils.dart';
 import 'vault_selector_bottom_sheet.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 

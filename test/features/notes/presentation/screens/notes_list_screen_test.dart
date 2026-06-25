@@ -42,7 +42,7 @@ class MockRouterDelegate extends RouterDelegate<void> with ChangeNotifier, PopNa
   Widget build(BuildContext context) {
     return Navigator(
       key: navigatorKey,
-      onPopPage: (route, result) => route.didPop(result),
+      onDidRemovePage: (page) {},
       pages: [MaterialPage(child: child)],
     );
   }
@@ -282,8 +282,6 @@ void main() {
     // Push the NotesListScreen
     await tester.tap(find.text('Go'));
     await tester.pumpAndSettle();
-
-    final context = tester.element(find.byType(NotesListScreen));
 
     expect(container.read(selectedFolderIdProvider), equals('folder-work'));
 

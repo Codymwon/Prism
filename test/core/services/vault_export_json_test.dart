@@ -141,7 +141,7 @@ void main() {
     addTearDown(container.dispose);
 
     final service = container.read(vaultExportServiceProvider);
-    final result = await service.export(ExportFormat.json, onProgress: (_, __) {});
+    final result = await service.export(ExportFormat.json, onProgress: (_, _) {});
     expect(result.isLeft(), isTrue);
     expect(result.getLeft().toNullable(), isA<ExportEmptyFailure>());
   });
@@ -186,7 +186,7 @@ void main() {
 
     final service = container.read(vaultExportServiceProvider);
     Either<VaultExportFailure, VaultExportResult>? capturedResult;
-    final result = await service.export(ExportFormat.json, onProgress: (_, __) {});
+    final result = await service.export(ExportFormat.json, onProgress: (_, _) {});
     capturedResult = result;
 
     expect(capturedResult.isRight(), isTrue,
@@ -255,7 +255,7 @@ void main() {
     addTearDown(container.dispose);
 
     final service = container.read(vaultExportServiceProvider);
-    final result = await service.export(ExportFormat.json, onProgress: (_, __) {});
+    final result = await service.export(ExportFormat.json, onProgress: (_, _) {});
     expect(result.isRight(), isTrue);
 
     final savedFile = File(result.getRight().toNullable()!.savedPath);

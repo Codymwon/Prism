@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
-import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fpdart/fpdart.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
-import '../../../subscription/data/datasources/revenuecat_client_wrapper.dart';
 
 part 'auth_provider.g.dart';
 

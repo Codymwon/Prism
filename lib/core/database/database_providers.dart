@@ -34,7 +34,7 @@ Future<Database> database(DatabaseRef ref) async {
   Database? db;
   ref.onDispose(() async {
     if (db != null) {
-      await DatabaseHelper.instance.closeDatabaseConnection(db!);
+      await DatabaseHelper.instance.closeDatabaseConnection(db);
       debugPrint('Database connection reactively closed for: $vaultPath');
     }
   });

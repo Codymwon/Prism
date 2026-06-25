@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/folders/presentation/screens/edit_folder_screen.dart';
-import 'package:prism/features/folders/presentation/providers/folders_providers.dart';
 import 'package:prism/features/folders/data/folder_repository.dart';
 import 'package:prism/features/folders/data/folder_model.dart';
 import 'package:prism/core/database/database_providers.dart';
@@ -35,7 +34,6 @@ class FakeFolderRepository extends Fake implements FolderRepository {
         ),
       ];
 
-  @override
   Stream<List<VirtualFolder>> watchAllFolders() => Stream.value([
         VirtualFolder(
           id: '123',

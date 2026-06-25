@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/features/notes/data/vault_service.dart';
 import 'package:sqflite/sqflite.dart';

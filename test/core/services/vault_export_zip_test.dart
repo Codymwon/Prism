@@ -39,7 +39,7 @@ class _CancelSvc extends VaultExportServiceImpl {
   _CancelSvc(super.ref);
 
   @override
-  Future<String?> saveBytes(String _, List<int> __) async => null;
+  Future<String?> saveBytes(String name, List<int> bytes) async => null;
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ void main() {
     addTearDown(container.dispose);
 
     final service = container.read(vaultExportServiceProvider);
-    final result = await service.export(ExportFormat.zipArchive, onProgress: (_, __) {});
+    final result = await service.export(ExportFormat.zipArchive, onProgress: (_, _) {});
     expect(result.isLeft(), isTrue);
     expect(result.getLeft().toNullable(), isA<ExportEmptyFailure>());
   });
@@ -106,7 +106,7 @@ void main() {
     addTearDown(container.dispose);
 
     final service = container.read(vaultExportServiceProvider);
-    final result = await service.export(ExportFormat.zipArchive, onProgress: (_, __) {});
+    final result = await service.export(ExportFormat.zipArchive, onProgress: (_, _) {});
 
     expect(result.isRight(), isTrue,
         reason: 'Expected Right but got: ${result.getLeft().toNullable()}');
@@ -149,7 +149,7 @@ void main() {
     addTearDown(container.dispose);
 
     final service = container.read(vaultExportServiceProvider);
-    final result = await service.export(ExportFormat.zipArchive, onProgress: (_, __) {});
+    final result = await service.export(ExportFormat.zipArchive, onProgress: (_, _) {});
     expect(result.isRight(), isTrue);
 
     final bytes = await File(result.getRight().toNullable()!.savedPath).readAsBytes();
@@ -176,7 +176,7 @@ void main() {
 
     final result = await container
         .read(vaultExportServiceProvider)
-        .export(ExportFormat.zipArchive, onProgress: (_, __) {});
+        .export(ExportFormat.zipArchive, onProgress: (_, _) {});
     expect(result.isLeft(), isTrue);
     expect(result.getLeft().toNullable(), isA<ExportCancelledFailure>());
   });

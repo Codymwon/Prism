@@ -507,7 +507,8 @@ void main() {
       final encryptionService = container.read(syncEncryptionServiceProvider);
       
       // Keep databaseProvider alive during the test
-      final dbSub = container.listen(databaseProvider, (_, __) {});
+      // ignore: unused_local_variable
+      final dbSub = container.listen(databaseProvider, (_, _) {});
       final db = await container.read(databaseProvider.future);
 
       // 1. Setup sync configuration
