@@ -61,7 +61,7 @@ Future<Database> database(DatabaseRef ref) async {
 void _triggerBackgroundSync(Database db, String vaultPath, DatabaseRef ref, bool Function() isDisposedFn) {
   if (isDisposedFn()) return;
   final keepAliveLink = ref.keepAlive();
-  ref.read(noteIngestionServiceProvider).syncVault(vaultPath).then((_) {
+  ref.read(noteIngestionServiceProvider).syncVault(vaultPath, db: db).then((_) {
     if (!isDisposedFn()) {
       ref.read(notesVersionProvider.notifier).update((state) => state + 1);
       ref.read(foldersVersionProvider.notifier).update((state) => state + 1);

@@ -14,10 +14,13 @@ import 'shared/design_system/design_system.dart';
 import 'core/utils/utils.dart';
 import 'core/database/vault_providers.dart';
 import 'features/notes/data/vault_service.dart';
+import 'features/onboarding/data/onboarding_provider.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +78,26 @@ void main() async {
     await container.read(subscriptionRepositoryProvider).initialize();
   } catch (e) {
     debugPrint('Failed to initialize subscription repository at startup: $e');
+  }
+
+  // Initialize Supabase SDK
+  try {
+    const defaultSupabaseUrl = 'https://bfhzlhmamfuggzjbtawk.supabase.co';
+    const defaultSupabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmaHpsaG1hbWZ1Z2d6amJ0YXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NTYzOTUsImV4cCI6MjA5NzQzMjM5NX0.5Dcz_AM8FUFueQEsHszXkla1EjKSFW8z3P0Sm4aX4Gk';
+
+    const url = String.fromEnvironment('SUPABASE_URL', defaultValue: defaultSupabaseUrl);
+    const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: defaultSupabaseAnonKey);
+
+    if (url.isNotEmpty && anonKey.isNotEmpty) {
+      await sb.Supabase.initialize(
+        url: url,
+        anonKey: anonKey,
+      );
+    } else {
+      debugPrint('Warning: Supabase URL/AnonKey are empty. Sync features will be disabled.');
+    }
+  } catch (e) {
+    debugPrint('Failed to initialize Supabase: $e');
   }
 
   runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));
@@ -150,8 +173,13 @@ class _PrismAppState extends ConsumerState<PrismApp> with WidgetsBindingObserver
     final mode = resolution.mode;
 
     // Watch values to trigger widget update on post frame
-    final streakVal = ref.watch(journalStreakProvider).valueOrNull?.streak ?? 0;
-    final dates = ref.watch(allDailyDatesProvider).valueOrNull ?? {};
+    final hasOnboarded = ref.watch(onboardingStateProvider);
+    final streakVal = hasOnboarded
+        ? (ref.watch(journalStreakProvider).valueOrNull?.streak ?? 0)
+        : 0;
+    final dates = hasOnboarded
+        ? (ref.watch(allDailyDatesProvider).valueOrNull ?? {})
+        : <String>{};
     final todayStr = formatDailyDate(DateTime.now());
     final todayReflected = dates.contains(todayStr);
 

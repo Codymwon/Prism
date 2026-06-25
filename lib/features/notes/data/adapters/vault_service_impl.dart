@@ -281,9 +281,9 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
   }
 
   @override
-  Future<void> syncVault(String vaultPath) async {
+  Future<void> syncVault(String vaultPath, {Database? db}) async {
     try {
-      final database = await getDb();
+      final database = db ?? await getDb();
       if (!database.isOpen) return;
 
       final files = await storage.listDocumentIdentifiers(vaultPath);

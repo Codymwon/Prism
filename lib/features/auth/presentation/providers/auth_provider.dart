@@ -12,7 +12,20 @@ part 'auth_provider.g.dart';
 
 // Providers for dependencies so they can be overridden in tests
 final supabaseClientProvider = Provider<sb.SupabaseClient>((ref) => sb.Supabase.instance.client);
-final googleSignInProvider = Provider<GoogleSignIn>((ref) => GoogleSignIn());
+final googleSignInProvider = Provider<GoogleSignIn>((ref) => GoogleSignIn(
+  clientId: '5125181029-5v2u33d9ah7l03q9ufg2cur4rm8uhkv6.apps.googleusercontent.com',
+  serverClientId: '5125181029-5v2u33d9ah7l03q9ufg2cur4rm8uhkv6.apps.googleusercontent.com',
+));
+
+final supabaseInitializedProvider = Provider<bool>((ref) {
+  try {
+    ref.watch(supabaseClientProvider);
+    return true;
+  } catch (_) {
+    return false;
+  }
+});
+
 
 sealed class AuthFailure {
   final String message;
@@ -40,6 +53,11 @@ class PrismAuthState {
 class Auth extends _$Auth {
   @override
   PrismAuthState build() {
+    final isInitialized = ref.watch(supabaseInitializedProvider);
+    if (!isInitialized) {
+      return const PrismAuthState(user: null);
+    }
+
     final client = ref.watch(supabaseClientProvider);
     
     // Listen to Supabase auth state changes and reactively update the state
@@ -60,7 +78,11 @@ class Auth extends _$Auth {
     return PrismAuthState(user: client.auth.currentUser);
   }
 
+
   Future<Either<AuthFailure, sb.User>> signUpWithEmail(String email, String password) async {
+    if (!ref.read(supabaseInitializedProvider)) {
+      return const Left(AuthUnknownFailure('Supabase is not configured.'));
+    }
     state = PrismAuthState(user: state.user, isLoading: true);
     try {
       final client = ref.read(supabaseClientProvider);
@@ -89,6 +111,9 @@ class Auth extends _$Auth {
   }
 
   Future<Either<AuthFailure, sb.User>> loginWithEmail(String email, String password) async {
+    if (!ref.read(supabaseInitializedProvider)) {
+      return const Left(AuthUnknownFailure('Supabase is not configured.'));
+    }
     state = PrismAuthState(user: state.user, isLoading: true);
     try {
       final client = ref.read(supabaseClientProvider);
@@ -117,6 +142,9 @@ class Auth extends _$Auth {
   }
 
   Future<Either<AuthFailure, sb.User>> loginWithGoogle() async {
+    if (!ref.read(supabaseInitializedProvider)) {
+      return const Left(AuthUnknownFailure('Supabase is not configured.'));
+    }
     state = PrismAuthState(user: state.user, isLoading: true);
     try {
       final googleSignIn = ref.read(googleSignInProvider);
@@ -166,6 +194,9 @@ class Auth extends _$Auth {
   }
 
   Future<void> signOut() async {
+    if (!ref.read(supabaseInitializedProvider)) {
+      return;
+    }
     state = const PrismAuthState(isLoading: true);
     try {
       final client = ref.read(supabaseClientProvider);

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/features/notes/data/vault_service.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
 import 'package:prism/features/widgets/widget_helper.dart';
 import 'package:prism/core/router/app_router.dart';
@@ -17,7 +18,7 @@ class MockNoteIngestionService extends Fake implements NoteIngestionService {
   String? lastSyncedVaultPath;
 
   @override
-  Future<void> syncVault(String vaultPath) async {
+  Future<void> syncVault(String vaultPath, {Database? db}) async {
     syncVaultCalled = true;
     lastSyncedVaultPath = vaultPath;
   }

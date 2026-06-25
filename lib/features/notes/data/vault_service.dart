@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/template_service.dart';
@@ -28,7 +29,7 @@ abstract class NoteIngestionService {
   Future<void> saveNote(String id, String content);
   Future<void> deleteNote(String id);
 
-  Future<void> syncVault(String vaultPath);
+  Future<void> syncVault(String vaultPath, {Database? db});
 }
 
 final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
