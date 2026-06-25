@@ -11,8 +11,9 @@ import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
 import '../../../folders/data/folder_repository.dart';
-import '../widgets/grouped_notes_list.dart';
 import '../../../editor/presentation/screens/editor_screen.dart';
+import '../widgets/virtual_folders_bento_row.dart';
+import '../widgets/notes_bento_grid.dart';
 
 // Extracted Widgets
 import '../widgets/skeleton_note_list.dart';
@@ -23,10 +24,6 @@ import '../../../../core/services/vault_service.dart';
 
 // Desktop breakpoint — keep in sync with app_shell.dart
 const double _kDesktopBreakpoint = 800;
-
-enum HomeViewMode { flat, grouped }
-
-final homeViewModeProvider = StateProvider<HomeViewMode>((ref) => HomeViewMode.grouped);
 
 class NotesListScreen extends ConsumerWidget {
   const NotesListScreen({super.key});
@@ -53,6 +50,8 @@ class NotesListScreen extends ConsumerWidget {
       return _buildDesktopLayout(context, ref, colorScheme, activeFolder);
     }
 
+    final homeDataAsync = ref.watch(homeScreenDataProvider);
+
     return Scaffold(
       backgroundColor: DesignColors.background(context),
       appBar: _buildAppBar(context, ref, colorScheme, activeFolder),
@@ -62,55 +61,72 @@ class NotesListScreen extends ConsumerWidget {
           const NotesListSearchBar(),
           const TagFilterBanner(),
 
-          // Notes list
-          Expanded(
-            child: Consumer(
-              builder: (context, ref, _) {
-                final query = ref.watch(searchQueryProvider);
-                final notesAsync = query.trim().isEmpty
-                    ? ref.watch(notesProvider)
-                    : ref.watch(searchResultsProvider);
+          homeDataAsync.when(
+            data: (data) {
+              final query = ref.watch(searchQueryProvider);
+              final isSearching = query.trim().isNotEmpty;
 
-                return selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
-                    ? ref.watch(homeScreenDataProvider).maybeWhen(
-                        data: (data) => GroupedNotesList(
+              return Expanded(
+                child: Column(
+                  children: [
+                    if (!isSearching) ...[
+                      SizedBox(
+                        height: 90,
+                        child: VirtualFoldersBentoRow(
                           allNotes: data.notes,
                           folders: data.folders,
                           mappings: data.mappings,
                         ),
-                        orElse: () {
-                          final data = ref.watch(homeScreenDataProvider).valueOrNull;
-                          if (data != null) {
-                            return GroupedNotesList(
-                              allNotes: data.notes,
-                              folders: data.folders,
-                              mappings: data.mappings,
-                            );
-                          }
-                          return const SkeletonNoteList();
+                      ),
+                    ],
+                    Expanded(
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final notesAsync = isSearching
+                              ? ref.watch(searchResultsProvider)
+                              : ref.watch(notesProvider);
+
+                          return notesAsync.maybeWhen(
+                            data: (notes) {
+                              if (notes.isEmpty) {
+                                return _buildEmptyState(context, ref);
+                              }
+                              return NotesBentoGrid(
+                                notes: notes,
+                                onDelete: (id) => _deleteNote(context, ref, id),
+                              );
+                            },
+                            orElse: () {
+                              if (notesAsync.hasValue) {
+                                final notes = notesAsync.value!;
+                                if (notes.isEmpty) {
+                                  return _buildEmptyState(context, ref);
+                                }
+                                return NotesBentoGrid(
+                                  notes: notes,
+                                  onDelete: (id) => _deleteNote(context, ref, id),
+                                );
+                              }
+                              return const SkeletonNoteList();
+                            },
+                            error: (e, s) => Center(
+                              child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                            ),
+                          );
                         },
-                        error: (e, s) => Center(
-                          child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-                        ),
-                      )
-                    : notesAsync.maybeWhen(
-                        data: (notes) => _buildNotesList(context, ref, notes),
-                        orElse: () {
-                          if (notesAsync.hasValue) {
-                            return _buildNotesList(context, ref, notesAsync.value!);
-                          }
-                          return const SkeletonNoteList();
-                        },
-                        error: (e, s) => Center(
-                          child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-                        ),
-                      );
-              },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loading: () => const Expanded(child: SkeletonNoteList()),
+            error: (e, s) => Center(
+              child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
             ),
           ),
         ],
       ),
-      floatingActionButton: _buildFAB(context, ref),
     );
   }
 
@@ -148,7 +164,6 @@ class NotesListScreen extends ConsumerWidget {
   }
 
   Widget _buildListBody(BuildContext context, WidgetRef ref, ColorScheme colorScheme) {
-    final selectedFolderId = ref.watch(selectedFolderIdProvider);
     return Column(
       children: [
         const NotesListSearchBar(),
@@ -162,42 +177,18 @@ class NotesListScreen extends ConsumerWidget {
                   ? ref.watch(notesProvider)
                   : ref.watch(searchResultsProvider);
 
-              return selectedFolderId == null && query.trim().isEmpty && ref.watch(homeViewModeProvider) == HomeViewMode.grouped
-                  ? ref.watch(homeScreenDataProvider).maybeWhen(
-                      data: (data) => GroupedNotesList(
-                        allNotes: data.notes,
-                        folders: data.folders,
-                        mappings: data.mappings,
-                        onNoteTap: (id) => ref.read(activeDesktopNoteIdProvider.notifier).state = id,
-                      ),
-                      orElse: () {
-                        final data = ref.watch(homeScreenDataProvider).valueOrNull;
-                        if (data != null) {
-                          return GroupedNotesList(
-                            allNotes: data.notes,
-                            folders: data.folders,
-                            mappings: data.mappings,
-                            onNoteTap: (id) => ref.read(activeDesktopNoteIdProvider.notifier).state = id,
-                          );
-                        }
-                        return const SkeletonNoteList();
-                      },
-                      error: (e, s) => Center(
-                        child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-                      ),
-                    )
-                  : notesAsync.maybeWhen(
-                      data: (notes) => _buildDesktopNotesList(context, ref, notes),
-                      orElse: () {
-                        if (notesAsync.hasValue) {
-                          return _buildDesktopNotesList(context, ref, notesAsync.value!);
-                        }
-                        return const SkeletonNoteList();
-                      },
-                      error: (e, s) => Center(
-                        child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-                      ),
-                    );
+              return notesAsync.maybeWhen(
+                data: (notes) => _buildDesktopNotesList(context, ref, notes),
+                orElse: () {
+                  if (notesAsync.hasValue) {
+                    return _buildDesktopNotesList(context, ref, notesAsync.value!);
+                  }
+                  return const SkeletonNoteList();
+                },
+                error: (e, s) => Center(
+                  child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                ),
+              );
             },
           ),
         ),
@@ -239,8 +230,9 @@ class NotesListScreen extends ConsumerWidget {
     ColorScheme colorScheme,
     VirtualFolder? activeFolder,
   ) {
+    final selectedFolderId = ref.watch(selectedFolderIdProvider);
     return AppBar(
-      leading: activeFolder != null
+      leading: selectedFolderId != null
           ? IconButton(
               icon: const Icon(DesignIcons.back),
               onPressed: () {
@@ -258,27 +250,8 @@ class NotesListScreen extends ConsumerWidget {
       title: const Center(child: VaultSelectorTitle()),
       centerTitle: true,
       backgroundColor: DesignColors.background(context),
-      actions: [
-        if (activeFolder == null) ...[
-          IconButton(
-            icon: Icon(
-              ref.watch(homeViewModeProvider) == HomeViewMode.grouped
-                  ? Icons.view_list_rounded
-                  : Icons.grid_view_rounded,
-              color: DesignColors.textSecondary(context),
-            ),
-            onPressed: () {
-              final current = ref.read(homeViewModeProvider);
-              ref.read(homeViewModeProvider.notifier).state =
-                  current == HomeViewMode.flat ? HomeViewMode.grouped : HomeViewMode.flat;
-            },
-            tooltip: ref.watch(homeViewModeProvider) == HomeViewMode.grouped
-                ? 'Switch to flat list'
-                : 'Switch to folder grouped view',
-          ),
-          const SizedBox(width: 4),
-        ] else
-          const SizedBox(width: 48), // Balanced invisible placeholder to keep title centered!
+      actions: const [
+        SizedBox(width: 48), // Balanced invisible placeholder to keep title centered!
       ],
     );
   }

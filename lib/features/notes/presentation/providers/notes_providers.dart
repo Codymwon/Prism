@@ -64,11 +64,21 @@ Future<List<Note>> notes(NotesRef ref) async {
   
   final folderId = ref.watch(selectedFolderIdProvider);
   if (folderId != null) {
+    if (folderId == '__daily__') {
+      final all = await repo.getAllNotes(sort: sort);
+      return all.where((n) => n.isDaily).toList();
+    }
+    if (folderId == '__uncategorized__') {
+      final all = await repo.getAllNotes(sort: sort);
+      final mappings = await ref.watch(noteFolderMappingsProvider.future);
+      return all.where((n) => !n.isDaily && (mappings[n.id] == null || mappings[n.id]!.isEmpty)).toList();
+    }
     final folderRepo = ref.watch(folderRepositoryProvider);
     return folderRepo.getNotesInFolder(folderId, sort: sort);
   }
   
-  return repo.getAllNotes(sort: sort);
+  final all = await repo.getAllNotes(sort: sort);
+  return all.where((n) => !n.isDaily).toList();
 }
 
 @riverpod

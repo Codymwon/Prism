@@ -6,6 +6,11 @@ import '../../features/onboarding/data/tutorial_provider.dart';
 import '../design_system/design_system.dart';
 import 'tactile_wrapper.dart';
 import 'tutorial_overlay.dart';
+import '../../features/notes/data/note_repository.dart';
+import '../../features/folders/presentation/providers/folders_providers.dart';
+import '../../features/folders/data/folder_repository.dart';
+import '../../features/notes/presentation/providers/notes_providers.dart';
+import '../../core/utils/utils.dart';
 
 // Breakpoint at which we switch from mobile bottom-nav to desktop side-rail.
 const double _kDesktopBreakpoint = 800;
@@ -39,6 +44,58 @@ class _AppShellState extends ConsumerState<AppShell> {
     context.go(_tabs[index].path);
   }
 
+  Future<void> _createStandardNote() async {
+    final repo = ref.read(noteRepositoryProvider);
+    final note = await repo.createNote();
+
+    final selectedFolderId = ref.read(selectedFolderIdProvider);
+    if (selectedFolderId != null) {
+      final folderRepo = ref.read(folderRepositoryProvider);
+      await folderRepo.addNoteToFolder(note.id, selectedFolderId);
+    }
+
+    if (mounted) {
+      final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
+      if (isDesktop) {
+        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
+      } else {
+        context.push('/editor/${note.id}?new=true');
+      }
+    }
+  }
+
+  Future<void> _createDailyNoteForToday() async {
+    final repo = ref.read(noteRepositoryProvider);
+    final todayStr = formatDailyDate(DateTime.now());
+    var note = await repo.getDailyNote(todayStr);
+
+    if (note == null) {
+      final buffer = StringBuffer();
+      buffer.writeln('---');
+      buffer.writeln('title: "Daily Reflection"');
+      buffer.writeln('date: $todayStr');
+      buffer.writeln('---');
+      buffer.writeln();
+      final initialContent = buffer.toString();
+
+      note = await repo.createNote(
+        title: 'Daily Reflection',
+        initialContent: initialContent,
+        isDaily: true,
+        dailyDate: todayStr,
+      );
+    }
+
+    if (mounted) {
+      final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
+      if (isDesktop) {
+        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
+      } else {
+        context.push('/editor/${note.id}?date=$todayStr&new=true');
+      }
+    }
+  }
+
   // ─── Mobile scaffold (original, untouched) ─────────────────────────────────
   Widget _buildMobileScaffold(BuildContext context, ColorScheme colorScheme) {
     return Scaffold(
@@ -64,65 +121,125 @@ class _AppShellState extends ConsumerState<AppShell> {
           child: widget.child,
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: DesignColors.surface(context),
-          border: Border(
-            top: BorderSide(
-              color: DesignColors.border(context),
-              width: 0.5,
-            ),
-          ),
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 60,
-            child: Row(
-              children: List.generate(_tabs.length, (i) {
-                final tab = _tabs[i];
-                final isActive = i == _currentIndex;
-                return Expanded(
-                  child: TactileWrapper(
-                    style: TactileFeedbackStyle.standard,
-                    onTap: () => _onTabTap(i),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            isActive ? tab.activeIcon : tab.icon,
-                            key: ValueKey(isActive),
-                            size: 22,
-                            color: isActive
-                                ? colorScheme.primary
-                                : DesignColors.textTertiary(context),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Row(
+            children: [
+              // Floating Capsule Container for tabs
+              Expanded(
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: DesignColors.surface(context),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: DesignColors.border(context),
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: Row(
+                      children: List.generate(_tabs.length, (i) {
+                        final tab = _tabs[i];
+                        final isActive = i == _currentIndex;
+                        return Expanded(
+                          child: TactileWrapper(
+                            style: TactileFeedbackStyle.standard,
+                            onTap: () => _onTabTap(i),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Icon(
+                                    isActive ? tab.activeIcon : tab.icon,
+                                    key: ValueKey(isActive),
+                                    size: 22,
+                                    color: isActive
+                                        ? colorScheme.primary
+                                        : DesignColors.textTertiary(context),
+                                  ),
+                                ).animate(target: isActive ? 1 : 0).scaleXY(
+                                  begin: 0.9,
+                                  end: 1.0,
+                                  duration: 150.ms,
+                                  curve: Curves.easeOut,
+                                ),
+                                const SizedBox(height: 3),
+                                AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 200),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight:
+                                        isActive ? FontWeight.w600 : FontWeight.w400,
+                                    color: isActive
+                                        ? colorScheme.primary
+                                        : DesignColors.textTertiary(context),
+                                  ),
+                                  child: Text(tab.label),
+                                ),
+                              ],
+                            ),
                           ),
-                        ).animate(target: isActive ? 1 : 0).scaleXY(
-                          begin: 0.9,
-                          end: 1.0,
-                          duration: 150.ms,
-                          curve: Curves.easeOut,
-                        ),
-                        const SizedBox(height: 3),
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight:
-                                isActive ? FontWeight.w600 : FontWeight.w400,
-                            color: isActive
-                                ? colorScheme.primary
-                                : DesignColors.textTertiary(context),
-                          ),
-                          child: Text(tab.label),
-                        ),
-                      ],
+                        );
+                      }),
                     ),
                   ),
-                );
-              }),
-            ),
+                ),
+              ),
+              
+              // Animated Circular action button
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                width: _currentIndex == 3 ? 0 : 56,
+                height: 56,
+                margin: EdgeInsets.only(left: _currentIndex == 3 ? 0 : 12),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: _currentIndex == 3 ? 0.0 : 1.0,
+                  child: TactileWrapper(
+                    style: TactileFeedbackStyle.highImpact,
+                    onTap: () {
+                      if (_currentIndex == 1) {
+                        _createDailyNoteForToday();
+                      } else {
+                        _createStandardNote();
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: _currentIndex == 3
+                          ? const SizedBox.shrink()
+                          : Icon(
+                              Icons.add,
+                              color: colorScheme.onPrimary,
+                              size: 24,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
