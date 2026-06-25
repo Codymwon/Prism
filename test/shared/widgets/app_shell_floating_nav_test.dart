@@ -6,6 +6,7 @@ import 'package:prism/shared/widgets/app_shell.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/onboarding/data/tutorial_provider.dart';
+import 'package:prism/shared/widgets/tutorial_overlay.dart';
 
 class FakeNoteRepository extends Fake implements NoteRepository {
   bool createNoteCalled = false;
@@ -41,11 +42,21 @@ class FakeTutorialNotifier extends TutorialNotifier {
   FakeTutorialNotifier(bool val) : super() {
     state = val;
   }
+
+  @override
+  Future<void> completeTutorial() async {
+    state = true;
+  }
 }
 
 class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
   FakeJournalTutorialNotifier(bool val) : super() {
     state = val;
+  }
+
+  @override
+  Future<void> completeTutorial() async {
+    state = true;
   }
 }
 
@@ -190,6 +201,115 @@ void main() {
 
       expect(fakeNoteRepository.createNoteCalled, isTrue);
       expect(fakeNoteRepository.isDailyPassed, isTrue);
+    });
+    testWidgets('displays SpotlightTutorialOverlay and runs through the 5 steps of the main app tutorial', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final router = GoRouter(
+        initialLocation: '/notes',
+        routes: [
+          GoRoute(
+            path: '/notes',
+            builder: (context, state) => AppShell(
+              currentPath: '/notes',
+              child: const Scaffold(body: Text('Notes Screen')),
+            ),
+          ),
+          GoRoute(
+            path: '/journal',
+            builder: (context, state) => AppShell(
+              currentPath: '/journal',
+              child: const Scaffold(body: Text('Journal Screen')),
+            ),
+          ),
+          GoRoute(
+            path: '/graph',
+            builder: (context, state) => AppShell(
+              currentPath: '/graph',
+              child: const Scaffold(body: Text('Graph Screen')),
+            ),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => AppShell(
+              currentPath: '/settings',
+              child: const Scaffold(body: Text('Settings Screen')),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            noteRepositoryProvider.overrideWithValue(fakeNoteRepository),
+            tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier(false)),
+            journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier(true)),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Verify overlay is visible
+      expect(find.byType(SpotlightTutorialOverlay), findsOneWidget);
+
+      // Step 1: Virtual Folders & Tags
+      expect(find.text('Virtual Folders & Tags'), findsOneWidget);
+      expect(find.text('STEP 1 OF 5'), findsOneWidget);
+
+      // Tap Next
+      await tester.tap(find.text('Next'), warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Step 2: Virtual Folders
+      expect(find.text('Virtual Folders'), findsOneWidget);
+      expect(find.text('STEP 2 OF 5'), findsOneWidget);
+
+      // Tap Next
+      await tester.tap(find.text('Next'), warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Step 3: Daily Reflection Logs
+      expect(find.text('Daily Reflection Logs'), findsOneWidget);
+      expect(find.text('STEP 3 OF 5'), findsOneWidget);
+
+      // Tap Next
+      await tester.tap(find.text('Next'), warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Step 4: Mindmap Thought Graph
+      expect(find.text('Mindmap Thought Graph'), findsOneWidget);
+      expect(find.text('STEP 4 OF 5'), findsOneWidget);
+
+      // Tap Next
+      await tester.tap(find.text('Next'), warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Step 5: Create & Link Notes
+      expect(find.text('Create & Link Notes'), findsOneWidget);
+      expect(find.text('STEP 5 OF 5'), findsOneWidget);
+
+      // Tap Got it!
+      await tester.tap(find.text('Got it!'), warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Overlay should be gone
+      expect(find.byType(SpotlightTutorialOverlay), findsNothing);
     });
   });
 }

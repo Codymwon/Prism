@@ -256,23 +256,6 @@ class NotesListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNotesList(BuildContext context, WidgetRef ref, List<Note> notes) {
-    if (notes.isEmpty) {
-      return _buildEmptyState(context, ref);
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 8, DesignSpacing.screenPadding, 100),
-      itemCount: notes.length,
-      itemBuilder: (context, i) {
-        return NoteCard(
-          note: notes[i],
-          onTap: () => context.push('/editor/${notes[i].id}'),
-          onDelete: () => _deleteNote(context, ref, notes[i].id),
-        );
-      },
-    );
-  }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
     final isSearching = ref.watch(searchQueryProvider).isNotEmpty;

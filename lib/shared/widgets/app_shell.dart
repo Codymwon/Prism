@@ -457,21 +457,12 @@ class _AppShellState extends ConsumerState<AppShell> {
         },
       ),
       TutorialStep(
-        title: 'Open Folders',
-        description: 'Tap "Open" on any folder card to isolate its notes and view only that folder\'s contents in a focused list view.',
-        icon: Icons.arrow_forward_rounded,
+        title: 'Virtual Folders',
+        description: 'Tap any virtual folder card in the horizontal row to filter the notes list below. Tap the "All Notes" card to reset the filter.',
+        icon: Icons.folder_open_rounded,
         getTargetRect: (size) {
           final topPadding = MediaQuery.of(context).padding.top;
-          return Rect.fromLTWH(size.width - 148, topPadding + 204, 56, 32);
-        },
-      ),
-      TutorialStep(
-        title: 'View Layout Toggle',
-        description: 'Tap here to toggle between a folder-grouped layout for structured cataloging and a clean flat list to view all notes at a single glance.',
-        icon: Icons.grid_view_rounded,
-        getTargetRect: (size) {
-          final topPadding = MediaQuery.of(context).padding.top;
-          return Rect.fromLTWH(size.width - 54, topPadding + 4, 48, 48);
+          return Rect.fromLTWH(16, topPadding + 120, size.width - 32, 90);
         },
       ),
       TutorialStep(
@@ -480,10 +471,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         icon: Icons.calendar_today_rounded,
         getTargetRect: (size) {
           final bottomPadding = MediaQuery.of(context).padding.bottom;
-          final tabWidth = size.width / 4;
-          final left = tabWidth * 1 + (tabWidth / 2) - 26;
-          final top = size.height - 60 - bottomPadding + 6;
-          return Rect.fromLTWH(left, top, 52, 48);
+          final tabWidth = (size.width - 32 - 12 - 56) / 4;
+          final left = 16 + tabWidth * 1;
+          final top = size.height - 56 - 12 - bottomPadding;
+          return Rect.fromLTWH(left, top, tabWidth, 56);
         },
       ),
       TutorialStep(
@@ -492,21 +483,21 @@ class _AppShellState extends ConsumerState<AppShell> {
         icon: Icons.hub_outlined,
         getTargetRect: (size) {
           final bottomPadding = MediaQuery.of(context).padding.bottom;
-          final tabWidth = size.width / 4;
-          final left = tabWidth * 2 + (tabWidth / 2) - 26;
-          final top = size.height - 60 - bottomPadding + 6;
-          return Rect.fromLTWH(left, top, 52, 48);
+          final tabWidth = (size.width - 32 - 12 - 56) / 4;
+          final left = 16 + tabWidth * 2;
+          final top = size.height - 56 - 12 - bottomPadding;
+          return Rect.fromLTWH(left, top, tabWidth, 56);
         },
       ),
       TutorialStep(
         title: 'Create & Link Notes',
-        description: 'Write your private thoughts! Within any note, simply type double brackets [[like this]] to link ideas together and expand your brain.',
+        description: 'Tap the floating "+" button to create a new note. Within any note, simply type double brackets [[like this]] to link ideas together and expand your brain.',
         icon: Icons.add_circle_outline_rounded,
         getTargetRect: (size) {
           final bottomPadding = MediaQuery.of(context).padding.bottom;
-          final left = size.width - 150;
-          final top = size.height - 60 - bottomPadding - 16 - 54;
-          return Rect.fromLTWH(left, top, 134, 52);
+          final left = size.width - 72;
+          final top = size.height - 56 - 12 - bottomPadding;
+          return Rect.fromLTWH(left, top, 56, 56);
         },
       ),
     ];
