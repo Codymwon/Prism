@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../providers/notes_providers.dart';
+import '../../../folders/presentation/providers/folders_providers.dart';
 import 'search_bar_widget.dart';
 import 'notes_sort_bottom_sheet.dart';
 
@@ -34,6 +35,9 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
       }
     });
 
+    final selectedFolderId = ref.watch(selectedFolderIdProvider);
+    final showSortButton = selectedFolderId != null && selectedFolderId != '__folders__';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 0, DesignSpacing.screenPadding, 8),
       child: Row(
@@ -49,7 +53,7 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
               focusNode: _searchFocusNode,
             ),
           ),
-          if (!_isSearching) ...[
+          if (!_isSearching && showSortButton) ...[
             const SizedBox(width: 8),
             const NotesSortButton(),
           ],

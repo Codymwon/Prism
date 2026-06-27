@@ -98,15 +98,15 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
       shrinkWrap: true,
       padding: showAll 
           ? const EdgeInsets.symmetric(vertical: 12)
-          : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          : const EdgeInsets.fromLTRB(16, 4, 16, 4),
       physics: showAll 
           ? const ScrollPhysics() 
           : const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: showAll ? 2 : 3,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: showAll ? 1.6 : 1.35,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: showAll ? 1.45 : 1.2,
       ),
       itemCount: displayCards.length,
       itemBuilder: (context, index) {

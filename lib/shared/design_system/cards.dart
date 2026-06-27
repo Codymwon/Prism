@@ -37,7 +37,7 @@ class DesignNoteCard extends ConsumerWidget {
       onLongPress: onLongPress,
       style: TactileFeedbackStyle.longPressLift,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
@@ -53,7 +53,7 @@ class DesignNoteCard extends ConsumerWidget {
                 ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(DesignSpacing.cardPadding),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

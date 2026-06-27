@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
+import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/utils/utils.dart';
 
@@ -359,5 +361,30 @@ void main() {
     expect(recent[2].id, equals('note-3')); // 400
     expect(recent[3].id, equals('note-4')); // 300
     expect(recent[4].id, equals('note-5')); // 200 (note-6 is excluded because of count limit 5)
+  });
+
+  test('NoteSortNotifier loads initial value from SharedPreferences and persists changes', () async {
+    SharedPreferences.setMockInitialValues({
+      'note_sort_preference': NoteSort.title.index,
+    });
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    // Build the notifier and await the load future explicitly
+    await container.read(noteSortNotifierProvider.notifier).load();
+
+    // Verify it updated to the saved value
+    final loadedSort = container.read(noteSortNotifierProvider);
+    expect(loadedSort, equals(NoteSort.title));
+
+    // Save a new value
+    container.read(noteSortNotifierProvider.notifier).state = NoteSort.created;
+    // Wait for async _save() to complete
+    await Future.delayed(Duration.zero);
+
+    // Verify it saved in SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('note_sort_preference'), equals(NoteSort.created.index));
   });
 }

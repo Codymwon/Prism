@@ -258,7 +258,7 @@ Here is a web image:
       ),
     );
     await tester.pump();
-    expect(find.text('Tap to continue writing'), findsOneWidget);
+    expect(find.text('Continue writing'), findsOneWidget);
 
     // 2. Render yesterday's note card (should NOT show prompt)
     await tester.pumpWidget(
@@ -274,7 +274,7 @@ Here is a web image:
       ),
     );
     await tester.pump();
-    expect(find.text('Tap to continue writing'), findsNothing);
+    expect(find.text('Continue writing'), findsNothing);
   });
 
   testWidgets('JournalEntryCard does not overflow when markdown body is extremely long', (WidgetTester tester) async {

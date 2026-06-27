@@ -7,10 +7,12 @@ import 'package:prism/features/folders/presentation/providers/folders_providers.
 import 'package:prism/features/notes/presentation/widgets/virtual_folders_bento_row.dart';
 import 'package:prism/features/notes/presentation/widgets/notes_bento_grid.dart';
 import 'package:prism/features/notes/presentation/widgets/note_card.dart';
+import 'package:prism/features/notes/presentation/widgets/notes_sort_bottom_sheet.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/folders/data/folder_model.dart';
 import 'package:prism/core/services/vault_service.dart';
 import 'package:prism/core/database/vault_providers.dart';
+import 'package:prism/features/notes/presentation/widgets/skeleton_note_list.dart';
 
 class FakeSearchQueryNotifier extends SearchQuery {
   final String initialValue;
@@ -31,6 +33,13 @@ class FakeActiveVaultName extends ActiveVaultName {
   FakeActiveVaultName(this.initialValue);
   @override
   Future<String> build() async => initialValue;
+}
+
+class FakeNoteSortNotifier extends NoteSortNotifier {
+  final NoteSort initialValue;
+  FakeNoteSortNotifier(this.initialValue);
+  @override
+  NoteSort build() => initialValue;
 }
 
 class MockRouterDelegate extends RouterDelegate<void> with ChangeNotifier, PopNavigatorRouterDelegateMixin<void> {
@@ -322,5 +331,187 @@ void main() {
     // Verify app bar title displays "My Vault" and NOT "My Vault / Work"
     expect(find.text('My Vault'), findsOneWidget);
     expect(find.text('My Vault / Work'), findsNothing);
+  });
+
+  testWidgets('NotesListScreen displays PRISM title in Outfit font', (WidgetTester tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+        foldersProvider.overrideWith((ref) => mockFolders),
+        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+        notesProvider.overrideWith((ref) => mockNotes),
+        recentNotesProvider.overrideWith((ref) => mockNotes),
+        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier(null)),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildNotesListScreen(container: container));
+    await tester.pumpAndSettle();
+
+    final titleText = tester.widget<Text>(find.text('PRISM'));
+    expect(titleText.style?.fontFamily, contains('Outfit'));
+    expect(titleText.style?.fontWeight, equals(FontWeight.w900));
+  });
+
+  testWidgets('NotesListScreen taps outside search bar to unfocus', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = ProviderContainer(
+      overrides: [
+        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+        foldersProvider.overrideWith((ref) => mockFolders),
+        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+        notesProvider.overrideWith((ref) => mockNotes),
+        recentNotesProvider.overrideWith((ref) => mockNotes),
+        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier(null)),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildNotesListScreen(container: container));
+    await tester.pumpAndSettle();
+
+    // Find Search Bar TextField
+    final searchFieldFinder = find.byType(TextField);
+    expect(searchFieldFinder, findsOneWidget);
+
+    // Focus the search bar
+    await tester.tap(searchFieldFinder);
+    await tester.pumpAndSettle();
+
+    // Verify it is focused
+    final FocusNode focusNode = tester.widget<TextField>(searchFieldFinder).focusNode!;
+    expect(focusNode.hasFocus, isTrue);
+
+    // Tap outside at coordinate (100, 750)
+    await tester.tapAt(const Offset(100, 750));
+    await tester.pump();
+
+    // Verify it lost focus
+    expect(focusNode.hasFocus, isFalse);
+  });
+
+  testWidgets('NotesSortButton is hidden on Home View and visible on Folder View', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    // 1. Home View (no folder selected)
+    final container = ProviderContainer(
+      overrides: [
+        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+        foldersProvider.overrideWith((ref) => mockFolders),
+        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+        notesProvider.overrideWith((ref) => mockNotes),
+        recentNotesProvider.overrideWith((ref) => mockNotes),
+        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier(null)),
+        noteSortNotifierProvider.overrideWith(() => FakeNoteSortNotifier(NoteSort.updated)),
+      ],
+    );
+
+    await tester.pumpWidget(buildNotesListScreen(container: container));
+    await tester.pumpAndSettle();
+
+    // Verify NotesSortButton is hidden
+    expect(find.byType(NotesSortButton), findsNothing);
+
+    // Clean up container 1
+    container.dispose();
+    await tester.pumpAndSettle();
+
+    // 2. Folder View (folder selected)
+    final container2 = ProviderContainer(
+      overrides: [
+        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+        foldersProvider.overrideWith((ref) => mockFolders),
+        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+        notesProvider.overrideWith((ref) => mockNotes),
+        recentNotesProvider.overrideWith((ref) => mockNotes),
+        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier('folder-work')),
+        noteSortNotifierProvider.overrideWith(() => FakeNoteSortNotifier(NoteSort.updated)),
+      ],
+    );
+
+    await tester.pumpWidget(buildNotesListScreen(container: container2));
+    await tester.pumpAndSettle();
+
+    // Verify NotesSortButton is visible
+    expect(find.byType(NotesSortButton), findsOneWidget);
+
+    // Clean up container 2
+    container2.dispose();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('NotesListScreen preserves home content during homeScreenDataProvider reload/refresh', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final dataVal = HomeScreenData(
+      notes: mockNotes,
+      folders: mockFolders,
+      mappings: const {},
+    );
+
+    // We start with AsyncData
+    final container = ProviderContainer(
+      overrides: [
+        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+        foldersProvider.overrideWith((ref) => mockFolders),
+        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+        notesProvider.overrideWith((ref) => mockNotes),
+        recentNotesProvider.overrideWith((ref) => mockNotes),
+        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier(null)),
+        noteSortNotifierProvider.overrideWith(() => FakeNoteSortNotifier(NoteSort.updated)),
+        homeScreenDataProvider.overrideWith((ref) => AsyncData(dataVal)),
+      ],
+    );
+
+    await tester.pumpWidget(buildNotesListScreen(container: container));
+    await tester.pumpAndSettle();
+
+    // Verify bento row folders are displayed (shows home content)
+    expect(find.byType(VirtualFoldersBentoRow), findsOneWidget);
+    expect(find.byType(SkeletonNoteList), findsNothing);
+
+    // Now transition homeScreenDataProvider to AsyncLoading state but preserving dataVal
+    container.updateOverrides([
+      availableVaultsProvider.overrideWith((ref) => ['vault-1']),
+      foldersProvider.overrideWith((ref) => mockFolders),
+      noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
+      notesProvider.overrideWith((ref) => mockNotes),
+      recentNotesProvider.overrideWith((ref) => mockNotes),
+      searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
+      selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier(null)),
+      noteSortNotifierProvider.overrideWith(() => FakeNoteSortNotifier(NoteSort.updated)),
+      homeScreenDataProvider.overrideWith((ref) => AsyncLoading<HomeScreenData>().copyWithPrevious(AsyncData(dataVal))),
+    ]);
+
+    await tester.pump();
+
+    // Verify home content is still displayed, and NO skeleton note list is shown!
+    expect(find.byType(VirtualFoldersBentoRow), findsOneWidget);
+    expect(find.byType(SkeletonNoteList), findsNothing);
+
+    container.dispose();
+    await tester.pumpAndSettle();
   });
 }

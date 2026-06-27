@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
@@ -28,13 +29,32 @@ class ActiveDesktopNoteId extends _$ActiveDesktopNoteId {
 @riverpod
 class NoteSortNotifier extends _$NoteSortNotifier {
   @override
-  NoteSort build() => NoteSort.updated;
+  NoteSort build() {
+    load();
+    return NoteSort.updated;
+  }
+
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final index = prefs.getInt('note_sort_preference');
+    if (index != null && index >= 0 && index < NoteSort.values.length) {
+      super.state = NoteSort.values[index];
+    }
+  }
 
   @override
   NoteSort get state => super.state;
 
   @override
-  set state(NoteSort value) => super.state = value;
+  set state(NoteSort value) {
+    super.state = value;
+    _save(value);
+  }
+
+  Future<void> _save(NoteSort value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('note_sort_preference', value.index);
+  }
 }
 
 @riverpod

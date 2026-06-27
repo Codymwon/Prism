@@ -1,50 +1,139 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
-import '../../../../core/utils/utils.dart';
 import '../../data/folder_model.dart';
 import '../../data/folder_repository.dart';
 import '../providers/folders_providers.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
-import '../../../notes/data/note_model.dart';
-import 'folder_icon_display.dart';
+import '../../../notes/data/note_repository.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
 
 class FolderDrawer extends ConsumerWidget {
   const FolderDrawer({super.key});
 
+  Future<void> _openRandomNote(BuildContext context, WidgetRef ref) async {
+    try {
+      final repo = ref.read(noteRepositoryProvider);
+      final allNotes = await repo.getAllNotes();
+      final eligibleNotes = allNotes.where((n) => !n.isDaily && !n.isGhost).toList();
+      
+      if (eligibleNotes.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No notes found in this vault')),
+          );
+        }
+        return;
+      }
+      
+      final randomNote = eligibleNotes[Random().nextInt(eligibleNotes.length)];
+      
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close drawer
+        
+        final isDesktop = MediaQuery.of(context).size.width >= 800;
+        if (isDesktop) {
+          ref.read(activeDesktopNoteIdProvider.notifier).state = randomNote.id;
+        } else {
+          context.push('/editor/${randomNote.id}');
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error finding random note: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final selectedFolderId = ref.watch(selectedFolderIdProvider);
-    final selectedTag = ref.watch(selectedTagProvider);
-    final foldersAsync = ref.watch(foldersProvider);
-    final recentNotesAsync = ref.watch(notesProvider);
 
     return Drawer(
       backgroundColor: DesignColors.background(context),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Recent Notes
-              _buildRecentNotesSection(context, ref, recentNotesAsync, colorScheme),
-              const SizedBox(height: 20),
+              // Header: PRISM Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Text(
+                  'PRISM',
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: colorScheme.primary,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1, thickness: 0.5),
+              const SizedBox(height: 16),
 
-              // 3. Categories / Folders Section (includes All Notes reset)
-              _buildFoldersSection(context, ref, foldersAsync, selectedFolderId, selectedTag, colorScheme),
-              const SizedBox(height: 20),
+              // Tools Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  'TOOLS',
+                  style: DesignTypography.metadata(
+                    context,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: DesignColors.textTertiary(context),
+                  ).copyWith(letterSpacing: 1.0),
+                ),
+              ),
+              const SizedBox(height: 8),
 
-              // 4. Tag Index Section
+              // Manage Templates Shortcut
+              _buildToolTile(
+                context,
+                icon: Icons.description_outlined,
+                title: 'Manage Templates',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.push('/settings/custom-templates');
+                },
+              ),
+              const SizedBox(height: 8),
+
+              // Manage Macros Shortcut
+              _buildToolTile(
+                context,
+                icon: Icons.bolt_outlined,
+                title: 'Manage Macros',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.push('/settings/custom-macros');
+                },
+              ),
+              const SizedBox(height: 8),
+
+              // Serendipity (Random Note) Tool
+              _buildToolTile(
+                context,
+                icon: Icons.shuffle_rounded,
+                title: 'Serendipity',
+                onTap: () => _openRandomNote(context, ref),
+              ),
+              const SizedBox(height: 24),
+
+              // Tag Index Section
               const TagCloudIndex(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // 5. Vault Statistics Section
+              // Vault Statistics Section
               const VaultStatsBoard(),
             ],
           ),
@@ -53,328 +142,54 @@ class FolderDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentNotesSection(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<Note>> notesAsync,
-    ColorScheme colorScheme,
-  ) {
-    return notesAsync.when(
-      data: (notes) {
-        // Filter out ghost/daily notes, take top 4 by updatedAt (already sorted)
-        final recent = notes
-            .where((n) => !n.isGhost && !n.isDaily)
-            .take(4)
-            .toList();
-
-        if (recent.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildToolTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return TactileWrapper(
+      style: TactileFeedbackStyle.standard,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: DesignColors.surfaceVariant(context),
+          borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+          border: Border.all(
+            color: DesignColors.border(context),
+            width: 0.5,
+          ),
+        ),
+        child: Row(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 10, bottom: 8),
+            Icon(
+              icon,
+              size: 20,
+              color: DesignColors.primary(context),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                'RECENTLY EDITED',
-                style: DesignTypography.metadata(
+                title,
+                style: DesignTypography.body(
                   context,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: DesignColors.textTertiary(context),
-                ).copyWith(letterSpacing: 1.0),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: DesignColors.text(context),
+                ),
               ),
             ),
-            ...recent.map((note) {
-              final timeAgo = _formatTimeAgo(note.updatedAt);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: TactileWrapper(
-                  style: TactileFeedbackStyle.standard,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    context.push('/editor/${note.id}');
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: DesignColors.surfaceVariant(context),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 14,
-                          color: DesignColors.textTertiary(context),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                note.title,
-                                style: DesignTypography.body(
-                                  context,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: DesignColors.text(context),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                timeAgo,
-                                style: DesignTypography.metadata(
-                                  context,
-                                  fontSize: 10,
-                                  color: DesignColors.textTertiary(context),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 10,
-                          color: DesignColors.textTertiary(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: DesignColors.textTertiary(context),
+            ),
           ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+        ),
+      ),
     );
   }
-
-  String _formatTimeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays == 1) return 'yesterday';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${(diff.inDays / 7).floor()}w ago';
-  }
-
-  Widget _buildFoldersSection(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<VirtualFolder>> foldersAsync,
-    String? selectedFolderId,
-    String? selectedTag,
-    ColorScheme colorScheme,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 10, bottom: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'FOLDERS / CATEGORIES',
-                style: DesignTypography.metadata(
-                  context,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: DesignColors.textTertiary(context),
-                ).copyWith(letterSpacing: 1.0),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                  navigateToAddFolderScreen(context);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: Text(
-                    '+ Add',
-                    style: DesignTypography.body(
-                      context,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // "All Notes" reset row — clears any active folder / tag filter
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: TactileWrapper(
-            style: TactileFeedbackStyle.standard,
-            onTap: () {
-              ref.read(selectedFolderIdProvider.notifier).state = null;
-              ref.read(selectedTagProvider.notifier).state = null;
-              Navigator.of(context).pop();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: (selectedFolderId == null && selectedTag == null)
-                    ? colorScheme.primary.withValues(alpha: 0.1)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: (selectedFolderId == null && selectedTag == null)
-                      ? colorScheme.primary.withValues(alpha: 0.2)
-                      : Colors.transparent,
-                  width: 0.5,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: (selectedFolderId == null && selectedTag == null)
-                          ? colorScheme.primary
-                          : DesignColors.textTertiary(context),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'All Notes',
-                      style: DesignTypography.body(
-                        context,
-                        fontSize: 13,
-                        fontWeight: (selectedFolderId == null && selectedTag == null)
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: (selectedFolderId == null && selectedTag == null)
-                            ? colorScheme.primary
-                            : DesignColors.text(context),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        foldersAsync.when(
-          data: (folders) {
-            if (folders.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-                child: Text(
-                  'No folders created yet.',
-                  style: DesignTypography.details(
-                    context,
-                    fontSize: 11,
-                    color: DesignColors.textTertiary(context),
-                  ).copyWith(fontStyle: FontStyle.italic),
-                ),
-              );
-            }
-
-            return Column(
-              children: folders.map((folder) {
-                final isSelected = selectedFolderId == folder.id;
-                final folderColor = folder.colorHex.toColor();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: TactileWrapper(
-                    style: TactileFeedbackStyle.standard,
-                    onTap: () {
-                      ref.read(selectedFolderIdProvider.notifier).state = folder.id;
-                      ref.read(selectedTagProvider.notifier).state = null;
-                      Navigator.of(context).pop();
-                    },
-                    onLongPress: () {
-                      Navigator.of(context).pop();
-                      showFolderOptions(context, ref, folder);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? folderColor.withValues(alpha: 0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected
-                              ? folderColor.withValues(alpha: 0.3)
-                              : Colors.transparent,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          FolderIconDisplay(
-                            iconKey: folder.icon,
-                            color: folderColor,
-                            size: 36,
-                            badgeSize: 9,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              folder.name,
-                              style: DesignTypography.body(
-                                context,
-                                fontSize: 13,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                color: DesignColors.text(context),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? folderColor.withValues(alpha: 0.25)
-                                  : DesignColors.surfaceVariant(context),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${folder.noteCount}',
-                              style: DesignTypography.mono(
-                                fontSize: 10,
-                                color: isSelected ? folderColor : DesignColors.textSecondary(context),
-                              ).copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
-          loading: () => const Center(
-            child: SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-          error: (err, _) => Text('Error: $err', style: TextStyle(color: colorScheme.error)),
-        ),
-      ],
-    );
-  }
-
-
 
   static void navigateToAddFolderScreen(BuildContext context) {
     context.push('/folders/create');

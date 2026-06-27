@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/core/router/app_router.dart';
 import 'package:prism/features/folders/presentation/screens/add_folder_screen.dart';
+import 'package:prism/features/folders/presentation/widgets/folder_drawer.dart';
 import 'package:prism/features/folders/data/folder_model.dart';
 import 'package:prism/features/folders/data/folder_repository.dart';
 import 'package:prism/features/notes/data/note_model.dart';
@@ -122,5 +123,58 @@ void main() {
 
     // Verify it navigated to AddFolderScreen
     expect(find.byType(AddFolderScreen), findsOneWidget);
+  });
+
+  testWidgets('FolderDrawer renders Vault Dashboard elements', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWith((ref) async => FakeDatabase()),
+        noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
+        folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
+        tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier()),
+        journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier()),
+        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier()),
+        availableVaultsProvider.overrideWith((ref) async => ['Default']),
+        homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
+          notes: [],
+          folders: [],
+          mappings: {},
+        ))),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            drawer: FolderDrawer(),
+            body: SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open the drawer
+    final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+    scaffoldState.openDrawer();
+    await tester.pumpAndSettle();
+
+    // Verify header PRISM is shown
+    expect(find.text('PRISM'), findsOneWidget);
+
+    // Verify shortcuts are shown
+    expect(find.text('Manage Templates'), findsOneWidget);
+    expect(find.text('Manage Macros'), findsOneWidget);
+    expect(find.text('Serendipity'), findsOneWidget);
   });
 }
