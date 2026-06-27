@@ -53,9 +53,51 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 add_subdirectory("runner")
 
 
+# Fix for flutter_secure_storage_windows: locate the ATL (Active Template
+# Library) include + lib directories BEFORE plugins are processed so
+# subdirectories inherit them. atlstr.h and atls.lib are required by
+# flutter_secure_storage_windows and are only present when the optional
+# 'C++ ATL for latest v14x build tools' VS component is installed.
+if(MSVC)
+  find_path(ATL_INCLUDE_DIR
+    NAMES atlstr.h
+    HINTS
+      "$ENV{VCToolsInstallDir}atlmfc/include"
+      "$ENV{VCINSTALLDIR}Tools/MSVC/atlmfc/include"
+    PATHS
+      "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/atlmfc/include"
+      "C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC/14.44.35207/atlmfc/include"
+      "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/atlmfc/include"
+      "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/atlmfc/include"
+    DOC "Path to the ATL include directory (contains atlstr.h)"
+  )
+  if(ATL_INCLUDE_DIR)
+    message(STATUS "Found ATL include directory: ${ATL_INCLUDE_DIR}")
+    include_directories("${ATL_INCLUDE_DIR}")
+    # Derive the lib directory from the include path (sibling folder)
+    get_filename_component(ATL_BASE_DIR "${ATL_INCLUDE_DIR}" DIRECTORY)
+    set(ATL_LIB_DIR "${ATL_BASE_DIR}/lib/x64")
+    if(EXISTS "${ATL_LIB_DIR}")
+      message(STATUS "Found ATL lib directory: ${ATL_LIB_DIR}")
+      link_directories("${ATL_LIB_DIR}")
+    endif()
+  else()
+    message(WARNING "ATL include directory not found. flutter_secure_storage_windows may fail to build. "
+      "Install 'C++ ATL for latest v14x build tools' via the Visual Studio Installer.")
+  endif()
+endif()
+
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
 include(flutter/generated_plugins.cmake)
+
+# Belt-and-suspenders: also set ATL paths directly on the plugin target.
+if(MSVC AND ATL_INCLUDE_DIR AND TARGET flutter_secure_storage_windows_plugin)
+  target_include_directories(flutter_secure_storage_windows_plugin PRIVATE "${ATL_INCLUDE_DIR}")
+  if(DEFINED ATL_LIB_DIR AND EXISTS "${ATL_LIB_DIR}")
+    target_link_directories(flutter_secure_storage_windows_plugin PRIVATE "${ATL_LIB_DIR}")
+  endif()
+endif()
 
 
 # === Installation ===
