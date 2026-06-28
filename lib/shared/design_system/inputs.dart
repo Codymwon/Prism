@@ -127,7 +127,7 @@ class _DesignSearchBarState extends State<DesignSearchBar> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      height: 44,
+      height: 48,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
@@ -157,17 +157,17 @@ class _DesignSearchBarState extends State<DesignSearchBar> {
                 setState(() {});
                 widget.onChanged(val);
               },
-              style: DesignTypography.body(context, fontSize: 14),
+              style: DesignTypography.body(context, fontSize: 15),
+              textAlignVertical: TextAlignVertical.center,
               decoration: InputDecoration(
                 filled: false,
                 fillColor: Colors.transparent,
                 hintText: widget.hintText,
-                hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
+                hintStyle: DesignTypography.body(context, fontSize: 15, color: DesignColors.textTertiary(context)),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),

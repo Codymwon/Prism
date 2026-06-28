@@ -5,6 +5,8 @@ import 'package:path/path.dart' as p;
 import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../database/vault_providers.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 final vaultManagementServiceProvider = Provider<VaultManagementService>((ref) {
   return VaultManagementService();
 });
@@ -87,38 +89,97 @@ class VaultManagementService {
     required String newPath,
     required WidgetRef ref,
   }) async {
-    // Update base vaults directory provider (saves to SharedPreferences)
-    await ref.read(baseVaultsDirectoryProvider.notifier).setDirectory(newPath);
+    // Determine the current hub name (defaults to 'Prism Hub' if not found or empty)
+    final currentBaseDir = ref.read(baseVaultsDirectoryProvider).valueOrNull ?? '';
+    final hubName = currentBaseDir.isNotEmpty ? p.basename(currentBaseDir) : 'Prism Hub';
 
-    // Find if there are existing vaults asynchronously
-    final dir = Directory(newPath);
-    List<String> vaults = [];
-    if (await dir.exists()) {
-      final list = await dir.list().toList();
-      vaults = list
-          .whereType<Directory>()
-          .map((d) => p.basename(d.path))
-          .where((name) => !name.startsWith('.'))
-          .toList();
-    }
-
-    String activeVault = 'My Vault';
-    if (vaults.isNotEmpty) {
-      activeVault = vaults.first;
+    // Align the target path (append hubName if not already the last segment)
+    final String targetBaseDir;
+    if (p.basename(newPath) == hubName) {
+      targetBaseDir = newPath;
     } else {
-      // Create a default vault folder inside the new directory asynchronously
-      final newVaultPath = p.join(newPath, activeVault);
-      final vaultDir = Directory(newVaultPath);
-      if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
+      targetBaseDir = p.join(newPath, hubName);
     }
 
-    // Update active vault name provider
-    await ref.read(activeVaultNameProvider.notifier).setVaultName(activeVault);
+    // Ensure the target base directory exists
+    final dir = Directory(targetBaseDir);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    // Find the most recently modified vault if any exist, or create a default one
+    final activeVault = await _findMostRecentVault(targetBaseDir) ?? 'My Vault';
+
+    if (activeVault == 'My Vault') {
+      final newVaultPath = p.join(targetBaseDir, activeVault);
+      final vaultDir = Directory(newVaultPath);
+      if (!await vaultDir.exists()) {
+        await vaultDir.create(recursive: true);
+      }
+    }
+
+    // Update SharedPreferences directly for both values to ensure atomicity
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('baseVaultsDirectory', targetBaseDir);
+    await prefs.setString('activeVaultName', activeVault);
 
     // Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
 
-    // Invalidate vaults list cache
+    // Invalidate and reload the providers.
+    // Invalidating both simultaneously ensures they reload from SharedPreferences
+    // without an intermediate inconsistent state (preventing database_closed race).
+    ref.invalidate(baseVaultsDirectoryProvider);
+    ref.invalidate(activeVaultNameProvider);
     ref.invalidate(availableVaultsProvider);
+  }
+
+  /// Private helper to find the most recently modified vault based on file/db timestamps
+  Future<String?> _findMostRecentVault(String baseDir) async {
+    final dir = Directory(baseDir);
+    if (!await dir.exists()) return null;
+
+    List<Directory> subDirs = [];
+    try {
+      final list = await dir.list().toList();
+      for (final entity in list) {
+        if (entity is Directory && !p.basename(entity.path).startsWith('.')) {
+          subDirs.add(entity);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error scanning existing hub: $e');
+    }
+
+    if (subDirs.isEmpty) return null;
+
+    Directory? mostRecentDir;
+    DateTime? latestTime;
+    for (final subDir in subDirs) {
+      DateTime? subDirLatest;
+      try {
+        final stat = await subDir.stat();
+        subDirLatest = stat.modified;
+        final dbFile = File(p.join(subDir.path, '.prism.db'));
+        if (await dbFile.exists()) {
+          final dbTime = await dbFile.lastModified();
+          if (subDirLatest != null && dbTime.isAfter(subDirLatest)) {
+            subDirLatest = dbTime;
+          }
+        }
+      } catch (e) {
+        // Ignore
+      }
+      if (subDirLatest != null) {
+        if (latestTime == null || subDirLatest.isAfter(latestTime)) {
+          latestTime = subDirLatest;
+          mostRecentDir = subDir;
+        }
+      }
+    }
+
+    return mostRecentDir != null
+        ? p.basename(mostRecentDir.path)
+        : p.basename(subDirs.first.path);
   }
 }

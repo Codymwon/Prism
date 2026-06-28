@@ -83,17 +83,21 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
                         setState(() => _isSearching = true);
                       }
                     },
-                    style: DesignTypography.body(context, fontSize: 14),
+                    style: DesignTypography.body(context, fontSize: 15),
+                    textAlignVertical: TextAlignVertical.center,
                     decoration: InputDecoration(
+                      filled: false,
+                      fillColor: Colors.transparent,
                       hintText: 'Search notes...',
                       hintStyle: DesignTypography.body(
                         context,
-                        fontSize: 14,
+                        fontSize: 15,
                         color: DesignColors.textTertiary(context),
                       ),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
