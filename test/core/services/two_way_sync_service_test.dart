@@ -136,15 +136,25 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late FakeGoogleDriveService mockDriveService;
   late FakeFlutterSecureStorage mockSecureStorage;
+  late Directory tempHubDir;
   late Directory tempVaultDir;
   late ProviderContainer container;
+  late String prefix;
 
-  setUp(() {
+  setUp(() async {
     mockDriveService = FakeGoogleDriveService();
     mockSecureStorage = FakeFlutterSecureStorage();
-    tempVaultDir = Directory.systemTemp.createTempSync('prism_vault_test');
+    
+    // Create an isolated hub directory
+    tempHubDir = Directory.systemTemp.createTempSync('prism_hub_test');
+    tempVaultDir = Directory(p.join(tempHubDir.path, 'my_vault'))..createSync();
+    
+    final baseDir = tempHubDir.path;
+    final vaultName = p.basename(tempVaultDir.path);
     SharedPreferences.setMockInitialValues({
       'welcomeNotesSeeded_${tempVaultDir.path.hashCode}': true,
+      'baseVaultsDirectory': baseDir,
+      'activeVaultName': vaultName,
     });
 
     container = ProviderContainer(
@@ -154,13 +164,20 @@ void main() {
         activeVaultPathProvider.overrideWith((ref) => tempVaultDir.path),
       ],
     );
+
+    // Enable sync by default for all existing tests
+    container.listen(syncedVaultsProvider, (_, __) {});
+    await container.read(syncedVaultsProvider.notifier).enableSync(vaultName);
+
+    final vaultHash = (await container.read(syncEncryptionServiceProvider).hashVaultName(vaultName)).getOrElse((_) => throw Exception());
+    prefix = '${vaultHash}_';
   });
 
   tearDown(() {
     container.dispose();
     try {
-      if (tempVaultDir.existsSync()) {
-        tempVaultDir.deleteSync(recursive: true);
+      if (tempHubDir.existsSync()) {
+        tempHubDir.deleteSync(recursive: true);
       }
     } catch (_) {}
   });
@@ -242,10 +259,10 @@ void main() {
 
       for (final relPath in expectedPaths) {
         final pathHash = (await encryptionService.hashFilePath(relPath)).getOrElse((_) => throw Exception('Failed path hash'));
-        expect(mockDriveService.files.containsKey(pathHash), isTrue);
+        expect(mockDriveService.files.containsKey('$prefix$pathHash'), isTrue);
 
         // Download, decrypt, and decode to verify path and content
-        final encryptedBytes = mockDriveService.files[pathHash]!;
+        final encryptedBytes = mockDriveService.files['$prefix$pathHash']!;
         final decryptedResult = await encryptionService.decryptBytes(encryptedBytes: encryptedBytes, key: derivedKey);
         expect(decryptedResult.isRight(), isTrue);
 
@@ -303,10 +320,11 @@ void main() {
         '.prism-metadata.json': utf8.encode('{"version":1,"custom_folders":[]}'),
       };
 
-      for (final entry in remoteFilesData.entries) {
-        final pathHash = (await encryptionService.hashFilePath(entry.key)).getOrElse((_) => throw Exception('Hash failed'));
-        final encrypted = await packAndEncrypt(entry.key, entry.value, derivedKey, encryptionService);
-        mockDriveService.files[pathHash] = encrypted;
+      for (final relPath in remoteFilesData.keys) {
+        final fileBytes = remoteFilesData[relPath]!;
+        final pathHash = (await encryptionService.hashFilePath(relPath)).getOrElse((_) => throw Exception('Failed path hash'));
+        final encrypted = await packAndEncrypt(relPath, fileBytes, derivedKey, encryptionService);
+        mockDriveService.files['$prefix$pathHash'] = encrypted;
       }
 
       // 3. Run sync
@@ -376,13 +394,12 @@ void main() {
       final t1 = DateTime.now().subtract(const Duration(hours: 1));
       localFile.setLastModifiedSync(t1);
 
-      final contentABytes = utf8.encode('Content A');
       final hashA = await encryptionService.hashFilePath(relPath).then((r) => r.getOrElse((_) => throw Exception()));
-      final encryptedA = await packAndEncrypt(relPath, contentABytes, derivedKey, encryptionService);
-      mockDriveService.files[hashA] = encryptedA;
+      final encryptedA = await packAndEncrypt('noteA.md', utf8.encode('Content A'), derivedKey, encryptionService);
+      mockDriveService.files['$prefix$hashA'] = encryptedA;
 
       final r1 = DateTime.now().subtract(const Duration(hours: 1));
-      mockDriveService.modifiedTimes[hashA] = r1;
+      mockDriveService.modifiedTimes['$prefix$hashA'] = r1;
 
       final manifestDir = Directory(p.join(tempVaultDir.path, '.prism'))..createSync();
       final manifestFile = File(p.join(manifestDir.path, 'sync_manifest.json'));
@@ -418,7 +435,7 @@ void main() {
       final manifestFiles = updatedManifest['files'] as Map<String, dynamic>;
       expect(manifestFiles[relPath]['lastSyncedModifiedTime'], equals(localFile.statSync().modified.millisecondsSinceEpoch));
 
-      final driveEncryptedBytes = mockDriveService.files[hashA]!;
+      final driveEncryptedBytes = mockDriveService.files['$prefix$hashA']!;
       final decryptResult = await encryptionService.decryptBytes(encryptedBytes: driveEncryptedBytes, key: derivedKey);
       expect(decryptResult.isRight(), isTrue);
       final decryptedPayload = decryptResult.getOrElse((_) => Uint8List(0));
@@ -459,7 +476,7 @@ void main() {
           relPath: {
             'fileHash': contentAHash,
             'lastSyncedModifiedTime': t1.millisecondsSinceEpoch,
-            'googleDriveFileId': hashPath,
+            'googleDriveFileId': '$prefix$hashPath',
             'remoteModifiedTime': r1.millisecondsSinceEpoch,
           }
         }
@@ -469,9 +486,9 @@ void main() {
       // 3. Upload modified content to Drive with a newer modified time r2
       final contentBBytes = utf8.encode('Content B');
       final encryptedB = await packAndEncrypt(relPath, contentBBytes, derivedKey, encryptionService);
-      mockDriveService.files[hashPath] = encryptedB;
+      mockDriveService.files['$prefix$hashPath'] = encryptedB;
       final r2 = DateTime.now();
-      mockDriveService.modifiedTimes[hashPath] = r2;
+      mockDriveService.modifiedTimes['$prefix$hashPath'] = r2;
 
       // 4. Run sync
       final syncResult = await syncService.runSync();
@@ -553,7 +570,7 @@ void main() {
           relPath: {
             'fileHash': await calculateContentHash('Content A'),
             'lastSyncedModifiedTime': t1.millisecondsSinceEpoch,
-            'googleDriveFileId': hashPath,
+            'googleDriveFileId': '$prefix$hashPath',
             'remoteModifiedTime': r1.millisecondsSinceEpoch,
           }
         }
@@ -567,10 +584,10 @@ void main() {
 
       // 5. Upload modified content C to Drive with newer modification time r2
       final contentCBytes = utf8.encode('Content C');
-      final encryptedC = await packAndEncrypt(relPath, contentCBytes, derivedKey, encryptionService);
-      mockDriveService.files[hashPath] = encryptedC;
+      final encryptedC = await packAndEncrypt('noteC.md', contentCBytes, derivedKey, encryptionService);
+      mockDriveService.files['$prefix$hashPath'] = encryptedC;
       final r2 = DateTime.now();
-      mockDriveService.modifiedTimes[hashPath] = r2;
+      mockDriveService.modifiedTimes['$prefix$hashPath'] = r2;
 
       // 6. Run sync
       final syncResult = await syncService.runSync();
@@ -627,8 +644,8 @@ void main() {
       final contentHash = await calculateContentHash('Some content');
 
       // The file is on drive
-      mockDriveService.files[hashPath] = utf8.encode('Encrypted content');
-      mockDriveService.modifiedTimes[hashPath] = r1;
+      mockDriveService.files['$prefix$hashPath'] = utf8.encode('Encrypted content');
+      mockDriveService.modifiedTimes['$prefix$hashPath'] = r1;
 
       // The manifest has the entry
       final manifestPayload = {
@@ -637,7 +654,7 @@ void main() {
           relPath: {
             'fileHash': contentHash,
             'lastSyncedModifiedTime': t1.millisecondsSinceEpoch,
-            'googleDriveFileId': hashPath,
+            'googleDriveFileId': '$prefix$hashPath',
             'remoteModifiedTime': r1.millisecondsSinceEpoch,
           }
         }
@@ -656,7 +673,7 @@ void main() {
       expect(result.downloaded, equals(0));
 
       // 4. Verify the remote file was deleted
-      expect(mockDriveService.files.containsKey(hashPath), isFalse);
+      expect(mockDriveService.files.containsKey('$prefix$hashPath'), isFalse);
 
       // 5. Verify the manifest entry was pruned
       final updatedManifest = jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
@@ -698,11 +715,11 @@ void main() {
       final relPath = '.prism/templates/gratitude.md';
       final pathHash = (await encryptionService.hashFilePath(relPath))
           .getOrElse((_) => throw Exception('hashFilePath failed'));
-      expect(mockDriveService.files.containsKey(pathHash), isTrue,
+      expect(mockDriveService.files.containsKey('$prefix$pathHash'), isTrue,
           reason: 'hidden .prism/templates/ file should be synced to Drive');
 
       // 5. Decrypt and confirm the content round-trips.
-      final encryptedBytes = mockDriveService.files[pathHash]!;
+      final encryptedBytes = mockDriveService.files['$prefix$pathHash']!;
       final decryptedBytes = (await encryptionService.decryptBytes(
         encryptedBytes: encryptedBytes,
         key: derivedKey,
@@ -716,6 +733,61 @@ void main() {
 
       // uploaded count should include this one file
       expect(result.uploaded, greaterThanOrEqualTo(1));
+    });
+  });
+
+  group('TwoWaySyncService - Global Selective Sync', () {
+    test('runSync returns Left(SyncConfigurationFailure) if vault is not enabled for sync', () async {
+      final vaultName = p.basename(tempVaultDir.path);
+
+      // Explicitly disable sync for this vault
+      await container.read(syncedVaultsProvider.notifier).disableSync(vaultName);
+
+      final syncService = container.read(twoWaySyncServiceProvider);
+      final encryptionService = container.read(syncEncryptionServiceProvider);
+
+      // Setup sync configuration (simulate global configuration)
+      const passphrase = 'password123';
+      final salt = encryptionService.generateSalt();
+      mockDriveService.files['sync_salt.json'] = utf8.encode(jsonEncode({'salt': base64Encode(salt)}));
+      await mockSecureStorage.write(key: 'sync_passphrase', value: passphrase);
+
+      final result = await syncService.runSync();
+      expect(result.isLeft(), isTrue);
+      final failure = result.swap().getOrElse((_) => throw Exception('Should be Left'));
+      expect(failure, isA<SyncConfigurationFailure>());
+      expect(failure.message, contains('Sync is not enabled for this vault'));
+    });
+
+    test('runSync prefixes remote filenames with hash(vaultName)', () async {
+      final vaultName = p.basename(tempVaultDir.path);
+
+      final syncService = container.read(twoWaySyncServiceProvider);
+      final encryptionService = container.read(syncEncryptionServiceProvider);
+
+      // 1. Setup sync configuration
+      const passphrase = 'password123';
+      final salt = encryptionService.generateSalt();
+      mockDriveService.files['sync_salt.json'] = utf8.encode(jsonEncode({'salt': base64Encode(salt)}));
+      await mockSecureStorage.write(key: 'sync_passphrase', value: passphrase);
+
+      // 2. Enable sync for the vault
+      await container.read(syncedVaultsProvider.notifier).enableSync(vaultName);
+
+      // 3. Create a local note
+      final noteFile = File(p.join(tempVaultDir.path, 'note1.md'));
+      noteFile.writeAsStringSync('Hello World');
+
+      // 4. Run sync
+      final syncResult = await syncService.runSync();
+      expect(syncResult.isRight(), isTrue);
+
+      // 5. Verify the file on mock Google Drive is named: hash(vaultName) + "_" + hash(relativePath)
+      final vaultHash = (await encryptionService.hashVaultName(vaultName)).getOrElse((_) => throw Exception());
+      final pathHash = (await encryptionService.hashFilePath('note1.md')).getOrElse((_) => throw Exception());
+      final expectedRemoteName = '${vaultHash}_$pathHash';
+
+      expect(mockDriveService.files.containsKey(expectedRemoteName), isTrue);
     });
   });
 }

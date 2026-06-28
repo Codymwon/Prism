@@ -429,6 +429,55 @@ void main() {
       expect(failure, isA<GoogleDriveUnknownFailure>());
     });
   });
+
+  group('GoogleDriveService - Purge App Data Folder', () {
+    test('purgeAppDataFolder returns Left(GoogleDriveAuthenticationFailure) when not authenticated', () async {
+      final service = GoogleDriveService();
+      expect(service.isSignedIn, isFalse);
+
+      final result = await service.purgeAppDataFolder();
+      expect(result.isLeft(), isTrue);
+      final failure = result.swap().getOrElse((_) => throw Exception('Expected Left'));
+      expect(failure, isA<GoogleDriveAuthenticationFailure>());
+    });
+
+    test('purgeAppDataFolder lists, deletes all files, and signs out on success', () async {
+      final mockSignIn = MockGoogleSignIn();
+      final mockAccount = MockGoogleSignInAccount({'Authorization': 'Bearer test-token'});
+      mockSignIn.mockAccount = mockAccount;
+
+      final deletedFiles = <String>[];
+      final mockHttpClient = MockHttpClient((request) async {
+        if (request.method == 'GET' && request.url.path.contains('/drive/v3/files')) {
+          final jsonResponse = {
+            'kind': 'drive#fileList',
+            'files': [
+              {'kind': 'drive#file', 'id': 'file1', 'name': 'note1.md'},
+              {'kind': 'drive#file', 'id': 'file2', 'name': 'note2.md'},
+            ]
+          };
+          return http.Response(json.encode(jsonResponse), 200, headers: {'content-type': 'application/json'});
+        } else if (request.method == 'DELETE') {
+          final fileId = request.url.pathSegments.last;
+          deletedFiles.add(fileId);
+          return http.Response('', 204);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final driveApi = drive.DriveApi(mockHttpClient);
+      final service = GoogleDriveService(googleSignIn: mockSignIn, driveApi: driveApi);
+
+      expect(service.isSignedIn, isTrue);
+
+      final result = await service.purgeAppDataFolder();
+      expect(result.isRight(), isTrue);
+
+      expect(deletedFiles, equals(['file1', 'file2']));
+      expect(mockSignIn.signOutCalled, isTrue);
+      expect(service.isSignedIn, isFalse);
+    });
+  });
 }
 
 class MockHttpClient extends http.BaseClient {

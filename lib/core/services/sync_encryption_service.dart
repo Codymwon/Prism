@@ -121,4 +121,16 @@ class SyncEncryptionService {
       return Left(PathHashingFailure('Failed to hash path: $e'));
     }
   }
+
+  /// Hashes a vault name using SHA-256 and returns a lowercase hex string
+  Future<Either<CryptographicFailure, String>> hashVaultName(String vaultName) async {
+    try {
+      final bytes = utf8.encode(vaultName);
+      final hash = await Sha256().hash(bytes);
+      final hex = hash.bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      return Right(hex.toLowerCase());
+    } catch (e) {
+      return Left(PathHashingFailure('Failed to hash vault name: $e'));
+    }
+  }
 }

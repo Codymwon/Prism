@@ -61,6 +61,7 @@ class GoogleDriveService {
         _driveApi = driveApi;
 
   bool get isSignedIn => _driveApi != null;
+  GoogleSignInAccount? get currentUser => _googleSignIn.currentUser;
 
   Future<Either<GoogleDriveFailure, Unit>> signInSilently() async {
     try {
@@ -221,6 +222,30 @@ class GoogleDriveService {
       return Left(GoogleDriveUnknownFailure('Failed to update file: $e'));
     } catch (e) {
       return Left(GoogleDriveUnknownFailure('Failed to update file: $e'));
+    }
+  }
+
+  Future<Either<GoogleDriveFailure, Unit>> purgeAppDataFolder() async {
+    if (_driveApi == null) {
+      return const Left(GoogleDriveAuthenticationFailure('Not authenticated.'));
+    }
+    try {
+      final listResult = await listFiles();
+      if (listResult.isLeft()) {
+        return Left(listResult.swap().getOrElse((_) => throw Exception()));
+      }
+      final files = listResult.getOrElse((_) => []);
+      for (final file in files) {
+        if (file.id != null) {
+          final deleteResult = await deleteFile(file.id!);
+          if (deleteResult.isLeft()) {
+            return Left(deleteResult.swap().getOrElse((_) => throw Exception()));
+          }
+        }
+      }
+      return await signOut();
+    } catch (e) {
+      return Left(GoogleDriveUnknownFailure('Failed to purge appDataFolder: $e'));
     }
   }
 }

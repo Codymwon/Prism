@@ -188,4 +188,30 @@ void main() {
       expect(resolvedService, isA<SyncEncryptionService>());
     });
   });
+
+  group('SyncEncryptionService - Vault Name Hashing', () {
+    test('hashVaultName hashes vault name to lowercase SHA-256 hex string', () async {
+      const vault1 = 'Work Vault';
+      const vault2 = 'Work Vault';
+      const vault3 = 'Personal';
+
+      final hashResult1 = await service.hashVaultName(vault1);
+      final hashResult2 = await service.hashVaultName(vault2);
+      final hashResult3 = await service.hashVaultName(vault3);
+
+      expect(hashResult1.isRight(), isTrue);
+      expect(hashResult2.isRight(), isTrue);
+      expect(hashResult3.isRight(), isTrue);
+
+      final hash1 = hashResult1.getOrElse((_) => throw Exception('Failed'));
+      final hash2 = hashResult2.getOrElse((_) => throw Exception('Failed'));
+      final hash3 = hashResult3.getOrElse((_) => throw Exception('Failed'));
+
+      expect(hash1.length, equals(64));
+      expect(hash1, equals(hash2));
+      expect(hash1, isNot(equals(hash3)));
+      expect(hash1, equals(hash1.toLowerCase()));
+      expect(RegExp(r'^[0-9a-f]{64}$').hasMatch(hash1), isTrue);
+    });
+  });
 }

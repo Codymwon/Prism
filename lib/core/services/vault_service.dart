@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../database/vault_providers.dart';
+import 'two_way_sync_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -56,6 +57,21 @@ class VaultManagementService {
 
     // 3. Invalidate vaults list cache
     ref.invalidate(availableVaultsProvider);
+
+    // 4. If sync is enabled for this vault, trigger auto-sync in the background
+    try {
+      final syncedVaults = await ref.read(syncedVaultsProvider.future);
+      if (syncedVaults.contains(vaultName)) {
+        ref.read(twoWaySyncServiceProvider).runSync().then((result) {
+          result.fold(
+            (fail) => debugPrint('Auto-sync failed on vault switch: ${fail.message}'),
+            (res) => debugPrint('Auto-sync succeeded on vault switch: ${res.uploaded} uploaded, ${res.downloaded} downloaded'),
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to trigger auto-sync on vault switch: $e');
+    }
   }
 
   /// Creates a physical directory for a vault and initializes it with a welcome note asynchronously

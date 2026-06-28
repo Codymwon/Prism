@@ -46,6 +46,10 @@ class SyncDatabaseFailure extends SyncFailure {
   const SyncDatabaseFailure(super.message);
 }
 
+class SyncUnknownFailure extends SyncFailure {
+  const SyncUnknownFailure(super.message);
+}
+
 class SyncResult {
   final int uploaded;
   final int downloaded;
@@ -66,6 +70,7 @@ abstract class TwoWaySyncService {
   Future<Either<SyncFailure, Unit>> configureSync({required String passphrase});
   Future<Either<SyncFailure, SyncResult>> runSync();
   Future<bool> isSyncConfigured();
+  Future<Either<SyncFailure, Unit>> deleteVaultCloudData(String vaultName);
 }
 
 final twoWaySyncServiceProvider = Provider<TwoWaySyncService>((ref) {
@@ -184,6 +189,23 @@ class TwoWaySyncServiceImpl implements TwoWaySyncService {
         return Left(SyncFileSystemFailure('Active vault path is empty'));
       }
 
+      final activeVaultName = await _ref.read(activeVaultNameProvider.future);
+      if (activeVaultName.isEmpty) {
+        return Left(SyncFileSystemFailure('Active vault name is empty'));
+      }
+
+      final syncedVaults = await _ref.read(syncedVaultsProvider.future);
+      if (!syncedVaults.contains(activeVaultName)) {
+        return Left(SyncConfigurationFailure('Sync is not enabled for this vault'));
+      }
+
+      final vaultHashResult = await _encryptionService.hashVaultName(activeVaultName);
+      if (vaultHashResult.isLeft()) {
+        return Left(SyncEncryptionFailure('Failed to hash vault name'));
+      }
+      final vaultHash = vaultHashResult.getOrElse((_) => throw Exception());
+      final prefix = '${vaultHash}_';
+
       final passphrase = await _secureStorage.read(key: 'sync_passphrase');
       if (passphrase == null) {
         return Left(SyncConfigurationFailure('Sync passphrase is not configured'));
@@ -195,7 +217,17 @@ class TwoWaySyncServiceImpl implements TwoWaySyncService {
         return Left(SyncNetworkFailure('Failed to list remote files'));
       }
       final remoteFiles = remoteFilesResult.getOrElse((_) => []);
-      final remoteFilesMap = {for (final f in remoteFiles) f.name!: f.id!};
+      final remoteFilesMap = <String, String>{};
+      for (final f in remoteFiles) {
+        if (f.name == 'sync_salt.json') {
+          remoteFilesMap['sync_salt.json'] = f.id!;
+          continue;
+        }
+        if (f.name!.startsWith(prefix)) {
+          final pathHash = f.name!.substring(prefix.length);
+          remoteFilesMap[pathHash] = f.id!;
+        }
+      }
 
       // 2. Download and parse salt
       final saltFileId = remoteFilesMap['sync_salt.json'];
@@ -275,9 +307,10 @@ class TwoWaySyncServiceImpl implements TwoWaySyncService {
       // 6. Download remote-only files or remotely modified files
       for (final remoteFile in remoteFiles) {
         if (remoteFile.name == 'sync_salt.json') continue;
+        if (!remoteFile.name!.startsWith(prefix)) continue; // Skip other vaults
         if (deletedRemoteFileIds.contains(remoteFile.id)) continue;
 
-        final pathHash = remoteFile.name!;
+        final pathHash = remoteFile.name!.substring(prefix.length);
         final localRelPath = manifestHashToPath[pathHash];
         final currentRemoteMod = remoteFile.modifiedTime?.millisecondsSinceEpoch ?? 0;
 
@@ -514,6 +547,7 @@ class TwoWaySyncServiceImpl implements TwoWaySyncService {
           // Upload or update
           final existingDriveId = remoteFilesMap[pathHash];
           drive.File uploadedFile;
+          final remoteName = '$prefix$pathHash';
           if (existingDriveId != null) {
             final updateResult = await _driveService.updateFile(existingDriveId, encryptedBytes);
             if (updateResult.isLeft()) {
@@ -522,7 +556,7 @@ class TwoWaySyncServiceImpl implements TwoWaySyncService {
             uploadedFile = updateResult.getOrElse((_) => drive.File());
             googleDriveFileId = existingDriveId;
           } else {
-            final uploadResult = await _driveService.uploadFile(pathHash, encryptedBytes);
+            final uploadResult = await _driveService.uploadFile(remoteName, encryptedBytes);
             if (uploadResult.isLeft()) {
               return Left(SyncNetworkFailure('Failed to upload remote file: $relPath'));
             }
@@ -555,6 +589,35 @@ class TwoWaySyncServiceImpl implements TwoWaySyncService {
       ));
     } catch (e) {
       return Left(SyncFileSystemFailure('Sync execution error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<SyncFailure, Unit>> deleteVaultCloudData(String vaultName) async {
+    try {
+      final vaultHashResult = await _encryptionService.hashVaultName(vaultName);
+      if (vaultHashResult.isLeft()) {
+        return Left(SyncEncryptionFailure('Failed to hash vault name'));
+      }
+      final vaultHash = vaultHashResult.getOrElse((_) => throw Exception());
+      final prefix = '${vaultHash}_';
+
+      final remoteFilesResult = await _driveService.listFiles();
+      if (remoteFilesResult.isLeft()) {
+        return Left(SyncNetworkFailure('Failed to list remote files'));
+      }
+      final remoteFiles = remoteFilesResult.getOrElse((_) => []);
+      for (final f in remoteFiles) {
+        if (f.name != null && f.name!.startsWith(prefix) && f.id != null) {
+          final deleteResult = await _driveService.deleteFile(f.id!);
+          if (deleteResult.isLeft()) {
+            return Left(SyncNetworkFailure('Failed to delete remote file: ${f.name}'));
+          }
+        }
+      }
+      return const Right(unit);
+    } catch (e) {
+      return Left(SyncUnknownFailure('Failed to delete vault cloud data: $e'));
     }
   }
 }
