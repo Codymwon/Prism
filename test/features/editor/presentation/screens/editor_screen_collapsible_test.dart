@@ -44,7 +44,7 @@ class MockNoteRepository extends NoteRepository {
 
 void main() {
   group('H1 Collapsible Heading Grouping', () {
-    test('should group segments into sections by H1 heading', () {
+    test('should group segments into sections by heading hierarchy', () {
       final segments = [
         MarkdownSegment.text('Intro text before heading.\n\n'),
         MarkdownSegment.text('# Section A\nContent of Section A\n'),
@@ -52,27 +52,28 @@ void main() {
         MarkdownSegment.text('\nMore text in Section A\n# Section B\nContent of Section B'),
       ];
 
-      final sections = groupSegmentsByH1(segments);
+      final root = parseHierarchicalSections(segments);
 
-      expect(sections, hasLength(3));
+      expect(root.segments, hasLength(1));
+      expect(root.segments[0].text, equals('Intro text before heading.\n\n'));
+      expect(root.children, hasLength(2));
 
-      // Section 1: Intro (headingText is null)
-      expect(sections[0].headingText, isNull);
-      expect(sections[0].segments, hasLength(1));
-      expect(sections[0].segments[0].text, equals('Intro text before heading.\n\n'));
+      // Section A
+      final sectionA = root.children[0];
+      expect(sectionA.headingText, equals('Section A'));
+      expect(sectionA.level, equals(1));
+      expect(sectionA.segments, hasLength(3));
+      expect(sectionA.segments[0].text, equals('Content of Section A\n'));
+      expect(sectionA.segments[1].isAudio, isTrue);
+      expect(sectionA.segments[1].audioLabel, equals('audio1'));
+      expect(sectionA.segments[2].text, equals('\nMore text in Section A'));
 
-      // Section 2: Section A
-      expect(sections[1].headingText, equals('Section A'));
-      expect(sections[1].segments, hasLength(3));
-      expect(sections[1].segments[0].text, equals('Content of Section A\n'));
-      expect(sections[1].segments[1].isAudio, isTrue);
-      expect(sections[1].segments[1].audioLabel, equals('audio1'));
-      expect(sections[1].segments[2].text, equals('\nMore text in Section A\n'));
-
-      // Section 3: Section B
-      expect(sections[2].headingText, equals('Section B'));
-      expect(sections[2].segments, hasLength(1));
-      expect(sections[2].segments[0].text, equals('Content of Section B'));
+      // Section B
+      final sectionB = root.children[1];
+      expect(sectionB.headingText, equals('Section B'));
+      expect(sectionB.level, equals(1));
+      expect(sectionB.segments, hasLength(1));
+      expect(sectionB.segments[0].text, equals('Content of Section B'));
     });
 
     test('should ignore H1 headers inside code blocks', () {
@@ -80,15 +81,16 @@ void main() {
         MarkdownSegment.text('Intro\n```javascript\n# This is comment, not H1\n```\n# Valid Section\nBody'),
       ];
 
-      final sections = groupSegmentsByH1(segments);
+      final root = parseHierarchicalSections(segments);
 
-      expect(sections, hasLength(2));
-      expect(sections[0].headingText, isNull);
-      expect(sections[1].headingText, equals('Valid Section'));
-      expect(sections[1].segments[0].text, equals('Body'));
+      expect(root.segments, hasLength(1));
+      expect(root.segments[0].text, equals('Intro\n```javascript\n# This is comment, not H1\n```'));
+      expect(root.children, hasLength(1));
+      expect(root.children[0].headingText, equals('Valid Section'));
+      expect(root.children[0].segments[0].text, equals('Body'));
     });
 
-    test('should calculate correct startingCheckboxIndex for segments', () {
+    test('should calculate correct checkboxLineIndices for segments', () {
       final segments = splitAudioLinks(
         '- [ ] task 1\n'
         '# Section A\n'
@@ -98,17 +100,16 @@ void main() {
         '- [ ] task 4\n'
       );
       
-      final sections = groupSegmentsByH1(segments);
-      expect(sections, hasLength(3));
+      final root = parseHierarchicalSections(segments);
       
-      // Section 1: Intro (headingText is null)
-      expect(sections[0].segments[0].startingCheckboxIndex, 0);
+      // Root (before any heading) has task 1 (line 0)
+      expect(root.segments[0].checkboxLineIndices, equals([0]));
       
-      // Section 2: Section A
-      expect(sections[1].segments[0].startingCheckboxIndex, 1);
+      // Section A has task 2 (line 2) and task 3 (line 3)
+      expect(root.children[0].segments[0].checkboxLineIndices, equals([2, 3]));
       
-      // Section 3: Section B
-      expect(sections[2].segments[0].startingCheckboxIndex, 3);
+      // Section B has task 4 (line 5)
+      expect(root.children[1].segments[0].checkboxLineIndices, equals([5]));
     });
   });
 
@@ -131,10 +132,10 @@ void main() {
     });
 
     testWidgets('should load collapsed state from SharedPreferences and toggle collapse state on tap', (WidgetTester tester) async {
-      // Set initial mock collapsed value in SharedPreferences: Section A is collapsed, Section B is expanded
       SharedPreferences.setMockInitialValues({
         'collapsed_test-note-1': ['Section A'],
       });
+      final prefs = await SharedPreferences.getInstance();
 
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('com.llfbandit.record/messages'),
@@ -170,7 +171,7 @@ void main() {
       );
 
       await tester.runAsync(() async {
-        await Future.delayed(const Duration(milliseconds: 300));
+        await Future.delayed(const Duration(seconds: 1));
       });
       await tester.pump();
 
@@ -180,20 +181,19 @@ void main() {
       expect(chevronFinder, findsNWidgets(2));
 
       // Verify that Section A's content is NOT visible (since it's collapsed)
-      expect(find.text('Content inside Section A'), findsNothing);
+      expect(find.textContaining('Content inside Section A'), findsNothing);
 
       // Verify that Section B's content IS visible (since it's expanded)
-      expect(find.text('Content inside Section B'), findsOneWidget);
+      expect(find.textContaining('Content inside Section B'), findsOneWidget);
 
       // Tap Section A's chevron to expand it
       await tester.tap(chevronFinder.at(0));
       await tester.pump(const Duration(milliseconds: 300));
 
       // Verify Section A's content is now visible
-      expect(find.text('Content inside Section A'), findsOneWidget);
+      expect(find.textContaining('Content inside Section A'), findsOneWidget);
 
       // Verify SharedPreferences has been updated (no longer has Section A collapsed)
-      final prefs = await SharedPreferences.getInstance();
       final collapsed = prefs.getStringList('collapsed_test-note-1') ?? [];
       expect(collapsed, isNot(contains('Section A')));
 
@@ -202,7 +202,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Verify Section B's content is now hidden
-      expect(find.text('Content inside Section B'), findsNothing);
+      expect(find.textContaining('Content inside Section B'), findsNothing);
 
       // Verify SharedPreferences has been updated (has Section B collapsed)
       final collapsedAfter = prefs.getStringList('collapsed_test-note-1') ?? [];

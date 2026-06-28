@@ -165,14 +165,12 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
     final listWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: items.asMap().entries.map((entry) {
-        final index = entry.key;
-        final item = entry.value;
+      children: items.map((item) {
         return Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: () async {
-              final updatedContent = toggleMarkdownCheckbox(widget.content, index);
+              final updatedContent = toggleMarkdownCheckboxAtLine(widget.content, item.lineIndex);
               await ref.read(noteRepositoryProvider).saveNote(widget.note.id, updatedContent);
             },
             borderRadius: BorderRadius.circular(4),
@@ -559,35 +557,3 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
   }
 }
 
-String toggleMarkdownCheckbox(String content, int targetIndex) {
-  final lines = content.split('\n');
-  int currentIndex = 0;
-  bool isInCodeBlock = false;
-  final checkboxRegExp = RegExp(r'^(\s*[-*+]\s+\[)([ xX])(\])(?:\s+(.*))?$');
-
-  for (int i = 0; i < lines.length; i++) {
-    final line = lines[i];
-    final trimmed = line.trim();
-    if (trimmed.startsWith('```')) {
-      isInCodeBlock = !isInCodeBlock;
-      continue;
-    }
-    if (isInCodeBlock) {
-      continue;
-    }
-
-    final match = checkboxRegExp.firstMatch(line);
-    if (match != null) {
-      if (currentIndex == targetIndex) {
-        final prefix = match.group(1)!;
-        final currentStatus = match.group(2)!;
-        final suffix = line.substring(match.group(1)!.length + match.group(2)!.length);
-        final newStatus = currentStatus.trim().isEmpty ? 'x' : ' ';
-        lines[i] = '$prefix$newStatus$suffix';
-        break;
-      }
-      currentIndex++;
-    }
-  }
-  return lines.join('\n');
-}

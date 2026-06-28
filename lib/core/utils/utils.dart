@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:markdown/markdown.dart' as md;
 
 const _uuid = Uuid();
 
@@ -164,28 +165,59 @@ int countWords(String text) {
       : text.trim().split(RegExp(r'\s+')).length;
 }
 
-/// Extracts all #tags from markdown content (e.g. #productivity, #ideas).
-List<String> extractTags(String content) {
-  final tags = <String>[];
-  final pattern = RegExp(r'(```[\s\S]*?```)|(`+[^`]+`+)|((?<!\w)#([a-zA-Z][a-zA-Z0-9_]*(?:\/[a-zA-Z][a-zA-Z0-9_]*)*))');
-  for (final match in pattern.allMatches(content)) {
-    if (match.group(3) != null) {
-      tags.add(match.group(4)!.toLowerCase());
+class _MetadataVisitor implements md.NodeVisitor {
+  final Set<String> tags = {};
+  final Set<String> wikilinks = {};
+
+  final RegExp tagRegExp = RegExp(r'(?<!\w)#([a-zA-Z][a-zA-Z0-9_]*(?:\/[a-zA-Z][a-zA-Z0-9_]*)*)');
+  final RegExp wikilinkRegExp = RegExp(r'\[\[([^\[\]\r\n]+)\]\]');
+
+  @override
+  bool visitElementBefore(md.Element element) {
+    // Ignore code blocks (pre, code), link elements, and HTML blocks
+    if (element.tag == 'pre' || element.tag == 'code' || element.tag == 'html' || element.tag == 'a') {
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  void visitText(md.Text text) {
+    // Only search for tags and wikilinks in visible text nodes
+    for (final match in tagRegExp.allMatches(text.text)) {
+      tags.add(match.group(1)!.toLowerCase());
+    }
+    for (final match in wikilinkRegExp.allMatches(text.text)) {
+      wikilinks.add(match.group(1)!.trim());
     }
   }
-  return tags;
+
+  @override
+  void visitElementAfter(md.Element element) {}
+}
+
+/// Extracts all #tags from markdown content (e.g. #productivity, #ideas).
+List<String> extractTags(String content) {
+  final cleanContent = stripFrontmatter(content).replaceAll(RegExp(r'<!--[\s\S]*?-->'), '');
+  final document = md.Document();
+  final nodes = document.parseLines(cleanContent.split('\n'));
+  final visitor = _MetadataVisitor();
+  for (final node in nodes) {
+    node.accept(visitor);
+  }
+  return visitor.tags.toList();
 }
 
 /// Extracts all [[wikilink]] targets from content.
 List<String> extractWikilinks(String content) {
-  final links = <String>[];
-  final pattern = RegExp(r'(```[\s\S]*?```)|(`+[^`]+`+)|(\[\[([^\[\]\r\n]+)\]\])');
-  for (final match in pattern.allMatches(content)) {
-    if (match.group(3) != null) {
-      links.add(match.group(4)!.trim());
-    }
+  final cleanContent = stripFrontmatter(content).replaceAll(RegExp(r'<!--[\s\S]*?-->'), '');
+  final document = md.Document();
+  final nodes = document.parseLines(cleanContent.split('\n'));
+  final visitor = _MetadataVisitor();
+  for (final node in nodes) {
+    node.accept(visitor);
   }
-  return links;
+  return visitor.wikilinks.toList();
 }
 
 /// Gets the context snippet around a wikilink mention.
@@ -237,12 +269,21 @@ String preprocessMarkdown(String text) {
   final parts = processedLinks.split('```');
   for (int i = 0; i < parts.length; i++) {
     if (i % 2 == 0) {
+      // Fix Flutter WidgetSpan newline wrap bug for custom inline widgets:
+      // - Hashtags: # followed by a letter (e.g., #tag)
+      // - Highlights: == (e.g., ==text==)
+      // - Inline Images: ![ (e.g., ![alt])
+      final processedPart = parts[i].replaceAllMapped(
+        RegExp(r'\n(?=(#[a-zA-Z]|==|\!\[))'),
+        (match) => '\n\u200B',
+      );
+
       // Preprocess non-code block content line-by-line
-      final lines = parts[i].split('\n');
+      final lines = processedPart.split('\n');
       final length = (lines.isNotEmpty && lines.last.isEmpty) ? lines.length - 1 : lines.length;
       for (int j = 0; j < length; j++) {
         if (lines[j].trim().isEmpty) {
-          lines[j] = '\n&nbsp;\n';
+          lines[j] = '&nbsp;';
         }
       }
       parts[i] = lines.join('\n');
@@ -330,17 +371,18 @@ Go back to the main page: [[Welcome to Prism]]
 class DailyChecklistItem {
   final String label;
   final bool isChecked;
-  const DailyChecklistItem(this.label, this.isChecked);
+  final int lineIndex;
+  const DailyChecklistItem(this.label, this.isChecked, this.lineIndex);
 }
 
 List<DailyChecklistItem> extractChecklist(String content) {
-  final cleanContent = stripFrontmatter(content);
-  final lines = cleanContent.split('\n');
+  final lines = content.split('\n');
   final items = <DailyChecklistItem>[];
   final checkboxRegExp = RegExp(r'^\s*[-*+]\s+\[([ xX])\](?:\s+(.*))?$');
 
   bool isInCodeBlock = false;
-  for (final line in lines) {
+  for (int i = 0; i < lines.length; i++) {
+    final line = lines[i];
     final trimmed = line.trim();
     if (trimmed.startsWith('```')) {
       isInCodeBlock = !isInCodeBlock;
@@ -354,10 +396,28 @@ List<DailyChecklistItem> extractChecklist(String content) {
     if (match != null) {
       final isChecked = match.group(1)!.trim().isNotEmpty;
       final label = match.group(2)?.trim() ?? '';
-      items.add(DailyChecklistItem(label, isChecked));
+      items.add(DailyChecklistItem(label, isChecked, i));
     }
   }
   return items;
+}
+
+String toggleMarkdownCheckboxAtLine(String content, int lineIndex) {
+  final lines = content.split('\n');
+  if (lineIndex < 0 || lineIndex >= lines.length) return content;
+
+  final line = lines[lineIndex];
+  final checkboxRegExp = RegExp(r'^(\s*[-*+]\s+\[)([ xX])(\])(?:\s+(.*))?$');
+  final match = checkboxRegExp.firstMatch(line);
+
+  if (match != null) {
+    final prefix = match.group(1)!;
+    final currentStatus = match.group(2)!;
+    final suffix = line.substring(match.group(1)!.length + match.group(2)!.length);
+    final newStatus = currentStatus.trim().isEmpty ? 'x' : ' ';
+    lines[lineIndex] = '$prefix$newStatus$suffix';
+  }
+  return lines.join('\n');
 }
 
 String? extractPreviewImage(String content) {

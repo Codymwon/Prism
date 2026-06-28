@@ -6,20 +6,23 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart' as p;
 import 'package:markdown/markdown.dart' as md;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/custom_macro_provider.dart';
 
-/// Standard wikilink tapping navigation helper.
+/// Standard markdown link tapping handler.
 ///
-/// Looks up or creates target notes from dynamic [[wikilinks]] inside markdown rendering and navigates to them.
-Future<void> handleWikilinkTap({
+/// Handles both internal [[wikilinks]] and external web URLs.
+Future<void> handleMarkdownLinkTap({
   required String? href,
   required WidgetRef ref,
   required BuildContext context,
 }) async {
-  if (href != null && href.startsWith('wikilink:')) {
+  if (href == null) return;
+
+  if (href.startsWith('wikilink:')) {
     final encodedTitle = href.substring('wikilink:'.length);
     final targetTitle = Uri.decodeComponent(encodedTitle);
     final repo = ref.read(noteRepositoryProvider);
@@ -27,6 +30,15 @@ Future<void> handleWikilinkTap({
     targetNote ??= await repo.createNote(title: targetTitle);
     if (context.mounted) {
       context.push('/editor/${targetNote.id}');
+    }
+  } else if (href.startsWith('http://') || href.startsWith('https://')) {
+    final uri = Uri.tryParse(href);
+    if (uri != null) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (e) {
+        debugPrint('Error launching URL: $e');
+      }
     }
   }
 }
@@ -550,18 +562,23 @@ class MarkdownSegment {
   final String? text;
   final String? audioLabel;
   final String? audioPath;
-  final int startingCheckboxIndex;
+  final List<int> checkboxLineIndices;
 
-  const MarkdownSegment._({this.text, this.audioLabel, this.audioPath, this.startingCheckboxIndex = 0});
+  const MarkdownSegment._({
+    this.text,
+    this.audioLabel,
+    this.audioPath,
+    this.checkboxLineIndices = const [],
+  });
 
-  factory MarkdownSegment.text(String text, {int startingCheckboxIndex = 0}) =>
-      MarkdownSegment._(text: text, startingCheckboxIndex: startingCheckboxIndex);
+  factory MarkdownSegment.text(String text, {List<int> checkboxLineIndices = const []}) =>
+      MarkdownSegment._(text: text, checkboxLineIndices: checkboxLineIndices);
 
   factory MarkdownSegment.audio({
     required String label,
     required String path,
-    int startingCheckboxIndex = 0,
-  }) => MarkdownSegment._(audioLabel: label, audioPath: path, startingCheckboxIndex: startingCheckboxIndex);
+    List<int> checkboxLineIndices = const [],
+  }) => MarkdownSegment._(audioLabel: label, audioPath: path, checkboxLineIndices: checkboxLineIndices);
 
   bool get isAudio => audioPath != null;
 }
@@ -575,136 +592,135 @@ final RegExp _audioLinkRegex = RegExp(
 /// Splits note markdown text into alternating markdown and audio segments.
 List<MarkdownSegment> splitAudioLinks(String markdown) {
   final segments = <MarkdownSegment>[];
-  int lastEnd = 0;
-  int checkboxAccumulator = 0;
+  final lines = markdown.split('\n');
+  
+  var currentTextLines = <String>[];
+  var currentCheckboxLineIndices = <int>[];
+  
+  final checkboxRegExp = RegExp(r'^\s*[-*+]\s+\[([ xX])\]');
 
-  int countCheckboxes(String text) {
-    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
-    return regex.allMatches(text).length;
-  }
-
-  for (final match in _audioLinkRegex.allMatches(markdown)) {
-    if (match.start > lastEnd) {
-      final textBefore = markdown.substring(lastEnd, match.start);
-      if (textBefore.trim().isNotEmpty) {
+  for (int i = 0; i < lines.length; i++) {
+    final line = lines[i];
+    final isAudio = _audioLinkRegex.hasMatch(line.trim());
+    
+    if (isAudio) {
+      if (currentTextLines.isNotEmpty) {
         segments.add(MarkdownSegment.text(
-          textBefore,
-          startingCheckboxIndex: checkboxAccumulator,
+          currentTextLines.join('\n'),
+          checkboxLineIndices: List.from(currentCheckboxLineIndices),
         ));
-        checkboxAccumulator += countCheckboxes(textBefore);
+        currentTextLines.clear();
+        currentCheckboxLineIndices.clear();
+      }
+      
+      final match = _audioLinkRegex.firstMatch(line.trim())!;
+      segments.add(MarkdownSegment.audio(
+        label: match.group(1)!,
+        path: match.group(2)!,
+      ));
+    } else {
+      currentTextLines.add(line);
+      if (checkboxRegExp.hasMatch(line)) {
+        currentCheckboxLineIndices.add(i);
       }
     }
-    segments.add(MarkdownSegment.audio(
-      label: match.group(1)!,
-      path: match.group(2)!,
-      startingCheckboxIndex: checkboxAccumulator,
+  }
+  
+  if (currentTextLines.isNotEmpty) {
+    segments.add(MarkdownSegment.text(
+      currentTextLines.join('\n'),
+      checkboxLineIndices: List.from(currentCheckboxLineIndices),
     ));
-    lastEnd = match.end;
   }
-
-  if (lastEnd < markdown.length) {
-    final remaining = markdown.substring(lastEnd);
-    if (remaining.trim().isNotEmpty) {
-      segments.add(MarkdownSegment.text(
-        remaining,
-        startingCheckboxIndex: checkboxAccumulator,
-      ));
-    }
-  }
-
+  
   if (segments.isEmpty) {
-    segments.add(MarkdownSegment.text(markdown, startingCheckboxIndex: 0));
+    segments.add(MarkdownSegment.text(markdown));
   }
-
+  
   return segments;
 }
 
-/// A section of a note grouped under a specific H1 heading.
-class HeadingSection {
-  final String? headingText;
+/// A section of a note grouped under a specific heading level.
+class HeadingNode {
+  final String headingText;
+  final int level; // 1 for H1, 2 for H2, etc. 0 for root.
   final List<MarkdownSegment> segments;
+  final List<HeadingNode> children;
 
-  HeadingSection({this.headingText, required this.segments});
+  HeadingNode({
+    required this.headingText,
+    required this.level,
+    required this.segments,
+    required this.children,
+  });
 }
 
-/// Groups alternating text/audio markdown segments into H1 collapsible sections.
-List<HeadingSection> groupSegmentsByH1(List<MarkdownSegment> segments) {
-  final sections = <HeadingSection>[];
-  String? currentHeading;
-  var currentSegments = <MarkdownSegment>[];
-
-  int countCheckboxes(String text) {
-    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
-    return regex.allMatches(text).length;
-  }
+/// Groups alternating text/audio markdown segments into a hierarchical heading tree.
+HeadingNode parseHierarchicalSections(List<MarkdownSegment> segments) {
+  final root = HeadingNode(headingText: 'Root', level: 0, segments: [], children: []);
+  final stack = <HeadingNode>[root];
+  
+  bool isInCodeBlock = false;
 
   for (final segment in segments) {
     if (segment.isAudio) {
-      currentSegments.add(segment);
+      stack.last.segments.add(segment);
     } else {
-      final text = segment.text!;
-      final lines = text.split('\n');
-      var isInCodeBlock = false;
-      var buffer = StringBuffer();
-      int currentStartIdx = segment.startingCheckboxIndex;
-      int accumulatedInSegment = 0;
-
+      final lines = segment.text!.split('\n');
+      var currentTextLines = <String>[];
+      var currentCheckboxLineIndices = <int>[];
+      int segmentCheckboxIndex = 0;
+      
       for (int i = 0; i < lines.length; i++) {
         final line = lines[i];
-        if (line.trim().startsWith('```')) {
+        final trimmed = line.trim();
+        
+        if (trimmed.startsWith('```')) {
           isInCodeBlock = !isInCodeBlock;
         }
 
-        if (!isInCodeBlock && line.startsWith('# ')) {
-          // If we have accumulated content, save it
-          if (buffer.isNotEmpty) {
-            final textChunk = buffer.toString();
-            currentSegments.add(MarkdownSegment.text(
-              textChunk,
-              startingCheckboxIndex: currentStartIdx,
+        final headingMatch = RegExp(r'^(#{1,6})\s+(.*)$').firstMatch(line);
+        if (!isInCodeBlock && headingMatch != null) {
+          final level = headingMatch.group(1)!.length;
+          final title = headingMatch.group(2)!.trim();
+
+          if (currentTextLines.isNotEmpty) {
+            stack.last.segments.add(MarkdownSegment.text(
+              currentTextLines.join('\n'),
+              checkboxLineIndices: List.from(currentCheckboxLineIndices),
             ));
-            accumulatedInSegment += countCheckboxes(textChunk);
-            buffer = StringBuffer();
+            currentTextLines.clear();
+            currentCheckboxLineIndices.clear();
           }
 
-          // Finalize current section
-          if (currentHeading != null || currentSegments.isNotEmpty) {
-            sections.add(HeadingSection(
-              headingText: currentHeading,
-              segments: List.from(currentSegments),
-            ));
-            currentSegments.clear();
+          while (stack.last.level >= level && stack.length > 1) {
+            stack.removeLast();
           }
 
-          // Start a new section
-          currentHeading = line.substring(2).trim();
-          currentStartIdx = segment.startingCheckboxIndex + accumulatedInSegment;
+          final newNode = HeadingNode(headingText: title, level: level, segments: [], children: []);
+          stack.last.children.add(newNode);
+          stack.add(newNode);
         } else {
-          buffer.write(line);
-          // Keep newlines except for the very last line of the segment
-          if (i < lines.length - 1) {
-            buffer.write('\n');
+          currentTextLines.add(line);
+          final checkboxRegExp = RegExp(r'^\s*[-*+]\s+\[([ xX])\]');
+          if (checkboxRegExp.hasMatch(line)) {
+            if (segment.checkboxLineIndices.isNotEmpty && segmentCheckboxIndex < segment.checkboxLineIndices.length) {
+              final absIndex = segment.checkboxLineIndices[segmentCheckboxIndex++];
+              currentCheckboxLineIndices.add(absIndex);
+            }
           }
         }
       }
 
-      if (buffer.isNotEmpty) {
-        currentSegments.add(MarkdownSegment.text(
-          buffer.toString(),
-          startingCheckboxIndex: currentStartIdx,
+      if (currentTextLines.isNotEmpty) {
+        stack.last.segments.add(MarkdownSegment.text(
+          currentTextLines.join('\n'),
+          checkboxLineIndices: List.from(currentCheckboxLineIndices),
         ));
       }
     }
   }
 
-  // Finalize the last section
-  if (currentHeading != null || currentSegments.isNotEmpty) {
-    sections.add(HeadingSection(
-      headingText: currentHeading,
-      segments: List.from(currentSegments),
-    ));
-  }
-
-  return sections;
+  return root;
 }
 

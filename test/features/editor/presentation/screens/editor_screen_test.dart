@@ -354,7 +354,7 @@ void main() {
 
     // Verify that the parser correctly processed the empty newlines to &nbsp; while keeping blank lines
     final processedData = preprocessMarkdown(rawContent);
-    expect(processedData, equals('# Test Note\n\n&nbsp;\n\nParagraph A\n\n&nbsp;\n\n\n&nbsp;\n\nParagraph B\n'));
+    expect(processedData, equals('# Test Note\n&nbsp;\nParagraph A\n&nbsp;\n&nbsp;\nParagraph B\n'));
   });
 
   testWidgets('EditorScreen in preview mode enables softLineBreak on MarkdownBody', (WidgetTester tester) async {

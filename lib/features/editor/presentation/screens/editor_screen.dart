@@ -71,6 +71,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Future<void> _toggleHeadingCollapse(String headingText) async {
+    debugPrint('*** _toggleHeadingCollapse called for: $headingText, current: $_collapsedHeadings');
     setState(() {
       if (_collapsedHeadings.contains(headingText)) {
         _collapsedHeadings.remove(headingText);
@@ -140,30 +141,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         );
   }
 
-  void _toggleCheckbox(int index) {
+  void _toggleCheckbox(int lineIndex) {
     final text = _controller.text;
-    final regex = RegExp(r'^\s*([-*+]|\d+\.)\s+\[([ xX])\]', multiLine: true);
-    final matches = regex.allMatches(text).toList();
-    if (index >= 0 && index < matches.length) {
-      final match = matches[index];
-      final charIndex = match.end - 2;
-      if (charIndex >= 0 && charIndex < text.length) {
-        final currentChar = text[charIndex];
-        final newChar = (currentChar == ' ') ? 'x' : ' ';
-        final newText =
-            text.substring(0, charIndex) + newChar + text.substring(charIndex + 1);
-        _controller.value = TextEditingValue(
-          text: newText,
-          selection: _controller.selection.copyWith(
-            baseOffset: _controller.selection.baseOffset.clamp(0, newText.length),
-            extentOffset: _controller.selection.extentOffset.clamp(0, newText.length),
-          ),
-        );
-        ref.read(editorControllerProvider(widget.noteId).notifier).save(
-              _titleController.text,
-              _controller.text,
-            );
-      }
+    final newText = toggleMarkdownCheckboxAtLine(text, lineIndex);
+    if (newText != text) {
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: _controller.selection.copyWith(
+          baseOffset: _controller.selection.baseOffset.clamp(0, newText.length),
+          extentOffset: _controller.selection.extentOffset.clamp(0, newText.length),
+        ),
+      );
+      ref.read(editorControllerProvider(widget.noteId).notifier).save(
+            _titleController.text,
+            _controller.text,
+          );
     }
   }
 
@@ -440,7 +432,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   ) {
     final processedData = _getProcessedMarkdown();
     final segments = splitAudioLinks(processedData);
-    final sections = groupSegmentsByH1(segments);
+    final rootNode = parseHierarchicalSections(segments);
 
     final styleSheet = buildMarkdownStyleSheet(context, family, size, colorScheme);
 
@@ -466,127 +458,217 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             color: DesignColors.border(context),
           ),
           const SizedBox(height: 16),
-          for (final section in sections) ...[
-            if (section.headingText != null) ...[
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: AnimatedRotation(
-                      turns: _collapsedHeadings.contains(section.headingText) ? 0.0 : 0.25,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Icon(Icons.chevron_right, size: 24),
-                    ),
-                    onPressed: () => _toggleHeadingCollapse(section.headingText!),
-                    splashRadius: 20,
-                  ),
-                  Expanded(
-                    child: MarkdownBody(
-                      data: '# ${section.headingText}',
-                      inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
-                      builders: {
-                        'mark': HighlightElementBuilder(context),
-                        'hashtag': HashtagElementBuilder(context),
-                      },
-                      styleSheet: styleSheet,
-                      onTapLink: (text, href, title) async {
-                        handleWikilinkTap(
-                          href: href,
-                          ref: ref,
-                          context: context,
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
-            AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              alignment: Alignment.topLeft,
-              child: _collapsedHeadings.contains(section.headingText)
-                  ? const SizedBox.shrink()
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final segment in section.segments)
-                          if (segment.isAudio)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: InlineAudioWaveformPlayer(
-                                key: ValueKey('audio_${segment.audioPath}'),
-                                filePath: segment.audioPath!,
-                                fileName: segment.audioLabel ?? p.basename(segment.audioPath!),
-                                noteId: widget.noteId,
-                              ),
-                            )
-                          else
-                            Builder(
-                              builder: (context) {
-                                int localCheckboxIndex = 0;
-                                return MarkdownBody(
-                                  data: segment.text!,
-                                  softLineBreak: true,
-                                  inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
-                                  builders: {
-                                    'mark': HighlightElementBuilder(context),
-                                    'hashtag': HashtagElementBuilder(context),
-                                  },
-                                  imageBuilder: (uri, title, alt) {
-                                    return buildMarkdownImage(
-                                      uri: uri,
-                                      noteId: widget.noteId,
-                                      ref: ref,
-                                      context: context,
-                                    );
-                                  },
-                                  onTapLink: (text, href, title) async {
-                                    handleWikilinkTap(
-                                      href: href,
-                                      ref: ref,
-                                      context: context,
-                                    );
-                                  },
-                                  styleSheet: styleSheet,
-                                  checkboxBuilder: (bool value) {
-                                    final index = segment.startingCheckboxIndex + localCheckboxIndex++;
-                                    return Padding(
-                                      padding: const EdgeInsets.only(right: 6, top: 3),
-                                      child: SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: Checkbox(
-                                          value: value,
-                                          activeColor: colorScheme.primary,
-                                          checkColor: colorScheme.onPrimary,
-                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          side: BorderSide(
-                                            color: DesignColors.textSecondary(context)
-                                                .withValues(alpha: 0.7),
-                                            width: 1.5,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          onChanged: (bool? newValue) {
-                                            _toggleCheckbox(index);
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+          // 1. Render root level segments (text before any heading)
+          for (final segment in rootNode.segments)
+            if (segment.isAudio)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: InlineAudioWaveformPlayer(
+                  key: ValueKey('audio_${segment.audioPath}'),
+                  filePath: segment.audioPath!,
+                  fileName: segment.audioLabel ?? p.basename(segment.audioPath!),
+                  noteId: widget.noteId,
+                ),
+              )
+            else
+              Builder(
+                builder: (context) {
+                  int localCheckboxIndex = 0;
+                  return MarkdownBody(
+                    data: segment.text!,
+                    softLineBreak: true,
+                    inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                    builders: {
+                      'mark': HighlightElementBuilder(context),
+                      'hashtag': HashtagElementBuilder(context),
+                    },
+                    imageBuilder: (uri, title, alt) {
+                      return buildMarkdownImage(
+                        uri: uri,
+                        noteId: widget.noteId,
+                        ref: ref,
+                        context: context,
+                      );
+                    },
+                    onTapLink: (text, href, title) async {
+                      handleMarkdownLinkTap(
+                        href: href,
+                        ref: ref,
+                        context: context,
+                      );
+                    },
+                    styleSheet: styleSheet,
+                    checkboxBuilder: (bool value) {
+                      final lineIndex = segment.checkboxLineIndices[localCheckboxIndex++];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6, top: 3),
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Checkbox(
+                            value: value,
+                            activeColor: colorScheme.primary,
+                            checkColor: colorScheme.onPrimary,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            side: BorderSide(
+                              color: DesignColors.textSecondary(context)
+                                  .withValues(alpha: 0.7),
+                              width: 1.5,
                             ),
-                      ],
-                    ),
-            ),
-          ],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            onChanged: (bool? newValue) {
+                              _toggleCheckbox(lineIndex);
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+          // 2. Render subheadings recursively
+          for (final child in rootNode.children)
+            _buildHeadingNode(child, styleSheet, colorScheme, family, size),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeadingNode(
+    HeadingNode node,
+    MarkdownStyleSheet styleSheet,
+    ColorScheme colorScheme,
+    String family,
+    double size,
+  ) {
+    final isCollapsed = _collapsedHeadings.contains(node.headingText);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: AnimatedRotation(
+                turns: isCollapsed ? 0.0 : 0.25,
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(Icons.chevron_right, size: 24),
+              ),
+              onPressed: () => _toggleHeadingCollapse(node.headingText),
+              splashRadius: 20,
+            ),
+            Expanded(
+              child: MarkdownBody(
+                data: '${'#' * node.level} ${node.headingText}',
+                inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                builders: {
+                  'mark': HighlightElementBuilder(context),
+                  'hashtag': HashtagElementBuilder(context),
+                },
+                styleSheet: styleSheet,
+                onTapLink: (text, href, title) async {
+                  handleMarkdownLinkTap(
+                    href: href,
+                    ref: ref,
+                    context: context,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topLeft,
+          child: isCollapsed
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: EdgeInsets.only(left: 16.0 * (node.level > 0 ? 1 : 0)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final segment in node.segments)
+                        if (segment.isAudio)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: InlineAudioWaveformPlayer(
+                              key: ValueKey('audio_${segment.audioPath}'),
+                              filePath: segment.audioPath!,
+                              fileName: segment.audioLabel ?? p.basename(segment.audioPath!),
+                              noteId: widget.noteId,
+                            ),
+                          )
+                        else
+                          Builder(
+                            builder: (context) {
+                              int localCheckboxIndex = 0;
+                              return MarkdownBody(
+                                data: segment.text!,
+                                softLineBreak: true,
+                                inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                                builders: {
+                                  'mark': HighlightElementBuilder(context),
+                                  'hashtag': HashtagElementBuilder(context),
+                                },
+                                imageBuilder: (uri, title, alt) {
+                                  return buildMarkdownImage(
+                                    uri: uri,
+                                    noteId: widget.noteId,
+                                    ref: ref,
+                                    context: context,
+                                  );
+                                },
+                                onTapLink: (text, href, title) async {
+                                  handleMarkdownLinkTap(
+                                    href: href,
+                                    ref: ref,
+                                    context: context,
+                                  );
+                                },
+                                styleSheet: styleSheet,
+                                checkboxBuilder: (bool value) {
+                                  final lineIndex = segment.checkboxLineIndices[localCheckboxIndex++];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 6, top: 3),
+                                    child: SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: Checkbox(
+                                        value: value,
+                                        activeColor: colorScheme.primary,
+                                        checkColor: colorScheme.onPrimary,
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        side: BorderSide(
+                                          color: DesignColors.textSecondary(context)
+                                              .withValues(alpha: 0.7),
+                                          width: 1.5,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        onChanged: (bool? newValue) {
+                                          _toggleCheckbox(lineIndex);
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                      for (final child in node.children)
+                        _buildHeadingNode(child, styleSheet, colorScheme, family, size),
+                    ],
+                  ),
+                ),
+        ),
+      ],
     );
   }
 

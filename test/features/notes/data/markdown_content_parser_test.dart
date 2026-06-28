@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
+import 'package:prism/core/utils/utils.dart';
 
 void main() {
   group('MarkdownContentParser tests', () {
@@ -44,6 +45,43 @@ This is the body of the note containing [[AnotherNote]] and #validtag.''';
       expect(metadata.wikilinks, contains('AnotherNote'));
       expect(metadata.tags, isNot(contains('tutorial')));
       expect(metadata.tags, contains('validtag'));
+    });
+
+    test('should ignore tags and wikilinks inside code blocks and HTML comments', () {
+      const content = '''# Test Title
+This is a [[RealLink]] and a #realtag.
+```dart
+#faketag
+[[FakeLink]]
+```
+<!-- #commenttag -->
+<!-- [[CommentLink]] -->
+`#inlinecode` and `[[InlineLink]]`''';
+
+      final metadata = parser.parse(content);
+
+      expect(metadata.wikilinks, contains('RealLink'));
+      expect(metadata.wikilinks, isNot(contains('FakeLink')));
+      expect(metadata.wikilinks, isNot(contains('CommentLink')));
+      expect(metadata.wikilinks, isNot(contains('InlineLink')));
+
+      expect(metadata.tags, contains('realtag'));
+      expect(metadata.tags, isNot(contains('faketag')));
+      expect(metadata.tags, isNot(contains('commenttag')));
+      expect(metadata.tags, isNot(contains('inlinecode')));
+    });
+
+    test('preprocessMarkdown should insert zero-width space before custom inline widgets on a new line', () {
+      const content = 'Text\n#tag\n==highlight==\n![image](path)\n# Heading\n- List';
+      final result = preprocessMarkdown(content);
+
+      expect(result, contains('\n\u200B#tag'));
+      expect(result, contains('\n\u200B==highlight=='));
+      expect(result, contains('\n\u200B![image](path)'));
+
+      // Should not insert before H1 headers, lists, etc.
+      expect(result, contains('\n# Heading'));
+      expect(result, contains('\n- List'));
     });
   });
 }

@@ -290,7 +290,7 @@ $_conflictContent
         'mark': HighlightElementBuilder(context),
         'hashtag': HashtagElementBuilder(context),
       },
-      onTapLink: (text, href, title) => handleWikilinkTap(
+      onTapLink: (text, href, title) => handleMarkdownLinkTap(
         href: href,
         ref: ref,
         context: context,
