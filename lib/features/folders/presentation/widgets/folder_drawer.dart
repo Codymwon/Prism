@@ -8,7 +8,6 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../data/folder_model.dart';
 import '../../data/folder_repository.dart';
 import '../providers/folders_providers.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/widgets/vault_selector_title.dart';
 import 'tag_cloud_index.dart';
@@ -36,13 +35,7 @@ class FolderDrawer extends ConsumerWidget {
       
       if (context.mounted) {
         Navigator.of(context).pop(); // Close drawer
-        
-        final isDesktop = MediaQuery.of(context).size.width >= 800;
-        if (isDesktop) {
-          ref.read(activeDesktopNoteIdProvider.notifier).state = randomNote.id;
-        } else {
-          context.push('/editor/${randomNote.id}');
-        }
+        context.push('/editor/${randomNote.id}');
       }
     } catch (e) {
       if (context.mounted) {

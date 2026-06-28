@@ -10,7 +10,6 @@ import '../../../../core/utils/utils.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../notes/data/note_model.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../editor/presentation/utils/editor_helpers.dart';
 
@@ -224,14 +223,9 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
     final checklist = extractChecklist(widget.content);
     final imagePath = extractPreviewImage(widget.content);
     final showPrompt = widget.note.isDaily && widget.note.dailyDate != null && isToday(widget.note.dailyDate!);
-    final isDesktop = MediaQuery.of(context).size.width >= 800;
 
     void openNote() {
-      if (isDesktop) {
-        ref.read(activeDesktopNoteIdProvider.notifier).state = widget.note.id;
-      } else {
-        context.push('/editor/${widget.note.id}');
-      }
+      context.push('/editor/${widget.note.id}');
     }
 
     final hasContent = bodyMarkdown.trim().isNotEmpty;

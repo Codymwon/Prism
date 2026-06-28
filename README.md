@@ -67,8 +67,7 @@ lib/
 
 ### Prerequisites
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.11+ recommended)
-- Android/iOS emulator or local desktop build toolchain
-  - **Windows builds require:** Visual Studio (2019 or 2022) with the "Desktop development with C++" workload. Crucially, under the optional components list, you **must enable** **"C++ ATL for latest v14x build tools (x86 & x64)"** to prevent compilation errors regarding the missing `atlstr.h` header (required by the `flutter_secure_storage` dependency).
+- Android/iOS emulator or physical device
 
 ### 1. Initialize and Resolve Dependencies
 Clean up and fetch the streamlined dependencies from pubspec:

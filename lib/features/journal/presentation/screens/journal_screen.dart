@@ -5,7 +5,6 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../notes/data/note_repository.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
 import '../providers/journal_providers.dart';
 import '../widgets/journal_calendar.dart';
 import '../widgets/journal_entry_card.dart';
@@ -203,7 +202,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     String dateStr,
     String? templateContent,
   ) async {
-    final isDesktop = MediaQuery.of(context).size.width >= 800;
     final repo = ref.read(noteRepositoryProvider);
     final String initialContent;
     if (templateContent != null) {
@@ -224,11 +222,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       dailyDate: dateStr,
     );
     if (context.mounted) {
-      if (isDesktop) {
-        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
-      } else {
-        context.push('/editor/${note.id}?date=$dateStr&new=true');
-      }
+      context.push('/editor/${note.id}?date=$dateStr&new=true');
     }
   }
 

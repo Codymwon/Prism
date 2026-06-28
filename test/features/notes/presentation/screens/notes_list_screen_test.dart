@@ -303,63 +303,7 @@ void main() {
     expect(container.read(selectedFolderIdProvider), isNull);
   });
 
-  testWidgets('VaultSelectorTitle displays only active vault name (no folder suffix) when folder is selected', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1000, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
 
-    final container = ProviderContainer(
-      overrides: [
-        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
-        activeVaultNameProvider.overrideWith(() => FakeActiveVaultName('My Vault')),
-        foldersProvider.overrideWith((ref) => mockFolders),
-        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
-        notesProvider.overrideWith((ref) => mockNotes),
-        recentNotesProvider.overrideWith((ref) => mockNotes),
-        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
-        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier('folder-work')),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    await tester.pumpWidget(buildNotesListScreen(container: container));
-    await tester.pumpAndSettle();
-
-    // Verify app bar title displays "My Vault" and NOT "My Vault / Work"
-    expect(find.text('My Vault'), findsOneWidget);
-    expect(find.text('My Vault / Work'), findsNothing);
-  });
-
-  testWidgets('NotesListScreen displays PRISM title in Outfit font', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1000, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
-    final container = ProviderContainer(
-      overrides: [
-        availableVaultsProvider.overrideWith((ref) => ['vault-1']),
-        foldersProvider.overrideWith((ref) => mockFolders),
-        noteFolderMappingsProvider.overrideWith((ref) => <String, List<String>>{}),
-        notesProvider.overrideWith((ref) => mockNotes),
-        recentNotesProvider.overrideWith((ref) => mockNotes),
-        searchQueryProvider.overrideWith(() => FakeSearchQueryNotifier('')),
-        selectedFolderIdProvider.overrideWith(() => FakeSelectedFolderIdNotifier(null)),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    await tester.pumpWidget(buildNotesListScreen(container: container));
-    await tester.pumpAndSettle();
-
-    final titleText = tester.widget<Text>(find.text('PRISM'));
-    expect(titleText.style?.fontFamily, contains('Outfit'));
-    expect(titleText.style?.fontWeight, equals(FontWeight.w900));
-  });
 
   testWidgets('NotesListScreen taps outside search bar to unfocus', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(500, 800);

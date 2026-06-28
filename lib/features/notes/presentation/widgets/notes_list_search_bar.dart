@@ -44,10 +44,9 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
     });
 
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
-    final isDesktop = MediaQuery.of(context).size.width >= 800;
     final isHome = selectedFolderId == null;
 
-    if (!isDesktop && isHome) {
+    if (isHome) {
       final query = ref.watch(searchQueryProvider);
       return SafeArea(
         bottom: false,
@@ -117,7 +116,7 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
       );
     }
 
-    final showSortButton = selectedFolderId != null && selectedFolderId != '__folders__';
+    final showSortButton = selectedFolderId != '__folders__';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(DesignSpacing.screenPadding, 0, DesignSpacing.screenPadding, 8),

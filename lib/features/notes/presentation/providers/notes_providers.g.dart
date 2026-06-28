@@ -6,7 +6,7 @@ part of 'notes_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$notesHash() => r'fb36cc7c4fe6dd945f7d692ffd6addb227b5de86';
+String _$notesHash() => r'69e633a39a05b86012c4a3571a3d494fd69ee281';
 
 /// See also [notes].
 @ProviderFor(notes)
@@ -617,28 +617,7 @@ class _NoteDetailsProviderElement
   String get noteId => (origin as NoteDetailsProvider).noteId;
 }
 
-String _$activeDesktopNoteIdHash() =>
-    r'eb0e4b8f8b07851813dacb9d3d62a47579694561';
-
-/// On wide (desktop) windows the notes list and the editor sit side-by-side.
-/// This provider holds the id of the note currently open in the desktop pane.
-/// It is completely ignored on mobile — navigation there still uses GoRouter pushes.
-///
-/// Copied from [ActiveDesktopNoteId].
-@ProviderFor(ActiveDesktopNoteId)
-final activeDesktopNoteIdProvider =
-    AutoDisposeNotifierProvider<ActiveDesktopNoteId, String?>.internal(
-      ActiveDesktopNoteId.new,
-      name: r'activeDesktopNoteIdProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$activeDesktopNoteIdHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$ActiveDesktopNoteId = AutoDisposeNotifier<String?>;
-String _$noteSortNotifierHash() => r'9ce87a6f3fdc9ce4de61676a8005d263b62db7ec';
+String _$noteSortNotifierHash() => r'1b6f43b7118310443a91c01694cb106049424520';
 
 /// See also [NoteSortNotifier].
 @ProviderFor(NoteSortNotifier)

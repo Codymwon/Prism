@@ -9,11 +9,9 @@ import 'tutorial_overlay.dart';
 import '../../features/notes/data/note_repository.dart';
 import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../../features/folders/data/folder_repository.dart';
-import '../../features/notes/presentation/providers/notes_providers.dart';
 import '../../core/utils/utils.dart';
 
-// Breakpoint at which we switch from mobile bottom-nav to desktop side-rail.
-const double _kDesktopBreakpoint = 800;
+
 
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -55,12 +53,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     if (mounted) {
-      final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
-      if (isDesktop) {
-        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
-      } else {
-        context.push('/editor/${note.id}?new=true');
-      }
+      context.push('/editor/${note.id}?new=true');
     }
   }
 
@@ -87,12 +80,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     if (mounted) {
-      final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
-      if (isDesktop) {
-        ref.read(activeDesktopNoteIdProvider.notifier).state = note.id;
-      } else {
-        context.push('/editor/${note.id}?date=$todayStr&new=true');
-      }
+      context.push('/editor/${note.id}?date=$todayStr&new=true');
     }
   }
 
@@ -247,124 +235,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  // ─── Desktop scaffold (NavigationRail + content) ────────────────────────────
-  Widget _buildDesktopScaffold(BuildContext context, ColorScheme colorScheme) {
-    return Scaffold(
-      body: Row(
-        children: [
-          // Slim side navigation rail
-          Container(
-            width: 72,
-            decoration: BoxDecoration(
-              color: DesignColors.surface(context),
-              border: Border(
-                right: BorderSide(
-                  color: DesignColors.border(context),
-                  width: 0.5,
-                ),
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  // App logo / brand mark
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome,
-                      size: 18,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Nav items
-                  ...List.generate(_tabs.length, (i) {
-                    final tab = _tabs[i];
-                    final isActive = i == _currentIndex;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: TactileWrapper(
-                        style: TactileFeedbackStyle.standard,
-                        onTap: () => _onTabTap(i),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOutCubic,
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? colorScheme.primary.withValues(alpha: 0.12)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isActive ? tab.activeIcon : tab.icon,
-                                size: 22,
-                                color: isActive
-                                    ? colorScheme.primary
-                                    : DesignColors.textTertiary(context),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                tab.label,
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: isActive
-                                      ? FontWeight.w700
-                                      : FontWeight.w400,
-                                  color: isActive
-                                      ? colorScheme.primary
-                                      : DesignColors.textTertiary(context),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-          // Main content area — screens fill the remaining space
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              switchInCurve: Curves.easeInOutCubic,
-              switchOutCurve: Curves.easeInOutCubic,
-              layoutBuilder: (currentChild, previousChildren) =>
-                  currentChild ?? const SizedBox.shrink(),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: child,
-              ),
-              child: Container(
-                key: ValueKey(_currentIndex),
-                child: widget.child,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final hasCompletedTutorial = ref.watch(tutorialStateProvider);
     final hasCompletedJournalTutorial = ref.watch(journalTutorialStateProvider);
-    final isDesktop = MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
 
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
     final isNotesTab = _currentIndex == 0;
@@ -377,9 +254,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           ref.read(selectedFolderIdProvider.notifier).state = null;
         }
       },
-      child: isDesktop
-          ? _buildDesktopScaffold(context, colorScheme)
-          : _buildMobileScaffold(context, colorScheme),
+      child: _buildMobileScaffold(context, colorScheme),
     );
 
     if (hasCompletedTutorial) {

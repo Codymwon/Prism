@@ -23,7 +23,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (Platform.isWindows || Platform.isLinux || Platform.isAndroid) {
+  if (Platform.isAndroid) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }

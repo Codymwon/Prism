@@ -11,20 +11,6 @@ part 'notes_providers.g.dart';
 
 // ─── Notes List Providers ─────────────────────────────────────────────────────
 
-/// On wide (desktop) windows the notes list and the editor sit side-by-side.
-/// This provider holds the id of the note currently open in the desktop pane.
-/// It is completely ignored on mobile — navigation there still uses GoRouter pushes.
-@riverpod
-class ActiveDesktopNoteId extends _$ActiveDesktopNoteId {
-  @override
-  String? build() => null;
-
-  @override
-  String? get state => super.state;
-
-  @override
-  set state(String? value) => super.state = value;
-}
 
 @riverpod
 class NoteSortNotifier extends _$NoteSortNotifier {
