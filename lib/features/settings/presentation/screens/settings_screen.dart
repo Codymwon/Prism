@@ -190,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
                   const SettingsSectionHeader(title: 'Data'),
                   SettingsTile(
                     icon: Icons.folder_open_outlined,
-                    title: 'Base Vaults Location',
+                    title: 'Prism Hub Location',
                     subtitle: baseVaultsDir.isEmpty ? 'Loading...' : baseVaultsDir,
                     onTap: () => _changeBaseVaultsDirectory(context, ref),
                   ),
