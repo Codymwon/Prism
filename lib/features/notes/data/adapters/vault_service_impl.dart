@@ -279,17 +279,16 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
       await indexer.removeNoteIndex(txn, id);
     });
   }
-
   @override
-  Future<void> syncVault(String vaultPath, {Database? db}) async {
+  Future<bool> syncVault(String vaultPath, {Database? db}) async {
     try {
       final database = db ?? await getDb();
-      if (!database.isOpen) return;
+      if (!database.isOpen) return false;
 
       final files = await storage.listDocumentIdentifiers(vaultPath);
-      if (files.isEmpty) return;
+      if (files.isEmpty) return false;
 
-      if (!database.isOpen) return;
+      if (!database.isOpen) return false;
 
       // Query existing notes along with their updated_at time and ghost flag
       final existingNotes = await database.query('notes', columns: ['id', 'file_path', 'updated_at', 'is_ghost']);
@@ -303,7 +302,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
             )
       };
 
-      if (!database.isOpen) return;
+      if (!database.isOpen) return false;
 
       // 1. Scan files and parse metadata outside of transaction
       final List<({
@@ -318,7 +317,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
       })> notesToSync = [];
 
       for (final filePath in files) {
-        if (!database.isOpen) return;
+        if (!database.isOpen) return false;
         final lastMod = await storage.getLastModified(filePath);
         final lastModMs = lastMod.millisecondsSinceEpoch;
 
@@ -355,11 +354,17 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
         }
       }
 
-      if (!database.isOpen) return;
+      if (!database.isOpen) return false;
+
+      bool hasChanges = false;
 
       // 2. Perform all database modifications inside a single fast transaction
       await database.transaction((txn) async {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+        if (notesToSync.isNotEmpty || existingNotes.where((n) => (n['is_ghost'] as int? ?? 0) == 0 && !files.contains(n['file_path'] as String)).isNotEmpty) {
+          hasChanges = true;
+        }
 
         for (final item in notesToSync) {
           if (!database.isOpen) return;
@@ -381,7 +386,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
           // If the note is the clipper's Inbox note, ensure it is in the virtual folder 'Inbox'
           if (item.isClipperInbox) {
             final folderMaps = await txn.query(
-              'virtual_folders',
+               'virtual_folders',
               columns: ['id'],
               where: 'LOWER(name) = ?',
               whereArgs: ['inbox'],
@@ -471,13 +476,19 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
               SELECT 1 FROM note_links WHERE target_id = notes.id
             )
         ''');
+        if (orphanedGhosts.isNotEmpty) {
+          hasChanges = true;
+        }
         for (final ghost in orphanedGhosts) {
           await indexer.removeNoteIndex(txn, ghost['id'] as String);
         }
       });
+
+      return hasChanges;
     } catch (e) {
       // Safely ignore errors during scan
       debugPrint('Error scanning vault files: $e');
+      return false;
     }
   }
 }

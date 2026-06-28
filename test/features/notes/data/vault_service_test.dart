@@ -226,5 +226,27 @@ void main() {
       final allWithTitle = await db.query('notes', where: 'LOWER(title) = ?', whereArgs: ['my ghost note']);
       expect(allWithTitle.length, equals(1));
     });
+
+    test('should return false from syncVault when no changes are detected', () async {
+      final res = await service.syncVault('/vault');
+      expect(res, isFalse);
+    });
+
+    test('should return true from syncVault when new files are synced or pruned', () async {
+      // 1. Write two files directly to storage to simulate external changes
+      await storage.writeContent('/vault/note1.md', '# Note 1\nContent');
+      await storage.writeContent('/vault/note2.md', '# Note 2\nContent');
+      final res1 = await service.syncVault('/vault');
+      expect(res1, isTrue);
+
+      // 2. Sync again - should be no changes
+      final res2 = await service.syncVault('/vault');
+      expect(res2, isFalse);
+
+      // 3. Delete one file directly from storage to simulate an external deletion (vault not empty)
+      await storage.deleteContent('/vault/note2.md');
+      final res3 = await service.syncVault('/vault');
+      expect(res3, isTrue);
+    });
   });
 }

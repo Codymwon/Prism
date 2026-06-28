@@ -29,7 +29,7 @@ abstract class NoteIngestionService {
   Future<void> saveNote(String id, String content);
   Future<void> deleteNote(String id);
 
-  Future<void> syncVault(String vaultPath, {Database? db});
+  Future<bool> syncVault(String vaultPath, {Database? db});
 }
 
 final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {

@@ -61,12 +61,12 @@ Future<Database> database(DatabaseRef ref) async {
 void _triggerBackgroundSync(Database db, String vaultPath, DatabaseRef ref, bool Function() isDisposedFn) {
   if (isDisposedFn()) return;
   final keepAliveLink = ref.keepAlive();
-  ref.read(noteIngestionServiceProvider).syncVault(vaultPath, db: db).then((_) {
-    if (!isDisposedFn()) {
+  ref.read(noteIngestionServiceProvider).syncVault(vaultPath, db: db).then((hasChanges) {
+    if (hasChanges && !isDisposedFn()) {
       ref.read(notesVersionProvider.notifier).update((state) => state + 1);
       ref.read(foldersVersionProvider.notifier).update((state) => state + 1);
     }
-    debugPrint('Background physical files sync completed for vault: $vaultPath');
+    debugPrint('Background physical files sync completed for vault: $vaultPath (hasChanges: $hasChanges)');
   }).catchError((e) {
     debugPrint('Error during background files sync: $e');
   }).whenComplete(() {

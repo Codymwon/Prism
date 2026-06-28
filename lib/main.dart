@@ -124,9 +124,11 @@ class _PrismAppState extends ConsumerState<PrismApp> with WidgetsBindingObserver
     if (state == AppLifecycleState.resumed) {
       final vaultPath = ref.read(activeVaultPathProvider).valueOrNull;
       if (vaultPath != null && vaultPath.isNotEmpty) {
-        ref.read(noteIngestionServiceProvider).syncVault(vaultPath).then((_) {
-          ref.read(notesVersionProvider.notifier).update((v) => v + 1);
-          ref.read(foldersVersionProvider.notifier).update((v) => v + 1);
+        ref.read(noteIngestionServiceProvider).syncVault(vaultPath).then((hasChanges) {
+          if (hasChanges) {
+            ref.read(notesVersionProvider.notifier).update((v) => v + 1);
+            ref.read(foldersVersionProvider.notifier).update((v) => v + 1);
+          }
         }).catchError((e) {
           debugPrint('Error syncing vault on resume: $e');
         });

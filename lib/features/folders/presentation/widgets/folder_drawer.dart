@@ -10,6 +10,7 @@ import '../../data/folder_repository.dart';
 import '../providers/folders_providers.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_repository.dart';
+import '../../../notes/presentation/widgets/vault_selector_title.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
 
@@ -64,17 +65,25 @@ class FolderDrawer extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header: PRISM Title
+              // Header: PRISM Title & Vault Selector
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Text(
-                  'PRISM',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: colorScheme.primary,
-                    letterSpacing: 1.5,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'PRISM',
+                      style: GoogleFonts.outfit(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: colorScheme.primary,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const Flexible(
+                      child: VaultSelectorTitle(),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

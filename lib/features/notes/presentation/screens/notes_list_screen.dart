@@ -57,7 +57,7 @@ class NotesListScreen extends ConsumerWidget {
       onPointerDown: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
         backgroundColor: DesignColors.background(context),
-        appBar: _buildAppBar(context, ref, colorScheme, activeFolder),
+        appBar: _buildAppBar(context, ref, colorScheme, activeFolder, isDesktop),
         drawer: const FolderDrawer(),
         body: BackButtonListener(
           onBackButtonPressed: () async {
@@ -110,7 +110,7 @@ class NotesListScreen extends ConsumerWidget {
         children: [
           if (!isSearching && !folderActive) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -285,7 +285,7 @@ class NotesListScreen extends ConsumerWidget {
           width: 340,
           child: Scaffold(
             backgroundColor: DesignColors.background(context),
-            appBar: _buildAppBar(context, ref, colorScheme, activeFolder),
+            appBar: _buildAppBar(context, ref, colorScheme, activeFolder, true),
             drawer: const FolderDrawer(),
             body: _buildListBody(context, ref, colorScheme),
             floatingActionButton: _buildFAB(context, ref),
@@ -365,13 +365,18 @@ class NotesListScreen extends ConsumerWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(
+  PreferredSizeWidget? _buildAppBar(
     BuildContext context,
     WidgetRef ref,
     ColorScheme colorScheme,
     VirtualFolder? activeFolder,
+    bool isDesktop,
   ) {
     final selectedFolderId = ref.watch(selectedFolderIdProvider);
+    if (!isDesktop && selectedFolderId == null) {
+      return null;
+    }
+
     return AppBar(
       leading: selectedFolderId != null
           ? IconButton(
@@ -389,23 +394,41 @@ class NotesListScreen extends ConsumerWidget {
               ),
             ),
       title: Text(
-        'PRISM',
+        _getAppBarTitle(selectedFolderId, activeFolder),
         style: GoogleFonts.outfit(
           fontSize: 18,
-          fontWeight: FontWeight.w900,
-          color: colorScheme.primary,
-          letterSpacing: 1.5,
+          fontWeight: isDesktop && selectedFolderId == null ? FontWeight.w900 : FontWeight.w700,
+          color: isDesktop && selectedFolderId == null ? colorScheme.primary : DesignColors.text(context),
+          letterSpacing: isDesktop && selectedFolderId == null ? 1.5 : 0.2,
         ),
       ),
       centerTitle: false,
       backgroundColor: DesignColors.background(context),
-      actions: const [
-        Padding(
-          padding: EdgeInsets.only(right: 16.0),
-          child: VaultSelectorTitle(),
-        ),
+      actions: [
+        if (isDesktop)
+          const Padding(
+            padding: EdgeInsets.only(right: 16.0),
+            child: VaultSelectorTitle(),
+          ),
       ],
     );
+  }
+
+  String _getAppBarTitle(String? folderId, VirtualFolder? activeFolder) {
+    if (folderId == null) return 'PRISM';
+    if (activeFolder != null) return activeFolder.name;
+    switch (folderId) {
+      case '__all__':
+        return 'All Notes';
+      case '__daily__':
+        return 'Journal Logs';
+      case '__uncategorized__':
+        return 'Uncategorized';
+      case '__folders__':
+        return 'Folders';
+      default:
+        return 'Notes';
+    }
   }
 
 

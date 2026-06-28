@@ -17,9 +17,10 @@ class MockNoteIngestionService extends Fake implements NoteIngestionService {
   String? lastSyncedVaultPath;
 
   @override
-  Future<void> syncVault(String vaultPath, {Database? db}) async {
+  Future<bool> syncVault(String vaultPath, {Database? db}) async {
     syncVaultCalled = true;
     lastSyncedVaultPath = vaultPath;
+    return true;
   }
 }
 

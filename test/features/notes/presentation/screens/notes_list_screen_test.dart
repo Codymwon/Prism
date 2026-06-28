@@ -304,7 +304,7 @@ void main() {
   });
 
   testWidgets('VaultSelectorTitle displays only active vault name (no folder suffix) when folder is selected', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(500, 800);
+    tester.view.physicalSize = const Size(1000, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -334,6 +334,12 @@ void main() {
   });
 
   testWidgets('NotesListScreen displays PRISM title in Outfit font', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     final container = ProviderContainer(
       overrides: [
         availableVaultsProvider.overrideWith((ref) => ['vault-1']),

@@ -98,7 +98,7 @@ class VirtualFoldersBentoRow extends ConsumerWidget {
       shrinkWrap: true,
       padding: showAll 
           ? const EdgeInsets.symmetric(vertical: 12)
-          : const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          : const EdgeInsets.fromLTRB(16, 0, 16, 4),
       physics: showAll 
           ? const ScrollPhysics() 
           : const NeverScrollableScrollPhysics(),
