@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/database/database_helper.dart';
@@ -14,10 +16,16 @@ class VaultSetupForm extends ConsumerStatefulWidget {
   final VoidCallback onStartSetup;
   final VoidCallback onEndSetup;
 
+  /// Optional override for the persistence step (saving prefs, closing DB,
+  /// marking onboarding complete). When null the widget uses the real
+  /// Riverpod / DatabaseHelper implementation. Pass a no-op in tests.
+  final Future<void> Function(String hubPath, String activeVault, String vaultType)? onPersist;
+
   const VaultSetupForm({
     super.key,
     required this.onStartSetup,
     required this.onEndSetup,
+    this.onPersist,
   });
 
   @override
@@ -29,17 +37,22 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   String _customLocationPath = '';
   bool _isPickingFolder = false;
   bool _isCompleting = false;
+  int _currentStep = 1; // 1: Main Storage Location, 2: First Vault Name
+
+  final TextEditingController _hubNameController =
+      TextEditingController(text: 'Prism Hub');
   final TextEditingController _vaultNameController =
       TextEditingController(text: 'My Vault');
 
   @override
   void dispose() {
+    _hubNameController.dispose();
     _vaultNameController.dispose();
     super.dispose();
   }
 
   Future<void> _pickCustomLocation() async {
-    if (_isPickingFolder) return; // Prevent double-trigger
+    if (_isPickingFolder) return;
 
     setState(() => _isPickingFolder = true);
 
@@ -61,8 +74,193 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     }
   }
 
+  Future<void> _handleNextStep() async {
+    print('DEBUG: _handleNextStep started');
+    final hubName = _hubNameController.text.trim();
+    if (hubName.isEmpty) {
+      print('DEBUG: hubName is empty');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a name for the main folder.')),
+      );
+      return;
+    }
+    final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+    if (!safePattern.hasMatch(hubName)) {
+      print('DEBUG: hubName does not match safePattern');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Folder name can only contain letters, numbers, spaces, underscores, and hyphens.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_customLocationPath.isEmpty) {
+      print('DEBUG: _customLocationPath is empty');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a storage folder.')),
+      );
+      return;
+    }
+
+    // Check and request storage permission immediately for custom vaults
+    final hasAccess = await StoragePermissionHelper.hasAllFilesAccess();
+    print('DEBUG: hasAccess = $hasAccess');
+    if (!mounted) {
+      print('DEBUG: not mounted after permission check');
+      return;
+    }
+    if (!hasAccess) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: DesignColors.surface(context),
+          title: Text(
+            'Storage Access Required',
+            style: DesignTypography.heading(context, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'To write and sync note files inside your chosen documents folder, Android requires the "All Files Access" permission.',
+            style: DesignTypography.body(context),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: DesignTypography.details(context)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Settings', style: DesignTypography.details(context, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed == true) {
+        await StoragePermissionHelper.requestAllFilesAccess();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enable All Files Access for Prism and tap Next again.'),
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // Check if Prism Hub directory already exists and contains existing vaults (subfolders)
+    final hubPath = p.join(_customLocationPath, hubName);
+    final hubDir = Directory(hubPath);
+    final hubExists = await hubDir.exists();
+    print('DEBUG: hubPath = $hubPath, exists = $hubExists');
+    if (hubExists) {
+      List<Directory> subDirs = [];
+      try {
+        final list = await hubDir.list().toList();
+        for (final entity in list) {
+          if (entity is Directory && !p.basename(entity.path).startsWith('.')) {
+            subDirs.add(entity);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error scanning existing hub: $e');
+      }
+
+      print('DEBUG: subDirs count = ${subDirs.length}');
+      if (subDirs.isNotEmpty) {
+        // Find most recently modified vault based on file/db timestamps
+        Directory? mostRecentDir;
+        DateTime? latestTime;
+        for (final subDir in subDirs) {
+          DateTime? subDirLatest;
+          try {
+            final stat = await subDir.stat();
+            subDirLatest = stat.modified;
+            final dbFile = File(p.join(subDir.path, '.prism.db'));
+            if (await dbFile.exists()) {
+              final dbTime = await dbFile.lastModified();
+              if (subDirLatest != null && dbTime.isAfter(subDirLatest)) {
+                subDirLatest = dbTime;
+              }
+            }
+          } catch (e) {
+            // Ignore
+          }
+          if (subDirLatest != null) {
+            if (latestTime == null || subDirLatest.isAfter(latestTime)) {
+              latestTime = subDirLatest;
+              mostRecentDir = subDir;
+            }
+          }
+        }
+
+        final activeVault = mostRecentDir != null
+            ? p.basename(mostRecentDir.path)
+            : p.basename(subDirs.first.path);
+
+        print('DEBUG: existing vaults found. Active vault = $activeVault. Auto-importing...');
+        // Auto-import and bypass Step 2 entirely
+        setState(() => _isCompleting = true);
+        widget.onStartSetup();
+
+        try {
+          if (widget.onPersist != null) {
+            await widget.onPersist!(hubPath, activeVault, _selectedVaultType);
+          } else {
+            final onboardingNotifier = ref.read(onboardingStateProvider.notifier);
+            final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
+            final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
+
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('vaultType', _selectedVaultType);
+            await baseVaultsDirNotifier.setDirectory(hubPath);
+            await activeVaultNameNotifier.setVaultName(activeVault);
+
+            await DatabaseHelper.instance.closeDatabase();
+            await onboardingNotifier.completeOnboarding();
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Found existing vaults in "$hubName". Imported and opened "$activeVault".',
+                ),
+              ),
+            );
+          }
+          return;
+        } catch (e) {
+          debugPrint('Error importing existing vaults: $e');
+          if (mounted) {
+            setState(() => _isCompleting = false);
+            widget.onEndSetup();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Import failed: $e. Please try again.')),
+            );
+          }
+          return;
+        }
+      }
+    }
+
+    print('DEBUG: no existing vaults, transitioning to step 2');
+    // No existing vaults, proceed to Step 2
+    setState(() {
+      print('DEBUG: setState for step 2 called');
+      _currentStep = 2;
+    });
+  }
+
   Future<void> _completeOnboarding() async {
-    if (_isCompleting) return; // Prevent double-submission
+    print('DEBUG: _completeOnboarding started');
+    if (_isCompleting) {
+      print('DEBUG: already completing, returning');
+      return;
+    }
 
     final vaultName = _vaultNameController.text.trim().isEmpty
         ? 'My Vault'
@@ -79,85 +277,39 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       return;
     }
 
-    if (_selectedVaultType == 'custom') {
-      if (_customLocationPath.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a storage folder.')),
-        );
-        return;
-      }
-
-      // Check and request storage permission immediately for custom vaults
-      final hasAccess = await StoragePermissionHelper.hasAllFilesAccess();
-      if (!mounted) return;
-      if (!hasAccess) {
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: DesignColors.surface(context),
-            title: Text(
-              'Storage Access Required',
-              style: DesignTypography.heading(context, fontWeight: FontWeight.bold),
-            ),
-            content: Text(
-              'To write and sync note files inside your chosen documents folder, Android requires the "All Files Access" permission.',
-              style: DesignTypography.body(context),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Cancel', style: DesignTypography.details(context)),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text('Settings', style: DesignTypography.details(context, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        );
-
-        if (proceed == true) {
-          await StoragePermissionHelper.requestAllFilesAccess();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Please enable All Files Access for Prism and tap Confirm again.'),
-              ),
-            );
-          }
-        }
-        return;
-      }
-    }
-
     setState(() => _isCompleting = true);
 
-    // Capture notifier references synchronously before widget.onStartSetup() —
-    // the widget gets disposed when OnboardingScreen switches to OnboardingLoading,
-    // at which point accessing `ref` directly would throw.
     final onboardingNotifier = ref.read(onboardingStateProvider.notifier);
     final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
     final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
 
+    print('DEBUG: calling onStartSetup()');
     widget.onStartSetup();
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('vaultType', _selectedVaultType);
-      await baseVaultsDirNotifier.setDirectory(_customLocationPath);
-      await activeVaultNameNotifier.setVaultName(vaultName);
+      final hubName = _hubNameController.text.trim();
+      final hubPath = p.join(_customLocationPath, hubName);
+      final newVaultPath = p.join(hubPath, vaultName);
 
-      // Close any existing database connection before re-initialising.
-      await DatabaseHelper.instance.closeDatabase();
+      // Ensure the physical directories exist
+      final vaultDir = Directory(newVaultPath);
+      if (!await vaultDir.exists()) {
+        await vaultDir.create(recursive: true);
+      }
 
-      // Mark onboarding complete — GoRouter's redirect listener automatically
-      // navigates to /notes. Do NOT call onEndSetup on success; calling
-      // setState after the router navigates away rebuilds the form with reset
-      // local state, causing the "screen resets" bug.
-      await onboardingNotifier.completeOnboarding();
+      if (widget.onPersist != null) {
+        await widget.onPersist!(hubPath, vaultName, _selectedVaultType);
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('vaultType', _selectedVaultType);
+        await baseVaultsDirNotifier.setDirectory(hubPath);
+        await activeVaultNameNotifier.setVaultName(vaultName);
+
+        await DatabaseHelper.instance.closeDatabase();
+        await onboardingNotifier.completeOnboarding();
+      }
     } catch (e) {
       debugPrint('Error during vault initialization: $e');
-      // On failure: reset loading state so the user can retry.
       if (mounted) {
         setState(() => _isCompleting = false);
         widget.onEndSetup();
@@ -195,7 +347,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ).animate().fadeIn().slideY(begin: 0.2),
           const SizedBox(height: 8),
           Text(
-            'Configure Vault Location',
+            _currentStep == 1 ? 'Configure Vault Location' : 'Name your first vault',
             style: DesignTypography.display(
               context,
               fontSize: 26,
@@ -205,7 +357,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
           const SizedBox(height: 12),
           Text(
-            'Prism stores all your notes directly on your device. Choose where your vault folder lives. You can switch between multiple vaults later.',
+            _currentStep == 1
+                ? 'Prism stores all your notes directly on your device. Choose where your main storage folder (Prism Hub) lives. You can switch between multiple vaults later.'
+                : 'This will be your first workspace folder created inside the main directory.',
             style: DesignTypography.body(
               context,
               fontSize: 14,
@@ -215,204 +369,267 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ).animate().fadeIn(delay: 200.ms),
           const SizedBox(height: 32),
 
-          // ── Vault Name ────────────────────────────────────────────────────
-          Text(
-            'Vault Name',
-            style: DesignTypography.body(
-              context,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: textStyle,
-            ),
-          ).animate().fadeIn(delay: 230.ms).slideY(begin: 0.15),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _vaultNameController,
-            style: DesignTypography.body(context, fontSize: 14, color: textStyle),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: DesignColors.surfaceVariant(context),
-              hintText: 'e.g. My Vault, Personal, Research',
-              hintStyle: DesignTypography.body(
-                  context, color: DesignColors.textTertiary(context)),
-              border: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: cardBorder),
+          if (_currentStep == 1) ...[
+            // ── Step 1: Prism Hub Name ──────────────────────────────────────
+            Text(
+              'Prism Hub Name',
+              style: DesignTypography.body(
+                context,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textStyle,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: cardBorder),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                borderSide: BorderSide(color: colorScheme.primary, width: 2),
-              ),
-              prefixIcon: Icon(Icons.drive_file_rename_outline_rounded,
-                  size: 18, color: colorScheme.primary),
-            ),
-          ).animate().fadeIn(delay: 250.ms),
-          const SizedBox(height: 28),
-
-          // ── Select Folder Location ──
-          Text(
-            'Select Folder Location',
-            style: DesignTypography.body(
-              context,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: textStyle,
-            ),
-          ).animate().fadeIn(delay: 270.ms).slideY(begin: 0.15),
-          const SizedBox(height: 10),
-          TactileWrapper(
-            style: TactileFeedbackStyle.standard,
-            onTap: _isPickingFolder ? null : _pickCustomLocation,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: locationSelected
-                    ? colorScheme.primaryContainer.withValues(alpha: 0.25)
-                    : cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: locationSelected ? colorScheme.primary : cardBorder,
-                  width: locationSelected ? 2 : 1,
+            ).animate().fadeIn(delay: 230.ms).slideY(begin: 0.15),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _hubNameController,
+              style: DesignTypography.body(context, fontSize: 14, color: textStyle),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: DesignColors.surfaceVariant(context),
+                hintText: 'e.g. Prism Hub, My Notes, Second Brain',
+                hintStyle: DesignTypography.body(
+                  context,
+                  color: DesignColors.textTertiary(context),
                 ),
-                boxShadow: locationSelected
-                    ? [
-                        BoxShadow(
-                          color: colorScheme.primary.withValues(alpha: 0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                  borderSide: BorderSide(color: cardBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                  borderSide: BorderSide(color: cardBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                ),
+                prefixIcon: Icon(
+                  Icons.folder_copy_rounded,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: locationSelected
-                          ? colorScheme.primary.withValues(alpha: 0.12)
-                          : cardBorder.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: _isPickingFolder
-                        ? Padding(
-                            padding: const EdgeInsets.all(13),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.primary,
-                            ),
-                          )
-                        : Icon(
-                            locationSelected
-                                ? Icons.folder_rounded
-                                : Icons.folder_open_rounded,
-                            color: locationSelected
-                                ? colorScheme.primary
-                                : textSecStyle,
-                            size: 24,
-                          ),
+            ).animate().fadeIn(delay: 250.ms),
+            const SizedBox(height: 28),
+
+            // ── Step 1: Select Folder Location ──────────────────────────────
+            Text(
+              'Select Folder Location',
+              style: DesignTypography.body(
+                context,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textStyle,
+              ),
+            ).animate().fadeIn(delay: 270.ms).slideY(begin: 0.15),
+            const SizedBox(height: 10),
+            TactileWrapper(
+              style: TactileFeedbackStyle.standard,
+              onTap: _isPickingFolder ? null : _pickCustomLocation,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: locationSelected
+                      ? colorScheme.primaryContainer.withValues(alpha: 0.25)
+                      : cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: locationSelected ? colorScheme.primary : cardBorder,
+                    width: locationSelected ? 2 : 1,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                locationSelected
-                                    ? 'Location selected'
-                                    : 'Tap to choose a folder',
-                                style: DesignTypography.body(
-                                  context,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: locationSelected
-                                      ? colorScheme.primary
-                                      : textStyle,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                  boxShadow: locationSelected
+                      ? [
+                          BoxShadow(
+                            color: colorScheme.primary.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: locationSelected
+                            ? colorScheme.primary.withValues(alpha: 0.12)
+                            : cardBorder.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: _isPickingFolder
+                          ? Padding(
+                              padding: const EdgeInsets.all(13),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.primary,
                               ),
+                            )
+                          : Icon(
+                              locationSelected
+                                  ? Icons.folder_rounded
+                                  : Icons.folder_open_rounded,
+                              color: locationSelected
+                                  ? colorScheme.primary
+                                  : textSecStyle,
+                              size: 24,
                             ),
-                            if (locationSelected)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primary
-                                        .withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(6),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  locationSelected
+                                      ? 'Location selected'
+                                      : 'Tap to choose a folder',
+                                  style: DesignTypography.body(
+                                    context,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: locationSelected
+                                        ? colorScheme.primary
+                                        : textStyle,
                                   ),
-                                  child: Text(
-                                    'Change',
-                                    style: DesignTypography.metadata(
-                                      context,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: colorScheme.primary,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (locationSelected)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      'Change',
+                                      style: DesignTypography.metadata(
+                                        context,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: colorScheme.primary,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          locationSelected
-                              ? _customLocationPath
-                              : 'Prism will store all your notes inside this folder.',
-                          style: DesignTypography.details(
-                            context,
-                            fontSize: 12,
-                            color: locationSelected
-                                ? textSecStyle
-                                : DesignColors.textTertiary(context),
+                            ],
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            locationSelected
+                                ? _customLocationPath
+                                : 'Prism will create your main directory inside this folder.',
+                            style: DesignTypography.details(
+                              context,
+                              fontSize: 12,
+                              color: locationSelected
+                                  ? textSecStyle
+                                  : DesignColors.textTertiary(context),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ).animate().fadeIn(delay: 290.ms),
-
-          const SizedBox(height: 32),
-
-          // ── Single Confirm Button ──
-          DesignPrimaryButton(
-            label: 'Confirm & Begin',
-            icon: Icons.check_rounded,
-            onTap: (!_isCompleting && locationSelected)
-                ? _completeOnboarding
-                : null,
-          ).animate().fadeIn(delay: 320.ms),
-
-          if (!locationSelected) ...[
+            ).animate().fadeIn(delay: 290.ms),
+            const SizedBox(height: 32),
+            // Next Button
+            DesignPrimaryButton(
+              label: 'Next',
+              icon: Icons.arrow_forward_rounded,
+              onTap: (!_isCompleting && locationSelected) ? _handleNextStep : null,
+            ).animate().fadeIn(delay: 320.ms),
+            if (!locationSelected) ...[
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  'Choose a storage folder above to continue',
+                  style: DesignTypography.details(
+                    context,
+                    fontSize: 12,
+                    color: DesignColors.textTertiary(context),
+                  ),
+                ),
+              ),
+            ],
+          ] else ...[
+            // ── Step 2: Vault Name ──────────────────────────────────────────
+            Text(
+              'Vault Name',
+              style: DesignTypography.body(
+                context,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textStyle,
+              ),
+            ).animate().fadeIn(delay: 230.ms).slideY(begin: 0.15),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _vaultNameController,
+              style: DesignTypography.body(context, fontSize: 14, color: textStyle),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: DesignColors.surfaceVariant(context),
+                hintText: 'e.g. My Vault, Personal, Research',
+                hintStyle: DesignTypography.body(
+                  context,
+                  color: DesignColors.textTertiary(context),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                  borderSide: BorderSide(color: cardBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                  borderSide: BorderSide(color: cardBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                ),
+                prefixIcon: Icon(
+                  Icons.drive_file_rename_outline_rounded,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ).animate().fadeIn(delay: 250.ms),
+            const SizedBox(height: 32),
+            // Confirm & Begin Button
+            DesignPrimaryButton(
+              label: 'Confirm & Begin',
+              icon: Icons.check_rounded,
+              onTap: !_isCompleting ? _completeOnboarding : null,
+            ).animate().fadeIn(delay: 280.ms),
             const SizedBox(height: 12),
             Center(
-              child: Text(
-                'Choose a storage folder above to continue',
-                style: DesignTypography.details(
-                  context,
-                  fontSize: 12,
-                  color: DesignColors.textTertiary(context),
+              child: TextButton(
+                onPressed: () => setState(() => _currentStep = 1),
+                child: Text(
+                  'Back to step 1',
+                  style: DesignTypography.details(
+                    context,
+                    color: DesignColors.textSecondary(context),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -424,3 +641,4 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     );
   }
 }
+
