@@ -18,7 +18,6 @@ import 'features/onboarding/data/onboarding_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 
 void main() async {
@@ -79,24 +78,19 @@ void main() async {
     debugPrint('Failed to initialize subscription repository at startup: $e');
   }
 
-  // Initialize Supabase SDK
-  try {
-    const defaultSupabaseUrl = 'https://bfhzlhmamfuggzjbtawk.supabase.co';
-    const defaultSupabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmaHpsaG1hbWZ1Z2d6amJ0YXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NTYzOTUsImV4cCI6MjA5NzQzMjM5NX0.5Dcz_AM8FUFueQEsHszXkla1EjKSFW8z3P0Sm4aX4Gk';
-
-    const url = String.fromEnvironment('SUPABASE_URL', defaultValue: defaultSupabaseUrl);
-    const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: defaultSupabaseAnonKey);
-
-    if (url.isNotEmpty && anonKey.isNotEmpty) {
-      await sb.Supabase.initialize(
-        url: url,
-        publishableKey: anonKey,
-      );
-    } else {
-      debugPrint('Warning: Supabase URL/AnonKey are empty. Sync features will be disabled.');
+  // Silent restore on first launch after a fresh install.
+  // This recovers purchases for anonymous users who reinstalled or switched devices.
+  // We use a flag so this only fires once per install, not on every launch
+  // (Apple guidelines prohibit automatic restore on every launch for iOS).
+  final hasRestoredOnInstall = prefs.getBool('hasRestoredOnInstall') ?? false;
+  if (!hasRestoredOnInstall && (Platform.isAndroid || Platform.isIOS)) {
+    await prefs.setBool('hasRestoredOnInstall', true);
+    try {
+      await container.read(subscriptionRepositoryProvider).restorePurchases();
+      debugPrint('Silent restore on fresh install completed.');
+    } catch (e) {
+      debugPrint('Silent restore on fresh install failed (non-critical): $e');
     }
-  } catch (e) {
-    debugPrint('Failed to initialize Supabase: $e');
   }
 
   runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));

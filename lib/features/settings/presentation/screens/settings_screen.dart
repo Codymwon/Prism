@@ -11,7 +11,6 @@ import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
 import '../../../onboarding/data/tutorial_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -156,7 +155,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
 
                   // ── Subscription ──────────────────────────────────────────
-                  const SettingsSectionHeader(title: 'Subscription & Account'),
+                  const SettingsSectionHeader(title: 'Subscription'),
                   if (ref.watch(isProProvider)) ...[
                     SettingsTile(
                       icon: Icons.star_rounded,
@@ -177,75 +176,6 @@ class SettingsScreen extends ConsumerWidget {
                         );
                       },
                     ),
-                    if (ref.watch(authProvider).user != null)
-                      SettingsTile(
-                        icon: Icons.account_circle_rounded,
-                        title: 'Account: ${ref.watch(authProvider).user!.email}',
-                        subtitle: 'Tap to sign out',
-                        trailing: const Icon(Icons.logout_rounded, size: 18),
-                        onTap: () async {
-                          await ref.read(authProvider.notifier).signOut();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Signed out successfully.')),
-                            );
-                          }
-                        },
-                      )
-                    else
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        child: TactileWrapper(
-                          style: TactileFeedbackStyle.standard,
-                          onTap: () => context.push('/settings/register?mode=register'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: DesignColors.surfaceVariant(context),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: DesignColors.primary(context).withValues(alpha: 0.3),
-                                width: 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.cloud_sync_rounded,
-                                  color: DesignColors.primary(context),
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Link Prism Account',
-                                        style: DesignTypography.body(
-                                          context,
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Sync your notes and active Pro on other devices.',
-                                        style: DesignTypography.details(context),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  size: 20,
-                                  color: DesignColors.textSecondary(context),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
                   ] else ...[
                     SettingsTile(
                       icon: Icons.star_outline_rounded,
@@ -254,29 +184,6 @@ class SettingsScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.push('/settings/paywall'),
                     ),
-                    if (ref.watch(authProvider).user != null)
-                      SettingsTile(
-                        icon: Icons.account_circle_rounded,
-                        title: 'Account: ${ref.watch(authProvider).user!.email}',
-                        subtitle: 'Tap to sign out',
-                        trailing: const Icon(Icons.logout_rounded, size: 18),
-                        onTap: () async {
-                          await ref.read(authProvider.notifier).signOut();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Signed out successfully.')),
-                            );
-                          }
-                        },
-                      )
-                    else
-                      SettingsTile(
-                        icon: Icons.login_rounded,
-                        title: 'Sign In to Prism Account',
-                        subtitle: 'Retrieve your purchases & sync notes',
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => context.push('/settings/register?mode=login'),
-                      ),
                   ],
 
                   // ── Data ─────────────────────────────────────────────────

@@ -10,6 +10,16 @@ class DefaultRevenueCatClientWrapper implements RevenueCatClientWrapper {
     _controller = StreamController<CustomerInfo>.broadcast(
       onListen: () {
         Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+        // Eagerly seed the stream with the current cached customer info so that
+        // cold starts always emit an initial value, regardless of whether
+        // RevenueCat fires an update event (which it may skip if nothing changed).
+        Purchases.getCustomerInfo().then((info) {
+          if (!_controller.isClosed) {
+            _controller.add(info);
+          }
+        }).catchError((_) {
+          // Silently ignore — stream will still receive events from the listener
+        });
       },
     );
   }

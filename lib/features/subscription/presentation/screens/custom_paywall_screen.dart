@@ -7,7 +7,6 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../domain/entities/subscription_package.dart';
 import '../../domain/failures/subscription_failure.dart';
 import '../providers/subscription_providers.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 class CustomPaywallScreen extends ConsumerStatefulWidget {
   const CustomPaywallScreen({super.key});
@@ -333,23 +332,6 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Center(
-                          child: TextButton(
-                            onPressed: _isPurchasing
-                                ? null
-                                : () => context.push('/settings/register?mode=login'),
-                            child: Text(
-                              'Already have a Prism Account? Sign In',
-                              style: DesignTypography.body(
-                                context,
-                                fontSize: 13,
-                                color: primaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ],
                   ),
@@ -549,10 +531,6 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
               const SnackBar(content: Text('Prism Pro unlocked successfully!')),
             );
             context.pop(); // Close paywall
-            final authState = ref.read(authProvider);
-            if (authState.user == null) {
-              context.push('/settings/register?mode=register');
-            }
           }
         },
       );
