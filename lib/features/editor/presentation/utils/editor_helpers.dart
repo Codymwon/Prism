@@ -262,6 +262,35 @@ class HashtagSyntax extends md.InlineSyntax {
   }
 }
 
+/// A custom widget representing a hashtag pill, used for encapsulation and testing.
+class HashtagPill extends StatelessWidget {
+  final String text;
+  const HashtagPill({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = DesignColors.primary(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+        child: Text(
+          text,
+          style: DesignTypography.metadata(
+            context,
+            fontSize: 10, // 12 * 0.85 approx 10
+            fontWeight: FontWeight.bold,
+            color: primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Custom Element Builder to render the custom 'hashtag' tag
 class HashtagElementBuilder extends MarkdownElementBuilder {
   final BuildContext context;
@@ -269,24 +298,7 @@ class HashtagElementBuilder extends MarkdownElementBuilder {
 
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final primary = DesignColors.primary(context);
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-      decoration: BoxDecoration(
-        color: primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        element.textContent,
-        style: DesignTypography.metadata(
-          context,
-          fontSize: (preferredStyle?.fontSize ?? 12) * 0.85,
-          fontWeight: FontWeight.bold,
-          color: primary,
-        ),
-      ),
-    );
+    return HashtagPill(text: element.textContent);
   }
 }
 

@@ -71,17 +71,5 @@ This is a [[RealLink]] and a #realtag.
       expect(metadata.tags, isNot(contains('inlinecode')));
     });
 
-    test('preprocessMarkdown should insert zero-width space before custom inline widgets on a new line', () {
-      const content = 'Text\n#tag\n==highlight==\n![image](path)\n# Heading\n- List';
-      final result = preprocessMarkdown(content);
-
-      expect(result, contains('\n\u200B#tag'));
-      expect(result, contains('\n\u200B==highlight=='));
-      expect(result, contains('\n\u200B![image](path)'));
-
-      // Should not insert before H1 headers, lists, etc.
-      expect(result, contains('\n# Heading'));
-      expect(result, contains('\n- List'));
-    });
   });
 }

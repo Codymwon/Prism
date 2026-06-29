@@ -12,6 +12,8 @@ import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:prism/shared/design_system/design_system.dart';
 
+import 'package:prism/features/editor/presentation/providers/editor_controller.dart';
+
 class FakeRef implements Ref<Object?> {
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
@@ -19,7 +21,8 @@ class FakeRef implements Ref<Object?> {
 
 class MockNoteRepository extends NoteRepository {
   final Note note;
-  MockNoteRepository(this.note) : super(FakeRef());
+  final void Function(String id, String content)? onSaveNote;
+  MockNoteRepository(this.note, {this.onSaveNote}) : super(FakeRef());
 
   @override
   Future<Note?> getNoteById(String id) async => note;
@@ -28,15 +31,17 @@ class MockNoteRepository extends NoteRepository {
   Future<List<Backlink>> getBacklinks(String noteId) async => [];
 
   @override
-  Future<void> saveNote(String id, String content) async {}
-
-  @override
   Future<String> readNoteContent(String noteId) async {
     final file = File(note.filePath);
     if (file.existsSync()) {
       return file.readAsStringSync();
     }
     throw ArgumentError('Note not found or file does not exist for ID: $noteId');
+  }
+
+  @override
+  Future<void> saveNote(String id, String content) async {
+    onSaveNote?.call(id, content);
   }
 
   @override
@@ -50,9 +55,9 @@ void main() {
   setUp(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
     SharedPreferences.setMockInitialValues({});
-    tempDir = await Directory.systemTemp.createTemp('prism_hashtag_test');
+    tempDir = await Directory.systemTemp.createTemp('prism_test_vault');
     noteFile = File(p.join(tempDir.path, 'note1.md'));
-    await noteFile.writeAsString('# Test Note\n\nThis is a note with #welcome and #productivity hashtags.\n');
+    await noteFile.writeAsString('# Test Note\n\nHello #welcome to #productivity\n');
   });
 
   tearDown(() async {
@@ -64,6 +69,7 @@ void main() {
   });
 
   testWidgets('EditorScreen in preview mode renders hashtags in theme primary color', (WidgetTester tester) async {
+    // Mock the record plugin method channel
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('com.llfbandit.record/messages'),
       (methodCall) async {
@@ -71,7 +77,7 @@ void main() {
       },
     );
 
-    final noteId = 'test-note-hashtag-1';
+    final noteId = 'test-note-1';
     final note = Note(
       id: noteId,
       title: 'Test Note',
@@ -107,6 +113,13 @@ void main() {
     await tester.runAsync(() async {
       await Future.delayed(const Duration(milliseconds: 300));
     });
+    await tester.pump();
+
+    // Set mode to reading view (preview mode)
+    final element = tester.element(find.byType(EditorScreen));
+    ProviderScope.containerOf(element)
+        .read(editorControllerProvider(noteId).notifier)
+        .setEditorMode(EditorMode.reading);
     await tester.pump();
 
     // Verify the hashtags #welcome and #productivity are rendered as styled widgets.

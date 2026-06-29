@@ -25,6 +25,7 @@ mixin _$EditorState {
   String get loadedBody => throw _privateConstructorUsedError;
   String? get dailyDate => throw _privateConstructorUsedError;
   String get lastSaved => throw _privateConstructorUsedError;
+  EditorMode get editorMode => throw _privateConstructorUsedError;
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.
@@ -49,6 +50,7 @@ abstract class $EditorStateCopyWith<$Res> {
     String loadedBody,
     String? dailyDate,
     String lastSaved,
+    EditorMode editorMode,
   });
 }
 
@@ -75,6 +77,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? loadedBody = null,
     Object? dailyDate = freezed,
     Object? lastSaved = null,
+    Object? editorMode = null,
   }) {
     return _then(
       _value.copyWith(
@@ -110,6 +113,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
                 ? _value.lastSaved
                 : lastSaved // ignore: cast_nullable_to_non_nullable
                       as String,
+            editorMode: null == editorMode
+                ? _value.editorMode
+                : editorMode // ignore: cast_nullable_to_non_nullable
+                      as EditorMode,
           )
           as $Val,
     );
@@ -134,6 +141,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
     String loadedBody,
     String? dailyDate,
     String lastSaved,
+    EditorMode editorMode,
   });
 }
 
@@ -159,6 +167,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? loadedBody = null,
     Object? dailyDate = freezed,
     Object? lastSaved = null,
+    Object? editorMode = null,
   }) {
     return _then(
       _$EditorStateImpl(
@@ -194,6 +203,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
             ? _value.lastSaved
             : lastSaved // ignore: cast_nullable_to_non_nullable
                   as String,
+        editorMode: null == editorMode
+            ? _value.editorMode
+            : editorMode // ignore: cast_nullable_to_non_nullable
+                  as EditorMode,
       ),
     );
   }
@@ -211,6 +224,7 @@ class _$EditorStateImpl implements _EditorState {
     this.loadedBody = '',
     this.dailyDate,
     this.lastSaved = '',
+    this.editorMode = EditorMode.livePreview,
   });
 
   @override
@@ -236,10 +250,13 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final String lastSaved;
+  @override
+  @JsonKey()
+  final EditorMode editorMode;
 
   @override
   String toString() {
-    return 'EditorState(isLoaded: $isLoaded, isSaving: $isSaving, showWikilinkPopup: $showWikilinkPopup, wikilinkQuery: $wikilinkQuery, loadedTitle: $loadedTitle, loadedBody: $loadedBody, dailyDate: $dailyDate, lastSaved: $lastSaved)';
+    return 'EditorState(isLoaded: $isLoaded, isSaving: $isSaving, showWikilinkPopup: $showWikilinkPopup, wikilinkQuery: $wikilinkQuery, loadedTitle: $loadedTitle, loadedBody: $loadedBody, dailyDate: $dailyDate, lastSaved: $lastSaved, editorMode: $editorMode)';
   }
 
   @override
@@ -262,7 +279,9 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.dailyDate, dailyDate) ||
                 other.dailyDate == dailyDate) &&
             (identical(other.lastSaved, lastSaved) ||
-                other.lastSaved == lastSaved));
+                other.lastSaved == lastSaved) &&
+            (identical(other.editorMode, editorMode) ||
+                other.editorMode == editorMode));
   }
 
   @override
@@ -276,6 +295,7 @@ class _$EditorStateImpl implements _EditorState {
     loadedBody,
     dailyDate,
     lastSaved,
+    editorMode,
   );
 
   /// Create a copy of EditorState
@@ -297,6 +317,7 @@ abstract class _EditorState implements EditorState {
     final String loadedBody,
     final String? dailyDate,
     final String lastSaved,
+    final EditorMode editorMode,
   }) = _$EditorStateImpl;
 
   @override
@@ -315,6 +336,8 @@ abstract class _EditorState implements EditorState {
   String? get dailyDate;
   @override
   String get lastSaved;
+  @override
+  EditorMode get editorMode;
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.

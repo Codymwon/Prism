@@ -14,6 +14,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/core/utils/utils.dart';
+import 'package:prism/features/editor/presentation/providers/editor_controller.dart';
 
 class FakeRef implements Ref<Object?> {
   @override
@@ -399,6 +400,13 @@ void main() {
     await tester.runAsync(() async {
       await Future.delayed(const Duration(milliseconds: 300));
     });
+    await tester.pump();
+
+    // Set mode to reading view (preview mode)
+    final element = tester.element(find.byType(EditorScreen));
+    ProviderScope.containerOf(element)
+        .read(editorControllerProvider(noteId).notifier)
+        .setEditorMode(EditorMode.reading);
     await tester.pump();
 
     final markdownBodyFinder = find.byType(MarkdownBody);

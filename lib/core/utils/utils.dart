@@ -262,6 +262,7 @@ String processWikilinks(String text) {
 /// with `&nbsp;` (excluding fenced code blocks) to prevent checklist checkbox
 /// rendering bugs and ensure correct empty line spacing in view mode.
 String preprocessMarkdown(String text) {
+  print('preprocessMarkdown INPUT: ${Error.safeToString(text)}');
   // 1. Process wikilinks
   final processedLinks = processWikilinks(text);
 
@@ -269,28 +270,97 @@ String preprocessMarkdown(String text) {
   final parts = processedLinks.split('```');
   for (int i = 0; i < parts.length; i++) {
     if (i % 2 == 0) {
-      // Fix Flutter WidgetSpan newline wrap bug for custom inline widgets:
-      // - Hashtags: # followed by a letter (e.g., #tag)
-      // - Highlights: == (e.g., ==text==)
-      // - Inline Images: ![ (e.g., ![alt])
-      final processedPart = parts[i].replaceAllMapped(
-        RegExp(r'\n(?=(#[a-zA-Z]|==|\!\[))'),
-        (match) => '\n\u200B',
-      );
-
-      // Preprocess non-code block content line-by-line
+      final processedPart = parts[i];
+      if (processedPart.isEmpty) {
+        continue;
+      }
       final lines = processedPart.split('\n');
+      final newLines = <String>[];
+
+      bool isBlockBoundary(String line) {
+        final trimmed = line.trim();
+        if (trimmed.isEmpty) return false;
+        // Thematic breaks (---, ***, ___)
+        if (RegExp(r'^[-*_]{3,}$').hasMatch(trimmed)) return true;
+        // Lines containing custom inline widgets also act as block boundaries
+        // to prevent collapsing of surrounding text.
+        final hasHashtag = RegExp(r'(?<!\w)#([a-zA-Z][a-zA-Z0-9_]*)').hasMatch(trimmed);
+        final hasHighlight = RegExp(r'==[^=\n]+==').hasMatch(trimmed);
+        final hasImage = RegExp(r'!\[[^\]\n]*\]\([^)\n]+\)').hasMatch(trimmed);
+        return hasHashtag || hasHighlight || hasImage;
+      }
+
+      bool containsInlineWidget(String line) {
+        final hasHashtag = RegExp(r'(?<!\w)#([a-zA-Z][a-zA-Z0-9_]*)').hasMatch(line);
+        final hasHighlight = RegExp(r'==[^=\n]+==').hasMatch(line);
+        final hasImage = RegExp(r'!\[[^\]\n]*\]\([^)\n]+\)').hasMatch(line);
+        return hasHashtag || hasHighlight || hasImage;
+      }
+
       final length = (lines.isNotEmpty && lines.last.isEmpty) ? lines.length - 1 : lines.length;
+
       for (int j = 0; j < length; j++) {
-        if (lines[j].trim().isEmpty) {
-          lines[j] = '&nbsp;';
+        final line = lines[j];
+
+        // Check if current line contains a custom inline widget
+        if (containsInlineWidget(line)) {
+          // If previous line is not empty and is not a block boundary, insert a blank line
+          if (newLines.isNotEmpty && newLines.last.trim().isNotEmpty && !isBlockBoundary(newLines.last)) {
+            newLines.add('');
+          }
+        }
+
+        // Also if the CURRENT line is a thematic break (---, ***, ___),
+        // we must make sure the line before it is a blank line so it gets parsed as a horizontal rule,
+        // and NOT a Setext heading underline!
+        if (j > 0 && isBlockBoundary(line) && RegExp(r'^[-*_]{3,}$').hasMatch(line.trim())) {
+          if (newLines.isNotEmpty && newLines.last.trim().isNotEmpty && !isBlockBoundary(newLines.last)) {
+            newLines.add('');
+          }
+        }
+
+        newLines.add(line);
+
+        // If current line contains a custom inline widget, and the next line is not empty and not a block boundary,
+        // we will insert a blank line after it.
+        if (containsInlineWidget(line) && j < length - 1) {
+          final nextLine = lines[j + 1];
+          if (nextLine.trim().isNotEmpty && !isBlockBoundary(nextLine)) {
+            newLines.add('');
+          }
         }
       }
-      parts[i] = lines.join('\n');
+
+      if (lines.isNotEmpty && lines.last.isEmpty) {
+        newLines.add('');
+      }
+
+      // Now replace empty lines with &nbsp; ONLY if they are NOT adjacent to a block-level boundary
+      // Note: we don't replace the trailing empty line
+      final blankCheckLength = (newLines.isNotEmpty && newLines.last.isEmpty) ? newLines.length - 1 : newLines.length;
+      for (int j = 0; j < blankCheckLength; j++) {
+        if (newLines[j].trim().isEmpty) {
+          bool isAdjacentToBlock = false;
+          if (j > 0 && isBlockBoundary(newLines[j - 1])) {
+            isAdjacentToBlock = true;
+          }
+          if (j < blankCheckLength - 1 && isBlockBoundary(newLines[j + 1])) {
+            isAdjacentToBlock = true;
+          }
+
+          if (!isAdjacentToBlock) {
+            newLines[j] = '&nbsp;';
+          }
+        }
+      }
+
+      parts[i] = newLines.join('\n');
     }
   }
 
-  return parts.join('```');
+  final result = parts.join('```');
+  print('preprocessMarkdown OUTPUT: ${Error.safeToString(result)}');
+  return result;
 }
 
 /// Extension to parse HEX color strings safely.

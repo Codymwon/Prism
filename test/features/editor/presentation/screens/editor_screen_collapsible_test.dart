@@ -10,6 +10,7 @@ import 'package:prism/features/editor/presentation/utils/editor_helpers.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
+import 'package:prism/features/editor/presentation/providers/editor_controller.dart';
 
 class FakeRef implements Ref<Object?> {
   @override
@@ -170,9 +171,17 @@ void main() {
         ),
       );
 
+
       await tester.runAsync(() async {
         await Future.delayed(const Duration(seconds: 1));
       });
+      await tester.pump();
+
+      // Set mode to reading view (preview mode)
+      final element = tester.element(find.byType(EditorScreen));
+      ProviderScope.containerOf(element)
+          .read(editorControllerProvider(noteId).notifier)
+          .setEditorMode(EditorMode.reading);
       await tester.pump();
 
       // Find chevrons

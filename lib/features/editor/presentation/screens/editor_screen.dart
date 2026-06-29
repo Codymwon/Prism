@@ -19,10 +19,8 @@ import '../providers/editor_controller.dart';
 import '../widgets/conflict_banner.dart';
 import '../widgets/editor_write_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-enum EditorMode { write, preview }
-
-final editorModeProvider = StateProvider<EditorMode>((_) => EditorMode.write);
+import '../controllers/live_preview_controller.dart';
+import '../utils/markdown_line_parser.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {
   final String noteId;
@@ -43,18 +41,18 @@ class EditorScreen extends ConsumerStatefulWidget {
 class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool get _isTemplate => widget.noteId.startsWith('template:');
   final _titleController = TextEditingController();
-  final _controller = TextEditingController();
+  late final LivePreviewController _controller;
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
 
   late EditorController _editorController;
-  late StateController<EditorMode> _editorModeController;
 
   // Caching processed markdown text (avoiding redundant processWikilinks RegExp execution)
   String? _processedWikilinksText;
   String? _lastProcessedText;
 
   Set<String> _collapsedHeadings = {};
+  bool _showEditorDrawer = false;
 
   Future<void> _loadCollapsedHeadings() async {
     try {
@@ -92,19 +90,64 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   void initState() {
     super.initState();
     _editorController = ref.read(editorControllerProvider(widget.noteId).notifier);
-    _editorModeController = ref.read(editorModeProvider.notifier);
+    
+    _controller = LivePreviewController(
+      noteId: widget.noteId,
+      mode: EditorMode.livePreview,
+      audioPlayerBuilder: (path, label) {
+        return InlineAudioWaveformPlayer(
+          key: ValueKey('audio_waveform_$path'),
+          filePath: path,
+          fileName: label ?? p.basename(path),
+          noteId: widget.noteId,
+        );
+      },
+      imageBuilder: (path, alt) {
+        return buildMarkdownImage(
+          uri: Uri.parse(path),
+          noteId: widget.noteId,
+          ref: ref,
+          context: context,
+        );
+      },
+      tableBuilder: (tableLines) {
+        return MarkdownBody(
+          data: tableLines.join('\n'),
+          styleSheet: buildMarkdownStyleSheet(
+            context,
+            ref.read(fontFamilyProvider),
+            double.tryParse(ref.read(fontSizeProvider).replaceAll('pt', '')) ?? 16.0,
+            Theme.of(context).colorScheme,
+          ),
+        );
+      },
+      checkboxBuilder: (lineIndex, checked) {
+        return GestureDetector(
+          onTap: () => _toggleCheckbox(lineIndex),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 6.0),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: Checkbox(
+                value: checked,
+                onChanged: (val) => _toggleCheckbox(lineIndex),
+                activeColor: DesignColors.primary(context),
+                checkColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
     _loadNote();
     _loadCollapsedHeadings();
     _titleController.addListener(_onTextChanged);
     _controller.addListener(_onTextChanged);
-
-    // Set mode: Edit mode for new notes, View mode for existing notes
-    Future.microtask(() {
-      if (mounted) {
-        _editorModeController.state =
-            widget.isNew ? EditorMode.write : EditorMode.preview;
-      }
-    });
   }
 
   Future<void> _loadNote() async {
@@ -175,10 +218,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _controller.text,
     );
 
-    // Reset editor mode to View mode when exiting
-    try {
-      _editorModeController.state = EditorMode.preview;
-    } catch (_) {}
+
 
     _titleController.removeListener(_onTextChanged);
     _titleController.dispose();
@@ -195,10 +235,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    final mode = ref.watch(editorModeProvider);
 
     final editorState = ref.watch(editorControllerProvider(widget.noteId));
     final audioRecordState = ref.watch(audioRecordControllerProvider(widget.noteId));
+
+    final mode = editorState.editorMode;
+    _controller.mode = mode;
 
     // StateNotifier — watch synchronously
     final fontFamily = ref.watch(fontFamilyProvider);
@@ -236,7 +278,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   },
                 ),
                 Expanded(
-                  child: mode == EditorMode.write
+                  child: mode != EditorMode.reading
                       ? Column(
                           children: [
                             Expanded(
@@ -264,7 +306,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                   ),
                           ],
                         )
-                      : _buildPreviewMode(
+                      : _buildReadingView(
                           isDark, colorScheme, fontFamily, sizeVal, paddingVal, editorState),
                 ),
                 // Backlinks panel
@@ -282,7 +324,123 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   .read(editorControllerProvider(widget.noteId).notifier)
                   .dismissWikilinkPopup(),
             ),
+
+          // Editor Drawer Overlay Panel
+          if (_showEditorDrawer)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _showEditorDrawer = false),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.15),
+                ),
+              ),
+            ),
+          if (_showEditorDrawer)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(12),
+                color: DesignColors.surface(context).withValues(alpha: 0.95),
+                child: Container(
+                  width: 220,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: DesignColors.border(context)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          'EDITOR MODE',
+                          style: DesignTypography.metadata(
+                            context,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: DesignColors.textTertiary(context),
+                          ),
+                        ),
+                      ),
+                      _buildDrawerModeButton(
+                        context,
+                        label: 'Live Preview',
+                        icon: Icons.edit_note,
+                        isActive: mode == EditorMode.livePreview,
+                        onTap: () {
+                          _editorController.setEditorMode(EditorMode.livePreview);
+                          setState(() => _showEditorDrawer = false);
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      _buildDrawerModeButton(
+                        context,
+                        label: 'Source Mode',
+                        icon: Icons.code,
+                        isActive: mode == EditorMode.source,
+                        onTap: () {
+                          _editorController.setEditorMode(EditorMode.source);
+                          setState(() => _showEditorDrawer = false);
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      _buildDrawerModeButton(
+                        context,
+                        label: 'Reading View',
+                        icon: Icons.menu_book,
+                        isActive: mode == EditorMode.reading,
+                        onTap: () {
+                          _editorController.setEditorMode(EditorMode.reading);
+                          setState(() => _showEditorDrawer = false);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerModeButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isActive ? DesignColors.primary(context).withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isActive ? DesignColors.primary(context) : DesignColors.textSecondary(context),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: DesignTypography.body(context).copyWith(
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? DesignColors.primary(context) : DesignColors.text(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -390,15 +548,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           },
           tooltip: 'Organize into folders',
         ),
-        // Toggle write/preview
+        // Editor settings drawer trigger button
         IconButton(
-          icon: Icon(
-            mode == EditorMode.write ? DesignIcons.preview : DesignIcons.edit,
-            size: 20,
-          ),
-          onPressed: () => ref.read(editorModeProvider.notifier).state =
-              mode == EditorMode.write ? EditorMode.preview : EditorMode.write,
-          tooltip: mode == EditorMode.write ? 'Preview' : 'Edit',
+          icon: const Icon(Icons.settings, size: 20),
+          onPressed: () {
+            setState(() {
+              _showEditorDrawer = !_showEditorDrawer;
+            });
+          },
+          tooltip: 'Editor Settings',
         ),
         const SizedBox(width: 4),
       ],
@@ -414,8 +572,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _processedWikilinksText = preprocessMarkdown(text);
     return _processedWikilinksText!;
   }
-
-  Widget _buildPreviewMode(
+  Widget _buildReadingView(
     bool isDark,
     ColorScheme colorScheme,
     String family,
@@ -431,31 +588,36 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     return SingleChildScrollView(
       controller: _scrollController,
-      padding:
-          EdgeInsets.fromLTRB(paddingHorizontal, 12, paddingHorizontal, 100),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _titleController.text.isEmpty ? 'Untitled' : _titleController.text,
-            style: getEditorFont(
-              family,
-              fontSize: size * 1.8,
-              fontWeight: FontWeight.w800,
-              color: DesignColors.text(context),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
+            child: Text(
+              _titleController.text.isEmpty ? 'Untitled' : _titleController.text,
+              style: getEditorFont(
+                family,
+                fontSize: size * 1.8,
+                fontWeight: FontWeight.w800,
+                color: DesignColors.text(context),
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            height: 1,
-            color: DesignColors.border(context),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
+            child: Container(
+              height: 1,
+              color: DesignColors.border(context),
+            ),
           ),
           const SizedBox(height: 16),
           // 1. Render root level segments (text before any heading)
           for (final segment in rootNode.segments)
             if (segment.isAudio)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: paddingHorizontal, vertical: 4),
                 child: InlineAudioWaveformPlayer(
                   key: ValueKey('audio_${segment.audioPath}'),
                   filePath: segment.audioPath!,
@@ -464,66 +626,69 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ),
               )
             else
-              Builder(
-                builder: (context) {
-                  int localCheckboxIndex = 0;
-                  return MarkdownBody(
-                    data: segment.text!,
-                    softLineBreak: true,
-                    inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
-                    builders: {
-                      'mark': HighlightElementBuilder(context),
-                      'hashtag': HashtagElementBuilder(context),
-                    },
-                    imageBuilder: (uri, title, alt) {
-                      return buildMarkdownImage(
-                        uri: uri,
-                        noteId: widget.noteId,
-                        ref: ref,
-                        context: context,
-                      );
-                    },
-                    onTapLink: (text, href, title) async {
-                      handleMarkdownLinkTap(
-                        href: href,
-                        ref: ref,
-                        context: context,
-                      );
-                    },
-                    styleSheet: styleSheet,
-                    checkboxBuilder: (bool value) {
-                      final lineIndex = segment.checkboxLineIndices[localCheckboxIndex++];
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6, top: 3),
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: Checkbox(
-                            value: value,
-                            activeColor: colorScheme.primary,
-                            checkColor: colorScheme.onPrimary,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            side: BorderSide(
-                              color: DesignColors.textSecondary(context)
-                                  .withValues(alpha: 0.7),
-                              width: 1.5,
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
+                child: Builder(
+                  builder: (context) {
+                    int localCheckboxIndex = 0;
+                    return MarkdownBody(
+                      data: segment.text!,
+                      softLineBreak: true,
+                      inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                      builders: {
+                        'mark': HighlightElementBuilder(context),
+                        'hashtag': HashtagElementBuilder(context),
+                      },
+                      imageBuilder: (uri, title, alt) {
+                        return buildMarkdownImage(
+                          uri: uri,
+                          noteId: widget.noteId,
+                          ref: ref,
+                          context: context,
+                        );
+                      },
+                      onTapLink: (text, href, title) async {
+                        handleMarkdownLinkTap(
+                          href: href,
+                          ref: ref,
+                          context: context,
+                        );
+                      },
+                      styleSheet: styleSheet,
+                      checkboxBuilder: (bool value) {
+                        final lineIndex = segment.checkboxLineIndices[localCheckboxIndex++];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6, top: 3),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: Checkbox(
+                              value: value,
+                              activeColor: colorScheme.primary,
+                              checkColor: colorScheme.onPrimary,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(
+                                color: DesignColors.textSecondary(context)
+                                    .withValues(alpha: 0.7),
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              onChanged: (bool? newValue) {
+                                _toggleCheckbox(lineIndex);
+                              },
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            onChanged: (bool? newValue) {
-                              _toggleCheckbox(lineIndex);
-                            },
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
           // 2. Render subheadings recursively
           for (final child in rootNode.children)
-            _buildHeadingNode(child, styleSheet, colorScheme, family, size),
+            _buildHeadingNode(child, styleSheet, colorScheme, family, size, paddingHorizontal),
         ],
       ),
     );
@@ -535,44 +700,58 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     ColorScheme colorScheme,
     String family,
     double size,
+    double paddingHorizontal,
   ) {
     final isCollapsed = _collapsedHeadings.contains(node.headingText);
+    // The chevron is placed in the gutter, so we adjust the left padding of the row
+    final leftPadding = paddingHorizontal > 24.0 ? paddingHorizontal - 24.0 : 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: AnimatedRotation(
-                turns: isCollapsed ? 0.0 : 0.25,
-                duration: const Duration(milliseconds: 200),
-                child: const Icon(Icons.chevron_right, size: 24),
+        Padding(
+          padding: EdgeInsets.only(left: leftPadding, right: paddingHorizontal),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 24,
+                height: 28, // Matches heading height alignment
+                child: Center(
+                  child: IconButton(
+                    icon: AnimatedRotation(
+                      turns: isCollapsed ? 0.0 : 0.25,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.chevron_right, size: 20),
+                    ),
+                    onPressed: () => _toggleHeadingCollapse(node.headingText),
+                    splashRadius: 16,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
               ),
-              onPressed: () => _toggleHeadingCollapse(node.headingText),
-              splashRadius: 20,
-            ),
-            Expanded(
-              child: MarkdownBody(
-                data: '${'#' * node.level} ${node.headingText}',
-                inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
-                builders: {
-                  'mark': HighlightElementBuilder(context),
-                  'hashtag': HashtagElementBuilder(context),
-                },
-                styleSheet: styleSheet,
-                onTapLink: (text, href, title) async {
-                  handleMarkdownLinkTap(
-                    href: href,
-                    ref: ref,
-                    context: context,
-                  );
-                },
+              Expanded(
+                child: MarkdownBody(
+                  data: '${'#' * node.level} ${node.headingText}',
+                  inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                  builders: {
+                    'mark': HighlightElementBuilder(context),
+                    'hashtag': HashtagElementBuilder(context),
+                  },
+                  styleSheet: styleSheet,
+                  onTapLink: (text, href, title) async {
+                    handleMarkdownLinkTap(
+                      href: href,
+                      ref: ref,
+                      context: context,
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         AnimatedSize(
@@ -582,14 +761,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           child: isCollapsed
               ? const SizedBox.shrink()
               : Padding(
-                  padding: EdgeInsets.only(left: 16.0 * (node.level > 0 ? 1 : 0)),
+                  padding: EdgeInsets.zero,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (final segment in node.segments)
                         if (segment.isAudio)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            padding: EdgeInsets.symmetric(horizontal: paddingHorizontal, vertical: 4),
                             child: InlineAudioWaveformPlayer(
                               key: ValueKey('audio_${segment.audioPath}'),
                               filePath: segment.audioPath!,
@@ -598,65 +777,68 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             ),
                           )
                         else
-                          Builder(
-                            builder: (context) {
-                              int localCheckboxIndex = 0;
-                              return MarkdownBody(
-                                data: segment.text!,
-                                softLineBreak: true,
-                                inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
-                                builders: {
-                                  'mark': HighlightElementBuilder(context),
-                                  'hashtag': HashtagElementBuilder(context),
-                                },
-                                imageBuilder: (uri, title, alt) {
-                                  return buildMarkdownImage(
-                                    uri: uri,
-                                    noteId: widget.noteId,
-                                    ref: ref,
-                                    context: context,
-                                  );
-                                },
-                                onTapLink: (text, href, title) async {
-                                  handleMarkdownLinkTap(
-                                    href: href,
-                                    ref: ref,
-                                    context: context,
-                                  );
-                                },
-                                styleSheet: styleSheet,
-                                checkboxBuilder: (bool value) {
-                                  final lineIndex = segment.checkboxLineIndices[localCheckboxIndex++];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 6, top: 3),
-                                    child: SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: Checkbox(
-                                        value: value,
-                                        activeColor: colorScheme.primary,
-                                        checkColor: colorScheme.onPrimary,
-                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        side: BorderSide(
-                                          color: DesignColors.textSecondary(context)
-                                              .withValues(alpha: 0.7),
-                                          width: 1.5,
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
+                            child: Builder(
+                              builder: (context) {
+                                int localCheckboxIndex = 0;
+                                return MarkdownBody(
+                                  data: segment.text!,
+                                  softLineBreak: true,
+                                  inlineSyntaxes: [HighlightSyntax(), HashtagSyntax()],
+                                  builders: {
+                                    'mark': HighlightElementBuilder(context),
+                                    'hashtag': HashtagElementBuilder(context),
+                                  },
+                                  imageBuilder: (uri, title, alt) {
+                                    return buildMarkdownImage(
+                                      uri: uri,
+                                      noteId: widget.noteId,
+                                      ref: ref,
+                                      context: context,
+                                    );
+                                  },
+                                  onTapLink: (text, href, title) async {
+                                    handleMarkdownLinkTap(
+                                      href: href,
+                                      ref: ref,
+                                      context: context,
+                                    );
+                                  },
+                                  styleSheet: styleSheet,
+                                  checkboxBuilder: (bool value) {
+                                    final lineIndex = segment.checkboxLineIndices[localCheckboxIndex++];
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 6, top: 3),
+                                      child: SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: Checkbox(
+                                          value: value,
+                                          activeColor: colorScheme.primary,
+                                          checkColor: colorScheme.onPrimary,
+                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          side: BorderSide(
+                                            color: DesignColors.textSecondary(context)
+                                                .withValues(alpha: 0.7),
+                                            width: 1.5,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          onChanged: (bool? newValue) {
+                                            _toggleCheckbox(lineIndex);
+                                          },
                                         ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        onChanged: (bool? newValue) {
-                                          _toggleCheckbox(lineIndex);
-                                        },
                                       ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                           ),
                       for (final child in node.children)
-                        _buildHeadingNode(child, styleSheet, colorScheme, family, size),
+                        _buildHeadingNode(child, styleSheet, colorScheme, family, size, paddingHorizontal),
                     ],
                   ),
                 ),

@@ -11,8 +11,14 @@ import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 part 'editor_controller.freezed.dart';
 part 'editor_controller.g.dart';
+
+// ─── EditorMode ──────────────────────────────────────────────────────────────
+
+enum EditorMode { livePreview, source, reading }
 
 // ─── EditorState ──────────────────────────────────────────────────────────────
 
@@ -28,6 +34,7 @@ class EditorState with _$EditorState {
     @Default('') String loadedBody,
     String? dailyDate,
     @Default('') String lastSaved,
+    @Default(EditorMode.livePreview) EditorMode editorMode,
   }) = _EditorState;
 
   factory EditorState.initial() => const EditorState(
@@ -39,6 +46,7 @@ class EditorState with _$EditorState {
         loadedBody: '',
         dailyDate: null,
         lastSaved: '',
+        editorMode: EditorMode.livePreview,
       );
 }
 
@@ -98,15 +106,45 @@ class EditorController extends _$EditorController {
       }
     }
 
+    // Load persisted editor mode
+    EditorMode loadedMode = EditorMode.livePreview;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final modeName = prefs.getString('editorMode_$noteId');
+      if (modeName != null) {
+        loadedMode = EditorMode.values.firstWhere(
+          (e) => e.name == modeName,
+          orElse: () => EditorMode.livePreview,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error loading editor mode: $e');
+    }
+
     state = state.copyWith(
       isLoaded: true,
       loadedTitle: parsedTitle,
       loadedBody: parsedBody,
       lastSaved: content,
       dailyDate: dateStr,
+      editorMode: loadedMode,
     );
 
     return state;
+  }
+
+  Future<void> setEditorMode(EditorMode mode) async {
+    state = state.copyWith(editorMode: mode);
+
+    // Reading mode is transient, only persist livePreview or source
+    if (mode != EditorMode.reading) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('editorMode_$noteId', mode.name);
+      } catch (e) {
+        debugPrint('Error saving editor mode: $e');
+      }
+    }
   }
 
   void onTextChanged(String title, String body, TextSelection selection, bool isDictating) {
