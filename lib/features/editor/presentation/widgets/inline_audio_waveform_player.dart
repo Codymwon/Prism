@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../../../../core/database/vault_providers.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../features/notes/data/audio_bookmark_model.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../providers/audio_player_providers.dart';
 import '../providers/audio_bookmark_providers.dart';
 import '../utils/audio_waveform_peak_generator.dart';
@@ -54,7 +55,17 @@ class _InlineAudioWaveformPlayerState
   Future<void> _resolvePath() async {
     try {
       final vaultPath = await ref.read(activeVaultPathProvider.future);
-      final absPath = p.join(vaultPath, widget.filePath);
+      String effectiveVaultPath = vaultPath;
+
+      final noteId = widget.noteId;
+      if (noteId != null) {
+        final note = await ref.read(noteByIdProvider(noteId).future);
+        if (note != null && note.filePath.isNotEmpty) {
+          effectiveVaultPath = p.dirname(note.filePath);
+        }
+      }
+
+      final absPath = p.join(effectiveVaultPath, widget.filePath);
       final file = File(absPath);
       if (await file.exists()) {
         final peaks = await Isolate.run(() async {
@@ -163,7 +174,7 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
   BookmarkKey? get _bookmarkKey {
     final noteId = widget.noteId;
     final relPath = widget.relativeFilePath;
-    if (noteId == null || relPath == null) return null;
+    if (noteId == null || relPath == null || noteId.startsWith('template:')) return null;
     return BookmarkKey(noteId: noteId, attachmentPath: relPath);
   }
 
@@ -429,6 +440,29 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
               );
             },
           ),
+          // ── Error display ──
+          if (bookmarkState?.error != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, size: 14, color: Colors.redAccent),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Database Error: ${bookmarkState!.error}',
+                      style: DesignTypography.body(context, fontSize: 11, color: Colors.redAccent),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           // ── Bookmark list ──
           if (bookmarks.isNotEmpty) ...[
             const SizedBox(height: 8),

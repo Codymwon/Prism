@@ -132,12 +132,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   void _onTextChanged() {
-    final dictationState = ref.read(dictationControllerProvider(widget.noteId));
+    final audioRecordState = ref.read(audioRecordControllerProvider(widget.noteId));
     ref.read(editorControllerProvider(widget.noteId).notifier).onTextChanged(
           _titleController.text,
           _controller.text,
           _controller.selection,
-          dictationState.isDictating,
+          audioRecordState.isRecording,
         );
   }
 
@@ -198,7 +198,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final mode = ref.watch(editorModeProvider);
 
     final editorState = ref.watch(editorControllerProvider(widget.noteId));
-    final dictationState = ref.watch(dictationControllerProvider(widget.noteId));
+    final audioRecordState = ref.watch(audioRecordControllerProvider(widget.noteId));
 
     // StateNotifier — watch synchronously
     final fontFamily = ref.watch(fontFamilyProvider);
@@ -250,23 +250,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                 paddingHorizontal: paddingVal,
                               ),
                             ),
-                            dictationState.isDictating
-                                ? DictationOverlay(
-                                    currentWords: ref
-                                                .read(keepVoiceRecordingsProvider)
-                                                .valueOrNull ??
-                                            false
-                                        ? 'Recording audio note...'
-                                        : (dictationState.currentWords.isEmpty
-                                            ? 'Listening...'
-                                            : dictationState.currentWords),
-                                    onCancel: () => _stopDictation(commit: false),
-                                    onCommit: () => _stopDictation(commit: true),
+                            audioRecordState.isRecording
+                                ? AudioRecordOverlay(
+                                    durationSeconds: audioRecordState.durationSeconds,
+                                    onCancel: () => _stopAudioRecording(commit: false),
+                                    onCommit: () => _stopAudioRecording(commit: true),
                                   )
                                 : FormattingToolbar(
                                     controller: _controller,
                                     focusNode: _focusNode,
-                                    onToggleDictation: _toggleDictation,
+                                    onToggleDictation: _toggleAudioRecording,
                                     onAttachImage: _attachImage,
                                   ),
                           ],
@@ -727,11 +720,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  Future<void> _toggleDictation() async {
+  Future<void> _toggleAudioRecording() async {
     try {
       await ref
-          .read(dictationControllerProvider(widget.noteId).notifier)
-          .toggleDictation(
+          .read(audioRecordControllerProvider(widget.noteId).notifier)
+          .toggleRecording(
             textController: _controller,
             focusNode: _focusNode,
             onSave: () {
@@ -750,11 +743,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  Future<void> _stopDictation({required bool commit}) async {
+  Future<void> _stopAudioRecording({required bool commit}) async {
     try {
       await ref
-          .read(dictationControllerProvider(widget.noteId).notifier)
-          .stopDictation(
+          .read(audioRecordControllerProvider(widget.noteId).notifier)
+          .stopRecording(
             commit: commit,
             textController: _controller,
             focusNode: _focusNode,
@@ -766,7 +759,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             },
           );
     } catch (e) {
-      debugPrint('Error stopping dictation: $e');
+      debugPrint('Error stopping audio recording: $e');
     }
   }
 }

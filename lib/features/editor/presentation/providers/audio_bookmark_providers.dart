@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/utils/utils.dart';
@@ -58,7 +59,8 @@ class AudioBookmarkNotifier extends _$AudioBookmarkNotifier {
         _attachmentPath,
       );
       state = AudioBookmarkState(bookmarks: bookmarks);
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AudioBookmark] Error loading bookmarks: $e\n$stack');
       state = AudioBookmarkState(error: e.toString());
     }
   }
@@ -82,7 +84,8 @@ class AudioBookmarkNotifier extends _$AudioBookmarkNotifier {
     try {
       await _repository.addBookmark(bookmark);
       await _load();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AudioBookmark] Error adding bookmark: $e\n$stack');
       state = state.copyWith(error: e.toString());
     }
   }
@@ -98,7 +101,8 @@ class AudioBookmarkNotifier extends _$AudioBookmarkNotifier {
             .toList(),
       );
       await _load();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AudioBookmark] Error deleting bookmark: $e\n$stack');
       state = state.copyWith(error: e.toString());
     }
   }

@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:path/path.dart' as p;
-import 'package:speech_to_text/speech_to_text.dart';
 import 'package:record/record.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
 part 'editor_controller.freezed.dart';
@@ -221,7 +221,7 @@ class EditorController extends _$EditorController {
 // ─── AudioRecorderService ─────────────────────────────────────────────────────
 
 /// Abstract seam for microphone permission and audio recording, decoupling
-/// [DictationController] from the concrete `record` plugin.
+/// [AudioRecordController] from the concrete `record` plugin.
 abstract class AudioRecorderService {
   /// Returns `true` if the app has microphone permission.
   Future<bool> hasPermission();
@@ -277,142 +277,43 @@ final audioRecorderServiceProvider = Provider<AudioRecorderService>((ref) {
   return service;
 });
 
-// ─── SpeechToTextService ──────────────────────────────────────────────────────
+// ─── AudioRecordState ─────────────────────────────────────────────────────────
 
-/// Abstract seam for speech recognition, decoupling [DictationController] from
-/// the concrete `speech_to_text` plugin.
-abstract class SpeechToTextService {
-  /// Initialises the speech recogniser.  Returns `true` if available.
-  Future<bool> initialize({
-    required void Function(String status) onStatus,
-    required void Function(String error) onError,
-  });
-
-  /// Starts listening for speech.
-  Future<void> listen({
-    required void Function(String words, bool isFinal) onResult,
-    Duration? listenFor,
-    Duration? pauseFor,
-  });
-
-  /// Stops listening.
-  Future<void> stop();
-
-  /// Whether speech recognition is available on the current device.
-  bool get isAvailable;
-
-  /// Releases native resources.
-  void dispose();
-}
-
-// ─── SpeechToTextServiceImpl ──────────────────────────────────────────────────
-
-/// Production adapter wrapping the `speech_to_text` plugin [SpeechToText].
-class SpeechToTextServiceImpl implements SpeechToTextService {
-  final SpeechToText _stt = SpeechToText();
-
-  @override
-  Future<bool> initialize({
-    required void Function(String status) onStatus,
-    required void Function(String error) onError,
-  }) {
-    return _stt.initialize(
-      onStatus: onStatus,
-      onError: (e) => onError(e.toString()),
-    );
-  }
-
-  @override
-  Future<void> listen({
-    required void Function(String words, bool isFinal) onResult,
-    Duration? listenFor,
-    Duration? pauseFor,
-  }) {
-    return _stt.listen(
-      onResult: (result) => onResult(result.recognizedWords, result.finalResult),
-      listenOptions: SpeechListenOptions(
-        partialResults: true,
-        listenMode: ListenMode.dictation,
-        listenFor: listenFor ?? const Duration(minutes: 10),
-        pauseFor: pauseFor ?? const Duration(seconds: 15),
-      ),
-    );
-  }
-
-  @override
-  Future<void> stop() => _stt.stop();
-
-  @override
-  bool get isAvailable => _stt.isAvailable;
-
-  @override
-  void dispose() {
-    // SpeechToText has no explicit dispose – stop any active session.
-    try {
-      _stt.stop();
-    } catch (_) {}
-  }
-}
-
-final speechToTextServiceProvider = Provider<SpeechToTextService>((ref) {
-  final service = SpeechToTextServiceImpl();
-  ref.onDispose(service.dispose);
-  return service;
-});
-
-// ─── DictationState ───────────────────────────────────────────────────────────
-
-/// Value class representing the state of the dictation.
+/// Value class representing the state of the audio recording.
 @freezed
-class DictationState with _$DictationState {
-  const factory DictationState({
-    @Default(false) bool isDictating,
-    @Default('') String currentWords,
-  }) = _DictationState;
+class AudioRecordState with _$AudioRecordState {
+  const factory AudioRecordState({
+    @Default(false) bool isRecording,
+    @Default(0) int durationSeconds,
+  }) = _AudioRecordState;
 
-  factory DictationState.initial() => const DictationState(
-        isDictating: false,
-        currentWords: '',
+  factory AudioRecordState.initial() => const AudioRecordState(
+        isRecording: false,
+        durationSeconds: 0,
       );
 }
 
-// ─── DictationController ──────────────────────────────────────────────────────
+// ─── AudioRecordController ────────────────────────────────────────────────────
 
-/// Controller managing live text speech transcribing or audio-memo recording.
+/// Controller managing audio note recording and timer.
 @riverpod
-class DictationController extends _$DictationController {
-  bool _mounted = true;
-
+class AudioRecordController extends _$AudioRecordController {
   late final AudioRecorderService _audioRecorder;
-  late final SpeechToTextService _speechToText;
-
-  bool _speechInitialized = false;
-  int _dictationStartOffset = 0;
-  String _dictationPreSpeechText = '';
-  String _dictationAudioPath = '';
-  String _dictationSessionId = '';
-  int _speechSessionCount = 0;
-
-  // Track active context fields for auto-restart on speech timeout
-  TextEditingController? _activeTextController;
-  FocusNode? _activeFocusNode;
-  void Function()? _activeOnSave;
-
+  String _audioPath = '';
+  Timer? _timer;
 
   @override
-  DictationState build(String noteId) {
+  AudioRecordState build(String noteId) {
     _audioRecorder = ref.read(audioRecorderServiceProvider);
-    _speechToText = ref.read(speechToTextServiceProvider);
-
     ref.onDispose(() {
-      _mounted = false;
+      _timer?.cancel();
       try {
-        _speechToText.stop();
+        _audioRecorder.stop();
       } catch (_) {}
 
-      if (state.isDictating && _dictationAudioPath.isNotEmpty) {
+      if (_audioPath.isNotEmpty) {
         try {
-          final file = File(_dictationAudioPath);
+          final file = File(_audioPath);
           if (file.existsSync()) {
             file.deleteSync();
           }
@@ -420,224 +321,111 @@ class DictationController extends _$DictationController {
           debugPrint('Error deleting orphan audio on dispose: $e');
         }
       }
-
-      _audioRecorder.dispose();
     });
-    return DictationState.initial();
+    return AudioRecordState.initial();
   }
 
-  Future<void> toggleDictation({
+  Future<void> toggleRecording({
     required TextEditingController textController,
     required FocusNode focusNode,
     required void Function() onSave,
-    bool keepVoice = false,
     String? vaultPath,
   }) async {
-    if (state.isDictating) {
-      await stopDictation(
+    if (state.isRecording) {
+      await stopRecording(
         commit: true,
         textController: textController,
         focusNode: focusNode,
         onSave: onSave,
-        keepVoice: keepVoice,
       );
       return;
     }
 
-    // If using provider, read keepVoice from settings
-    final effectiveKeepVoice = keepVoice || (ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false);
-
     try {
-      if (!effectiveKeepVoice) {
-        if (!_speechInitialized) {
-          final available = await _speechToText.initialize(
-            onStatus: (status) {
-              if (status == 'notListening' && state.isDictating) {
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  if (state.isDictating && _mounted) {
-                    final txtCtrl = _activeTextController;
-                    final fn = _activeFocusNode;
-                    final os = _activeOnSave;
-                    if (txtCtrl != null && fn != null && os != null) {
-                      _startListening(
-                        isRestart: true,
-                        textController: txtCtrl,
-                        focusNode: fn,
-                        onSave: os,
-                        keepVoice: effectiveKeepVoice,
-                        vaultPath: vaultPath,
-                      );
-                    }
-                  }
-                });
-              }
-            },
-            onError: (error) {
-              debugPrint('Speech error: $error');
-            },
-          );
-          if (!available) {
-            throw Exception('Speech recognition is not available on this device.');
-          }
-          _speechInitialized = true;
-        }
-      }
-
       final hasAudioPermission = await _audioRecorder.hasPermission();
-      if (hasAudioPermission) {
-        _startListening(
-          isRestart: false,
-          textController: textController,
-          focusNode: focusNode,
-          onSave: onSave,
-          keepVoice: effectiveKeepVoice,
-          vaultPath: vaultPath,
-        );
-      } else {
+      if (!hasAudioPermission) {
         throw Exception('Microphone permission is required.');
       }
+
+      String? effectiveVaultPath = vaultPath;
+      if (effectiveVaultPath == null) {
+        effectiveVaultPath = await ref.read(activeVaultPathProvider.future);
+      }
+
+      final note = await ref.read(noteByIdProvider(noteId).future);
+      if (note != null && note.filePath.isNotEmpty) {
+        effectiveVaultPath = p.dirname(note.filePath);
+      }
+
+      final attachmentsDir = Directory(p.join(effectiveVaultPath!, 'attachments'));
+      if (!attachmentsDir.existsSync()) {
+        attachmentsDir.createSync(recursive: true);
+      }
+
+      final sessionId = generateId().substring(0, 8);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final audioPath = p.join(attachmentsDir.path, 'audio_${timestamp}_$sessionId.m4a');
+      _audioPath = audioPath;
+
+      await _audioRecorder.start(audioPath);
+      
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        state = state.copyWith(durationSeconds: state.durationSeconds + 1);
+      });
+
+      state = state.copyWith(isRecording: true, durationSeconds: 0);
     } catch (e) {
       rethrow;
     }
   }
 
-  void _startListening({
-    required bool isRestart,
-    required TextEditingController textController,
-    required FocusNode focusNode,
-    required void Function() onSave,
-    required bool keepVoice,
-    String? vaultPath,
-  }) async {
-    _activeTextController = textController;
-    _activeFocusNode = focusNode;
-    _activeOnSave = onSave;
-
-    _speechSessionCount++;
-    final currentSession = _speechSessionCount;
-
-    if (!isRestart) {
-      final selection = textController.selection;
-      _dictationStartOffset = selection.isValid ? selection.baseOffset : textController.text.length;
-      _dictationPreSpeechText = textController.text;
-      state = state.copyWith(isDictating: true, currentWords: '');
-    } else {
-      _dictationStartOffset = (_dictationStartOffset + state.currentWords.length).clamp(0, textController.text.length);
-      _dictationPreSpeechText = textController.text;
-      state = state.copyWith(isDictating: true, currentWords: '');
-    }
-
-    if (keepVoice) {
-      if (!isRestart) {
-        try {
-          final String resolvedPath = await ref.read(activeVaultPathProvider.future);
-          final effectiveVaultPath = vaultPath ?? resolvedPath;
-          final attachmentsDir = Directory(p.join(effectiveVaultPath, 'attachments'));
-          if (!await attachmentsDir.exists()) {
-            await attachmentsDir.create(recursive: true);
-          }
-
-          _dictationSessionId = generateId().substring(0, 8);
-          final timestamp = DateTime.now().millisecondsSinceEpoch;
-          final audioPath = p.join(attachmentsDir.path, 'audio_${timestamp}_$_dictationSessionId.m4a');
-          _dictationAudioPath = audioPath;
-
-          await _audioRecorder.start(audioPath);
-        } catch (e) {
-          debugPrint('Audio recording error: $e');
-        }
-      }
-    } else {
-      await _speechToText.listen(
-        onResult: (words, isFinal) {
-          if (!_mounted || !state.isDictating || _speechSessionCount != currentSession) return;
-
-          String newWords = words;
-
-          if (newWords.isEmpty && state.currentWords.isNotEmpty) {
-            _dictationStartOffset = (_dictationStartOffset + state.currentWords.length).clamp(0, textController.text.length);
-            _dictationPreSpeechText = textController.text;
-            state = state.copyWith(currentWords: '');
-          }
-
-          final before = _dictationPreSpeechText.substring(0, _dictationStartOffset);
-          final after = _dictationPreSpeechText.substring(_dictationStartOffset);
-
-          if (_dictationStartOffset > 0 &&
-              before.isNotEmpty &&
-              !before.endsWith(' ') &&
-              !before.endsWith('\n') &&
-              newWords.isNotEmpty &&
-              !newWords.startsWith(' ')) {
-            newWords = ' $newWords';
-          }
-
-          state = state.copyWith(currentWords: newWords);
-
-          textController.value = TextEditingValue(
-            text: before + newWords + after,
-            selection: TextSelection.collapsed(offset: _dictationStartOffset + newWords.length),
-          );
-        },
-      );
-    }
-  }
-
-  Future<void> stopDictation({
+  Future<void> stopRecording({
     required bool commit,
     required TextEditingController textController,
     required FocusNode focusNode,
     required void Function() onSave,
-    bool keepVoice = false,
   }) async {
-    if (!state.isDictating) return;
+    if (!state.isRecording) return;
 
-    state = state.copyWith(isDictating: false);
+    _timer?.cancel();
+    state = state.copyWith(isRecording: false, durationSeconds: 0);
 
-    final effectiveKeepVoice = keepVoice || (ref.read(keepVoiceRecordingsProvider).valueOrNull ?? false);
-
-    if (!effectiveKeepVoice) {
-      await _speechToText.stop();
-    }
     final audioPath = await _audioRecorder.stop();
 
-    if (!commit) {
+    if (commit && audioPath != null && _audioPath.isNotEmpty) {
+      final filename = p.basename(_audioPath);
+
+      final text = textController.text;
+      final cursor = textController.selection.baseOffset;
+      final before = cursor >= 0 ? text.substring(0, cursor) : text;
+      final after = cursor >= 0 ? text.substring(cursor) : '';
+
+      final audioLink = '\n\n[Audio Note](attachments/$filename)\n';
       textController.value = TextEditingValue(
-        text: _dictationPreSpeechText,
-        selection: TextSelection.collapsed(offset: _dictationStartOffset),
+        text: before + audioLink + after,
+        selection: TextSelection.collapsed(
+          offset: (cursor >= 0 ? cursor : text.length) + audioLink.length,
+        ),
       );
-
-      if (_dictationAudioPath.isNotEmpty) {
-        final file = File(_dictationAudioPath);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      }
     } else {
-      if (effectiveKeepVoice && audioPath != null && _dictationAudioPath.isNotEmpty) {
-        final filename = p.basename(_dictationAudioPath);
-
-        final text = textController.text;
-        final cursor = textController.selection.baseOffset;
-        final before = text.substring(0, cursor);
-        final after = text.substring(cursor);
-
-        final audioLink = '\n\n[Audio Note](attachments/$filename)\n';
-        textController.value = TextEditingValue(
-          text: before + audioLink + after,
-          selection: TextSelection.collapsed(offset: cursor + audioLink.length),
-        );
+      if (_audioPath.isNotEmpty) {
+        try {
+          final file = File(_audioPath);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        } catch (e) {
+          debugPrint('Error deleting cancelled recording: $e');
+        }
       }
     }
 
-    _dictationAudioPath = '';
-    state = state.copyWith(currentWords: '');
+    _audioPath = '';
     focusNode.requestFocus();
 
     if (commit) {
       onSave();
     }
   }
-
-
 }

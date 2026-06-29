@@ -171,41 +171,41 @@ class _EditorControllerProviderElement
   String get noteId => (origin as EditorControllerProvider).noteId;
 }
 
-String _$dictationControllerHash() =>
-    r'3961a0018b67641039c0dd88b5c20bb773e08758';
+String _$audioRecordControllerHash() =>
+    r'699d46e7f541edcd186d5d3b7c6c2b1b6f66902c';
 
-abstract class _$DictationController
-    extends BuildlessAutoDisposeNotifier<DictationState> {
+abstract class _$AudioRecordController
+    extends BuildlessAutoDisposeNotifier<AudioRecordState> {
   late final String noteId;
 
-  DictationState build(String noteId);
+  AudioRecordState build(String noteId);
 }
 
-/// Controller managing live text speech transcribing or audio-memo recording.
+/// Controller managing audio note recording and timer.
 ///
-/// Copied from [DictationController].
-@ProviderFor(DictationController)
-const dictationControllerProvider = DictationControllerFamily();
+/// Copied from [AudioRecordController].
+@ProviderFor(AudioRecordController)
+const audioRecordControllerProvider = AudioRecordControllerFamily();
 
-/// Controller managing live text speech transcribing or audio-memo recording.
+/// Controller managing audio note recording and timer.
 ///
-/// Copied from [DictationController].
-class DictationControllerFamily extends Family<DictationState> {
-  /// Controller managing live text speech transcribing or audio-memo recording.
+/// Copied from [AudioRecordController].
+class AudioRecordControllerFamily extends Family<AudioRecordState> {
+  /// Controller managing audio note recording and timer.
   ///
-  /// Copied from [DictationController].
-  const DictationControllerFamily();
+  /// Copied from [AudioRecordController].
+  const AudioRecordControllerFamily();
 
-  /// Controller managing live text speech transcribing or audio-memo recording.
+  /// Controller managing audio note recording and timer.
   ///
-  /// Copied from [DictationController].
-  DictationControllerProvider call(String noteId) {
-    return DictationControllerProvider(noteId);
+  /// Copied from [AudioRecordController].
+  AudioRecordControllerProvider call(String noteId) {
+    return AudioRecordControllerProvider(noteId);
   }
 
   @override
-  DictationControllerProvider getProviderOverride(
-    covariant DictationControllerProvider provider,
+  AudioRecordControllerProvider getProviderOverride(
+    covariant AudioRecordControllerProvider provider,
   ) {
     return call(provider.noteId);
   }
@@ -222,33 +222,36 @@ class DictationControllerFamily extends Family<DictationState> {
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'dictationControllerProvider';
+  String? get name => r'audioRecordControllerProvider';
 }
 
-/// Controller managing live text speech transcribing or audio-memo recording.
+/// Controller managing audio note recording and timer.
 ///
-/// Copied from [DictationController].
-class DictationControllerProvider
+/// Copied from [AudioRecordController].
+class AudioRecordControllerProvider
     extends
-        AutoDisposeNotifierProviderImpl<DictationController, DictationState> {
-  /// Controller managing live text speech transcribing or audio-memo recording.
+        AutoDisposeNotifierProviderImpl<
+          AudioRecordController,
+          AudioRecordState
+        > {
+  /// Controller managing audio note recording and timer.
   ///
-  /// Copied from [DictationController].
-  DictationControllerProvider(String noteId)
+  /// Copied from [AudioRecordController].
+  AudioRecordControllerProvider(String noteId)
     : this._internal(
-        () => DictationController()..noteId = noteId,
-        from: dictationControllerProvider,
-        name: r'dictationControllerProvider',
+        () => AudioRecordController()..noteId = noteId,
+        from: audioRecordControllerProvider,
+        name: r'audioRecordControllerProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
             ? null
-            : _$dictationControllerHash,
-        dependencies: DictationControllerFamily._dependencies,
+            : _$audioRecordControllerHash,
+        dependencies: AudioRecordControllerFamily._dependencies,
         allTransitiveDependencies:
-            DictationControllerFamily._allTransitiveDependencies,
+            AudioRecordControllerFamily._allTransitiveDependencies,
         noteId: noteId,
       );
 
-  DictationControllerProvider._internal(
+  AudioRecordControllerProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -261,15 +264,15 @@ class DictationControllerProvider
   final String noteId;
 
   @override
-  DictationState runNotifierBuild(covariant DictationController notifier) {
+  AudioRecordState runNotifierBuild(covariant AudioRecordController notifier) {
     return notifier.build(noteId);
   }
 
   @override
-  Override overrideWith(DictationController Function() create) {
+  Override overrideWith(AudioRecordController Function() create) {
     return ProviderOverride(
       origin: this,
-      override: DictationControllerProvider._internal(
+      override: AudioRecordControllerProvider._internal(
         () => create()..noteId = noteId,
         from: from,
         name: null,
@@ -282,14 +285,14 @@ class DictationControllerProvider
   }
 
   @override
-  AutoDisposeNotifierProviderElement<DictationController, DictationState>
+  AutoDisposeNotifierProviderElement<AudioRecordController, AudioRecordState>
   createElement() {
-    return _DictationControllerProviderElement(this);
+    return _AudioRecordControllerProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is DictationControllerProvider && other.noteId == noteId;
+    return other is AudioRecordControllerProvider && other.noteId == noteId;
   }
 
   @override
@@ -303,19 +306,23 @@ class DictationControllerProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin DictationControllerRef on AutoDisposeNotifierProviderRef<DictationState> {
+mixin AudioRecordControllerRef
+    on AutoDisposeNotifierProviderRef<AudioRecordState> {
   /// The parameter `noteId` of this provider.
   String get noteId;
 }
 
-class _DictationControllerProviderElement
+class _AudioRecordControllerProviderElement
     extends
-        AutoDisposeNotifierProviderElement<DictationController, DictationState>
-    with DictationControllerRef {
-  _DictationControllerProviderElement(super.provider);
+        AutoDisposeNotifierProviderElement<
+          AudioRecordController,
+          AudioRecordState
+        >
+    with AudioRecordControllerRef {
+  _AudioRecordControllerProviderElement(super.provider);
 
   @override
-  String get noteId => (origin as DictationControllerProvider).noteId;
+  String get noteId => (origin as AudioRecordControllerProvider).noteId;
 }
 
 // ignore_for_file: type=lint

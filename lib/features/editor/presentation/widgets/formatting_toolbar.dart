@@ -181,6 +181,34 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
             children: [
               _buildFormattingButton(
                 context,
+                icon: Icons.checklist_rounded,
+                tooltip: 'Checklist',
+                onTap: () => toggleBlockStyle(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                  prefix: '- [ ] ',
+                ),
+              ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.format_list_bulleted_rounded,
+                tooltip: 'Bullet List',
+                onTap: () => toggleBlockStyle(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                  prefix: '- ',
+                ),
+              ),
+              // Heading button with H1–H4 popup menu
+              _buildFormattingButton(
+                context,
+                icon: Icons.format_size_rounded,
+                tooltip: 'Heading (H1–H4)',
+                key: _headingKey,
+                onTap: () => _showHeadingMenu(context),
+              ),
+              _buildFormattingButton(
+                context,
                 icon: Icons.format_bold_rounded,
                 tooltip: 'Bold',
                 onTap: () => insertFormatting(
@@ -200,14 +228,6 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
                   prefix: '*',
                   suffix: '*',
                 ),
-              ),
-              // Heading button with H1–H4 popup menu
-              _buildFormattingButton(
-                context,
-                icon: Icons.format_size_rounded,
-                tooltip: 'Heading (H1–H4)',
-                key: _headingKey,
-                onTap: () => _showHeadingMenu(context),
               ),
               _buildFormattingButton(
                 context,
@@ -232,22 +252,26 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
               ),
               _buildFormattingButton(
                 context,
-                icon: Icons.format_list_bulleted_rounded,
-                tooltip: 'Bullet List',
-                onTap: () => toggleBlockStyle(
-                  controller: widget.controller,
-                  focusNode: widget.focusNode,
-                  prefix: '- ',
-                ),
+                icon: Icons.image_outlined,
+                tooltip: 'Attach Image',
+                onTap: widget.onAttachImage,
               ),
+              if (Platform.isAndroid)
+                _buildFormattingButton(
+                  context,
+                  icon: Icons.mic_none_rounded,
+                  tooltip: 'Dictate (Voice-to-Text)',
+                  onTap: widget.onToggleDictation,
+                ),
               _buildFormattingButton(
                 context,
-                icon: Icons.checklist_rounded,
-                tooltip: 'Checklist',
-                onTap: () => toggleBlockStyle(
+                icon: Icons.border_color_rounded,
+                tooltip: 'Highlight',
+                onTap: () => insertFormatting(
                   controller: widget.controller,
                   focusNode: widget.focusNode,
-                  prefix: '- [ ] ',
+                  prefix: '==',
+                  suffix: '==',
                 ),
               ),
               _buildFormattingButton(
@@ -284,17 +308,6 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
               ),
               _buildFormattingButton(
                 context,
-                icon: Icons.border_color_rounded,
-                tooltip: 'Highlight',
-                onTap: () => insertFormatting(
-                  controller: widget.controller,
-                  focusNode: widget.focusNode,
-                  prefix: '==',
-                  suffix: '==',
-                ),
-              ),
-              _buildFormattingButton(
-                context,
                 icon: Icons.horizontal_rule_rounded,
                 tooltip: 'Divider',
                 onTap: () => insertDivider(
@@ -302,19 +315,6 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
                   focusNode: widget.focusNode,
                 ),
               ),
-              _buildFormattingButton(
-                context,
-                icon: Icons.image_outlined,
-                tooltip: 'Attach Image',
-                onTap: widget.onAttachImage,
-              ),
-              if (Platform.isAndroid)
-                _buildFormattingButton(
-                  context,
-                  icon: Icons.mic_none_rounded,
-                  tooltip: 'Dictate (Voice-to-Text)',
-                  onTap: widget.onToggleDictation,
-                ),
 
               // Vertical Divider separating standard actions and custom macros
               if (customMacros.isNotEmpty) ...[
@@ -420,17 +420,23 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
   }
 }
 
-class DictationOverlay extends StatelessWidget {
-  final String currentWords;
+class AudioRecordOverlay extends StatelessWidget {
+  final int durationSeconds;
   final VoidCallback onCancel;
   final VoidCallback onCommit;
 
-  const DictationOverlay({
+  const AudioRecordOverlay({
     super.key,
-    required this.currentWords,
+    required this.durationSeconds,
     required this.onCancel,
     required this.onCommit,
   });
+
+  String _formatDuration(int seconds) {
+    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return 'Recording $minutes:$secs...';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -479,7 +485,7 @@ class DictationOverlay extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                currentWords.isEmpty ? 'Listening...' : currentWords,
+                _formatDuration(durationSeconds),
                 style: DesignTypography.body(
                   context,
                   fontSize: 13,

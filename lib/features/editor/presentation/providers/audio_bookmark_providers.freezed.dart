@@ -111,7 +111,7 @@ class __$$BookmarkKeyImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$BookmarkKeyImpl implements _BookmarkKey {
+class _$BookmarkKeyImpl with DiagnosticableTreeMixin implements _BookmarkKey {
   const _$BookmarkKeyImpl({required this.noteId, required this.attachmentPath});
 
   @override
@@ -120,8 +120,17 @@ class _$BookmarkKeyImpl implements _BookmarkKey {
   final String attachmentPath;
 
   @override
-  String toString() {
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'BookmarkKey(noteId: $noteId, attachmentPath: $attachmentPath)';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty('type', 'BookmarkKey'))
+      ..add(DiagnosticsProperty('noteId', noteId))
+      ..add(DiagnosticsProperty('attachmentPath', attachmentPath));
   }
 
   @override
@@ -278,7 +287,9 @@ class __$$AudioBookmarkStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$AudioBookmarkStateImpl implements _AudioBookmarkState {
+class _$AudioBookmarkStateImpl
+    with DiagnosticableTreeMixin
+    implements _AudioBookmarkState {
   const _$AudioBookmarkStateImpl({
     final List<AudioBookmark> bookmarks = const [],
     this.isLoading = false,
@@ -301,8 +312,18 @@ class _$AudioBookmarkStateImpl implements _AudioBookmarkState {
   final String? error;
 
   @override
-  String toString() {
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'AudioBookmarkState(bookmarks: $bookmarks, isLoading: $isLoading, error: $error)';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty('type', 'AudioBookmarkState'))
+      ..add(DiagnosticsProperty('bookmarks', bookmarks))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('error', error));
   }
 
   @override

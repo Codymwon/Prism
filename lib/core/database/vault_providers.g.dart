@@ -56,7 +56,7 @@ final activeVaultNameProvider =
     );
 
 typedef _$ActiveVaultName = AutoDisposeAsyncNotifier<String>;
-String _$syncedVaultsHash() => r'ba8a7a912037f50ea47622e2274ac8d9efd80612';
+String _$syncedVaultsHash() => r'4c7832aecc7cf633ebb006a2ae6556218667358d';
 
 /// See also [SyncedVaults].
 @ProviderFor(SyncedVaults)

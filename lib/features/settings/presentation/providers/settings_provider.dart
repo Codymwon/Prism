@@ -98,24 +98,6 @@ class HapticsEnabledNotifier extends AsyncNotifier<bool> {
   }
 }
 
-// ─── Keep Voice Recordings Provider ──────────────────────────────────────────
-final keepVoiceRecordingsProvider =
-    AsyncNotifierProvider<KeepVoiceRecordingsNotifier, bool>(
-        KeepVoiceRecordingsNotifier.new);
-
-class KeepVoiceRecordingsNotifier extends AsyncNotifier<bool> {
-  @override
-  Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('keepVoiceRecordings') ?? false;
-  }
-
-  Future<void> setKeepVoiceRecordings(bool enabled) async {
-    state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('keepVoiceRecordings', enabled);
-  }
-}
 
 // ─── Drag to Pin Enabled Provider ──────────────────────────────────────────
 final dragToPinEnabledProvider =

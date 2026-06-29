@@ -135,11 +135,10 @@ class SettingsScreen extends ConsumerWidget {
                     subtitle: 'Create reusable note templates',
                     onTap: () => context.push('/settings/custom-templates'),
                   ),
-                  const VoiceRecordingsToggleTile(),
                   SettingsTile(
                     icon: Icons.audio_file_rounded,
                     title: 'Manage Attachments',
-                    subtitle: 'View and delete voice dictation files',
+                    subtitle: 'View and delete audio attachments',
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/settings/attachments'),
                   ),

@@ -94,10 +94,6 @@
         <intent>
             <action android:name="android.intent.action.OPEN_DOCUMENT_TREE"/>
         </intent>
-        <!-- Required for speech_to_text package on Android 11+ -->
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
-        </intent>
     </queries>
 </manifest>
 

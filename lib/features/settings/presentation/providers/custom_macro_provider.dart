@@ -27,10 +27,10 @@ class CustomMacrosNotifier extends StateNotifier<List<CustomMacro>> {
   }
 
   static final List<CustomMacro> _defaultMacros = [
-    CustomMacro(label: 'Date', text: '{{date}}'),
-    CustomMacro(label: 'Todo', text: '[ ] '),
-    CustomMacro(label: 'Action', text: '#action '),
-    CustomMacro(label: 'Summary', text: '## Summary\n\n'),
+    CustomMacro(label: 'Timestamp', text: '{{datetime}} - '),
+    CustomMacro(label: 'Todo', text: '- [ ] '),
+    CustomMacro(label: 'Important', text: '> [!IMPORTANT]\n> '),
+    CustomMacro(label: 'Summary', text: '### Summary\n- '),
   ];
 
   Future<void> _load() async {

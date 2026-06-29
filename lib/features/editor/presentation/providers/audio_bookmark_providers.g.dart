@@ -29,7 +29,7 @@ final audioBookmarkRepositoryProvider =
 typedef AudioBookmarkRepositoryRef =
     AutoDisposeProviderRef<AudioBookmarkRepository>;
 String _$audioBookmarkNotifierHash() =>
-    r'8fa7c87ecc1bbd97f1c04cc785515844b67d3615';
+    r'c970f7ef6da0d2868042b398100042815800d205';
 
 /// Copied from Dart SDK
 class _SystemHash {
