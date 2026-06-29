@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../providers/graph_color_provider.dart';
 
 
 class GraphSettingsPanel extends ConsumerStatefulWidget {
@@ -112,7 +113,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Row with Title
+                    // Header Row with Title (Fixed at the top)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -133,94 +134,234 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    
-                    // Repulsion Force Slider
-                    _buildSlider(
-                      title: 'Repulsion Force',
-                      value: _localRepulsionRate,
-                      min: 0.05,
-                      max: 1.5,
-                      divisions: 29,
-                      label: _localRepulsionRate.toStringAsFixed(2),
-                      onChanged: (val) {
-                        setState(() => _localRepulsionRate = val);
-                        widget.onChangedRepulsionRate(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
 
-                    // Spring rest length (via Repulsion Percentage)
-                    _buildSlider(
-                      title: 'Link Spring Distance',
-                      value: _localRepulsionPercentage,
-                      min: 0.3,
-                      max: 2.0,
-                      divisions: 34,
-                      label: '${(120.0 * (1.0 / (_localRepulsionPercentage + 0.1))).toStringAsFixed(0)}px',
-                      onChanged: (val) {
-                        setState(() => _localRepulsionPercentage = val);
-                        widget.onChangedRepulsionPercentage(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
-
-                    // Attraction Rate Slider
-                    _buildSlider(
-                      title: 'Spring Stiffness',
-                      value: _localAttractionRate,
-                      min: 0.05,
-                      max: 0.9,
-                      divisions: 34,
-                      label: _localAttractionRate.toStringAsFixed(2),
-                      onChanged: (val) {
-                        setState(() => _localAttractionRate = val);
-                        widget.onChangedAttractionRate(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
-
-                    // Friction Damping Slider
-                    _buildSlider(
-                      title: 'Simulation Damping',
-                      value: _localDamping,
-                      min: 0.7,
-                      max: 0.98,
-                      divisions: 28,
-                      label: _localDamping.toStringAsFixed(2),
-                      onChanged: (val) {
-                        setState(() => _localDamping = val);
-                        widget.onChangedDamping(val);
-                      },
-                      onChangeEnd: (val) => widget.onReLayout(),
-                    ),
-                    
-                    // Drag to Pin Switch
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Drag to Pin',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                    // Scrollable settings body
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Repulsion Force Slider
+                            _buildSlider(
+                              title: 'Repulsion Force',
+                              value: _localRepulsionRate,
+                              min: 0.05,
+                              max: 1.5,
+                              divisions: 29,
+                              label: _localRepulsionRate.toStringAsFixed(2),
+                              onChanged: (val) {
+                                setState(() => _localRepulsionRate = val);
+                                widget.onChangedRepulsionRate(val);
+                              },
+                              onChangeEnd: (val) => widget.onReLayout(),
                             ),
-                          ),
-                          Switch(
-                            value: ref.watch(dragToPinEnabledProvider).valueOrNull ?? false,
-                            activeThumbColor: colorScheme.primary,
-                            onChanged: (val) {
-                              ref.read(dragToPinEnabledProvider.notifier).setDragToPinEnabled(val);
-                            },
-                          ),
-                        ],
+
+                            // Spring rest length (via Repulsion Percentage)
+                            _buildSlider(
+                              title: 'Link Spring Distance',
+                              value: _localRepulsionPercentage,
+                              min: 0.3,
+                              max: 2.0,
+                              divisions: 34,
+                              label: '${(120.0 * (1.0 / (_localRepulsionPercentage + 0.1))).toStringAsFixed(0)}px',
+                              onChanged: (val) {
+                                setState(() => _localRepulsionPercentage = val);
+                                widget.onChangedRepulsionPercentage(val);
+                              },
+                              onChangeEnd: (val) => widget.onReLayout(),
+                            ),
+
+                            // Attraction Rate Slider
+                            _buildSlider(
+                              title: 'Spring Stiffness',
+                              value: _localAttractionRate,
+                              min: 0.05,
+                              max: 0.9,
+                              divisions: 34,
+                              label: _localAttractionRate.toStringAsFixed(2),
+                              onChanged: (val) {
+                                setState(() => _localAttractionRate = val);
+                                widget.onChangedAttractionRate(val);
+                              },
+                              onChangeEnd: (val) => widget.onReLayout(),
+                            ),
+
+                            // Friction Damping Slider
+                            _buildSlider(
+                              title: 'Simulation Damping',
+                              value: _localDamping,
+                              min: 0.7,
+                              max: 0.98,
+                              divisions: 28,
+                              label: _localDamping.toStringAsFixed(2),
+                              onChanged: (val) {
+                                setState(() => _localDamping = val);
+                                widget.onChangedDamping(val);
+                              },
+                              onChangeEnd: (val) => widget.onReLayout(),
+                            ),
+                            
+                            // Drag to Pin Switch
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Drag to Pin',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: ref.watch(dragToPinEnabledProvider).valueOrNull ?? false,
+                                    activeThumbColor: colorScheme.primary,
+                                    onChanged: (val) {
+                                      ref.read(dragToPinEnabledProvider.notifier).setDragToPinEnabled(val);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const Divider(height: 16),
+
+                            // Color By Dropdown
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Color by',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                                  ),
+                                ),
+                                DropdownButton<String>(
+                                  key: const ValueKey('graph_color_mode_dropdown'),
+                                  value: ref.watch(graphColorModeProvider).valueOrNull ?? 'none',
+                                  dropdownColor: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
+                                  underline: const SizedBox(),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? PrismColors.darkText : PrismColors.lightText,
+                                  ),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      ref.read(graphColorModeProvider.notifier).setColorMode(val);
+                                    }
+                                  },
+                                  items: const [
+                                    DropdownMenuItem(value: 'none', child: Text('None')),
+                                    DropdownMenuItem(value: 'folders', child: Text('Folders')),
+                                    DropdownMenuItem(value: 'tags', child: Text('Tags')),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            // Tag Colors List
+                            if (ref.watch(graphColorModeProvider).valueOrNull == 'tags') ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tag Colors',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? PrismColors.darkText : PrismColors.lightText,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  final tagsAsync = ref.watch(discoveredTagsProvider);
+                                  return tagsAsync.when(
+                                    data: (tags) {
+                                      if (tags.isEmpty) {
+                                        return Text(
+                                          'No tags found',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            fontStyle: FontStyle.italic,
+                                            color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                                          ),
+                                        );
+                                      }
+                                      final userTagColors = ref.watch(tagColorsProvider).valueOrNull ?? {};
+                                      return Container(
+                                        constraints: const BoxConstraints(maxHeight: 120),
+                                        child: SingleChildScrollView(
+                                          child: Wrap(
+                                            spacing: 6,
+                                            runSpacing: 6,
+                                            children: tags.map((tag) {
+                                              final currentColor = userTagColors[tag];
+                                              return Chip(
+                                                padding: EdgeInsets.zero,
+                                                labelPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                                                label: Text(
+                                                  '#$tag',
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: isDark ? PrismColors.darkText : PrismColors.lightText,
+                                                  ),
+                                                ),
+                                                avatar: GestureDetector(
+                                                  onTapDown: (details) {
+                                                    _showColorPicker(context, ref, tag, details.globalPosition);
+                                                  },
+                                                  child: Container(
+                                                    width: 16,
+                                                    height: 16,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: currentColor != null && currentColor.isNotEmpty
+                                                          ? _parseHexColor(currentColor)
+                                                          : Colors.grey.withValues(alpha: 0.5),
+                                                      border: Border.all(
+                                                        color: isDark ? Colors.white24 : Colors.black12,
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                backgroundColor: (isDark ? PrismColors.darkBorder : PrismColors.lightBorder)
+                                                    .withValues(alpha: 0.3),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  side: BorderSide.none,
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    loading: () => const Center(
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    ),
+                                    error: (_, __) => const SizedBox(),
+                                  );
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
 
-                    // Footer Row
+                    // Footer Row (Fixed at the bottom)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -264,6 +405,83 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
         ),
       ),
     );
+  }
+
+  void _showColorPicker(BuildContext context, WidgetRef ref, String tag, Offset position) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = [
+      ('#F87171', 'Red'),
+      ('#FB923C', 'Orange'),
+      ('#4ADE80', 'Green'),
+      ('#2DD4BF', 'Teal'),
+      ('#60A5FA', 'Blue'),
+      ('#C084FC', 'Purple'),
+      ('#F472B6', 'Pink'),
+    ];
+
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
+      color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: [
+        ...colors.map((c) {
+          return PopupMenuItem(
+            onTap: () {
+              ref.read(tagColorsProvider.notifier).setTagColor(tag, c.$1);
+            },
+            child: Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _parseHexColor(c.$1),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  c.$2,
+                  style: GoogleFonts.inter(fontSize: 12),
+                ),
+              ],
+            ),
+          );
+        }),
+        PopupMenuItem(
+          onTap: () {
+            ref.read(tagColorsProvider.notifier).setTagColor(tag, '');
+          },
+          child: Row(
+            children: [
+              Container(
+                width: 14,
+                height: 14,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.transparent,
+                ),
+                child: const Icon(Icons.clear, size: 10, color: Colors.grey),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Reset (HSL Hash)',
+                style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _parseHexColor(String hexString) {
+    if (hexString.isEmpty) return Colors.transparent;
+    final buffer = StringBuffer();
+    if (hexString.length == 7) buffer.write('ff');
+    buffer.write(hexString.replaceFirst('#', ''));
+    return Color(int.parse(buffer.toString(), radix: 16));
   }
 
 

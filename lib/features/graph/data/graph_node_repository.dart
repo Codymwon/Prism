@@ -39,8 +39,7 @@ class GraphNodeRepository {
           SELECT 1 FROM note_links WHERE source_id = n.id
           UNION ALL
           SELECT 1 FROM note_links WHERE target_id = n.id
-        )) as link_count,
-        (SELECT f.color_hex FROM virtual_folders f JOIN note_folders nf ON nf.folder_id = f.id WHERE nf.note_id = n.id LIMIT 1) as color_hex
+        )) as link_count
       FROM notes n
     ''');
 
@@ -61,7 +60,7 @@ class GraphNodeRepository {
         id: m['id'] as String,
         title: m['title'] as String,
         linkCount: linkCount,
-        colorHex: m['color_hex'] as String?,
+        colorHex: null,
         isTemporal: false,
         isGhost: m['is_ghost'] == 1 || m['is_ghost'] == true,
       ));
@@ -75,6 +74,7 @@ class GraphNodeRepository {
         .map((m) => GraphEdge(
               sourceId: m['source_id'] as String,
               targetId: m['target_id'] as String,
+
             ))
         .where((e) => nodeIds.contains(e.sourceId) && nodeIds.contains(e.targetId))
         .toList();
@@ -98,76 +98,124 @@ class GraphNodeRepository {
 
     for (final m in noteMaps) {
       final isDaily = m['is_daily'] == 1 || m['is_daily'] == true;
-      final dailyDateStr = m['daily_date'] as String?;
-      if (isDaily && dailyDateStr != null && dailyDateStr.isNotEmpty) {
-        final parsedDate = DateTime.tryParse(dailyDateStr);
-        if (parsedDate != null) {
-          final noteId = m['id'] as String;
-
-          final thurs = parsedDate.add(Duration(days: 3 - ((parsedDate.weekday - 1) % 7)));
-          final yearOfThurs = thurs.year;
-          final weekNum = _getIsoWeekNumber(parsedDate);
-
-          final weekId = 'week-$yearOfThurs-${weekNum.toString().padLeft(2, '0')}';
-          final weekTitle = 'Week $weekNum, $yearOfThurs';
-
-          final yearId = 'year-${parsedDate.year}';
-          final yearTitle = '${parsedDate.year}';
-
-          if (!createdTemporalIds.contains(weekId)) {
-            nodes.add(GraphNode(
-              id: weekId,
-              title: weekTitle,
-              linkCount: 0,
-              isTemporal: true,
-              temporalType: 'week',
-            ));
-            createdTemporalIds.add(weekId);
-          }
-
+      if (isDaily && m['daily_date'] != null) {
+        final dateStr = m['daily_date'] as String;
+        final DateTime? date = DateTime.tryParse(dateStr);
+        if (date != null) {
+          // 1. Year Node
+          final yearId = 'year-${date.year}';
           if (!createdTemporalIds.contains(yearId)) {
+            createdTemporalIds.add(yearId);
             nodes.add(GraphNode(
               id: yearId,
-              title: yearTitle,
+              title: '${date.year}',
               linkCount: 0,
+              colorHex: null,
               isTemporal: true,
               temporalType: 'year',
             ));
-            createdTemporalIds.add(yearId);
           }
 
-          final dayToWeekKey = '$noteId->$weekId';
-          if (!createdTemporalEdges.contains(dayToWeekKey)) {
-            edges.add(GraphEdge(sourceId: noteId, targetId: weekId));
-            createdTemporalEdges.add(dayToWeekKey);
+          // 2. ISO Week Node
+          final weekNum = _getIsoWeekNumber(date);
+          final weekId = 'week-${date.year}-$weekNum';
+          if (!createdTemporalIds.contains(weekId)) {
+            createdTemporalIds.add(weekId);
+            nodes.add(GraphNode(
+              id: weekId,
+              title: 'W$weekNum',
+              linkCount: 0,
+              colorHex: null,
+              isTemporal: true,
+              temporalType: 'week',
+            ));
           }
 
-          final weekToYearKey = '$weekId->$yearId';
-          if (!createdTemporalEdges.contains(weekToYearKey)) {
-            edges.add(GraphEdge(sourceId: weekId, targetId: yearId));
-            createdTemporalEdges.add(weekToYearKey);
+          // 3. Connect Note -> Week Node
+          final noteToWeekEdge = '${m['id']}->$weekId';
+          if (!createdTemporalEdges.contains(noteToWeekEdge) && prunedNodeIds.contains(m['id'])) {
+            createdTemporalEdges.add(noteToWeekEdge);
+            edges.add(GraphEdge(
+              sourceId: m['id'] as String,
+              targetId: weekId,
+            ));
+          }
+
+          // 4. Connect Week Node -> Year Node
+          final weekToYearEdge = '$weekId->$yearId';
+          if (!createdTemporalEdges.contains(weekToYearEdge)) {
+            createdTemporalEdges.add(weekToYearEdge);
+            edges.add(GraphEdge(
+              sourceId: weekId,
+              targetId: yearId,
+            ));
           }
         }
       }
     }
 
-    return (nodes: nodes, edges: edges);
+    return (
+      nodes: nodes,
+      edges: edges,
+    );
+  }
+
+  Future<Map<String, List<String>>> getNoteTagsMap() async {
+    final db = await _db;
+    final maps = await db.rawQuery('SELECT note_id, tag FROM note_tags ORDER BY tag ASC');
+    
+    final result = <String, List<String>>{};
+    for (final m in maps) {
+      final noteId = m['note_id'] as String;
+      final tag = m['tag'] as String;
+      result.putIfAbsent(noteId, () => []).add(tag);
+    }
+    return result;
+  }
+
+  Future<Map<String, List<Map<String, String>>>> getNoteFoldersMap() async {
+    final db = await _db;
+    final maps = await db.rawQuery('''
+      SELECT nf.note_id, vf.name, vf.color_hex 
+      FROM note_folders nf 
+      JOIN virtual_folders vf ON nf.folder_id = vf.id 
+      ORDER BY vf.name ASC
+    ''');
+    
+    final result = <String, List<Map<String, String>>>{};
+    for (final m in maps) {
+      final noteId = m['note_id'] as String;
+      final name = m['name'] as String;
+      final colorHex = m['color_hex'] as String;
+      result.putIfAbsent(noteId, () => []).add({
+        'name': name,
+        'color_hex': colorHex,
+      });
+    }
+    return result;
   }
 
   Future<Map<String, GraphNodePosition>> getPinnedCoordinates() async {
     final db = await _db;
-    final maps = await db.query('graph_node_positions');
+    final maps = await db.query(
+      'graph_node_positions',
+      where: 'is_pinned = 1',
+    );
     final result = <String, GraphNodePosition>{};
-    for (final map in maps) {
-      final pos = GraphNodePosition.fromMap(map);
-      result[pos.noteId] = pos;
+    for (final m in maps) {
+      final id = m['note_id'] as String;
+      result[id] = GraphNodePosition(
+        noteId: id,
+        x: m['x'] as double,
+        y: m['y'] as double,
+      );
     }
     return result;
   }
 
   Future<void> pinNode(String nodeId, double x, double y) async {
     if (nodeId.startsWith('week-') || nodeId.startsWith('year-')) {
-      throw ArgumentError('Cannot pin temporal node: $nodeId');
+      throw ArgumentError('Cannot pin temporal node in database: $nodeId');
     }
     final note = await _ref.read(noteRepositoryProvider).getNoteById(nodeId);
     if (note == null || note.isGhost) {

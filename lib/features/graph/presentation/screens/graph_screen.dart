@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../data/graph_node_repository.dart';
 import '../providers/graph_providers.dart';
+import '../providers/graph_color_provider.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -52,16 +53,35 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
   void initState() {
     super.initState();
     _transformationController = TransformationController();
+    
+    final savedViewport = ref.read(graphViewportStateProvider);
+    if (savedViewport != null) {
+      _transformationController.value = savedViewport;
+      // If we already have a saved viewport, we don't need to auto-fit again
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(graphAutoFitPerformedProvider.notifier).state = true;
+        }
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _centerView();
+      });
+    }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _centerView();
-    });
+    _transformationController.addListener(_onViewportChanged);
   }
 
   @override
   void dispose() {
+    _transformationController.removeListener(_onViewportChanged);
     _transformationController.dispose();
     super.dispose();
+  }
+
+  void _onViewportChanged() {
+    if (!mounted) return;
+    ref.read(graphViewportStateProvider.notifier).state = _transformationController.value;
   }
 
   void _centerView() {
@@ -76,6 +96,10 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
 
   void _triggerReLayout() {
     _canvasKey.currentState?.triggerReLayout();
+  }
+
+  void _triggerReplayAnimation() {
+    _canvasKey.currentState?.triggerReplayAnimation();
   }
 
   void _resetToDefaults() {
@@ -98,10 +122,10 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
       body: Column(
         children: [
           SafeArea(
-            bottom: false,
             child: GraphHeader(
               showSettings: _showSettings,
-              onRefresh: () => ref.invalidate(graphDataProvider),
+              onReplay: _triggerReplayAnimation,
+              onFocusCenter: () => _canvasKey.currentState?.fitToContent(),
               onSettingsToggle: () => setState(() => _showSettings = !_showSettings),
             ),
           ),
@@ -143,40 +167,6 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
                           onResetDefaults: _resetToDefaults,
                           onReLayout: _triggerReLayout,
                         ),
-                        
-                      // Floating Focus Center Button
-                      Positioned(
-                        bottom: 88,
-                        right: 20,
-                        child: TactileWrapper(
-                          onTap: _centerView,
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: DesignColors.surface(context)
-                                  .withValues(alpha: 0.9),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: DesignColors.border(context),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.gps_fixed_rounded,
-                              size: 20,
-                              color: DesignColors.text(context),
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   );
                 } else if (graphAsync.hasError) {
@@ -235,6 +225,87 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   // Cache to store pre-built static subtrees of node widgets
   final Map<String, Widget> _nodeContentCache = {};
+  Map<String, String?>? _lastResolvedColors;
+
+  bool _mapEquals(Map<String, String?> a, Map<String, String?> b) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (a[key] != b[key]) return false;
+    }
+    return true;
+  }
+
+  bool _isReplaying = false;
+  final Map<String, double> _nodeOpacities = {};
+  final Set<String> _revealedEdgeKeys = {};
+  DateTime? _replayStartTime;
+  List<String> _bfsOrder = [];
+
+  @visibleForTesting
+  bool get isReplayingForTesting => _isReplaying;
+
+  void triggerReplayAnimation() {
+    if (widget.nodes.isEmpty) return;
+    setState(() {
+      _isReplaying = true;
+      _nodeOpacities.clear();
+      for (final n in widget.nodes) {
+        _nodeOpacities[n.id] = 0.0;
+      }
+      _revealedEdgeKeys.clear();
+      _bfsOrder = _calculateBfsOrder();
+      _replayStartTime = DateTime.now();
+    });
+    _wakeSimulation();
+  }
+
+  List<String> _calculateBfsOrder() {
+    if (widget.nodes.isEmpty) return [];
+    
+    // Find the node with the highest linkCount
+    final startNode = widget.nodes.reduce((a, b) => a.linkCount >= b.linkCount ? a : b);
+    
+    final order = <String>[];
+    final visited = <String>{};
+    final queue = <String>[];
+    
+    // Build adjacency list for edges
+    final adj = <String, List<String>>{};
+    for (final node in widget.nodes) {
+      adj[node.id] = [];
+    }
+    for (final edge in widget.edges) {
+      if (adj.containsKey(edge.sourceId) && adj.containsKey(edge.targetId)) {
+        adj[edge.sourceId]!.add(edge.targetId);
+        adj[edge.targetId]!.add(edge.sourceId);
+      }
+    }
+    
+    queue.add(startNode.id);
+    visited.add(startNode.id);
+    
+    while (queue.isNotEmpty) {
+      final current = queue.removeAt(0);
+      order.add(current);
+      
+      final neighbors = adj[current]!..sort();
+      for (final neighbor in neighbors) {
+        if (!visited.contains(neighbor)) {
+          visited.add(neighbor);
+          queue.add(neighbor);
+        }
+      }
+    }
+    
+    // Add any disconnected nodes
+    for (final node in widget.nodes) {
+      if (!visited.contains(node.id)) {
+        order.add(node.id);
+      }
+    }
+    
+    return order;
+  }
 
   @visibleForTesting
   Map<String, Offset> get positionsForTesting => _positions;
@@ -289,16 +360,17 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   }
 
   // Pre-builds static widget subtrees once
-  void _buildNodeContentCache() {
+  void _buildNodeContentCache(Map<String, String?> resolvedColors) {
     _nodeContentCache.clear();
     for (final gn in widget.nodes) {
       final isSelected = _selectedNodeId == gn.id;
+      final resolvedColor = resolvedColors[gn.id] ?? gn.colorHex;
       _nodeContentCache[gn.id] = GraphNodeWidget(
         id: gn.id,
         title: gn.title,
         linkCount: gn.linkCount,
         isSelected: isSelected,
-        colorHex: gn.colorHex,
+        colorHex: resolvedColor,
         isTemporal: gn.isTemporal,
         temporalType: gn.temporalType,
         isGhost: gn.isGhost,
@@ -390,6 +462,54 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   void _tick(Duration elapsed) {
     if (!mounted || _positions.isEmpty || widget.nodes.isEmpty) return;
+
+    if (_isReplaying) {
+      final now = DateTime.now();
+      final startTime = _replayStartTime ?? now;
+      final elapsedMs = now.difference(startTime).inMilliseconds;
+      
+      bool allFinished = true;
+      final Set<String> visibleNodes = {};
+      
+      for (int i = 0; i < _bfsOrder.length; i++) {
+        final nodeId = _bfsOrder[i];
+        final staggerDelay = i * 80;
+        final startRevealTime = staggerDelay;
+        
+        if (elapsedMs < startRevealTime) {
+          _nodeOpacities[nodeId] = 0.0;
+          allFinished = false;
+        } else {
+          final fadeProgress = (elapsedMs - startRevealTime) / 300.0;
+          final opacity = fadeProgress.clamp(0.0, 1.0);
+          _nodeOpacities[nodeId] = opacity;
+          if (opacity > 0.1) {
+            visibleNodes.add(nodeId);
+          }
+          if (opacity < 1.0) {
+            allFinished = false;
+          }
+        }
+      }
+      
+      _revealedEdgeKeys.clear();
+      for (final edge in widget.edges) {
+        if (visibleNodes.contains(edge.sourceId) && visibleNodes.contains(edge.targetId)) {
+          _revealedEdgeKeys.add('${edge.sourceId}->${edge.targetId}');
+        }
+      }
+      
+      _repaintNotifier.notify();
+      
+      if (allFinished) {
+        setState(() {
+          _isReplaying = false;
+          _nodeOpacities.clear();
+          _revealedEdgeKeys.clear();
+        });
+      }
+      return;
+    }
 
     const centerX = 2500.0;
     const centerY = 2500.0;
@@ -590,7 +710,49 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
       for (final id in _velocities.keys) {
         _velocities[id] = Offset.zero;
       }
+
+      final autoFitPerformed = ref.read(graphAutoFitPerformedProvider);
+      if (!autoFitPerformed) {
+        fitToContent();
+        ref.read(graphAutoFitPerformedProvider.notifier).state = true;
+      }
     }
+  }
+
+  void fitToContent() {
+    if (!mounted || _positions.isEmpty) return;
+
+    double minX = double.infinity;
+    double maxX = -double.infinity;
+    double minY = double.infinity;
+    double maxY = -double.infinity;
+
+    for (final pos in _positions.values) {
+      if (pos.dx < minX) minX = pos.dx;
+      if (pos.dx > maxX) maxX = pos.dx;
+      if (pos.dy < minY) minY = pos.dy;
+      if (pos.dy > maxY) maxY = pos.dy;
+    }
+
+    final width = maxX - minX + 200.0;
+    final height = maxY - minY + 200.0;
+    final centerX = (minX + maxX) / 2;
+    final centerY = (minY + maxY) / 2;
+
+    final size = MediaQuery.of(context).size;
+    final viewWidth = size.width > 0 ? size.width : 400.0;
+    final viewHeight = size.height > 0 ? size.height : 300.0;
+
+    final scaleX = viewWidth / width;
+    final scaleY = viewHeight / height;
+    final scale = min(scaleX, scaleY).clamp(0.15, 1.5);
+
+    final tx = viewWidth / 2 - centerX * scale;
+    final ty = viewHeight / 2 - centerY * scale;
+
+    widget.transformationController.value = Matrix4.identity()
+      ..translate(tx, ty)
+      ..scale(scale);
   }
 
   @override
@@ -598,8 +760,11 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     // Warm up settings provider to ensure it's loaded during interaction
     final _ = ref.watch(dragToPinEnabledProvider);
 
-    if (_nodeContentCache.isEmpty) {
-      _buildNodeContentCache();
+    final resolvedColors = ref.watch(graphNodeColorsProvider).valueOrNull ?? const {};
+    final colorsChanged = _lastResolvedColors == null || !_mapEquals(_lastResolvedColors!, resolvedColors);
+    if (_nodeContentCache.isEmpty || colorsChanged) {
+      _lastResolvedColors = resolvedColors;
+      _buildNodeContentCache(resolvedColors);
     }
 
     final colorScheme = Theme.of(context).colorScheme;
@@ -625,6 +790,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                   edges: widget.edges,
                   color: colorScheme.primary.withValues(alpha: 0.35),
                   ghostNodeIds: widget.nodes.where((n) => n.isGhost).map((n) => n.id).toSet(),
+                  revealedEdgeKeys: _revealedEdgeKeys,
+                  isReplaying: _isReplaying,
                   repaint: _repaintNotifier,
                 ),
               ),
@@ -642,11 +809,11 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                   return GestureDetector(
                     key: ValueKey('drag_${gn.id}'),
                     behavior: HitTestBehavior.opaque,
-                    onPanStart: gn.isTemporal ? null : (details) {
+                    onPanStart: (details) {
                       _draggedNodeId = gn.id;
                       _wakeSimulation();
                     },
-                    onPanUpdate: gn.isTemporal ? null : (details) {
+                    onPanUpdate: (details) {
                       final delta = details.delta;
                       final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(50.0, 4950.0);
                       final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(40.0, 4960.0);
@@ -654,11 +821,11 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                       _velocities[gn.id] = Offset.zero;
                       _repaintNotifier.notify();
                     },
-                    onPanEnd: gn.isTemporal ? null : (details) {
+                    onPanEnd: (details) {
                       _draggedNodeId = null;
                       if (!mounted) return;
                       final finalPos = _positions[gn.id];
-                      if (finalPos != null && !gn.isGhost) {
+                      if (finalPos != null && !gn.isGhost && !gn.isTemporal) {
                         final dragToPin = ref.read(dragToPinEnabledProvider).valueOrNull ?? false;
                         if (dragToPin) {
                           ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
@@ -672,7 +839,10 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                     child: SizedBox(
                       width: 100,
                       height: 80,
-                      child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
+                      child: Opacity(
+                        opacity: _isReplaying ? (_nodeOpacities[gn.id] ?? 0.0) : 1.0,
+                        child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
+                      ),
                     ),
                   );
                 }).toList(),
@@ -723,7 +893,12 @@ class GraphFlowDelegate extends FlowDelegate {
       final node = nodes[i];
       final pos = positions[node.id];
       if (pos != null && pos.dx.isFinite && pos.dy.isFinite) {
-        final dotSize = (8.0 + (node.linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
+        final double dotSize;
+        if (node.isTemporal) {
+          dotSize = node.temporalType == 'year' ? 20.0 : 10.0;
+        } else {
+          dotSize = (8.0 + (node.linkCount * 1.5).clamp(0.0, 12.0)).toDouble();
+        }
         final dx = pos.dx - 50.0; // center on node width (100)
         final dy = pos.dy - (dotSize / 2);
         context.paintChild(
@@ -753,18 +928,25 @@ class GraphLinksPainter extends CustomPainter {
   final List<GraphEdge> edges;
   final Color color;
   final Set<String> ghostNodeIds;
+  final Set<String> revealedEdgeKeys;
+  final bool isReplaying;
 
   GraphLinksPainter({
     required this.positions,
     required this.edges,
     required this.color,
     required this.ghostNodeIds,
+    required this.revealedEdgeKeys,
+    required this.isReplaying,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
     for (final edge in edges) {
+      if (isReplaying && !revealedEdgeKeys.contains('${edge.sourceId}->${edge.targetId}')) {
+        continue;
+      }
       final src = positions[edge.sourceId];
       final tgt = positions[edge.targetId];
       if (src != null && src.dx.isFinite && src.dy.isFinite &&
@@ -788,6 +970,8 @@ class GraphLinksPainter extends CustomPainter {
     return oldDelegate.positions != positions || 
            oldDelegate.edges != edges || 
            oldDelegate.color != color ||
-           oldDelegate.ghostNodeIds != ghostNodeIds;
+           oldDelegate.ghostNodeIds != ghostNodeIds ||
+           oldDelegate.revealedEdgeKeys != revealedEdgeKeys ||
+           oldDelegate.isReplaying != isReplaying;
   }
 }

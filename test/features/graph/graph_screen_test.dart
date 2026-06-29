@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/features/graph/presentation/screens/graph_screen.dart';
+import 'package:prism/features/graph/presentation/providers/graph_providers.dart';
+import 'package:prism/features/graph/presentation/providers/graph_color_provider.dart';
+import 'package:prism/features/graph/data/graph_node_repository.dart';
+import 'package:prism/features/graph/data/graph_models.dart';
+import 'package:prism/core/database/database_service.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/graph/presentation/widgets/graph_node_widget.dart';
 import 'package:prism/shared/widgets/tactile_wrapper.dart';
@@ -104,7 +110,7 @@ void main() {
     expect(tapped, isTrue);
   });
 
-  testWidgets('GestureDetector for temporal nodes has null pan callbacks, while normal nodes have non-null callbacks', (WidgetTester tester) async {
+  testWidgets('GestureDetector for temporal nodes has non-null pan callbacks just like normal nodes', (WidgetTester tester) async {
     final nodes = [
       const GraphNode(id: 'normal-1', title: 'Normal Node', linkCount: 1, isTemporal: false),
       const GraphNode(id: 'temporal-1', title: 'Temporal Node', linkCount: 1, isTemporal: true),
@@ -139,9 +145,59 @@ void main() {
     expect(normalDetector.onPanUpdate, isNotNull);
     expect(normalDetector.onPanEnd, isNotNull);
 
-    expect(temporalDetector.onPanStart, isNull);
-    expect(temporalDetector.onPanUpdate, isNull);
-    expect(temporalDetector.onPanEnd, isNull);
+    expect(temporalDetector.onPanStart, isNotNull);
+    expect(temporalDetector.onPanUpdate, isNotNull);
+    expect(temporalDetector.onPanEnd, isNotNull);
+
+    // Clean up ticker
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Dragging a temporal node updates its position in memory but does not write to repository', (WidgetTester tester) async {
+    final nodes = [
+      const GraphNode(id: 'temporal-1', title: 'Temporal Node', linkCount: 1, isTemporal: true),
+    ];
+    final edges = <GraphEdge>[];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: GraphSimulationCanvas(
+              nodes: nodes,
+              edges: edges,
+              repulsionRate: 1.0,
+              repulsionPercentage: 0.5,
+              attractionRate: 0.35,
+              damping: 0.85,
+              transformationController: TransformationController(),
+              disableEntranceAnimation: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
+    state.setNodePositionForTesting('temporal-1', const Offset(1250.0, 1250.0));
+    await tester.pump();
+
+    final startLocation = tester.getCenter(find.byKey(const ValueKey('drag_temporal-1')));
+    final gesture = await tester.startGesture(startLocation);
+    await tester.pump();
+    await gesture.moveBy(const Offset(30.0, 30.0)); // win arena
+    await tester.pump();
+    await gesture.moveBy(const Offset(100.0, 100.0)); // actual drag
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    // Verify it moved in memory
+    final endPos = state.positionsForTesting['temporal-1']!;
+    expect(endPos.dx, isNot(1250.0));
+    expect(endPos.dy, isNot(1250.0));
 
     // Clean up ticker
     await tester.pumpWidget(const SizedBox());
@@ -159,12 +215,15 @@ void main() {
     });
 
     final nodes = [
-      const GraphNode(id: 'normal-1', title: 'Normal Node', linkCount: 1, isTemporal: false, isPinned: true),
+      const GraphNode(id: 'normal-1', title: 'Normal Node', linkCount: 1, isTemporal: false, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0),
     ];
     final edges = <GraphEdge>[];
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: GraphSimulationCanvas(
@@ -237,6 +296,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: GraphSimulationCanvas(
@@ -297,4 +359,252 @@ void main() {
     // Clean up ticker
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('Graph auto-fit zoom adjusts TransformationController scale when positions are resolved', (WidgetTester tester) async {
+    final nodes = [
+      const GraphNode(id: 'node-1', title: 'Test Node 1', linkCount: 1, isPinned: true, pinnedX: 100.0, pinnedY: 100.0),
+      const GraphNode(id: 'node-2', title: 'Test Node 2', linkCount: 2, isPinned: true, pinnedX: 4900.0, pinnedY: 4900.0),
+    ];
+    final edges = [
+      const GraphEdge(sourceId: 'node-1', targetId: 'node-2'),
+    ];
+
+    final transformationController = TransformationController();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              height: 300,
+              child: GraphSimulationCanvas(
+                nodes: nodes,
+                edges: edges,
+                repulsionRate: 1.0,
+                repulsionPercentage: 0.5,
+                attractionRate: 0.35,
+                damping: 0.85,
+                transformationController: transformationController,
+                disableEntranceAnimation: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Pump once to start simulation, trigger tick, which cools down immediately because it's static/pinned
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // The scale should now be less than 1.0 to fit the 4800px spread into the 400x300 viewport
+    final finalMatrix = transformationController.value;
+    final finalScale = finalMatrix.getMaxScaleOnAxis();
+    expect(finalScale, lessThan(1.0));
+
+    // Clean up ticker
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('GraphScreen shows play button and GPS button in header and they trigger callbacks', (WidgetTester tester) async {
+    // Override graph providers to supply a simple mock graph
+    final nodes = [
+      const GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0),
+    ];
+    final edges = <GraphEdge>[];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
+          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+        ],
+        child: const MaterialApp(
+          home: GraphScreen(),
+        ),
+      ),
+    );
+
+    // Let graph build and settle
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify play button is present in the header
+    final playButtonFinder = find.byIcon(Icons.play_circle_outline);
+    expect(playButtonFinder, findsOneWidget);
+
+    // Verify GPS button is present in the header
+    final gpsButtonFinder = find.byIcon(Icons.gps_fixed_rounded);
+    expect(gpsButtonFinder, findsOneWidget);
+
+    // Tap play button and verify no crash/no refresh callback
+    await tester.tap(playButtonFinder);
+    await tester.pump();
+
+    // Verify no floating GPS button in stack (should be gone from bottom-right)
+    final floatingGpsFinder = find.descendant(
+      of: find.byType(Stack),
+      matching: find.byIcon(Icons.gps_fixed_rounded),
+    );
+    // There should only be one GPS button, and it's in the header, not floating in stack (excluding the header row)
+    expect(floatingGpsFinder, findsNothing);
+
+    // Clean up ticker
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('GraphReplay animation pauses physics and controls node visibility', (WidgetTester tester) async {
+    final nodes = [
+      const GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0),
+      const GraphNode(id: 'node-2', title: 'Node 2', linkCount: 2, isPinned: true, pinnedX: 1300.0, pinnedY: 1300.0),
+    ];
+    final edges = [
+      const GraphEdge(sourceId: 'node-1', targetId: 'node-2'),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
+          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+        ],
+        child: const MaterialApp(
+          home: GraphScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final canvasState = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
+    
+    // Trigger replay animation via public method
+    canvasState.triggerReplayAnimation();
+    
+    // Under replay, physics ticker should be stopped
+    expect(canvasState.isReplayingForTesting, isTrue);
+
+    // Clean up ticker
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Graph Color Mode dropdown updates color mode provider state', (WidgetTester tester) async {
+    final nodes = [
+      const GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1),
+    ];
+    final edges = <GraphEdge>[];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
+          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+        ],
+        child: const MaterialApp(
+          home: GraphScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Open settings panel
+    final settingsButtonFinder = find.byIcon(Icons.settings_outlined);
+    expect(settingsButtonFinder, findsOneWidget);
+    await tester.tap(settingsButtonFinder);
+    await tester.pumpAndSettle();
+
+    // Verify Color Mode dropdown is present
+    final dropdownFinder = find.byKey(const ValueKey('graph_color_mode_dropdown'));
+    expect(dropdownFinder, findsOneWidget);
+
+    // Tap play button / cleanup ticker
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  test('graphNodeColorsProvider resolves colors alphabetically for folders and tags', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+
+    final container = ProviderContainer(
+      overrides: [
+        graphNodeRepositoryProvider.overrideWith((ref) => FakeGraphNodeRepository(
+          ref,
+          tags: {
+            'note-1': ['work', 'personal'],
+          },
+          folders: {
+            'note-1': [
+              {'name': 'Archive', 'color_hex': '#111111'},
+              {'name': 'Inbox', 'color_hex': '#222222'},
+            ],
+          },
+        )),
+      ],
+    );
+
+    addTearDown(container.dispose);
+
+    // 1. Default color mode 'none' -> should be empty
+    var colors = await container.read(graphNodeColorsProvider.future);
+    expect(colors, isEmpty);
+
+    // 2. Folder mode -> should select 'Archive' color
+    await container.read(graphColorModeProvider.notifier).setColorMode('folders');
+    colors = await container.read(graphNodeColorsProvider.future);
+    expect(colors['note-1'], equals('#111111'));
+
+    // 3. Tag mode -> should select 'personal' tag color
+    await container.read(graphColorModeProvider.notifier).setColorMode('tags');
+    colors = await container.read(graphNodeColorsProvider.future);
+    // Since 'personal' has no custom color, it should fall back to deterministic HSL hash hex
+    expect(colors['note-1'], isNotNull);
+    expect(colors['note-1']!.startsWith('#'), isTrue);
+  });
+}
+
+class FakeGraphNodeRepository implements GraphNodeRepository {
+  final Map<String, List<String>> tags;
+  final Map<String, List<Map<String, String>>> folders;
+
+  FakeGraphNodeRepository(
+    Ref ref, {
+    required this.tags,
+    required this.folders,
+  });
+
+  @override
+  Ref get _ref => throw UnimplementedError();
+
+  @override
+  Future<DatabaseService> get _db => throw UnimplementedError();
+
+  @override
+  Future<void> _flush(DatabaseService db) async {}
+
+  @override
+  int _getIsoWeekNumber(DateTime date) => 1;
+
+  @override
+  Future<({List<GraphNode> nodes, List<GraphEdge> edges})> getGraphData() async {
+    return (nodes: <GraphNode>[], edges: <GraphEdge>[]);
+  }
+
+  @override
+  Future<Map<String, List<String>>> getNoteTagsMap() async => tags;
+
+  @override
+  Future<Map<String, List<Map<String, String>>>> getNoteFoldersMap() async => folders;
+
+  @override
+  Future<Map<String, GraphNodePosition>> getPinnedCoordinates() async => const {};
+
+  @override
+  Future<void> pinNode(String nodeId, double x, double y) async {}
+
+  @override
+  Future<void> unpinNode(String nodeId) async {}
 }

@@ -1,8 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../../notes/data/note_model.dart';
 import '../../data/graph_models.dart';
 import '../../data/graph_node_repository.dart';
+
+final graphViewportStateProvider = StateProvider<Matrix4?>((ref) => null);
+final graphAutoFitPerformedProvider = StateProvider<bool>((ref) => false);
+
 
 final graphDataProvider = FutureProvider.autoDispose<({
   List<GraphNode> nodes,

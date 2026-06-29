@@ -1,17 +1,19 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/design_system/design_system.dart';
 
 class GraphHeader extends StatelessWidget {
   final bool showSettings;
-  final VoidCallback onRefresh;
+  final VoidCallback onReplay;
+  final VoidCallback onFocusCenter;
   final VoidCallback onSettingsToggle;
 
   const GraphHeader({
     super.key,
     required this.showSettings,
-    required this.onRefresh,
+    required this.onReplay,
+    required this.onFocusCenter,
     required this.onSettingsToggle,
   });
 
@@ -48,10 +50,17 @@ class GraphHeader extends StatelessWidget {
           const Spacer(),
           IconButton(
             icon: Icon(
-              Icons.refresh_rounded,
+              Icons.gps_fixed_rounded,
               color: DesignColors.textSecondary(context),
             ),
-            onPressed: onRefresh,
+            onPressed: onFocusCenter,
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.play_circle_outline,
+              color: DesignColors.textSecondary(context),
+            ),
+            onPressed: onReplay,
           ),
           IconButton(
             icon: Icon(
