@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
-import 'journal_empty_illustration.dart';
 
 class JournalEmptyState extends StatelessWidget {
   final String dateStr;
@@ -16,21 +15,12 @@ class JournalEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isFuture = DateTime.parse(dateStr).isAfter(DateTime.now());
 
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!showCalendar) ...[
-            JournalEmptyIllustration(
-              isFuture: isFuture,
-              colorScheme: colorScheme,
-              size: 110.0,
-            ),
-            const SizedBox(height: 20),
-          ],
           Text(
             isFuture ? 'A future day' : 'No entry yet',
             style: DesignTypography.heading(
@@ -52,15 +42,11 @@ class JournalEmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           if (!isFuture) ...[
-            const SizedBox(height: 24),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: showCalendar ? 40.0 : 20.0),
-              child: DesignPrimaryButton(
-                label: 'Start Writing',
-                icon: DesignIcons.add,
-                height: showCalendar ? 44.0 : 52.0,
-                onTap: onStartWriting,
-              ),
+            const SizedBox(height: 20),
+            DesignSecondaryButton(
+              label: 'Start Writing',
+              icon: DesignIcons.add,
+              onTap: onStartWriting,
             ),
           ],
         ],

@@ -29,11 +29,21 @@ class JournalEntryCard extends ConsumerStatefulWidget {
 
 class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
   late final ScrollController _scrollController;
+  String? _localContent;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _localContent = widget.content;
+  }
+
+  @override
+  void didUpdateWidget(JournalEntryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.content != widget.content) {
+      _localContent = widget.content;
+    }
   }
 
   @override
@@ -152,12 +162,64 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
       bodyLines.add(line);
     }
 
+    // Filter out headings that have no content (after filtering checklist items and images)
+    final cleanedLines = <String>[];
+    for (int i = 0; i < bodyLines.length; i++) {
+      final line = bodyLines[i];
+      final trimmed = line.trim();
+      
+      if (trimmed.startsWith('#')) {
+        // Check if there is any non-empty, non-heading line under this heading before the next heading
+        bool hasContent = false;
+        for (int j = i + 1; j < bodyLines.length; j++) {
+          final nextLine = bodyLines[j];
+          final nextTrimmed = nextLine.trim();
+          if (nextTrimmed.startsWith('#')) {
+            break; // hit next heading, so this heading has no content
+          }
+          if (nextTrimmed.isNotEmpty) {
+            hasContent = true;
+            break;
+          }
+        }
+        if (hasContent) {
+          cleanedLines.add(line);
+        } else {
+          // Skip this heading since it has no content
+          continue;
+        }
+      } else {
+        cleanedLines.add(line);
+      }
+    }
+
+    // Collapse multiple consecutive empty lines to a single empty line
+    final collapsedLines = <String>[];
+    bool lastWasEmpty = false;
+    for (final line in cleanedLines) {
+      final isLineEmpty = line.trim().isEmpty;
+      if (isLineEmpty) {
+        if (!lastWasEmpty) {
+          collapsedLines.add('');
+          lastWasEmpty = true;
+        }
+      } else {
+        collapsedLines.add(line);
+        lastWasEmpty = false;
+      }
+    }
+
     // Strip leading blank lines left behind after removing the title heading
-    while (bodyLines.isNotEmpty && bodyLines.first.trim().isEmpty) {
-      bodyLines.removeAt(0);
+    while (collapsedLines.isNotEmpty && collapsedLines.first.trim().isEmpty) {
+      collapsedLines.removeAt(0);
+    }
+
+    // Strip trailing blank lines
+    while (collapsedLines.isNotEmpty && collapsedLines.last.trim().isEmpty) {
+      collapsedLines.removeLast();
     }
     
-    return preprocessMarkdown(bodyLines.join('\n'));
+    return preprocessMarkdown(collapsedLines.join('\n'));
   }
 
   Widget _buildChecklistWidget(BuildContext context, List<DailyChecklistItem> items) {
@@ -168,10 +230,21 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
       children: items.map((item) {
         return Material(
           color: Colors.transparent,
-          child: InkWell(
-            onTap: () async {
-              final updatedContent = toggleMarkdownCheckboxAtLine(widget.content, item.lineIndex);
-              await ref.read(noteRepositoryProvider).saveNote(widget.note.id, updatedContent);
+          child: InkWell(            onTap: () async {
+              final currentContent = _localContent ?? widget.content;
+              final updatedContent = toggleMarkdownCheckboxAtLine(currentContent, item.lineIndex);
+              setState(() {
+                _localContent = updatedContent;
+              });
+              try {
+                await ref.read(noteRepositoryProvider).saveNote(widget.note.id, updatedContent);
+              } catch (e) {
+                if (mounted) {
+                  setState(() {
+                    _localContent = currentContent;
+                  });
+                }
+              }
             },
             borderRadius: BorderRadius.circular(4),
             child: Padding(
@@ -190,6 +263,8 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
                   Expanded(
                     child: Text(
                       item.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: DesignTypography.body(
                         context,
                         fontSize: 13,
@@ -208,18 +283,19 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
         );
       }).toList(),
     );
-
+ 
     return listWidget;
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final cardTitle = _getCardTitle(widget.content, widget.note.title);
+    final currentContent = _localContent ?? widget.content;
+    final cardTitle = _getCardTitle(currentContent, widget.note.title);
     final cardSubtitle = '${_getFormattedSubtitle(widget.note)} • ${widget.note.wordCount} words';
-    final bodyMarkdown = _getBodyMarkdown(widget.content, cardTitle);
-    final checklist = extractChecklist(widget.content);
-    final imagePath = extractPreviewImage(widget.content);
+    final bodyMarkdown = _getBodyMarkdown(currentContent, cardTitle);
+    final checklist = extractChecklist(currentContent);
+    final imagePath = extractPreviewImage(currentContent);
     final showPrompt = widget.note.isDaily && widget.note.dailyDate != null && isToday(widget.note.dailyDate!);
 
     void openNote() {

@@ -622,6 +622,75 @@ Here is the daily entry.
       expect(savedContent, contains('- [x] Checklist item 1'));
       expect(savedContent, contains('- [x] Checklist item 2'));
     });
+
+    testWidgets('collapses empty lines and skips empty headings in note body preview', (WidgetTester tester) async {
+      const content = '''# 2026-06-03
+## Today's Focus
+Focusing on coding this project.
+
+## Daily Habits
+- [ ] Exercise
+- [ ] Meditate
+
+## Gratitude
+I am grateful for food.
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final markdownWidget = tester.widget<MarkdownBody>(find.byType(MarkdownBody));
+      final data = markdownWidget.data;
+
+      // Should not contain the empty heading
+      expect(data, isNot(contains('## Daily Habits')));
+      // Should not contain the title heading (since it is skipped/used as card title)
+      expect(data, isNot(contains("## Today's Focus")));
+      // Should contain the other content
+      expect(data, contains('Focusing on coding this project.'));
+      expect(data, contains('## Gratitude'));
+      expect(data, contains('I am grateful for food.'));
+      // Should not have multiple consecutive empty lines/spaces
+      expect(data, isNot(contains('&nbsp;\n&nbsp;')));
+    });
+
+    testWidgets('long checklist items are truncated to 2 lines with ellipsis', (WidgetTester tester) async {
+      const content = '''# 2026-06-03
+- [ ] This is an extremely long checklist item label that goes on and on and should be truncated to prevent the narrow sidebar layout from looking weird.
+''';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: JournalEntryCard(
+                note: dummyNote,
+                content: content,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final textFinder = find.textContaining('extremely long checklist item');
+      expect(textFinder, findsOneWidget);
+
+      final textWidget = tester.widget<Text>(textFinder);
+      expect(textWidget.maxLines, equals(2));
+      expect(textWidget.overflow, equals(TextOverflow.ellipsis));
+    });
   });
 }
 
