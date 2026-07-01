@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/services/vault_service.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
+import '../widgets/export_bottom_sheet.dart';
 import '../../../onboarding/data/tutorial_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 
@@ -18,12 +17,8 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeType = ref.watch(themeProvider);
-
-    // Watch settings providers (StateNotifier)
     final fontFamily = ref.watch(fontFamilyProvider);
-    final fontSize = ref.watch(fontSizeProvider);
-    final lineWidth = ref.watch(lineWidthProvider);
-    final baseVaultsDir = ref.watch(baseVaultsDirectoryProvider).valueOrNull ?? '';
+    final isPro = ref.watch(isProProvider);
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
@@ -51,185 +46,222 @@ class SettingsScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 100),
               children: [
+                // ── Prism Pro Banner (Free users only) ─────────────────────────
+                if (!isPro)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.star_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Prism Pro',
+                                style: DesignTypography.heading(context, fontSize: 15, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Unlock cloud sync, custom templates & macros, and premium typography & themes.',
+                            style: DesignTypography.body(context, fontSize: 12.5, color: DesignColors.textSecondary(context)),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => context.push('/settings/paywall'),
+                            child: Text('Upgrade to Pro', style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(duration: 400.ms),
+
                 // ── Appearance ───────────────────────────────────────────
                 const SettingsSectionHeader(title: 'Appearance'),
                 ThemeSelector(themeType: themeType, ref: ref),
                 SettingsTile(
                   icon: Icons.text_fields_rounded,
                   title: 'Font family',
-                    subtitle: fontFamily == 'Inter (Sans)' ? 'Inter (Sans) (Default)' : fontFamily,
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => _showOptionSelector(
-                      context: context,
-                      title: 'Select Font Family',
-                      options: ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)'],
-                      optionLabels: {
-                        'Inter (Sans)': 'Inter (Sans) (Default)',
-                      },
-                      currentValue: fontFamily,
-                      onSelected: (val) => ref.read(fontFamilyProvider.notifier).setFontFamily(val),
-                    ),
-                  ),
-
-                  // ── Gestures & Feedback ──────────────────────────────────
-                  const SettingsSectionHeader(title: 'Gestures & Feedback'),
-                  const HapticToggleTile(),
-                  SettingsTile(
-                    icon: Icons.explore_outlined,
-                    title: 'Replay interactive tutorial',
-                    subtitle: 'Walk through the core features of Prism',
-                    trailing: const Icon(Icons.refresh_rounded, size: 20),
-                    onTap: () async {
-                      await ref.read(tutorialStateProvider.notifier).resetTutorial();
-                      await ref.read(editorTutorialStateProvider.notifier).resetTutorial();
-                      await ref.read(journalTutorialStateProvider.notifier).resetTutorial();
-                      if (context.mounted) {
-                        context.go('/notes');
-                      }
+                  subtitle: fontFamily == 'Inter (Sans)' ? 'Inter (Sans) (Default)' : fontFamily,
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _showFontSelector(
+                    context: context,
+                    ref: ref,
+                    title: 'Select Font Family',
+                    options: ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)'],
+                    optionLabels: {
+                      'Inter (Sans)': 'Inter (Sans) (Default)',
                     },
+                    currentValue: fontFamily,
+                    onSelected: (val) => ref.read(fontFamilyProvider.notifier).setFontFamily(val),
                   ),
+                ),
 
-                  // ── Editor ────────────────────────────────────────────────
-                  const SettingsSectionHeader(title: 'Editor'),
-                  SettingsTile(
-                    icon: Icons.format_size_rounded,
-                    title: 'Font size',
-                    subtitle: fontSize == '16pt' ? '16pt (Default)' : fontSize,
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => _showOptionSelector(
-                      context: context,
-                      title: 'Select Font Size',
-                      options: ['12pt', '14pt', '16pt', '18pt', '20pt'],
-                      optionLabels: {
-                        '16pt': '16pt (Default)',
-                      },
-                      currentValue: fontSize,
-                      onSelected: (val) => ref.read(fontSizeProvider.notifier).setFontSize(val),
-                    ),
-                  ),
-                  SettingsTile(
-                    icon: Icons.wrap_text_rounded,
-                    title: 'Line width',
-                    subtitle: lineWidth == 'Comfortable' ? 'Comfortable (Default)' : lineWidth,
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => _showOptionSelector(
-                      context: context,
-                      title: 'Select Line Width',
-                      options: ['Narrow', 'Comfortable', 'Wide'],
-                      optionLabels: {
-                        'Comfortable': 'Comfortable (Default)',
-                      },
-                      currentValue: lineWidth,
-                      onSelected: (val) => ref.read(lineWidthProvider.notifier).setLineWidth(val),
-                    ),
-                  ),
-                  ProGateTile(
-                    icon: Icons.keyboard_command_key_rounded,
-                    title: 'Custom Toolbar Macros',
-                    subtitle: 'Define 3–5 custom quick-insert macros',
-                    onTap: () => context.push('/settings/custom-macros'),
-                  ),
-                  ProGateTile(
-                    icon: Icons.note_add_rounded,
-                    title: 'Custom Templates',
-                    subtitle: 'Create reusable note templates',
-                    onTap: () => context.push('/settings/custom-templates'),
-                  ),
-                  SettingsTile(
-                    icon: Icons.audio_file_rounded,
-                    title: 'Manage Attachments',
-                    subtitle: 'View and delete audio attachments',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => context.push('/settings/attachments'),
-                  ),
+                // ── Preferences ──────────────────────────────────────────
+                const SettingsSectionHeader(title: 'Preferences'),
+                SettingsTile(
+                  icon: Icons.edit_note_rounded,
+                  title: 'Editor Preferences',
+                  subtitle: 'Font size, line width, line numbers, and auto-pairing',
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/editor-preferences'),
+                ),
+                SettingsTile(
+                  icon: Icons.calendar_today_rounded,
+                  title: 'Journal Preferences',
+                  subtitle: 'Start of week and auto-creation settings',
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/journal-preferences'),
+                ),
+                ProGateTile(
+                  icon: Icons.keyboard_command_key_rounded,
+                  title: 'Custom Toolbar Macros',
+                  subtitle: 'Define 3–5 custom quick-insert macros',
+                  onTap: () => context.push('/settings/custom-macros'),
+                ),
+                ProGateTile(
+                  icon: Icons.note_add_rounded,
+                  title: 'Custom Templates',
+                  subtitle: 'Create reusable note templates',
+                  onTap: () => context.push('/settings/custom-templates'),
+                ),
+                SettingsTile(
+                  icon: Icons.audio_file_rounded,
+                  title: 'Manage Attachments',
+                  subtitle: 'View and delete audio attachments',
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/attachments'),
+                ),
 
-                  // ── Sync ────────────────────────────────────────────────
-                  const SettingsSectionHeader(title: 'Sync'),
-                  SettingsTile(
-                    icon: Icons.sync_rounded,
-                    title: 'Backup & Sync',
-                    subtitle: 'Google Drive sync, vault export, and more',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => context.push('/settings/backup-and-sync'),
+                // ── Sync & Data ─────────────────────────────────────────
+                const SettingsSectionHeader(title: 'Sync & Data'),
+                ProGateTile(
+                  icon: Icons.sync_rounded,
+                  title: 'Cloud Sync',
+                  subtitle: 'Google Drive sync, backups, and security',
+                  onTap: () => context.push('/settings/cloud-sync'),
+                ),
+                SettingsTile(
+                  icon: Icons.file_download_outlined,
+                  title: 'Vault Export',
+                  subtitle: 'Download all notes as ZIP, PDF or JSON',
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const ExportBottomSheet(),
                   ),
+                ),
+                SettingsTile(
+                  icon: Icons.folder_open_outlined,
+                  title: 'Manage Vaults',
+                  subtitle: 'Switch vaults, check stats, or change Hub location',
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/manage-vaults'),
+                ),
 
-                  // ── Subscription ──────────────────────────────────────────
+                // ── Gestures & Feedback ──────────────────────────────────
+                const SettingsSectionHeader(title: 'Gestures & Feedback'),
+                const HapticToggleTile(),
+                const DragToPinToggleTile(),
+
+                // ── Pro Settings Management (Pro only) ──────────────────────
+                if (isPro) ...[
                   const SettingsSectionHeader(title: 'Subscription'),
-                  if (ref.watch(isProProvider)) ...[
-                    SettingsTile(
-                      icon: Icons.star_rounded,
-                      title: 'Prism Pro Active',
-                      subtitle: 'Manage subscription & billing',
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () async {
-                        final result = await ref.read(subscriptionRepositoryProvider).presentCustomerCenter();
-                        result.fold(
-                          (failure) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Failed to open Customer Center: ${failure.message}'),
-                              ),
-                            );
-                          },
-                          (_) {},
-                        );
-                      },
-                    ),
-                  ] else ...[
-                    SettingsTile(
-                      icon: Icons.star_outline_rounded,
-                      title: 'Try Prism Pro',
-                      subtitle: 'Unlock sync, custom templates & macros',
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push('/settings/paywall'),
-                    ),
-                  ],
-
-                  // ── Data ─────────────────────────────────────────────────
-                  const SettingsSectionHeader(title: 'Data'),
                   SettingsTile(
-                    icon: Icons.folder_open_outlined,
-                    title: 'Prism Hub Location',
-                    subtitle: baseVaultsDir.isEmpty ? 'Loading...' : baseVaultsDir,
-                    onTap: () => _changeBaseVaultsDirectory(context, ref),
-                  ),
-
-                  // ── About ──────────────────────────────────────────────
-                  const SettingsSectionHeader(title: 'About'),
-                  SettingsTile(
-                    icon: Icons.info_outline_rounded,
-                    title: 'Version',
-                    subtitle: '1.0.0',
-                    trailing: const SizedBox.shrink(),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Prism v1.0.0 — private offline notebook.')),
+                    icon: Icons.star_rounded,
+                    title: 'Prism Pro Active',
+                    subtitle: 'Manage subscription & billing',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () async {
+                      final result = await ref.read(subscriptionRepositoryProvider).presentCustomerCenter();
+                      result.fold(
+                        (failure) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to open Customer Center: ${failure.message}'),
+                            ),
+                          );
+                        },
+                        (_) {},
                       );
                     },
                   ),
-                  SettingsTile(
-                    icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy policy',
-                    subtitle: 'All data stays on your device',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => context.push('/settings/privacy-policy'),
-                  ),
                 ],
-              ),
+
+                // ── About ──────────────────────────────────────────────
+                const SettingsSectionHeader(title: 'About'),
+                SettingsTile(
+                  icon: Icons.explore_outlined,
+                  title: 'Replay interactive tutorial',
+                  subtitle: 'Walk through the core features of Prism',
+                  trailing: const Icon(Icons.refresh_rounded, size: 20),
+                  onTap: () async {
+                    await ref.read(tutorialStateProvider.notifier).resetTutorial();
+                    await ref.read(editorTutorialStateProvider.notifier).resetTutorial();
+                    await ref.read(journalTutorialStateProvider.notifier).resetTutorial();
+                    if (context.mounted) {
+                      context.go('/notes');
+                    }
+                  },
+                ),
+                SettingsTile(
+                  icon: Icons.info_outline_rounded,
+                  title: 'Version',
+                  subtitle: '1.0.0',
+                  trailing: const SizedBox.shrink(),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Prism v1.0.0 — private offline notebook.')),
+                    );
+                  },
+                ),
+                SettingsTile(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Privacy policy',
+                  subtitle: 'All data stays on your device',
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/privacy-policy'),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
-  void _showOptionSelector({
+  void _showFontSelector({
     required BuildContext context,
+    required WidgetRef ref,
     required String title,
     required List<String> options,
     Map<String, String>? optionLabels,
     required String currentValue,
     required Function(String) onSelected,
   }) {
+    final isPro = ref.read(isProProvider);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: DesignColors.background(context),
@@ -262,12 +294,17 @@ class SettingsScreen extends ConsumerWidget {
                       final val = options[idx];
                       final displayLabel = optionLabels?[val] ?? val;
                       final isSelected = val == currentValue;
+                      final isLocked = val != 'Inter (Sans)' && !isPro;
 
                       return TactileWrapper(
                         style: TactileFeedbackStyle.standard,
                         onTap: () {
                           Navigator.pop(ctx);
-                          onSelected(val);
+                          if (isLocked) {
+                            context.push('/settings/paywall');
+                          } else {
+                            onSelected(val);
+                          }
                         },
                         child: ListTile(
                           title: Text(
@@ -279,7 +316,9 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           trailing: isSelected
                               ? Icon(Icons.check_rounded, color: DesignColors.primary(context))
-                              : null,
+                              : isLocked
+                                  ? Icon(Icons.lock_outline_rounded, size: 16, color: DesignColors.textTertiary(context))
+                                  : null,
                         ),
                       );
                     },
@@ -292,26 +331,5 @@ class SettingsScreen extends ConsumerWidget {
         );
       },
     );
-  }
-
-  Future<void> _changeBaseVaultsDirectory(BuildContext context, WidgetRef ref) async {
-    try {
-      final path = await FilePicker.platform.getDirectoryPath();
-      if (path == null) return;
-
-      await ref.read(vaultManagementServiceProvider).changeBaseDirectory(newPath: path, ref: ref);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Storage directory changed to: $path')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error changing storage location: $e')),
-        );
-      }
-    }
   }
 }

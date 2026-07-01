@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
 
 class ThemeGalleryScreen extends ConsumerStatefulWidget {
   const ThemeGalleryScreen({super.key});
@@ -17,10 +18,65 @@ class ThemeGalleryScreen extends ConsumerStatefulWidget {
 class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
   // Current active preview tab (0 = Notes List, 1 = Editor, 2 = Graph Map)
   int _previewTab = 0;
+  
+  // Currently selected preview theme type (defaults to active theme)
+  AppThemeType? _selectedPreviewThemeType;
+  
+  // Whether previewing premium colors in the mockup is enabled
+  bool _livePreviewMode = true;
+
+  bool _isThemeLocked(AppThemeType type) {
+    return type != AppThemeType.system &&
+        type != AppThemeType.light &&
+        type != AppThemeType.dark;
+  }
+
+  void _handleThemeTap(AppThemeType type, bool isPro) {
+    final isLocked = _isThemeLocked(type);
+
+    if (isLocked && !isPro) {
+      if (_livePreviewMode) {
+        setState(() {
+          _selectedPreviewThemeType = type;
+        });
+      } else {
+        context.push('/settings/paywall');
+      }
+    } else {
+      setState(() {
+        _selectedPreviewThemeType = type;
+      });
+    }
+  }
+
+  Future<void> _applySelectedTheme(bool isPro) async {
+    final type = _selectedPreviewThemeType ?? ref.read(themeProvider);
+    final isLocked = _isThemeLocked(type);
+
+    if (isLocked && !isPro) {
+      context.push('/settings/paywall');
+    } else {
+      await ref.read(themeProvider.notifier).setTheme(type);
+      if (mounted) {
+        context.pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Theme applied successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final activeThemeType = ref.watch(themeProvider);
+    final isPro = ref.watch(isProProvider);
+    final fontFamily = ref.watch(fontFamilyProvider);
+
+    final currentPreviewTheme = _selectedPreviewThemeType ?? activeThemeType;
+    final previewThemeData = AppTheme.resolve(currentPreviewTheme, fontFamily).themeData;
 
     // List of Light Editorial Themes: (type, name, primaryColor, backgroundColor, textColor)
     final lightEditorials = [
@@ -40,6 +96,31 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: TactileWrapper(
+            style: TactileFeedbackStyle.standard,
+            onTap: () => _applySelectedTheme(isPro),
+            child: Container(
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: DesignColors.primary(context),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Use Theme',
+                style: DesignTypography.body(
+                  context,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -113,17 +194,65 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                     ),
                   ),
                   
-                  // Live Scaffold Preview Card
+                  // Live Scaffold Preview Card wrapped in Theme widget to override colors
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _AppMockupPreview(tabIndex: _previewTab)
-                          .animate(key: ValueKey(_previewTab))
-                          .fadeIn(duration: 300.ms)
-                          .slideY(begin: 0.03, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
+                      child: Theme(
+                        data: previewThemeData,
+                        child: _AppMockupPreview(tabIndex: _previewTab),
+                      )
+                      .animate(key: ValueKey(_previewTab))
+                      .fadeIn(duration: 300.ms)
+                      .slideY(begin: 0.03, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  
+                  // Live Preview Mode Toggle Switch
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Try premium colors in the mockup',
+                            style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Live Preview Mode',
+                                style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                height: 20,
+                                width: 36,
+                                child: Transform.scale(
+                                  scale: 0.8,
+                                  child: Switch(
+                                    value: _livePreviewMode,
+                                    activeColor: DesignColors.primary(context),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _livePreviewMode = val;
+                                        if (!val) {
+                                          _selectedPreviewThemeType = null;
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
                   // ── Editorial Light Themes Section ─────────────────────────
                   SliverToBoxAdapter(
@@ -152,7 +281,8 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                       itemCount: lightEditorials.length,
                       itemBuilder: (context, index) {
                         final theme = lightEditorials[index];
-                        final isSelected = activeThemeType == theme.$1;
+                        final isSelected = currentPreviewTheme == theme.$1;
+                        final isLocked = _isThemeLocked(theme.$1) && !isPro;
                         return _GalleryThemeCard(
                           type: theme.$1,
                           name: theme.$2,
@@ -160,7 +290,8 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                           backgroundColor: theme.$4,
                           textColor: theme.$5,
                           isSelected: isSelected,
-                          onTap: () => ref.read(themeProvider.notifier).setTheme(theme.$1),
+                          isLocked: isLocked,
+                          onTap: () => _handleThemeTap(theme.$1, isPro),
                         );
                       },
                     ),
@@ -194,7 +325,8 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                       itemCount: darkEditorials.length,
                       itemBuilder: (context, index) {
                         final theme = darkEditorials[index];
-                        final isSelected = activeThemeType == theme.$1;
+                        final isSelected = currentPreviewTheme == theme.$1;
+                        final isLocked = _isThemeLocked(theme.$1) && !isPro;
                         return _GalleryThemeCard(
                           type: theme.$1,
                           name: theme.$2,
@@ -202,7 +334,8 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                           backgroundColor: theme.$4,
                           textColor: theme.$5,
                           isSelected: isSelected,
-                          onTap: () => ref.read(themeProvider.notifier).setTheme(theme.$1),
+                          isLocked: isLocked,
+                          onTap: () => _handleThemeTap(theme.$1, isPro),
                         );
                       },
                     ),
@@ -849,6 +982,7 @@ class _GalleryThemeCard extends StatelessWidget {
   final Color backgroundColor;
   final Color textColor;
   final bool isSelected;
+  final bool isLocked;
   final VoidCallback onTap;
 
   const _GalleryThemeCard({
@@ -858,6 +992,7 @@ class _GalleryThemeCard extends StatelessWidget {
     required this.backgroundColor,
     required this.textColor,
     required this.isSelected,
+    required this.isLocked,
     required this.onTap,
   });
 
@@ -967,7 +1102,7 @@ class _GalleryThemeCard extends StatelessWidget {
                 ),
               ],
             ),
-            // Select checkmark in top right
+            // Select checkmark or lock in top right
             if (isSelected)
               Align(
                 alignment: Alignment.topRight,
@@ -983,6 +1118,15 @@ class _GalleryThemeCard extends StatelessWidget {
                     color: Colors.white,
                   ),
                 ),
+              )
+            else if (isLocked)
+              Align(
+                alignment: Alignment.topRight,
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  size: 11,
+                  color: textColor.withValues(alpha: 0.5),
+                ),
               ),
           ],
         ),
@@ -990,3 +1134,4 @@ class _GalleryThemeCard extends StatelessWidget {
     );
   }
 }
+

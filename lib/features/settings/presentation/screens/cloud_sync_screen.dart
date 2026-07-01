@@ -4,20 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../widgets/settings_widgets.dart';
-import '../widgets/export_bottom_sheet.dart';
 import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/services/two_way_sync_service.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/vault_service.dart';
 
-class BackupAndSyncScreen extends ConsumerStatefulWidget {
-  const BackupAndSyncScreen({super.key});
+class CloudSyncScreen extends ConsumerStatefulWidget {
+  const CloudSyncScreen({super.key});
 
   @override
-  ConsumerState<BackupAndSyncScreen> createState() => _BackupAndSyncScreenState();
+  ConsumerState<CloudSyncScreen> createState() => _CloudSyncScreenState();
 }
 
-class _BackupAndSyncScreenState extends ConsumerState<BackupAndSyncScreen> {
+class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
   bool _isLoading = false;
   String _errorMessage = '';
   bool _obscurePassphrase = true;
@@ -130,7 +129,6 @@ class _BackupAndSyncScreenState extends ConsumerState<BackupAndSyncScreen> {
         _triggerActiveVaultSync();
       }
     } else {
-      // Show confirmation dialog: Keep or Delete
       if (!mounted) return;
       final choice = await showDialog<String>(
         context: context,
@@ -279,10 +277,8 @@ class _BackupAndSyncScreenState extends ConsumerState<BackupAndSyncScreen> {
       await purgeRes.fold(
         (fail) async => setState(() => _errorMessage = fail.message),
         (_) async {
-          // Clear passphrase
           await ref.read(secureStorageProvider).write(key: 'sync_passphrase', value: null);
           
-          // Disable sync for all vaults
           final syncedVaults = ref.read(syncedVaultsProvider).valueOrNull ?? [];
           for (final vault in syncedVaults) {
             await ref.read(syncedVaultsProvider.notifier).disableSync(vault);
@@ -324,7 +320,7 @@ class _BackupAndSyncScreenState extends ConsumerState<BackupAndSyncScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Backup & Sync',
+          'Cloud Sync',
           style: DesignTypography.heading(
             context,
             fontSize: 16,
@@ -338,7 +334,6 @@ class _BackupAndSyncScreenState extends ConsumerState<BackupAndSyncScreen> {
             : ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 children: [
-                  // ── Premium Badge Header ──────────────────────────────────────────
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -643,20 +638,6 @@ class _BackupAndSyncScreenState extends ConsumerState<BackupAndSyncScreen> {
                       const SizedBox(height: 24),
                     ],
                   ],
-
-                  // ── Local Utilities ────────────────────────────────────────────────
-                  const SettingsSectionHeader(title: 'Local Utilities'),
-                  SettingsTile(
-                    icon: Icons.file_download_outlined,
-                    title: 'Export vault',
-                    subtitle: 'Download all notes as ZIP, PDF or JSON',
-                    onTap: () => showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => const ExportBottomSheet(),
-                    ),
-                  ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
                 ],
               ),
       ),

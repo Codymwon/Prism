@@ -41,6 +41,7 @@ class ThemeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPro = ref.watch(isProProvider);
     // 1. Core modes
     final coreModes = [
       (AppThemeType.system, 'System Sync'),
@@ -155,6 +156,14 @@ class ThemeSelector extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
+                    if (!isPro) ...[
+                      Icon(
+                        Icons.lock_rounded,
+                        size: 14,
+                        color: DesignColors.primary(context),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                     Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
@@ -542,6 +551,50 @@ class HapticToggleTile extends ConsumerWidget {
     );
   }
 }
+
+class DragToPinToggleTile extends ConsumerWidget {
+  const DragToPinToggleTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dragToPinEnabled = ref.watch(dragToPinEnabledProvider).valueOrNull ?? false;
+
+    return SwitchListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      secondary: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: DesignColors.surfaceVariant(context),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.hub_outlined,
+          size: 18,
+          color: DesignColors.textSecondary(context),
+        ),
+      ),
+      title: Text(
+        'Pin Graph Nodes on Drag',
+        style: DesignTypography.body(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        'Pin year/week calendar nodes when dragging them',
+        style: DesignTypography.details(context),
+      ),
+      value: dragToPinEnabled,
+      activeThumbColor: DesignColors.primary(context),
+      onChanged: (val) {
+        ref.read(dragToPinEnabledProvider.notifier).setDragToPinEnabled(val);
+      },
+    );
+  }
+}
+
 
 
 

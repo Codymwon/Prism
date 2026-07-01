@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../providers/journal_providers.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 
 class JournalCalendar extends ConsumerWidget {
   final DateTime selectedDay;
@@ -22,11 +23,13 @@ class JournalCalendar extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final writtenDates = ref.watch(allDailyDatesProvider).valueOrNull ?? const <String>{};
     final focusedDay = ref.watch(focusedDayProvider);
+    final startOfWeek = ref.watch(startOfWeekProvider).valueOrNull ?? 'Sunday';
 
     return TableCalendar(
       firstDay: DateTime(2020),
       lastDay: DateTime(2030),
       focusedDay: focusedDay,
+      startingDayOfWeek: startOfWeek == 'Monday' ? StartingDayOfWeek.monday : StartingDayOfWeek.sunday,
       selectedDayPredicate: (day) => isSameDay(day, selectedDay),
       calendarFormat: CalendarFormat.month,
       headerStyle: HeaderStyle(

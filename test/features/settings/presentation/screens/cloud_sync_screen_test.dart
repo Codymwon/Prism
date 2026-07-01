@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:prism/core/services/google_drive_service.dart';
 import 'package:prism/core/services/two_way_sync_service.dart';
 import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/core/services/vault_service.dart';
-import 'package:prism/features/settings/presentation/screens/backup_and_sync_screen.dart';
+import 'package:prism/features/settings/presentation/screens/cloud_sync_screen.dart';
 
 class FakeGoogleDriveService extends Fake implements GoogleDriveService {
   bool signedIn = false;
@@ -80,7 +79,7 @@ class MockGoogleSignInAccount extends Fake implements GoogleSignInAccount {
 }
 
 void main() {
-  testWidgets('BackupAndSyncScreen shows Connect Google Drive when not signed in', (tester) async {
+  testWidgets('CloudSyncScreen shows Connect Google Drive when not signed in', (tester) async {
     final fakeDrive = FakeGoogleDriveService();
     final fakeSync = FakeTwoWaySyncService();
 
@@ -91,7 +90,7 @@ void main() {
           twoWaySyncServiceProvider.overrideWithValue(fakeSync),
         ],
         child: const MaterialApp(
-          home: BackupAndSyncScreen(),
+          home: CloudSyncScreen(),
         ),
       ),
     );
@@ -102,7 +101,7 @@ void main() {
     expect(find.text('Connected'), findsNothing);
   });
 
-  testWidgets('BackupAndSyncScreen shows Connected account and passphrase setup when signed in but not configured', (tester) async {
+  testWidgets('CloudSyncScreen shows Connected account and passphrase setup when signed in but not configured', (tester) async {
     final fakeDrive = FakeGoogleDriveService()
       ..signedIn = true
       ..mockUser = MockGoogleSignInAccount();
@@ -115,7 +114,7 @@ void main() {
           twoWaySyncServiceProvider.overrideWithValue(fakeSync),
         ],
         child: const MaterialApp(
-          home: BackupAndSyncScreen(),
+          home: CloudSyncScreen(),
         ),
       ),
     );
@@ -128,7 +127,7 @@ void main() {
     expect(find.text('End-to-End Encryption Active'), findsNothing);
   });
 
-  testWidgets('BackupAndSyncScreen shows vaults list and toggle switches when signed in and configured', (tester) async {
+  testWidgets('CloudSyncScreen shows vaults list and toggle switches when signed in and configured', (tester) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -150,7 +149,7 @@ void main() {
           syncedVaultsProvider.overrideWith(() => FakeSyncedVaults(['Vault A'])),
         ],
         child: const MaterialApp(
-          home: BackupAndSyncScreen(),
+          home: CloudSyncScreen(),
         ),
       ),
     );

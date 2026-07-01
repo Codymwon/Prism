@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -781,4 +782,82 @@ HeadingNode parseHierarchicalSections(List<MarkdownSegment> segments) {
 
   return root;
 }
+
+class BracketsPairingFormatter extends TextInputFormatter {
+  final bool enabled;
+
+  BracketsPairingFormatter({required this.enabled});
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (!enabled) return newValue;
+
+    // 1. Overtyping logic: if they typed the closing character and it's already right in front of the cursor
+    if (newValue.text.length == oldValue.text.length + 1) {
+      final cursor = newValue.selection.baseOffset;
+      if (cursor > 0 && cursor <= oldValue.text.length) {
+        final typedChar = newValue.text[cursor - 1];
+        final nextCharInOld = oldValue.text[cursor - 1];
+        if (_isClosingChar(typedChar) && typedChar == nextCharInOld) {
+          // Instead of adding the character, just move the cursor forward (skip over the existing closing character)
+          return oldValue.copyWith(
+            selection: TextSelection.collapsed(offset: cursor),
+          );
+        }
+      }
+    }
+
+    // 2. Auto-pairing insertion logic
+    if (newValue.text.length == oldValue.text.length + 1) {
+      final cursor = newValue.selection.baseOffset;
+      final addedChar = newValue.text[cursor - 1];
+      final pair = _getPair(addedChar);
+      if (pair != null) {
+        final newText = newValue.text.substring(0, cursor) + pair + newValue.text.substring(cursor);
+        return newValue.copyWith(
+          text: newText,
+          selection: TextSelection.collapsed(offset: cursor),
+        );
+      }
+    }
+
+    // 3. Deleting matching pair logic: if they delete the opening character when the closing one is next
+    if (newValue.text.length == oldValue.text.length - 1 && oldValue.selection.isCollapsed) {
+      final oldCursor = oldValue.selection.baseOffset;
+      if (oldCursor >= 1 && oldCursor < oldValue.text.length) {
+        final deletedChar = oldValue.text[oldCursor - 1];
+        final nextChar = oldValue.text[oldCursor];
+        if (_getPair(deletedChar) == nextChar) {
+          // Remove both characters
+          final newText = oldValue.text.substring(0, oldCursor - 1) + oldValue.text.substring(oldCursor + 1);
+          return newValue.copyWith(
+            text: newText,
+            selection: TextSelection.collapsed(offset: oldCursor - 1),
+          );
+        }
+      }
+    }
+
+    return newValue;
+  }
+
+  String? _getPair(String char) {
+    switch (char) {
+      case '(': return ')';
+      case '[': return ']';
+      case '{': return '}';
+      case '"': return '"';
+      case "'": return "'";
+      default: return null;
+    }
+  }
+
+  bool _isClosingChar(String char) {
+    return char == ')' || char == ']' || char == '}' || char == '"' || char == "'";
+  }
+}
+
 

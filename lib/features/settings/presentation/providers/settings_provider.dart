@@ -118,4 +118,101 @@ class DragToPinEnabledNotifier extends AsyncNotifier<bool> {
   }
 }
 
+// ─── Auto-create Daily Note on Launch Provider ─────────────────────────────
+final autoCreateDailyNoteOnLaunchProvider =
+    AsyncNotifierProvider<AutoCreateDailyNoteOnLaunchNotifier, bool>(
+        AutoCreateDailyNoteOnLaunchNotifier.new);
+
+class AutoCreateDailyNoteOnLaunchNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('autoCreateDailyNoteOnLaunch') ?? false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('autoCreateDailyNoteOnLaunch', enabled);
+  }
+}
+
+// ─── Start of Week Provider ────────────────────────────────────────────────
+final startOfWeekProvider =
+    AsyncNotifierProvider<StartOfWeekNotifier, String>(
+        StartOfWeekNotifier.new);
+
+class StartOfWeekNotifier extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('startOfWeek') ?? 'Sunday';
+  }
+
+  Future<void> setStartOfWeek(String startDay) async {
+    state = AsyncData(startDay);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('startOfWeek', startDay);
+  }
+}
+
+// ─── Line Numbers Gutter Provider ──────────────────────────────────────────
+final lineNumbersGutterProvider =
+    AsyncNotifierProvider<LineNumbersGutterNotifier, bool>(
+        LineNumbersGutterNotifier.new);
+
+class LineNumbersGutterNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('lineNumbersGutter') ?? false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lineNumbersGutter', enabled);
+  }
+}
+
+// ─── Auto-pair Brackets Provider ───────────────────────────────────────────
+final autoPairBracketsProvider =
+    AsyncNotifierProvider<AutoPairBracketsNotifier, bool>(
+        AutoPairBracketsNotifier.new);
+
+class AutoPairBracketsNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('autoPairBrackets') ?? true;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('autoPairBrackets', enabled);
+  }
+}
+
+// ─── Show Backlinks Provider ────────────────────────────────────────────────
+final showBacklinksDefaultProvider =
+    AsyncNotifierProvider<ShowBacklinksDefaultNotifier, bool>(
+        ShowBacklinksDefaultNotifier.new);
+
+class ShowBacklinksDefaultNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('showBacklinks') ?? false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('showBacklinks', enabled);
+  }
+}
+
+
+
 

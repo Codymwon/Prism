@@ -18,14 +18,21 @@ import '../widgets/skeleton_note_list.dart';
 import '../widgets/tag_filter_banner.dart';
 import '../widgets/notes_list_search_bar.dart';
 import '../../../../core/services/vault_service.dart';
-
-
+import '../../../settings/presentation/providers/startup_actions.dart';
 
 class NotesListScreen extends ConsumerWidget {
   const NotesListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Run startup actions (e.g. auto-creating daily note on launch)
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final route = await checkAndRunStartupActions(ref.read);
+      if (route != null && context.mounted) {
+        context.push(route);
+      }
+    });
+
     // Pre-warm available vaults list cache so the selector bottom sheet loads instantly
     ref.watch(availableVaultsProvider);
 

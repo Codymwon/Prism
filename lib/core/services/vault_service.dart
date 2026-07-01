@@ -100,6 +100,69 @@ class VaultManagementService {
     ref.invalidate(availableVaultsProvider);
   }
 
+  /// Renames a physical vault directory and updates providers/databases
+  Future<void> renameVault({
+    required String oldName,
+    required String newName,
+    required String baseDir,
+    required WidgetRef ref,
+  }) async {
+    final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+    if (!safePattern.hasMatch(newName)) {
+      throw ArgumentError('Invalid vault name: only letters, numbers, spaces, hyphens, and underscores are allowed.');
+    }
+
+    final oldPath = p.join(baseDir, oldName);
+    final newPath = p.join(baseDir, newName);
+
+    if (Directory(newPath).existsSync()) {
+      throw ArgumentError('A vault named "$newName" already exists.');
+    }
+
+    // Rename the directory
+    await Directory(oldPath).rename(newPath);
+
+    // If the renamed vault was the active vault, update the active name
+    final activeVault = ref.read(activeVaultNameProvider).valueOrNull ?? '';
+    if (activeVault == oldName) {
+      await ref.read(activeVaultNameProvider.notifier).setVaultName(newName);
+    }
+
+    // Invalidate available vaults list
+    ref.invalidate(availableVaultsProvider);
+  }
+
+  /// Deletes a physical vault directory
+  Future<void> deleteVault({
+    required String vaultName,
+    required String baseDir,
+    required WidgetRef ref,
+  }) async {
+    final path = p.join(baseDir, vaultName);
+    final dir = Directory(path);
+
+    if (await dir.exists()) {
+      // Reconnect/close db if active vault is deleted
+      final activeVault = ref.read(activeVaultNameProvider).valueOrNull ?? '';
+      if (activeVault == vaultName) {
+        // Find another vault to switch to
+        final allVaults = ref.read(availableVaultsProvider).valueOrNull ?? [];
+        final remainingVaults = allVaults.where((v) => v != vaultName).toList();
+        if (remainingVaults.isEmpty) {
+          throw StateError('Cannot delete the last remaining vault.');
+        }
+        // Switch to the first remaining vault
+        await switchVault(vaultName: remainingVaults.first, ref: ref);
+      }
+
+      await dir.delete(recursive: true);
+    }
+
+    // Invalidate available vaults list
+    ref.invalidate(availableVaultsProvider);
+  }
+
+
   /// Safely relocates base vaults directory path and loads/creates active vaults inside asynchronously
   Future<void> changeBaseDirectory({
     required String newPath,

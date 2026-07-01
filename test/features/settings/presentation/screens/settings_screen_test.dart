@@ -51,7 +51,7 @@ void main() {
     await tester.pumpWidget(buildTestableWidget(isPro: false));
     await tester.pumpAndSettle();
 
-    expect(find.text('Try Prism Pro'), findsOneWidget);
+    expect(find.text('Upgrade to Pro'), findsOneWidget);
     expect(find.text('Prism Pro Active'), findsNothing);
   });
 
@@ -67,7 +67,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Prism Pro Active'), findsOneWidget);
-    expect(find.text('Try Prism Pro'), findsNothing);
+    expect(find.text('Upgrade to Pro'), findsNothing);
   });
 
   testWidgets('Settings ListView has bottom padding to clear the floating navbar',
