@@ -133,6 +133,48 @@ void main() {
         ),
       ));
     });
+
+    testWidgets('should omit heading hashes and separating spaces on non-cursor lines in live preview mode', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) {
+              final controller = LivePreviewController(
+                noteId: 'test-note-id',
+                mode: EditorMode.livePreview,
+              );
+
+              controller.text = '### Heading Three';
+              // Cursor is at the end of the line, but wait: if there's only one line, that line is always the cursor line!
+              // So let's make it two lines, and place cursor on line 2.
+              controller.text = '### Heading Three\nLine Two';
+              controller.selection = const TextSelection.collapsed(offset: 20); // inside 'Line Two'
+
+              final span = controller.buildTextSpan(
+                context: context,
+                style: const TextStyle(color: Colors.black, fontSize: 14),
+                withComposing: false,
+              );
+
+              final spans = _flattenSpans(span as TextSpan);
+
+              // Verification:
+              // The hashes '###' and separating space ' ' should NOT be in the flattened spans at all,
+              // or should be completely skipped. Only 'Heading Three' and 'Line Two' should be present.
+              final hasHashes = spans.any((s) => s.text == '###');
+              final hasSpace = spans.any((s) => s.text == ' ');
+              final hasHeadingTitle = spans.any((s) => s.text == 'Heading Three');
+
+              expect(hasHashes, isFalse, reason: 'hashes should be omitted');
+              expect(hasSpace, isFalse, reason: 'separating space should be omitted');
+              expect(hasHeadingTitle, isTrue, reason: 'heading title should be rendered');
+
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ));
+    });
   });
 }
 

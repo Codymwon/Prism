@@ -191,6 +191,40 @@ void insertDivider({
   focusNode.requestFocus();
 }
 
+/// Helper to insert a markdown table template dynamically.
+void insertTable({
+  required TextEditingController controller,
+  required FocusNode focusNode,
+}) {
+  final text = controller.text;
+  final selection = controller.selection;
+  final cursor = selection.isValid ? selection.baseOffset : text.length;
+
+  // Find start of current line
+  final lineStart = cursor == 0 ? 0 : text.lastIndexOf('\n', cursor - 1) + 1;
+  final lineEnd = text.indexOf('\n', cursor);
+  final actualLineEnd = lineEnd == -1 ? text.length : lineEnd;
+  final currentLine = text.substring(lineStart, actualLineEnd);
+
+  // Determine prefix: if current line is not empty, insert a newline first
+  final String prefix = currentLine.trim().isEmpty ? '' : '\n';
+  // Standard 2x2 markdown table template
+  const String tableTemplate = '| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |';
+  const String suffix = '\n';
+
+  final start = selection.isValid ? selection.start : text.length;
+  final end = selection.isValid ? selection.end : text.length;
+
+  final newText = text.replaceRange(start, end, '$prefix$tableTemplate$suffix');
+  controller.value = TextEditingValue(
+    text: newText,
+    selection: TextSelection.collapsed(
+      offset: (start + prefix.length + tableTemplate.length + suffix.length).clamp(0, newText.length),
+    ),
+  );
+  focusNode.requestFocus();
+}
+
 /// Helper to resolve template variables inside a macro and insert the resolved text.
 void insertMacro({
   required TextEditingController controller,
@@ -658,18 +692,20 @@ class HeadingNode {
   final int level; // 1 for H1, 2 for H2, etc. 0 for root.
   final List<MarkdownSegment> segments;
   final List<HeadingNode> children;
+  final String path;
 
   HeadingNode({
     required this.headingText,
     required this.level,
     required this.segments,
     required this.children,
+    required this.path,
   });
 }
 
 /// Groups alternating text/audio markdown segments into a hierarchical heading tree.
 HeadingNode parseHierarchicalSections(List<MarkdownSegment> segments) {
-  final root = HeadingNode(headingText: 'Root', level: 0, segments: [], children: []);
+  final root = HeadingNode(headingText: 'Root', level: 0, segments: [], children: [], path: 'Root');
   final stack = <HeadingNode>[root];
   
   bool isInCodeBlock = false;
@@ -709,7 +745,17 @@ HeadingNode parseHierarchicalSections(List<MarkdownSegment> segments) {
             stack.removeLast();
           }
 
-          final newNode = HeadingNode(headingText: title, level: level, segments: [], children: []);
+          final parent = stack.last;
+          final parentPath = parent.path;
+          final path = parentPath == 'Root' ? title : '$parentPath > $title';
+
+          final newNode = HeadingNode(
+            headingText: title,
+            level: level,
+            segments: [],
+            children: [],
+            path: path,
+          );
           stack.last.children.add(newNode);
           stack.add(newNode);
         } else {

@@ -46,67 +46,71 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
           ),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header row
-          GestureDetector(
-            onTap: () => setState(() => _isExpanded = !_isExpanded),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.link_rounded,
-                    size: 15,
-                    color: DesignColors.primary(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${backlinks.length} backlink${backlinks.length == 1 ? '' : 's'}',
-                    style: DesignTypography.heading(
-                      context,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header row
+            GestureDetector(
+              onTap: () => setState(() => _isExpanded = !_isExpanded),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.link_rounded,
+                      size: 15,
                       color: DesignColors.primary(context),
                     ),
-                  ),
-                  const Spacer(),
-                  AnimatedRotation(
-                    turns: _isExpanded ? 0 : 0.5,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.expand_less_rounded,
-                      size: 18,
-                      color: DesignColors.textSecondary(context),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${backlinks.length} backlink${backlinks.length == 1 ? '' : 's'}',
+                      style: DesignTypography.heading(
+                        context,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: DesignColors.primary(context),
+                      ),
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                    AnimatedRotation(
+                      turns: _isExpanded ? 0 : 0.5,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.expand_less_rounded,
+                        size: 18,
+                        color: DesignColors.textSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Backlinks list
-          AnimatedCrossFade(
-            firstChild: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: backlinks.length,
-              separatorBuilder: (ctx, idx) => Divider(
-                height: 0.5,
-                indent: 20,
-                color: DesignColors.border(context),
+            // Backlinks list
+            AnimatedCrossFade(
+              firstChild: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: backlinks.length,
+                separatorBuilder: (ctx, idx) => Divider(
+                  height: 0.5,
+                  indent: 20,
+                  color: DesignColors.border(context),
+                ),
+                itemBuilder: (context, i) {
+                  final bl = backlinks[i];
+                  return _BacklinkTile(backlink: bl, isDark: isDark, colorScheme: colorScheme);
+                },
               ),
-              itemBuilder: (context, i) {
-                final bl = backlinks[i];
-                return _BacklinkTile(backlink: bl, isDark: isDark, colorScheme: colorScheme);
-              },
+              secondChild: const SizedBox.shrink(),
+              crossFadeState: _isExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+              duration: const Duration(milliseconds: 200),
             ),
-            secondChild: const SizedBox.shrink(),
-            crossFadeState: _isExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-            duration: const Duration(milliseconds: 200),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

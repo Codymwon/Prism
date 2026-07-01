@@ -26,6 +26,7 @@ mixin _$EditorState {
   String? get dailyDate => throw _privateConstructorUsedError;
   String get lastSaved => throw _privateConstructorUsedError;
   EditorMode get editorMode => throw _privateConstructorUsedError;
+  bool get showBacklinks => throw _privateConstructorUsedError;
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.
@@ -51,6 +52,7 @@ abstract class $EditorStateCopyWith<$Res> {
     String? dailyDate,
     String lastSaved,
     EditorMode editorMode,
+    bool showBacklinks,
   });
 }
 
@@ -78,6 +80,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? dailyDate = freezed,
     Object? lastSaved = null,
     Object? editorMode = null,
+    Object? showBacklinks = null,
   }) {
     return _then(
       _value.copyWith(
@@ -117,6 +120,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
                 ? _value.editorMode
                 : editorMode // ignore: cast_nullable_to_non_nullable
                       as EditorMode,
+            showBacklinks: null == showBacklinks
+                ? _value.showBacklinks
+                : showBacklinks // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -142,6 +149,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
     String? dailyDate,
     String lastSaved,
     EditorMode editorMode,
+    bool showBacklinks,
   });
 }
 
@@ -168,6 +176,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? dailyDate = freezed,
     Object? lastSaved = null,
     Object? editorMode = null,
+    Object? showBacklinks = null,
   }) {
     return _then(
       _$EditorStateImpl(
@@ -207,6 +216,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
             ? _value.editorMode
             : editorMode // ignore: cast_nullable_to_non_nullable
                   as EditorMode,
+        showBacklinks: null == showBacklinks
+            ? _value.showBacklinks
+            : showBacklinks // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -225,6 +238,7 @@ class _$EditorStateImpl implements _EditorState {
     this.dailyDate,
     this.lastSaved = '',
     this.editorMode = EditorMode.livePreview,
+    this.showBacklinks = false,
   });
 
   @override
@@ -253,10 +267,13 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final EditorMode editorMode;
+  @override
+  @JsonKey()
+  final bool showBacklinks;
 
   @override
   String toString() {
-    return 'EditorState(isLoaded: $isLoaded, isSaving: $isSaving, showWikilinkPopup: $showWikilinkPopup, wikilinkQuery: $wikilinkQuery, loadedTitle: $loadedTitle, loadedBody: $loadedBody, dailyDate: $dailyDate, lastSaved: $lastSaved, editorMode: $editorMode)';
+    return 'EditorState(isLoaded: $isLoaded, isSaving: $isSaving, showWikilinkPopup: $showWikilinkPopup, wikilinkQuery: $wikilinkQuery, loadedTitle: $loadedTitle, loadedBody: $loadedBody, dailyDate: $dailyDate, lastSaved: $lastSaved, editorMode: $editorMode, showBacklinks: $showBacklinks)';
   }
 
   @override
@@ -281,7 +298,9 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.lastSaved, lastSaved) ||
                 other.lastSaved == lastSaved) &&
             (identical(other.editorMode, editorMode) ||
-                other.editorMode == editorMode));
+                other.editorMode == editorMode) &&
+            (identical(other.showBacklinks, showBacklinks) ||
+                other.showBacklinks == showBacklinks));
   }
 
   @override
@@ -296,6 +315,7 @@ class _$EditorStateImpl implements _EditorState {
     dailyDate,
     lastSaved,
     editorMode,
+    showBacklinks,
   );
 
   /// Create a copy of EditorState
@@ -318,6 +338,7 @@ abstract class _EditorState implements EditorState {
     final String? dailyDate,
     final String lastSaved,
     final EditorMode editorMode,
+    final bool showBacklinks,
   }) = _$EditorStateImpl;
 
   @override
@@ -338,6 +359,8 @@ abstract class _EditorState implements EditorState {
   String get lastSaved;
   @override
   EditorMode get editorMode;
+  @override
+  bool get showBacklinks;
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.

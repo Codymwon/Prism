@@ -35,6 +35,7 @@ class EditorState with _$EditorState {
     String? dailyDate,
     @Default('') String lastSaved,
     @Default(EditorMode.livePreview) EditorMode editorMode,
+    @Default(false) bool showBacklinks,
   }) = _EditorState;
 
   factory EditorState.initial() => const EditorState(
@@ -47,6 +48,7 @@ class EditorState with _$EditorState {
         dailyDate: null,
         lastSaved: '',
         editorMode: EditorMode.livePreview,
+        showBacklinks: false,
       );
 }
 
@@ -106,8 +108,9 @@ class EditorController extends _$EditorController {
       }
     }
 
-    // Load persisted editor mode
+    // Load persisted editor mode and showBacklinks
     EditorMode loadedMode = EditorMode.livePreview;
+    bool loadedShowBacklinks = false;
     try {
       final prefs = await SharedPreferences.getInstance();
       final modeName = prefs.getString('editorMode_$noteId');
@@ -116,9 +119,13 @@ class EditorController extends _$EditorController {
           (e) => e.name == modeName,
           orElse: () => EditorMode.livePreview,
         );
+        if (loadedMode == EditorMode.source) {
+          loadedMode = EditorMode.livePreview;
+        }
       }
+      loadedShowBacklinks = prefs.getBool('showBacklinks') ?? false;
     } catch (e) {
-      debugPrint('Error loading editor mode: $e');
+      debugPrint('Error loading editor settings: $e');
     }
 
     state = state.copyWith(
@@ -128,6 +135,7 @@ class EditorController extends _$EditorController {
       lastSaved: content,
       dailyDate: dateStr,
       editorMode: loadedMode,
+      showBacklinks: loadedShowBacklinks,
     );
 
     return state;
@@ -136,14 +144,27 @@ class EditorController extends _$EditorController {
   Future<void> setEditorMode(EditorMode mode) async {
     state = state.copyWith(editorMode: mode);
 
-    // Reading mode is transient, only persist livePreview or source
-    if (mode != EditorMode.reading) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mode != EditorMode.source) {
         await prefs.setString('editorMode_$noteId', mode.name);
-      } catch (e) {
-        debugPrint('Error saving editor mode: $e');
+      } else {
+        await prefs.remove('editorMode_$noteId');
       }
+    } catch (e) {
+      debugPrint('Error saving editor mode: $e');
+    }
+  }
+
+  Future<void> toggleShowBacklinks() async {
+    final newValue = !state.showBacklinks;
+    state = state.copyWith(showBacklinks: newValue);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('showBacklinks', newValue);
+    } catch (e) {
+      debugPrint('Error saving showBacklinks preference: $e');
     }
   }
 

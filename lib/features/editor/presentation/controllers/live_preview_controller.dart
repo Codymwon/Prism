@@ -178,10 +178,22 @@ class LivePreviewController extends TextEditingController {
         }
       }
 
+      bool seenHeadingText = false;
       for (final spanInfo in line.inlineSpans) {
         // Skip rendering the raw checklist syntax characters `- [ ]` on non-cursor lines
         if (line.type == MarkdownLineType.checklist && !isRawLine && spanInfo.isSyntaxChar && spanInfo.text.startsWith('- [')) {
           continue;
+        }
+
+        // On non-cursor heading lines, completely omit syntax characters and any leading whitespace spans before heading text
+        if (line.type == MarkdownLineType.heading && !isRawLine) {
+          if (spanInfo.isSyntaxChar) {
+            continue;
+          }
+          if (!seenHeadingText && spanInfo.text.trim().isEmpty) {
+            continue;
+          }
+          seenHeadingText = true;
         }
 
         TextStyle spanStyle;

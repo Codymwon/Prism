@@ -315,6 +315,15 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
                   focusNode: widget.focusNode,
                 ),
               ),
+              _buildFormattingButton(
+                context,
+                icon: Icons.table_chart_rounded,
+                tooltip: 'Table',
+                onTap: () => insertTable(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                ),
+              ),
 
               // Vertical Divider separating standard actions and custom macros
               if (customMacros.isNotEmpty) ...[

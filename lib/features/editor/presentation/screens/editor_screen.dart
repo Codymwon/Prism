@@ -68,13 +68,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  Future<void> _toggleHeadingCollapse(String headingText) async {
-    debugPrint('*** _toggleHeadingCollapse called for: $headingText, current: $_collapsedHeadings');
+  Future<void> _toggleHeadingCollapse(String headingPath) async {
+    debugPrint('*** _toggleHeadingCollapse called for: $headingPath, current: $_collapsedHeadings');
     setState(() {
-      if (_collapsedHeadings.contains(headingText)) {
-        _collapsedHeadings.remove(headingText);
+      if (_collapsedHeadings.contains(headingPath)) {
+        _collapsedHeadings.remove(headingPath);
       } else {
-        _collapsedHeadings.add(headingText);
+        _collapsedHeadings.add(headingPath);
       }
     });
 
@@ -310,7 +310,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           isDark, colorScheme, fontFamily, sizeVal, paddingVal, editorState),
                 ),
                 // Backlinks panel
-                if (MediaQuery.of(context).viewInsets.bottom == 0)
+                if (MediaQuery.of(context).viewInsets.bottom == 0 && editorState.showBacklinks)
                   BacklinksPanel(noteId: widget.noteId),
               ],
             ),
@@ -397,6 +397,64 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           _editorController.setEditorMode(EditorMode.reading);
                           setState(() => _showEditorDrawer = false);
                         },
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 6.0),
+                        child: Divider(height: 1),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 4),
+                        child: Text(
+                          'SETTINGS',
+                          style: DesignTypography.metadata(
+                            context,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: DesignColors.textTertiary(context),
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          _editorController.toggleShowBacklinks();
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.link_rounded,
+                                    size: 18,
+                                    color: DesignColors.textSecondary(context),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Backlinks',
+                                    style: DesignTypography.body(
+                                      context,
+                                      fontSize: 14,
+                                      color: DesignColors.text(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Transform.scale(
+                                scale: 0.8,
+                                child: Switch.adaptive(
+                                  value: editorState.showBacklinks,
+                                  activeColor: DesignColors.primary(context),
+                                  onChanged: (val) {
+                                    _editorController.toggleShowBacklinks();
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -702,7 +760,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     double size,
     double paddingHorizontal,
   ) {
-    final isCollapsed = _collapsedHeadings.contains(node.headingText);
+    final isCollapsed = _collapsedHeadings.contains(node.path);
     // The chevron is placed in the gutter, so we adjust the left padding of the row
     final leftPadding = paddingHorizontal > 24.0 ? paddingHorizontal - 24.0 : 0.0;
 
@@ -725,7 +783,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       duration: const Duration(milliseconds: 200),
                       child: const Icon(Icons.chevron_right, size: 20),
                     ),
-                    onPressed: () => _toggleHeadingCollapse(node.headingText),
+                    onPressed: () => _toggleHeadingCollapse(node.path),
                     splashRadius: 16,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),

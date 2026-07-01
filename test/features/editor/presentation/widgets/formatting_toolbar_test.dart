@@ -95,6 +95,7 @@ void main() {
     final attachImageFinder = find.byTooltip('Attach Image');
     expect(attachImageFinder, findsOneWidget);
 
+    await tester.ensureVisible(attachImageFinder);
     await tester.tap(attachImageFinder);
     expect(attachImageTriggered, isTrue);
   });
@@ -126,11 +127,13 @@ void main() {
 
     final headingBtnFinder = find.byTooltip('Heading (H1–H4)');
     expect(headingBtnFinder, findsOneWidget);
+    await tester.ensureVisible(headingBtnFinder);
     await tester.tap(headingBtnFinder);
     await tester.pumpAndSettle();
 
     final h1Finder = find.text('Heading 1');
     expect(h1Finder, findsOneWidget);
+    await tester.ensureVisible(h1Finder);
     await tester.tap(h1Finder);
     await tester.pumpAndSettle();
 
@@ -165,6 +168,7 @@ void main() {
 
     final listBtnFinder = find.byTooltip('Bullet List');
     expect(listBtnFinder, findsOneWidget);
+    await tester.ensureVisible(listBtnFinder);
     await tester.tap(listBtnFinder);
     await tester.pumpAndSettle();
 
@@ -198,6 +202,7 @@ void main() {
 
     final listBtnFinder = find.byTooltip('Bullet List');
     expect(listBtnFinder, findsOneWidget);
+    await tester.ensureVisible(listBtnFinder);
     await tester.tap(listBtnFinder);
     await tester.pumpAndSettle();
 
@@ -231,6 +236,7 @@ void main() {
 
     final checklistBtnFinder = find.byTooltip('Checklist');
     expect(checklistBtnFinder, findsOneWidget);
+    await tester.ensureVisible(checklistBtnFinder);
     await tester.tap(checklistBtnFinder);
     await tester.pumpAndSettle();
 
@@ -264,6 +270,7 @@ void main() {
 
     final quoteBtnFinder = find.byTooltip('Blockquote');
     expect(quoteBtnFinder, findsOneWidget);
+    await tester.ensureVisible(quoteBtnFinder);
     await tester.tap(quoteBtnFinder);
     await tester.pumpAndSettle();
 
@@ -297,9 +304,45 @@ void main() {
 
     final dividerBtnFinder = find.byTooltip('Divider');
     expect(dividerBtnFinder, findsOneWidget);
+    await tester.ensureVisible(dividerBtnFinder);
     await tester.tap(dividerBtnFinder);
     await tester.pumpAndSettle();
 
     expect(controller.text, equals('Some text\n---\n'));
+  });
+
+  testWidgets('Table button inserts table dynamically', (WidgetTester tester) async {
+    final controller = TextEditingController(text: 'Some text');
+    controller.selection = const TextSelection.collapsed(offset: 9);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: FormattingToolbar(
+                controller: controller,
+                focusNode: focusNode,
+                onToggleDictation: () {},
+                onAttachImage: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final tableBtnFinder = find.byTooltip('Table');
+    expect(tableBtnFinder, findsOneWidget);
+    await tester.ensureVisible(tableBtnFinder);
+    await tester.tap(tableBtnFinder);
+    await tester.pumpAndSettle();
+
+    const expectedTable = 'Some text\n| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |\n';
+    expect(controller.text, equals(expectedTable));
   });
 }

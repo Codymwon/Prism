@@ -445,7 +445,10 @@ void main() {
 
     final mockRepo = MockNoteRepository(note);
 
-    // Ensure we start with keyboard closed
+    // Ensure we start with keyboard closed and showBacklinks is enabled
+    SharedPreferences.setMockInitialValues({
+      'showBacklinks': true,
+    });
     tester.view.viewInsets = const FakeViewPadding(bottom: 0);
     addTearDown(() {
       tester.view.resetViewInsets();

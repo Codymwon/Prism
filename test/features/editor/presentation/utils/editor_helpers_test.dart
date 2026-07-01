@@ -144,5 +144,49 @@ void main() {
       expect(tagY < whatsappY, isTrue, reason: '#tag ($tagY) should be above whatsapp ($whatsappY)');
     });
   });
+
+  group('insertTable', () {
+    test('should insert table template at cursor position on empty line', () {
+      final controller = TextEditingController(text: '');
+      final focusNode = FocusNode();
+
+      insertTable(controller: controller, focusNode: focusNode);
+
+      const expectedTable = '| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |\n';
+      expect(controller.text, expectedTable);
+      expect(controller.selection.baseOffset, expectedTable.length);
+    });
+
+    test('should insert table template with leading newline if current line is not empty', () {
+      final controller = TextEditingController(text: 'Hello');
+      controller.selection = const TextSelection.collapsed(offset: 5);
+      final focusNode = FocusNode();
+
+      insertTable(controller: controller, focusNode: focusNode);
+
+      const expectedTable = 'Hello\n| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |\n';
+      expect(controller.text, expectedTable);
+    });
+  });
+
+  group('parseHierarchicalSections path', () {
+    test('should construct unique hierarchical path for heading nodes', () {
+      final segments = splitAudioLinks('# H1\n## H2\n### H3\n# H1_2');
+      final root = parseHierarchicalSections(segments);
+
+      expect(root.children[0].headingText, 'H1');
+      expect(root.children[0].path, 'H1');
+
+      expect(root.children[0].children[0].headingText, 'H2');
+      expect(root.children[0].children[0].path, 'H1 > H2');
+
+      expect(root.children[0].children[0].children[0].headingText, 'H3');
+      expect(root.children[0].children[0].children[0].path, 'H1 > H2 > H3');
+
+      expect(root.children[1].headingText, 'H1_2');
+      expect(root.children[1].path, 'H1_2');
+    });
+  });
 }
+
 
