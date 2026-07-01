@@ -7,6 +7,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../providers/settings_provider.dart';
 
 class ThemeGalleryScreen extends ConsumerStatefulWidget {
   const ThemeGalleryScreen({super.key});
@@ -50,7 +51,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
   }
 
   Future<void> _applySelectedTheme(bool isPro) async {
-    final type = _selectedPreviewThemeType ?? ref.read(themeProvider);
+    final type = (_selectedPreviewThemeType ?? ref.read(themeProvider)) as AppThemeType;
     final isLocked = _isThemeLocked(type);
 
     if (isLocked && !isPro) {

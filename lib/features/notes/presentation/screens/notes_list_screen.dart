@@ -359,7 +359,7 @@ class NotesListScreen extends ConsumerWidget {
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.95, 0.95));
+    );
   }
 
 

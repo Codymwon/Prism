@@ -118,12 +118,13 @@ class GraphNodeRepository {
 
           // 2. ISO Week Node
           final weekNum = _getIsoWeekNumber(date);
-          final weekId = 'week-${date.year}-$weekNum';
+          final weekNumStr = weekNum.toString().padLeft(2, '0');
+          final weekId = 'week-${date.year}-$weekNumStr';
           if (!createdTemporalIds.contains(weekId)) {
             createdTemporalIds.add(weekId);
             nodes.add(GraphNode(
               id: weekId,
-              title: 'W$weekNum',
+              title: 'Week $weekNum, ${date.year}',
               linkCount: 0,
               colorHex: null,
               isTemporal: true,
@@ -204,11 +205,7 @@ class GraphNodeRepository {
     final result = <String, GraphNodePosition>{};
     for (final m in maps) {
       final id = m['note_id'] as String;
-      result[id] = GraphNodePosition(
-        noteId: id,
-        x: m['x'] as double,
-        y: m['y'] as double,
-      );
+      result[id] = GraphNodePosition.fromMap(m);
     }
     return result;
   }

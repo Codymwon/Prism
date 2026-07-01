@@ -11,7 +11,7 @@ class JournalPreferencesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final startOfWeek = ref.watch(startOfWeekProvider).valueOrNull ?? 'Sunday';
-    final autoCreate = ref.watch(autoCreateDailyNoteOnLaunchProvider.valueOrNull) ?? false;
+    final autoCreate = ref.watch(autoCreateDailyNoteOnLaunchProvider).valueOrNull ?? false;
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),

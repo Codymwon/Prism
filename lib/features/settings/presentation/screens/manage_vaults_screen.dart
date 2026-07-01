@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/services/vault_service.dart';
+import '../../../../core/database/vault_providers.dart';
 import '../widgets/settings_widgets.dart';
 
 class ManageVaultsScreen extends ConsumerStatefulWidget {
@@ -387,7 +388,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                           ),
                           const SizedBox(height: 12),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.between,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Notes (.md)', style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context))),
                               Text('$_noteCount', style: DesignTypography.body(context, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -395,7 +396,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                           ),
                           const SizedBox(height: 8),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.between,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Audio Attachments (.m4a)', style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context))),
                               Text('$_attachmentCount', style: DesignTypography.body(context, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -403,7 +404,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                           ),
                           const SizedBox(height: 8),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.between,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Total Size on Disk', style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context))),
                               Text(_totalSizeStr, style: DesignTypography.body(context, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -416,7 +417,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                   const SizedBox(height: 24),
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.between,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const SettingsSectionHeader(title: 'All Local Vaults'),
                       IconButton(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 
@@ -32,75 +31,85 @@ class PrivacyPolicyScreen extends StatelessWidget {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                 children: [
-                  // ── Privacy Policy Content Sections ────────────────────────────────
-                  _buildSectionHeader(context, '1. DATA COLLECTION & STORAGE'),
-                  _buildPrivacyCard(
+                  _buildSection(
                     context,
-                    icon: Icons.offline_bolt_rounded,
-                    title: 'Offline Storage',
-                    description:
-                        'Your markdown files, journal entries, and configuration settings are stored locally on your device vault. We do not operate server databases, meaning we cannot read, sync, or sell your personal writing.',
-                  ).animate().fadeIn(delay: 250.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
-                  const SizedBox(height: 12),
-                  _buildPrivacyCard(
-                    context,
-                    icon: Icons.analytics_outlined,
-                    title: 'No Telemetry & Analytics',
-                    description:
-                        'Prism does not run tracking SDKs, telemetry frameworks, or diagnostic reporting that sends data back to developers or advertising networks. Your in-app behavior is yours alone.',
-                  ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
-
+                    title: '1. DATA COLLECTION & STORAGE',
+                    items: [
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Offline Storage',
+                        description:
+                            'Your markdown files, journal entries, and configuration settings are stored locally on your device vault. We do not operate server databases, meaning we cannot read, sync, or sell your personal writing.',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'No Telemetry & Analytics',
+                        description:
+                            'Prism does not run tracking SDKs, telemetry frameworks, or diagnostic reporting that sends data back to developers or advertising networks. Your in-app behavior is yours alone.',
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
-                  _buildSectionHeader(context, '2. DEVICE PERMISSIONS'),
-                  _buildPrivacyCard(
+                  _buildSection(
                     context,
-                    icon: Icons.mic_none_rounded,
-                    title: 'Microphone Access',
-                    description:
-                        'Used exclusively when you activate the voice dictation toolbar button to record audio attachments or perform speech-to-text. Audio files are saved inside your vault and processed locally.',
-                  ).animate().fadeIn(delay: 350.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
-                  const SizedBox(height: 12),
-                  _buildPrivacyCard(
-                    context,
-                    icon: Icons.folder_open_outlined,
-                    title: 'Storage / Filesystem Access',
-                    description:
-                        'Required to let you select a local folder directory for your vaults, enabling Prism to read, write, and manage your standard markdown files.',
-                  ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
-
+                    title: '2. DEVICE PERMISSIONS',
+                    items: [
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Microphone Access',
+                        description:
+                            'Used exclusively when you activate the voice dictation toolbar button to record audio attachments or perform speech-to-text. Audio files are saved inside your vault and processed locally.',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Storage / Filesystem Access',
+                        description:
+                            'Required to let you select a local folder directory for your vaults, enabling Prism to read, write, and manage your standard markdown files.',
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
-                  _buildSectionHeader(context, '3. OPTIONAL CLOUD INTEGRATION'),
-                  _buildPrivacyCard(
+                  _buildSection(
                     context,
-                    icon: Icons.cloud_queue_rounded,
-                    title: 'Google Drive Sync',
-                    description:
-                        'If you choose to configure the Google Drive integration, connection is established directly between your device and Google servers. We never intercept, store, or have access to your Google credentials or synced notes.',
-                  ).animate().fadeIn(delay: 450.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
-
+                    title: '3. OPTIONAL CLOUD INTEGRATION',
+                    items: [
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Google Drive Sync',
+                        description:
+                            'If you choose to configure the Google Drive integration, connection is established directly between your device and Google servers. We never intercept, store, or have access to your Google credentials or synced notes.',
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
-                  _buildSectionHeader(context, '4. COMPLIANCE WITH LAWS'),
-                  _buildPrivacyCard(
+                  _buildSection(
                     context,
-                    icon: Icons.gavel_rounded,
-                    title: 'GDPR, CCPA & Privacy Rights',
-                    description:
-                        'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), users maintain the absolute right to view and purge their data. Because your notes are standard markdown text files stored locally, you hold complete access, modification, and deletion capability at all times. Simply delete your vault folders to purge your data.',
-                  ).animate().fadeIn(delay: 500.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
-
+                    title: '4. COMPLIANCE WITH LAWS',
+                    items: [
+                      _buildPrivacyItem(
+                        context,
+                        title: 'GDPR, CCPA & Privacy Rights',
+                        description:
+                            'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), users maintain the absolute right to view and purge their data. Because your notes are standard markdown text files stored locally, you hold complete access, modification, and deletion capability at all times. Simply delete your vault folders to purge your data.',
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
-                  _buildSectionHeader(context, '5. CONTACT & UPDATES'),
-                  _buildPrivacyCard(
+                  _buildSection(
                     context,
-                    icon: Icons.mail_outline_rounded,
-                    title: 'Privacy Queries',
-                    description:
-                        'We may update this policy occasionally as new features roll out. For privacy concerns, code transparency audits, or feedback, email us at privacy@prismnotes.com.',
-                  ).animate().fadeIn(delay: 550.ms, duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
-
-                  const SizedBox(height: 48),
+                    title: '5. CONTACT & UPDATES',
+                    items: [
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Privacy Queries',
+                        description:
+                            'We may update this policy occasionally as new features roll out. For privacy concerns, code transparency audits, or feedback, email us at privacy@prismnotes.com.',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -109,9 +118,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                color: DesignColors.surface(context),
+                color: DesignColors.background(context),
                 border: Border(
-                  top: BorderSide(color: DesignColors.border(context)),
+                  top: BorderSide(color: DesignColors.border(context), width: 0.5),
                 ),
               ),
               child: SafeArea(
@@ -186,74 +195,48 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 8),
-      child: Text(
-        title,
-        style: DesignTypography.metadata(
-          context,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: DesignColors.textTertiary(context),
+  Widget _buildSection(BuildContext context, {required String title, required List<Widget> items}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: DesignTypography.metadata(
+            context,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: DesignColors.primary(context),
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        ...items,
+      ],
     );
   }
 
-  Widget _buildPrivacyCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: DesignColors.surface(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: DesignColors.border(context)),
-      ),
-      child: Row(
+  Widget _buildPrivacyItem(BuildContext context, {required String title, required String description}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: DesignColors.surfaceVariant(context),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: DesignColors.primary(context),
+          Text(
+            title,
+            style: DesignTypography.body(
+              context,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: DesignColors.text(context),
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: DesignTypography.body(
-                    context,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: DesignColors.text(context),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: DesignTypography.body(
-                    context,
-                    fontSize: 12,
-                    height: 1.5,
-                    color: DesignColors.textSecondary(context),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: DesignTypography.body(
+              context,
+              fontSize: 12,
+              height: 1.5,
+              color: DesignColors.textSecondary(context),
             ),
           ),
         ],

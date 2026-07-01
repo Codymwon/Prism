@@ -393,8 +393,8 @@ void main() {
           final yearly = packages.firstWhere((p) => p.packageType == 'yearly');
           final monthly = packages.firstWhere((p) => p.packageType == 'monthly');
 
-          expect(yearly.price, 36.00);
-          expect(monthly.price, 4.00);
+          expect(yearly.price, 24.99);
+          expect(monthly.price, 2.99);
         },
       );
     });
@@ -460,8 +460,8 @@ void main() {
         identifier: 'yearly',
         title: 'Prism Pro Yearly',
         description: 'Yearly',
-        priceString: '\$36.00',
-        price: 36.0,
+        priceString: '\$24.99',
+        price: 24.99,
         currencyCode: 'USD',
         packageType: 'yearly',
       );
