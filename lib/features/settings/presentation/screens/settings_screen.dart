@@ -210,6 +210,16 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ],
 
+                // ── Feedback & Support ──────────────────────────────────
+                const SettingsSectionHeader(title: 'Feedback & Support'),
+                SettingsTile(
+                  icon: Icons.mail_outline_rounded,
+                  title: 'Contact Support & Feedback',
+                  subtitle: 'Report bugs, suggest features, or get help',
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/support'),
+                ),
+
                 // ── About ──────────────────────────────────────────────
                 const SettingsSectionHeader(title: 'About'),
                 SettingsTile(

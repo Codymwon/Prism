@@ -16,6 +16,7 @@ import '../../features/settings/presentation/screens/cloud_sync_screen.dart';
 import '../../features/settings/presentation/screens/editor_preferences_screen.dart';
 import '../../features/settings/presentation/screens/journal_preferences_screen.dart';
 import '../../features/settings/presentation/screens/manage_vaults_screen.dart';
+import '../../features/settings/presentation/screens/support_screen.dart';
 import '../../features/subscription/presentation/screens/custom_paywall_screen.dart';
 import '../../features/onboarding/data/onboarding_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -292,6 +293,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const ManageVaultsScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.08, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                )),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: const Duration(milliseconds: 240),
+        ),
+      ),
+      GoRoute(
+        path: '/settings/support',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SupportScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
