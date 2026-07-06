@@ -36,19 +36,37 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 children: [
                   _buildSection(
                     context,
-                    title: '1. DATA COLLECTION & STORAGE',
+                    title: '1. WHAT WE COLLECT',
                     items: [
                       _buildPrivacyItem(
                         context,
-                        title: 'Offline Storage',
+                        title: 'Your Notes & Files',
                         description:
-                            'Your markdown files, journal entries, and configuration settings are stored locally on your device vault. We do not operate server databases, meaning we cannot read, sync, or sell your personal writing.',
+                            'Your markdown files, journal entries, and configuration settings are stored exclusively on your device. We do not operate server databases — we cannot read, sync, or sell your personal writing.',
                       ),
                       _buildPrivacyItem(
                         context,
-                        title: 'No Telemetry & Analytics',
+                        title: 'Anonymous Usage Telemetry (opt-out)',
                         description:
-                            'Prism does not run tracking SDKs, telemetry frameworks, or diagnostic reporting that sends data back to developers or advertising networks. Your in-app behavior is yours alone.',
+                            'If you consent during onboarding, Prism uses Firebase Analytics to collect anonymous, aggregated app usage events (e.g. feature taps, editor mode switches). No note content, search queries, file paths, or personal identifiers are ever included. You can disable this at any time in Settings → Gestures & Feedback.',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Crash Reports (opt-out)',
+                        description:
+                            'If you consent, Firebase Crashlytics collects anonymous crash logs and error stack traces to help us fix bugs. These contain no note content or personal data. Crash reports are retained for 90 days. You can disable this alongside usage telemetry in Settings → Gestures & Feedback.',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Subscription Status',
+                        description:
+                            'Prism uses RevenueCat to verify your Prism Pro subscription status. RevenueCat receives a pseudonymous user identifier and purchase receipts from the app store. No personal information is shared. RevenueCat\'s privacy policy is available at revenuecat.com/privacy.',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Font Downloads',
+                        description:
+                            'On first launch, Prism downloads font files from Google Fonts (fonts.googleapis.com). These are cached locally on your device after the initial download — no personal data is transmitted, and the app functions fully offline thereafter.',
                       ),
                     ],
                   ),
@@ -112,7 +130,13 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         context,
                         title: 'GDPR, CCPA & Privacy Rights',
                         description:
-                            'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), users maintain the absolute right to view and purge their data. Because your notes are standard markdown text files stored locally, you hold complete access, modification, and deletion capability at all times. Simply delete your vault folders to purge your data.',
+                            'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), you have the right to access and delete your data. Because your notes are standard markdown files stored locally, you hold complete access and deletion capability at all times — simply delete your vault folders to purge your data.\n\nFor anonymous telemetry data held by Firebase, you may request deletion by contacting us. We will process requests within 30 days.',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Data Retention',
+                        description:
+                            'Anonymous crash reports are retained for 90 days in Firebase. Anonymous usage analytics are retained for 14 months per Google\'s standard Analytics retention policy. Support emails are retained until your issue is resolved. Your local notes and files are yours — we never hold them.',
                       ),
                     ],
                   ),
@@ -125,7 +149,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         context,
                         title: 'Privacy Queries',
                         description:
-                            'We may update this policy occasionally as new features roll out. For privacy concerns, code transparency audits, or feedback, email us at privacy@prismnotes.com.',
+                            'We may update this policy occasionally as new features roll out. For privacy concerns, data deletion requests, or feedback, email us at Prismprivacy@smallgiantstudio.com.',
                       ),
                     ],
                   ),
@@ -160,7 +184,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'https://prismnotes.com/privacy',
+                      'https://smallgiantstudio.com/prism/privacy',
                       style: DesignTypography.body(
                         context,
                         fontSize: 12,
@@ -173,7 +197,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     TactileWrapper(
                       style: TactileFeedbackStyle.highImpact,
                       onTap: () {
-                        Clipboard.setData(const ClipboardData(text: 'https://prismnotes.com/privacy'));
+                        Clipboard.setData(const ClipboardData(text: 'https://smallgiantstudio.com/prism/privacy'));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Privacy Policy link copied to clipboard!'),

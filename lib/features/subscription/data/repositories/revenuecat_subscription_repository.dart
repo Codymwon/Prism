@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -61,8 +62,12 @@ class RevenueCatSubscriptionRepository implements SubscriptionRepository {
       if (_isAndroid || _isIOS) {
         const apiKey = String.fromEnvironment(
           'REVENUECAT_API_KEY',
-          defaultValue: 'test_pjpoQVKBajKwZqKSYULjGBPnFZO',
+          defaultValue: '', // Set via --dart-define in CI/prod; use .env locally
         );
+        if (apiKey.isEmpty) {
+          debugPrint('RevenueCat: no API key provided — skipping init (dev build).');
+          return const Right(unit);
+        }
         final config = PurchasesConfiguration(apiKey);
         await _clientWrapper.configure(config);
       }

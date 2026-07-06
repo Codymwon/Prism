@@ -45,8 +45,17 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Read the user consent preference
-    final analyticsEnabled = prefs.getBool('analyticsEnabled') ?? true;
+    // On a fresh install, analyticsEnabled is not yet set. We write false
+    // immediately so Firebase initialises with collection DISABLED — no events
+    // fire before the user reaches the Telemetry Consent toggle in onboarding.
+    // The onboarding screen will write true if the user leaves the toggle ON.
+    final isFirstInstall = !prefs.containsKey('analyticsEnabled');
+    if (isFirstInstall) {
+      await prefs.setBool('analyticsEnabled', false);
+    }
+
+    // Read the user consent preference (now guaranteed to exist)
+    final analyticsEnabled = prefs.getBool('analyticsEnabled') ?? false;
     await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(analyticsEnabled);
     await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(analyticsEnabled);
 

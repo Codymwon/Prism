@@ -255,7 +255,26 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                           ),
                         
                         const SizedBox(height: 8),
-                        
+
+                        // ── Subscription Terms Disclaimer ─────────────────────
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Text(
+                              'Subscription auto-renews until cancelled. Manage or cancel anytime in your Google Play account settings.',
+                              textAlign: TextAlign.center,
+                              style: DesignTypography.body(
+                                context,
+                                fontSize: 11,
+                                color: DesignColors.textSecondary(context),
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
                         // ── Restore Button ───────────────────────────────────
                         Center(
                           child: TextButton(
