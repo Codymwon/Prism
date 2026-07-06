@@ -6,6 +6,7 @@ import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../database/vault_providers.dart';
 import 'two_way_sync_service.dart';
 import 'analytics_service.dart';
+import '../../features/onboarding/data/onboarding_provider.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -248,7 +249,7 @@ class VaultManagementService {
     }
 
     // Update SharedPreferences directly to ensure atomicity
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('baseVaultsDirectory', targetBaseDir);
     await prefs.setString('vaultType', vaultType);
     await prefs.setString('activeVaultName', activeVault);

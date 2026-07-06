@@ -11,6 +11,7 @@ import 'package:prism/features/folders/data/folder_repository.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 // ─── Fakes ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,12 @@ class _FakeNoteRepository implements NoteRepository {
 
   @override
   Future<List<Backlink>> getBacklinks(String noteId) async => backlinks[noteId] ?? [];
+
+  @override
+  Future<Map<String, List<String>>> batchGetTagsForAllNotes() async => tags;
+
+  @override
+  Future<Map<String, List<Backlink>>> batchGetBacklinksForAllNotes() async => backlinks;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -105,8 +112,10 @@ class _TestableVaultExportService extends VaultExportServiceImpl {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tempDir;
   late Directory saveDir;
+  late SharedPreferences prefs;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('prism_json_test_');
@@ -116,6 +125,7 @@ void main() {
       'baseVaultsDirectory': tempDir.path,
       'activeVaultName': 'Test Vault',
     });
+    prefs = await SharedPreferences.getInstance();
   });
 
   tearDown(() async {
@@ -127,6 +137,7 @@ void main() {
   test('exportJson returns ExportEmptyFailure when vault has no notes', () async {
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(
           _FakeNoteRepository(notes: [], contents: {}),
         ),
@@ -153,6 +164,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(
           _FakeNoteRepository(
             notes: [note1, note2],

@@ -4,30 +4,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/analytics_service.dart';
+import '../../features/onboarding/data/onboarding_provider.dart';
 
 // ─── Theme Type Enum ─────────────────────────────────────────────────────────
 enum AppThemeType { system, light, dark, sepia, forest, slate, arctic, noir, blush, midnight, matcha }
 
 // ─── Theme Provider ──────────────────────────────────────────────────────────
 final themeProvider = StateNotifierProvider<ThemeNotifier, AppThemeType>((ref) {
-  return ThemeNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return ThemeNotifier(prefs);
 });
 
 class ThemeNotifier extends StateNotifier<AppThemeType> {
-  ThemeNotifier() : super(AppThemeType.system) { // default system (Paper light / Dusk dark)
-    _load();
-  }
+  final SharedPreferences _prefs;
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final idx = prefs.getInt('themeType') ?? 0; // default system
-    state = AppThemeType.values[idx];
-  }
+  ThemeNotifier(this._prefs)
+      : super(
+          AppThemeType.values[(_prefs.getInt('themeType') ?? 0).clamp(
+            0,
+            AppThemeType.values.length - 1,
+          )],
+        );
 
   Future<void> setTheme(AppThemeType type) async {
     state = type;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('themeType', type.index);
+    await _prefs.setInt('themeType', type.index);
     AnalyticsService.logEvent('change_theme', parameters: {
       'theme': type.name,
     });

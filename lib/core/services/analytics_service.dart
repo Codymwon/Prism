@@ -4,6 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AnalyticsService {
+  static SharedPreferences? _prefs;
+
+  static void initialize(SharedPreferences prefs) {
+    _prefs = prefs;
+  }
+
   // Test visibility properties to inspect logged events in unit tests
   @visibleForTesting
   static final List<Map<String, dynamic>> loggedEvents = [];
@@ -13,7 +19,7 @@ class AnalyticsService {
 
   static Future<bool> isEnabled() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = _prefs ?? await SharedPreferences.getInstance();
       return prefs.getBool('analyticsEnabled') ?? true;
     } catch (_) {
       return true; // Default to true if SharedPreferences is not initialized

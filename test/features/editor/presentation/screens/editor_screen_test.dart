@@ -13,6 +13,7 @@ import 'package:prism/features/notes/presentation/providers/notes_providers.dart
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:prism/core/utils/utils.dart';
 import 'package:prism/features/editor/presentation/providers/editor_controller.dart';
 
@@ -449,6 +450,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'showBacklinks': true,
     });
+    final prefs = await SharedPreferences.getInstance();
     tester.view.viewInsets = const FakeViewPadding(bottom: 0);
     addTearDown(() {
       tester.view.resetViewInsets();
@@ -457,6 +459,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           noteRepositoryProvider.overrideWithValue(mockRepo),
           noteByIdProvider(noteId).overrideWith((ref) => note),
           backlinksProvider(noteId).overrideWith((ref) => backlinks),

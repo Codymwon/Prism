@@ -6,6 +6,7 @@ import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/settings/presentation/providers/settings_provider.dart';
 import 'package:prism/features/settings/presentation/providers/startup_actions.dart';
 import 'package:prism/core/utils/utils.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 class MockRef implements Ref {
   @override
@@ -49,35 +50,42 @@ class FakeNoteRepository extends NoteRepository {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late ProviderContainer container;
   late FakeNoteRepository fakeRepo;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
     fakeRepo = FakeNoteRepository();
-    container = ProviderContainer(
-      overrides: [
-        noteRepositoryProvider.overrideWithValue(fakeRepo),
-      ],
-    );
-  });
-
-  tearDown(() {
-    container.dispose();
   });
 
   group('Startup Actions Tests', () {
     test('does nothing if auto-create daily note is disabled', () async {
-      // Setup: ensure autoCreateDailyNoteOnLaunch is false
-      await container.read(autoCreateDailyNoteOnLaunchProvider.notifier).setEnabled(false);
+      SharedPreferences.setMockInitialValues({
+        'autoCreateDailyNoteOnLaunch': false,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          noteRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+      );
+      addTearDown(container.dispose);
 
       final route = await checkAndRunStartupActions(container.read);
       expect(route, isNull);
     });
 
     test('creates daily note and returns route if enabled and note does not exist', () async {
-      // Setup: ensure autoCreateDailyNoteOnLaunch is true
-      await container.read(autoCreateDailyNoteOnLaunchProvider.notifier).setEnabled(true);
+      SharedPreferences.setMockInitialValues({
+        'autoCreateDailyNoteOnLaunch': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          noteRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+      );
+      addTearDown(container.dispose);
 
       final todayStr = formatDailyDate(DateTime.now());
       final existing = await fakeRepo.getDailyNote(todayStr);
@@ -96,8 +104,17 @@ void main() {
     });
 
     test('does not create daily note if already exists', () async {
-      // Setup: ensure autoCreateDailyNoteOnLaunch is true
-      await container.read(autoCreateDailyNoteOnLaunchProvider.notifier).setEnabled(true);
+      SharedPreferences.setMockInitialValues({
+        'autoCreateDailyNoteOnLaunch': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          noteRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+      );
+      addTearDown(container.dispose);
 
       final todayStr = formatDailyDate(DateTime.now());
       // Create it beforehand
@@ -112,8 +129,17 @@ void main() {
     });
 
     test('runs only once per session due to evaluated flag', () async {
-      // Setup: ensure autoCreateDailyNoteOnLaunch is true
-      await container.read(autoCreateDailyNoteOnLaunchProvider.notifier).setEnabled(true);
+      SharedPreferences.setMockInitialValues({
+        'autoCreateDailyNoteOnLaunch': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          noteRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+      );
+      addTearDown(container.dispose);
 
       // Run 1st time (creates note)
       final route1 = await checkAndRunStartupActions(container.read);

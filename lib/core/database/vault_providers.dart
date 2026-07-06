@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../../features/onboarding/data/onboarding_provider.dart';
 
 part 'vault_providers.g.dart';
 
@@ -14,7 +15,7 @@ part 'vault_providers.g.dart';
 class BaseVaultsDirectory extends _$BaseVaultsDirectory {
   @override
   Future<String> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     final saved = prefs.getString('baseVaultsDirectory');
     if (saved != null && saved.isNotEmpty) {
       return saved;
@@ -25,7 +26,7 @@ class BaseVaultsDirectory extends _$BaseVaultsDirectory {
 
   Future<void> setDirectory(String path) async {
     state = const AsyncLoading();
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('baseVaultsDirectory', path);
     state = AsyncData(path);
   }
@@ -36,13 +37,13 @@ class BaseVaultsDirectory extends _$BaseVaultsDirectory {
 class ActiveVaultName extends _$ActiveVaultName {
   @override
   Future<String> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getString('activeVaultName') ?? 'My Vault';
   }
 
   Future<void> setVaultName(String name) async {
     state = const AsyncLoading();
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('activeVaultName', name);
     state = AsyncData(name);
   }

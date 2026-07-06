@@ -12,14 +12,17 @@ class RevenueCatSubscriptionRepository implements SubscriptionRepository {
   final RevenueCatClientWrapper _clientWrapper;
   final bool _isAndroid;
   final bool _isIOS;
+  final String? _apiKey;
 
   RevenueCatSubscriptionRepository({
     required RevenueCatClientWrapper clientWrapper,
     required bool isAndroid,
     required bool isIOS,
+    String? apiKey,
   })  : _clientWrapper = clientWrapper,
         _isAndroid = isAndroid,
-        _isIOS = isIOS;
+        _isIOS = isIOS,
+        _apiKey = apiKey;
 
   SubscriptionFailure _mapException(Object e) {
     if (e is PlatformException) {
@@ -60,7 +63,7 @@ class RevenueCatSubscriptionRepository implements SubscriptionRepository {
   Future<Either<SubscriptionFailure, Unit>> initialize() async {
     try {
       if (_isAndroid || _isIOS) {
-        const apiKey = String.fromEnvironment(
+        final apiKey = _apiKey ?? const String.fromEnvironment(
           'REVENUECAT_API_KEY',
           defaultValue: '', // Set via --dart-define in CI/prod; use .env locally
         );

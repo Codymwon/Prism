@@ -8,6 +8,7 @@ import 'package:prism/core/services/vault_export_service.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 // ─── Fake note repository (minimal — no DB needed for ZIP test) ───────────────
 
@@ -45,9 +46,11 @@ class _CancelSvc extends VaultExportServiceImpl {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tempDir;
   late Directory saveDir;
   late Directory vaultDir;
+  late SharedPreferences prefs;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('prism_zip_test_');
@@ -58,6 +61,7 @@ void main() {
       'baseVaultsDirectory': tempDir.path,
       'activeVaultName': 'My Vault',
     });
+    prefs = await SharedPreferences.getInstance();
   });
 
   tearDown(() async {
@@ -69,6 +73,7 @@ void main() {
   test('exportZipArchive returns ExportEmptyFailure when vault has no .md files', () async {
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(_FakeNoteRepository()),
         vaultExportServiceProvider.overrideWith(
           (ref) => _TestableSvc(ref, saveTo: saveDir.path),
@@ -97,6 +102,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(_FakeNoteRepository()),
         vaultExportServiceProvider.overrideWith(
           (ref) => _TestableSvc(ref, saveTo: saveDir.path),
@@ -140,6 +146,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(_FakeNoteRepository()),
         vaultExportServiceProvider.overrideWith(
           (ref) => _TestableSvc(ref, saveTo: saveDir.path),
@@ -168,6 +175,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(_FakeNoteRepository()),
         vaultExportServiceProvider.overrideWith((ref) => _CancelSvc(ref)),
       ],

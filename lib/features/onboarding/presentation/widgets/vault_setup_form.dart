@@ -226,7 +226,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
             final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
 
-            final prefs = await SharedPreferences.getInstance();
+            final prefs = ref.read(sharedPreferencesProvider);
             await prefs.setString('vaultType', _selectedVaultType);
             await baseVaultsDirNotifier.setDirectory(hubPath);
             await activeVaultNameNotifier.setVaultName(activeVault);
@@ -318,7 +318,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (widget.onPersist != null) {
         await widget.onPersist!(hubPath, vaultName, _selectedVaultType);
       } else {
-        final prefs = await SharedPreferences.getInstance();
+        final prefs = ref.read(sharedPreferencesProvider);
         await prefs.setString('vaultType', _selectedVaultType);
         
         // Save analytics choice and toggle Firebase collections

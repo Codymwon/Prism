@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import '../../../../core/utils/utils.dart' as utils;
 import '../note_content_parser.dart';
 import '../metadata_indexer.dart';
+import 'sqlite_metadata_indexer.dart';
 import '../vault_storage.dart';
 import '../note_model.dart';
 import '../vault_service.dart';
@@ -89,7 +90,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
     // Index relational database tables inside a transaction
     await database.transaction((txn) async {
       await indexer.indexNote(
-        txn,
+        SqfliteExecutorWrapper(txn),
         id: id,
         title: noteTitle,
         filePath: filePath,
@@ -129,7 +130,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
     await database.transaction((txn) async {
       await indexer.indexNote(
-        txn,
+        SqfliteExecutorWrapper(txn),
         id: id,
         title: title,
         filePath: filePath,
@@ -207,7 +208,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
     await database.transaction((txn) async {
       await indexer.indexNote(
-        txn,
+        SqfliteExecutorWrapper(txn),
         id: id,
         title: metadata.title,
         filePath: note.filePath,
@@ -233,7 +234,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
     // Remove note from DB index
     await database.transaction((txn) async {
-      await indexer.removeNoteIndex(txn, id);
+      await indexer.removeNoteIndex(SqfliteExecutorWrapper(txn), id);
     });
   }
   @override
@@ -327,7 +328,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
           if (!database.isOpen) return;
 
           await indexer.indexNote(
-            txn,
+            SqfliteExecutorWrapper(txn),
             id: item.id,
             title: item.title,
             filePath: item.filePath,
@@ -421,7 +422,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
             .toList();
 
         for (final orphan in orphanedNotes) {
-          await indexer.removeNoteIndex(txn, orphan['id'] as String);
+          await indexer.removeNoteIndex(SqfliteExecutorWrapper(txn), orphan['id'] as String);
         }
 
         // After real-note deletes cascade through note_links, prune any
@@ -437,7 +438,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
           hasChanges = true;
         }
         for (final ghost in orphanedGhosts) {
-          await indexer.removeNoteIndex(txn, ghost['id'] as String);
+          await indexer.removeNoteIndex(SqfliteExecutorWrapper(txn), ghost['id'] as String);
         }
       });
 

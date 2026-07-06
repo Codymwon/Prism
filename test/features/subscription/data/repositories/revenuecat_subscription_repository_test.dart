@@ -189,6 +189,7 @@ void main() {
         clientWrapper: mockClient,
         isAndroid: true,
         isIOS: false,
+        apiKey: 'test_pjpoQVKBajKwZqKSYULjGBPnFZO',
       );
 
       // Act

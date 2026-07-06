@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/features/settings/presentation/providers/settings_provider.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -10,7 +11,12 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    container = ProviderContainer();
+    final prefs = await SharedPreferences.getInstance();
+    container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
   });
 
   tearDown(() {

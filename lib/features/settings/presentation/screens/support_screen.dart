@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
@@ -10,6 +9,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../onboarding/data/onboarding_provider.dart';
 
 class SupportScreen extends ConsumerStatefulWidget {
   const SupportScreen({super.key});
@@ -60,7 +60,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
     if (activePath.isEmpty) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       final vaultType = prefs.getString('vaultType') ?? 'sandbox';
 
       final dir = Directory(activePath);

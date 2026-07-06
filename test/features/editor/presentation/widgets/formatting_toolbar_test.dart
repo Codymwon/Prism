@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/editor/presentation/widgets/formatting_toolbar.dart';
 import 'package:prism/features/settings/presentation/providers/custom_macro_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 void main() {
   testWidgets('FormattingToolbar renders without overflowing with many custom macros', (WidgetTester tester) async {
@@ -12,10 +14,14 @@ void main() {
     // Simulate system text scaling (accessibility scale)
     tester.platformDispatcher.textScaleFactorTestValue = 3.0;
 
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          customMacrosProvider.overrideWith((ref) => CustomMacrosNotifier()
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          customMacrosProvider.overrideWith((ref) => CustomMacrosNotifier(prefs)
             ..setMacros([
               CustomMacro(label: 'Long Label One', text: '1'),
               CustomMacro(label: 'Long Label Two', text: '2'),

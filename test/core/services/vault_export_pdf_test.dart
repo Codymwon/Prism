@@ -53,6 +53,7 @@ Note _makeNote(String id, String title) => Note(
 // ─── MarkdownPdfRenderer unit tests ───────────────────────────────────────────
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tempDir;
   late Directory saveDir;
 

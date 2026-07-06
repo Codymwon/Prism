@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/graph_models.dart';
 import 'graph_providers.dart';
 import '../../data/graph_node_repository.dart';
+import '../../../onboarding/data/onboarding_provider.dart';
 
 // ─── Graph Color Mode Provider ──────────────────────────────────────────────
 final graphColorModeProvider =
@@ -13,13 +14,13 @@ final graphColorModeProvider =
 class GraphColorModeNotifier extends AsyncNotifier<String> {
   @override
   Future<String> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getString('graphColorMode') ?? 'none';
   }
 
   Future<void> setColorMode(String mode) async {
     state = AsyncData(mode);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('graphColorMode', mode);
   }
 }
@@ -32,7 +33,7 @@ final tagColorsProvider =
 class TagColorsNotifier extends AsyncNotifier<Map<String, String>> {
   @override
   Future<Map<String, String>> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     final jsonStr = prefs.getString('graphTagColors');
     if (jsonStr == null) return {};
     try {
@@ -48,7 +49,7 @@ class TagColorsNotifier extends AsyncNotifier<Map<String, String>> {
     final updated = Map<String, String>.from(current)..[tag] = hexColor;
     state = AsyncData(updated);
     
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('graphTagColors', json.encode(updated));
   }
 }

@@ -9,6 +9,8 @@ import 'package:prism/features/settings/presentation/screens/support_screen.dart
 import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/features/subscription/data/datasources/revenuecat_client_wrapper.dart';
 import 'package:prism/features/subscription/presentation/providers/subscription_providers.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 class FakeCustomerInfo extends Fake implements CustomerInfo {
   final Map<String, EntitlementInfo> _mockActiveEntitlements;
@@ -62,12 +64,22 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tempDir;
   late MockRevenueCatClientWrapper mockWrapper;
+  late SharedPreferences prefs;
 
   setUp(() async {
     tempDir = Directory.systemTemp.createTempSync('prism_test_support_screen_');
     SharedPreferences.setMockInitialValues({
       'vaultType': 'sandbox',
     });
+    prefs = await SharedPreferences.getInstance();
+
+    PackageInfo.setMockInitialValues(
+      appName: 'Prism',
+      packageName: 'com.prism.app',
+      version: '1.0.0',
+      buildNumber: '1',
+      buildSignature: 'buildSignature',
+    );
 
     final info = FakeCustomerInfo(const {}, originalAppUserId: 'RC-Anon-123');
     mockWrapper = MockRevenueCatClientWrapper(info);
@@ -87,6 +99,7 @@ void main() {
   Widget buildScreen({required bool isPro}) {
     return ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         baseVaultsDirectoryProvider.overrideWith(() => _FakeBaseVaultsDirectory(tempDir.path)),
         activeVaultNameProvider.overrideWith(() => _FakeActiveVaultName('MyVault')),
         revenueCatClientWrapperProvider.overrideWithValue(mockWrapper),

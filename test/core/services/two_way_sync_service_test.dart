@@ -13,6 +13,8 @@ import 'package:prism/core/services/sync_encryption_service.dart';
 import 'package:prism/core/services/two_way_sync_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -156,9 +158,11 @@ void main() {
       'baseVaultsDirectory': baseDir,
       'activeVaultName': vaultName,
     });
+    final prefs = await SharedPreferences.getInstance();
 
     container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         googleDriveServiceProvider.overrideWithValue(mockDriveService),
         secureStorageProvider.overrideWithValue(mockSecureStorage),
         activeVaultPathProvider.overrideWith((ref) => tempVaultDir.path),

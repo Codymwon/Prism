@@ -14,6 +14,7 @@
         android:label="Prism"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
+        android:allowBackup="false"
         android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"

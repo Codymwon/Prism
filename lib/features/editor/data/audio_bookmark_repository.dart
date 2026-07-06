@@ -1,32 +1,15 @@
 import 'package:sqflite/sqflite.dart';
-import '../../../core/database/database_helper.dart';
 import '../../notes/data/audio_bookmark_model.dart';
 
 /// Repository for CRUD operations on audio bookmark timestamps.
 /// Bookmarks are stored in the [audio_bookmarks] table (added in DB v4).
 class AudioBookmarkRepository {
-  /// A [DatabaseHelper] whose [database] getter is awaited for each operation.
-  /// Can be null when [_directDb] is supplied (used in tests).
-  final DatabaseHelper? _dbHelper;
+  final Future<Database> Function() _getDatabase;
 
-  /// A directly-injected [Database] used by tests so they can supply an
-  /// in-memory FFI database without going through [DatabaseHelper].
-  final Future<Database> Function()? _getDatabase;
-
-  AudioBookmarkRepository({DatabaseHelper? dbHelper})
-      : _dbHelper = dbHelper ?? DatabaseHelper.instance,
-        _getDatabase = null;
-
-  /// Creates a repository backed by an arbitrary [Future<Database>] factory.
-  /// Intended for unit tests with sqflite_common_ffi.
-  AudioBookmarkRepository.withFactory(Future<Database> Function() getDatabase)
-      : _dbHelper = null,
-        _getDatabase = getDatabase;
+  AudioBookmarkRepository(this._getDatabase);
 
   Future<Database> _db() async {
-    final factory = _getDatabase;
-    if (factory != null) return factory();
-    return _dbHelper!.database;
+    return _getDatabase();
   }
 
   /// Returns all bookmarks for a given [noteId] and [attachmentPath],

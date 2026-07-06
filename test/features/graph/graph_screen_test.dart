@@ -548,6 +548,8 @@ void main() {
 
     addTearDown(container.dispose);
 
+    container.listen(graphNodeColorsProvider, (_, __) {});
+
     // 1. Default color mode 'none' -> should be empty
     var colors = await container.read(graphNodeColorsProvider.future);
     expect(colors, isEmpty);

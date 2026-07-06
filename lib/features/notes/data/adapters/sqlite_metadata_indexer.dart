@@ -4,10 +4,79 @@ import '../../../../core/utils/utils.dart' as utils;
 import '../metadata_indexer.dart';
 import '../note_content_parser.dart';
 
+class SqfliteExecutorWrapper implements DbExecutor {
+  final DatabaseExecutor executor;
+  SqfliteExecutorWrapper(this.executor);
+
+  @override
+  Future<List<Map<String, Object?>>> query(
+    String table, {
+    List<String>? columns,
+    String? where,
+    List<Object?>? whereArgs,
+  }) {
+    return executor.query(
+      table,
+      columns: columns,
+      where: where,
+      whereArgs: whereArgs,
+    );
+  }
+
+  @override
+  Future<int> insert(
+    String table,
+    Map<String, Object?> values, {
+    String? nullColumnHack,
+    int? conflictAlgorithm,
+  }) {
+    return executor.insert(
+      table,
+      values,
+      nullColumnHack: nullColumnHack,
+      conflictAlgorithm: conflictAlgorithm != null
+          ? ConflictAlgorithm.values[conflictAlgorithm]
+          : null,
+    );
+  }
+
+  @override
+  Future<int> update(
+    String table,
+    Map<String, Object?> values, {
+    String? where,
+    List<Object?>? whereArgs,
+    int? conflictAlgorithm,
+  }) {
+    return executor.update(
+      table,
+      values,
+      where: where,
+      whereArgs: whereArgs,
+      conflictAlgorithm: conflictAlgorithm != null
+          ? ConflictAlgorithm.values[conflictAlgorithm]
+          : null,
+    );
+  }
+
+  @override
+  Future<int> delete(
+    String table, {
+    String? where,
+    List<Object?>? whereArgs,
+  }) {
+    return executor.delete(
+      table,
+      where: where,
+      whereArgs: whereArgs,
+    );
+  }
+}
+
 class SqliteMetadataIndexer implements MetadataIndexer {
   @override
   Future<void> indexNote(
-    DatabaseExecutor executor, {
+    DbExecutor executor, {
     required String id,
     required String title,
     required String filePath,
@@ -63,7 +132,7 @@ class SqliteMetadataIndexer implements MetadataIndexer {
       await executor.insert(
         'note_tags',
         {'note_id': id, 'tag': tag.toLowerCase()},
-        conflictAlgorithm: ConflictAlgorithm.ignore,
+        conflictAlgorithm: ConflictAlgorithm.ignore.index,
       );
     }
 
@@ -112,13 +181,13 @@ class SqliteMetadataIndexer implements MetadataIndexer {
           'context_snippet': snippet,
           'created_at': nowMs,
         },
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.replace.index,
       );
     }
   }
 
   @override
-  Future<void> removeNoteIndex(DatabaseExecutor executor, String id) async {
+  Future<void> removeNoteIndex(DbExecutor executor, String id) async {
     await executor.delete('notes', where: 'id = ?', whereArgs: [id]);
   }
 }

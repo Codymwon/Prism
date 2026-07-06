@@ -96,7 +96,7 @@ void main() {
 
       // Index the note
       await indexer.indexNote(
-        db,
+        SqfliteExecutorWrapper(db),
         id: 'note-1',
         title: 'Note Title',
         filePath: '/vault/note-1.md',
@@ -158,7 +158,7 @@ void main() {
       );
 
       await indexer.indexNote(
-        db,
+        SqfliteExecutorWrapper(db),
         id: 'source-1',
         title: 'Source Note',
         filePath: '/vault/source-1.md',
@@ -188,7 +188,7 @@ void main() {
       
       // Index first time
       await indexer.indexNote(
-        db,
+        SqfliteExecutorWrapper(db),
         id: 'note-1',
         title: 'Note Title',
         filePath: '/vault/note-1.md',
@@ -210,7 +210,7 @@ void main() {
 
       // Re-index with new tags
       await indexer.indexNote(
-        db,
+        SqfliteExecutorWrapper(db),
         id: 'note-1',
         title: 'Note Title',
         filePath: '/vault/note-1.md',
@@ -239,7 +239,7 @@ void main() {
     test('should remove note index', () async {
       final now = DateTime.now();
       await indexer.indexNote(
-        db,
+        SqfliteExecutorWrapper(db),
         id: 'note-1',
         title: 'Note Title',
         filePath: '/vault/note-1.md',
@@ -259,7 +259,7 @@ void main() {
         ),
       );
 
-      await indexer.removeNoteIndex(db, 'note-1');
+      await indexer.removeNoteIndex(SqfliteExecutorWrapper(db), 'note-1');
 
       final notes = await db.query('notes', where: 'id = ?', whereArgs: ['note-1']);
       expect(notes, isEmpty);

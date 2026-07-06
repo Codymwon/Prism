@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/utils.dart';
 import '../notes/data/note_repository.dart';
 import '../notes/presentation/providers/notes_providers.dart';
+import '../onboarding/data/onboarding_provider.dart';
 
 final widgetHelperProvider = Provider<WidgetHelper>((ref) {
   return WidgetHelper(ref);
@@ -76,7 +76,7 @@ class WidgetHelper {
     }
   }
 
-  static Future<void> updateWidgetData({
+  Future<void> updateWidgetData({
     required int streak,
     required bool todayReflected,
     required String bgHex,
@@ -85,7 +85,7 @@ class WidgetHelper {
     required String textSecondaryHex,
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = _ref.read(sharedPreferencesProvider);
       await prefs.setInt('journal_streak', streak);
       await prefs.setBool('today_reflected', todayReflected);
       

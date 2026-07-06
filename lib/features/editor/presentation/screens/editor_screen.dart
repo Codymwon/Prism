@@ -19,6 +19,7 @@ import '../providers/editor_controller.dart';
 import '../widgets/conflict_banner.dart';
 import '../widgets/editor_write_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../onboarding/data/onboarding_provider.dart';
 import '../controllers/live_preview_controller.dart';
 import '../utils/markdown_line_parser.dart';
 
@@ -56,7 +57,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   Future<void> _loadCollapsedHeadings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       final list = prefs.getStringList('collapsed_${widget.noteId}') ?? [];
       if (mounted) {
         setState(() {
@@ -79,7 +80,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       await prefs.setStringList('collapsed_${widget.noteId}', _collapsedHeadings.toList());
     } catch (e) {
       debugPrint('Error saving collapsed headings: $e');

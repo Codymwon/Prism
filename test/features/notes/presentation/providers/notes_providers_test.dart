@@ -7,6 +7,7 @@ import 'package:prism/features/notes/presentation/providers/notes_providers.dart
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/utils/utils.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 void main() {
   sqfliteFfiInit();
@@ -367,14 +368,16 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'note_sort_preference': NoteSort.title.index,
     });
+    final prefs = await SharedPreferences.getInstance();
 
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
     addTearDown(container.dispose);
 
-    // Build the notifier and await the load future explicitly
-    await container.read(noteSortNotifierProvider.notifier).load();
-
-    // Verify it updated to the saved value
+    // Verify it updated to the saved value on build
     final loadedSort = container.read(noteSortNotifierProvider);
     expect(loadedSort, equals(NoteSort.title));
 
@@ -384,7 +387,6 @@ void main() {
     await Future.delayed(Duration.zero);
 
     // Verify it saved in SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('note_sort_preference'), equals(NoteSort.created.index));
   });
 }

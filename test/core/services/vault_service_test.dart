@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:prism/core/services/vault_service.dart';
 import 'package:prism/core/database/vault_providers.dart';
 
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
+
 class FakeWidgetRef implements WidgetRef {
   final ProviderContainer container;
   FakeWidgetRef(this.container);
@@ -70,6 +72,7 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     tempDir = await Directory.systemTemp.createTemp('prism_test_hub');
     
     // Mock path_provider channel
@@ -84,7 +87,11 @@ void main() {
       },
     );
 
-    container = ProviderContainer();
+    container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
     fakeRef = FakeWidgetRef(container);
   });
 

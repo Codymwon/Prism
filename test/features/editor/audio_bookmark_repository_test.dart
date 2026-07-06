@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/features/editor/data/audio_bookmark_repository.dart';
 import 'package:prism/features/notes/data/audio_bookmark_model.dart';
@@ -79,8 +79,8 @@ void main() {
 
   setUp(() async {
     db = await _openTestDb();
-    // Use the factory constructor so we bypass DatabaseHelper singleton
-    repo = AudioBookmarkRepository.withFactory(() async => db);
+    // Use the default constructor with the factory callback
+    repo = AudioBookmarkRepository(() async => db);
   });
 
   tearDown(() async {

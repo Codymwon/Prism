@@ -5,13 +5,15 @@ import '../../../../core/utils/utils.dart';
 import '../../../../features/notes/data/audio_bookmark_model.dart';
 import '../../data/audio_bookmark_repository.dart';
 
+import '../../../../core/database/database_providers.dart';
+
 part 'audio_bookmark_providers.freezed.dart';
 part 'audio_bookmark_providers.g.dart';
 
 /// Provider for the [AudioBookmarkRepository] singleton.
 @riverpod
 AudioBookmarkRepository audioBookmarkRepository(AudioBookmarkRepositoryRef ref) {
-  return AudioBookmarkRepository();
+  return AudioBookmarkRepository(() => ref.read(databaseProvider.future));
 }
 
 // ── State for a specific (noteId, attachmentPath) pair ───────────────────────

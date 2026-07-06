@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
@@ -605,7 +607,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       final state = tester.state<GraphSimulationCanvasState>(find.byType(GraphSimulationCanvas));
-      state.setNodePositionForTesting('note-1', const Offset(100.0, 100.0));
+      state.setNodePositionForTesting('note-1', const Offset(2500.0, 2500.0));
       await tester.pump();
 
       final keyFinder = find.byKey(const ValueKey('drag_note-1'));

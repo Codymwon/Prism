@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:prism/features/editor/presentation/screens/editor_screen.dart';
 import 'package:prism/features/editor/presentation/utils/editor_helpers.dart';
 import 'package:prism/features/notes/data/note_model.dart';
@@ -158,6 +159,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
             noteRepositoryProvider.overrideWithValue(mockRepo),
             noteByIdProvider(noteId).overrideWith((ref) => note),
             backlinksProvider(noteId).overrideWith((ref) => []),

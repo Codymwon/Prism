@@ -3,19 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import '../../../onboarding/data/onboarding_provider.dart';
 
 export '../../../../core/database/vault_providers.dart';
 
-
 // ─── Font Family Provider ────────────────────────────────────────────────────
 class FontFamilyNotifier extends StateNotifier<String> {
-  FontFamilyNotifier() : super('Inter (Sans)') {
+  final SharedPreferences _prefs;
+
+  FontFamilyNotifier(this._prefs) : super('Inter (Sans)') {
     _load();
   }
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('fontFamily');
+  void _load() {
+    final saved = _prefs.getString('fontFamily');
     if (saved != null) {
       state = saved;
     }
@@ -23,24 +24,25 @@ class FontFamilyNotifier extends StateNotifier<String> {
 
   Future<void> setFontFamily(String family) async {
     state = family;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('fontFamily', family);
+    await _prefs.setString('fontFamily', family);
   }
 }
 
 final fontFamilyProvider = StateNotifierProvider<FontFamilyNotifier, String>((ref) {
-  return FontFamilyNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return FontFamilyNotifier(prefs);
 });
 
 // ─── Font Size Provider ──────────────────────────────────────────────────────
 class FontSizeNotifier extends StateNotifier<String> {
-  FontSizeNotifier() : super('16pt') {
+  final SharedPreferences _prefs;
+
+  FontSizeNotifier(this._prefs) : super('16pt') {
     _load();
   }
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('fontSize');
+  void _load() {
+    final saved = _prefs.getString('fontSize');
     if (saved != null) {
       state = saved;
     }
@@ -48,24 +50,25 @@ class FontSizeNotifier extends StateNotifier<String> {
 
   Future<void> setFontSize(String size) async {
     state = size;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('fontSize', size);
+    await _prefs.setString('fontSize', size);
   }
 }
 
 final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, String>((ref) {
-  return FontSizeNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return FontSizeNotifier(prefs);
 });
 
 // ─── Line Width Provider ─────────────────────────────────────────────────────
 class LineWidthNotifier extends StateNotifier<String> {
-  LineWidthNotifier() : super('Comfortable') {
+  final SharedPreferences _prefs;
+
+  LineWidthNotifier(this._prefs) : super('Comfortable') {
     _load();
   }
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('lineWidth');
+  void _load() {
+    final saved = _prefs.getString('lineWidth');
     if (saved != null) {
       state = saved;
     }
@@ -73,13 +76,13 @@ class LineWidthNotifier extends StateNotifier<String> {
 
   Future<void> setLineWidth(String width) async {
     state = width;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('lineWidth', width);
+    await _prefs.setString('lineWidth', width);
   }
 }
 
 final lineWidthProvider = StateNotifierProvider<LineWidthNotifier, String>((ref) {
-  return LineWidthNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return LineWidthNotifier(prefs);
 });
 
 // ─── Haptics Enabled Provider ────────────────────────────────────────────────
@@ -90,17 +93,16 @@ final hapticsEnabledProvider =
 class HapticsEnabledNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getBool('hapticsEnabled') ?? true;
   }
 
   Future<void> setHapticsEnabled(bool enabled) async {
     state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('hapticsEnabled', enabled);
   }
 }
-
 
 // ─── Drag to Pin Enabled Provider ──────────────────────────────────────────
 final dragToPinEnabledProvider =
@@ -110,13 +112,13 @@ final dragToPinEnabledProvider =
 class DragToPinEnabledNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getBool('dragToPinEnabled') ?? false;
   }
 
   Future<void> setDragToPinEnabled(bool enabled) async {
     state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('dragToPinEnabled', enabled);
   }
 }
@@ -129,13 +131,13 @@ final autoCreateDailyNoteOnLaunchProvider =
 class AutoCreateDailyNoteOnLaunchNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getBool('autoCreateDailyNoteOnLaunch') ?? false;
   }
 
   Future<void> setEnabled(bool enabled) async {
     state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('autoCreateDailyNoteOnLaunch', enabled);
   }
 }
@@ -148,13 +150,13 @@ final startOfWeekProvider =
 class StartOfWeekNotifier extends AsyncNotifier<String> {
   @override
   Future<String> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getString('startOfWeek') ?? 'Sunday';
   }
 
   Future<void> setStartOfWeek(String startDay) async {
     state = AsyncData(startDay);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('startOfWeek', startDay);
   }
 }
@@ -167,13 +169,13 @@ final lineNumbersGutterProvider =
 class LineNumbersGutterNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getBool('lineNumbersGutter') ?? false;
   }
 
   Future<void> setEnabled(bool enabled) async {
     state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('lineNumbersGutter', enabled);
   }
 }
@@ -186,13 +188,13 @@ final autoPairBracketsProvider =
 class AutoPairBracketsNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getBool('autoPairBrackets') ?? true;
   }
 
   Future<void> setEnabled(bool enabled) async {
     state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('autoPairBrackets', enabled);
   }
 }
@@ -205,13 +207,13 @@ final showBacklinksDefaultProvider =
 class ShowBacklinksDefaultNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getBool('showBacklinks') ?? false;
   }
 
   Future<void> setEnabled(bool enabled) async {
     state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('showBacklinks', enabled);
   }
 }
@@ -224,13 +226,13 @@ final analyticsEnabledProvider =
 class AnalyticsEnabledNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getBool('analyticsEnabled') ?? true;
   }
 
   Future<void> setEnabled(bool enabled) async {
     state = AsyncData(enabled);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('analyticsEnabled', enabled);
     try {
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(enabled);
@@ -240,7 +242,3 @@ class AnalyticsEnabledNotifier extends AsyncNotifier<bool> {
     }
   }
 }
-
-
-
-

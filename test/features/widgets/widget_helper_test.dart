@@ -9,6 +9,7 @@ import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:prism/features/widgets/widget_helper.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 class MockNoteRepository implements NoteRepository {
   final List<Note> notes = [];
@@ -76,7 +77,15 @@ void main() {
     });
 
     test('updateWidgetData writes values to keys WITHOUT manual "flutter." prefix', () async {
-      await WidgetHelper.updateWidgetData(
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(widgetHelperProvider).updateWidgetData(
         streak: 7,
         todayReflected: true,
         bgHex: '#121214',
@@ -84,8 +93,6 @@ void main() {
         textPrimaryHex: '#F3F4F6',
         textSecondaryHex: '#9CA3AF',
       );
-
-      final prefs = await SharedPreferences.getInstance();
 
       expect(prefs.getInt('journal_streak'), equals(7));
       expect(prefs.getBool('today_reflected'), isTrue);

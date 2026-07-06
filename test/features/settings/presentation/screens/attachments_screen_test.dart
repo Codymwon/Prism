@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +7,7 @@ import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/settings/presentation/screens/attachments_screen.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 class MockNoteRepository implements NoteRepository {
   final List<Note> notes;
@@ -22,6 +23,7 @@ class MockNoteRepository implements NoteRepository {
 void main() {
   late Directory tempDir;
   late Directory attachmentsDir;
+  late SharedPreferences prefs;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('prism_attachments_test');
@@ -32,6 +34,7 @@ void main() {
       'baseVaultsDirectory': tempDir.path,
       'activeVaultName': 'My Vault',
     });
+    prefs = await SharedPreferences.getInstance();
   });
 
   tearDown(() async {
@@ -71,6 +74,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(mockRepo),
       ],
     );

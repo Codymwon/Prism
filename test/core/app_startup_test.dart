@@ -33,6 +33,16 @@ class FakeDatabase extends Fake implements Database {
 class FakeWidgetHelper extends Fake implements WidgetHelper {
   @override
   void init() {}
+
+  @override
+  Future<void> updateWidgetData({
+    required int streak,
+    required bool todayReflected,
+    required String bgHex,
+    required String accentHex,
+    required String textPrimaryHex,
+    required String textSecondaryHex,
+  }) async {}
 }
 
 void main() {

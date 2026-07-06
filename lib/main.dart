@@ -14,6 +14,7 @@ import 'shared/design_system/design_system.dart';
 import 'core/utils/utils.dart';
 import 'features/notes/data/vault_service.dart';
 import 'features/onboarding/data/onboarding_provider.dart';
+import 'core/services/analytics_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -38,6 +39,7 @@ void main() async {
   GoogleFonts.config.allowRuntimeFetching = true;
 
   final prefs = await SharedPreferences.getInstance();
+  AnalyticsService.initialize(prefs);
   final vaultType = prefs.getString('vaultType') ?? 'sandbox';
 
   try {
@@ -187,7 +189,7 @@ class _PrismAppState extends ConsumerState<PrismApp> with WidgetsBindingObserver
       return '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
     }
 
-    WidgetHelper.updateWidgetData(
+    ref.read(widgetHelperProvider).updateWidgetData(
       streak: streak,
       todayReflected: todayReflected,
       bgHex: colorToHex(bg),

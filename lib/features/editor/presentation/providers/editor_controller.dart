@@ -16,6 +16,7 @@ import '../../../../core/services/analytics_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/audio_recorder_service.dart';
 import '../../data/audio_recorder_service_impl.dart';
+import '../../../onboarding/data/onboarding_provider.dart';
 
 part 'editor_controller.freezed.dart';
 part 'editor_controller.g.dart';
@@ -139,7 +140,7 @@ class EditorController extends _$EditorController {
     EditorMode loadedMode = EditorMode.livePreview;
     bool loadedShowBacklinks = false;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       final modeName = prefs.getString('editorMode_$noteId');
       if (modeName != null) {
         loadedMode = EditorMode.values.firstWhere(
@@ -175,7 +176,7 @@ class EditorController extends _$EditorController {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       if (mode != EditorMode.source) {
         await prefs.setString('editorMode_$noteId', mode.name);
       } else {
@@ -191,7 +192,7 @@ class EditorController extends _$EditorController {
     state = state.copyWith(showBacklinks: newValue);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       await prefs.setBool('showBacklinks', newValue);
     } catch (e) {
       debugPrint('Error saving showBacklinks preference: $e');

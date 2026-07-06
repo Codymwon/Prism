@@ -5,15 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/core/database/vault_providers.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 void main() {
   late Directory tempDir;
+  late SharedPreferences prefs;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('prism_vault_providers_test');
     SharedPreferences.setMockInitialValues({
       'baseVaultsDirectory': tempDir.path,
     });
+    prefs = await SharedPreferences.getInstance();
   });
 
   tearDown(() async {
@@ -23,7 +26,11 @@ void main() {
   });
 
   test('syncedVaultsProvider starts empty, enables and disables sync, and persists to json', () async {
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
     addTearDown(container.dispose);
 
     // Keep the provider alive
@@ -72,7 +79,11 @@ void main() {
       'syncedVaults': ['PreExisting Vault'],
     }));
 
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
     addTearDown(container.dispose);
 
     final list = await container.read(syncedVaultsProvider.future);

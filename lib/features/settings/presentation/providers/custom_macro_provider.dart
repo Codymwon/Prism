@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../onboarding/data/onboarding_provider.dart';
 
 class CustomMacro {
   final String label;
@@ -21,8 +22,12 @@ class CustomMacro {
   };
 }
 
+
+
 class CustomMacrosNotifier extends StateNotifier<List<CustomMacro>> {
-  CustomMacrosNotifier() : super(_defaultMacros) {
+  final SharedPreferences _prefs;
+
+  CustomMacrosNotifier(this._prefs) : super(_defaultMacros) {
     _load();
   }
 
@@ -33,9 +38,8 @@ class CustomMacrosNotifier extends StateNotifier<List<CustomMacro>> {
     CustomMacro(label: 'Summary', text: '### Summary\n- '),
   ];
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList('customMacros');
+  void _load() {
+    final saved = _prefs.getStringList('customMacros');
     if (saved != null) {
       try {
         state = saved
@@ -49,9 +53,8 @@ class CustomMacrosNotifier extends StateNotifier<List<CustomMacro>> {
 
   Future<void> setMacros(List<CustomMacro> macros) async {
     state = macros;
-    final prefs = await SharedPreferences.getInstance();
     final list = macros.map((m) => jsonEncode(m.toJson())).toList();
-    await prefs.setStringList('customMacros', list);
+    await _prefs.setStringList('customMacros', list);
   }
 
   Future<void> updateMacro(int index, CustomMacro macro) async {
@@ -83,5 +86,6 @@ class CustomMacrosNotifier extends StateNotifier<List<CustomMacro>> {
 
 final customMacrosProvider =
     StateNotifierProvider<CustomMacrosNotifier, List<CustomMacro>>((ref) {
-  return CustomMacrosNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return CustomMacrosNotifier(prefs);
 });

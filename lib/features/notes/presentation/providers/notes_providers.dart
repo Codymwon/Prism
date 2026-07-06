@@ -6,6 +6,7 @@ import '../../data/note_repository.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_repository.dart';
 import '../../../folders/data/folder_model.dart';
+import '../../../onboarding/data/onboarding_provider.dart';
 
 part 'notes_providers.g.dart';
 
@@ -16,16 +17,12 @@ part 'notes_providers.g.dart';
 class NoteSortNotifier extends _$NoteSortNotifier {
   @override
   NoteSort build() {
-    load();
-    return NoteSort.updated;
-  }
-
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.watch(sharedPreferencesProvider);
     final index = prefs.getInt('note_sort_preference');
     if (index != null && index >= 0 && index < NoteSort.values.length) {
-      super.state = NoteSort.values[index];
+      return NoteSort.values[index];
     }
+    return NoteSort.updated;
   }
 
   @override
@@ -38,7 +35,7 @@ class NoteSortNotifier extends _$NoteSortNotifier {
   }
 
   Future<void> _save(NoteSort value) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setInt('note_sort_preference', value.index);
   }
 }

@@ -5,6 +5,7 @@ import 'package:prism/features/editor/presentation/providers/editor_controller.d
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 // We can create a simple mock/fake for NoteRepository
 class FakeNoteRepository extends Fake implements NoteRepository {
@@ -32,14 +33,17 @@ class FakeNoteRepository extends Fake implements NoteRepository {
 }
 
 void main() {
+  late SharedPreferences prefs;
   late ProviderContainer container;
   late FakeNoteRepository fakeNoteRepository;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
     fakeNoteRepository = FakeNoteRepository();
     container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         noteRepositoryProvider.overrideWithValue(fakeNoteRepository),
       ],
     );
@@ -73,9 +77,7 @@ void main() {
     });
 
     test('should load persisted mode from SharedPreferences on loadNote', () async {
-      SharedPreferences.setMockInitialValues({
-        'editorMode_note-1': 'reading',
-      });
+      await prefs.setString('editorMode_note-1', 'reading');
 
       final controller = container.read(editorControllerProvider('note-1').notifier);
       await controller.loadNote(isNew: false);
@@ -99,9 +101,7 @@ void main() {
     });
 
     test('should default to livePreview on loadNote if persisted mode is source', () async {
-      SharedPreferences.setMockInitialValues({
-        'editorMode_note-1': 'source',
-      });
+      await prefs.setString('editorMode_note-1', 'source');
 
       final controller = container.read(editorControllerProvider('note-1').notifier);
       await controller.loadNote(isNew: false);
@@ -111,9 +111,7 @@ void main() {
     });
 
     test('should default showBacklinks to false and load global showBacklinks from SharedPreferences', () async {
-      SharedPreferences.setMockInitialValues({
-        'showBacklinks': true,
-      });
+      await prefs.setBool('showBacklinks', true);
 
       final controller = container.read(editorControllerProvider('note-1').notifier);
       await controller.loadNote(isNew: false);
