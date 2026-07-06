@@ -138,16 +138,26 @@ class SqliteMetadataIndexer implements MetadataIndexer {
 
     // Rebuild wikilinks
     await executor.delete('note_links', where: 'source_id = ?', whereArgs: [id]);
-    for (final target in metadata.wikilinks) {
+
+    final Map<String, String> titleToIdMap = {};
+    if (metadata.wikilinks.isNotEmpty) {
+      final placeholders = List.filled(metadata.wikilinks.length, '?').join(', ');
       final targetMaps = await executor.query(
         'notes',
-        columns: ['id'],
-        where: 'title = ? COLLATE NOCASE',
-        whereArgs: [target],
+        columns: ['id', 'title'],
+        where: 'title COLLATE NOCASE IN ($placeholders)',
+        whereArgs: metadata.wikilinks,
       );
+      for (final row in targetMaps) {
+        final title = row['title'] as String;
+        final noteId = row['id'] as String;
+        titleToIdMap[title.toLowerCase()] = noteId;
+      }
+    }
 
-      String targetId;
-      if (targetMaps.isEmpty) {
+    for (final target in metadata.wikilinks) {
+      String? targetId = titleToIdMap[target.toLowerCase()];
+      if (targetId == null) {
         // Create a target ghost note inside this transaction
         targetId = utils.generateId();
         final slug = utils.titleToSlug(target);
@@ -168,8 +178,7 @@ class SqliteMetadataIndexer implements MetadataIndexer {
           'original_note_id': null,
           'snippet': '',
         });
-      } else {
-        targetId = targetMaps.first['id'] as String;
+        titleToIdMap[target.toLowerCase()] = targetId;
       }
 
       final snippet = metadata.wikilinkContexts[target];

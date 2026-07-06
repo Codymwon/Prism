@@ -8,6 +8,7 @@ import 'adapters/sqlite_metadata_indexer.dart';
 import 'note_model.dart';
 
 import 'vault_storage.dart';
+import '../../folders/data/virtual_folder_sync_helper.dart';
 
 abstract class NoteIngestionService {
   Future<Note> createNote({
@@ -38,5 +39,14 @@ final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
     parser: MarkdownContentParser(),
     indexer: SqliteMetadataIndexer(),
     getVaultPath: () => ref.read(activeVaultPathProvider.future),
+    onNoteSynced: (noteId, filePath, txn) async {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      await VirtualFolderSyncHelper.handleNoteSync(
+        txn: txn,
+        noteId: noteId,
+        filePath: filePath,
+        nowMs: nowMs,
+      );
+    },
   );
 });

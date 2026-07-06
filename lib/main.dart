@@ -29,10 +29,7 @@ import 'package:flutter/foundation.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (Platform.isAndroid) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
+
 
   // Allow google_fonts to download real font files from Google CDN.
   // They are cached on-device after first download, so this works offline too.

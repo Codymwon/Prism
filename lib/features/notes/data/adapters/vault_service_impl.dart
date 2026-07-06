@@ -8,6 +8,7 @@ import '../metadata_indexer.dart';
 import 'sqlite_metadata_indexer.dart';
 import '../vault_storage.dart';
 import '../note_model.dart';
+import '../../../folders/data/virtual_folder_sync_helper.dart';
 import '../vault_service.dart';
 
 class NoteIngestionServiceImpl implements NoteIngestionService {
@@ -16,6 +17,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
   final NoteContentParser parser;
   final MetadataIndexer indexer;
   final Future<String> Function() getVaultPath;
+  final Future<void> Function(String noteId, String filePath, DatabaseExecutor txn)? onNoteSynced;
 
   NoteIngestionServiceImpl({
     required this.getDb,
@@ -23,7 +25,18 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
     required this.parser,
     required this.indexer,
     required this.getVaultPath,
+    this.onNoteSynced = _defaultOnNoteSynced,
   });
+
+  static Future<void> _defaultOnNoteSynced(String noteId, String filePath, DatabaseExecutor txn) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await VirtualFolderSyncHelper.handleNoteSync(
+      txn: txn,
+      noteId: noteId,
+      filePath: filePath,
+      nowMs: nowMs,
+    );
+  }
 
   @override
   Future<Note> createNote({
@@ -270,8 +283,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
         int wordCount,
         DateTime updatedAt,
         NoteMetadata metadata,
-        bool isClipperInbox,
-        bool isWelcomeNote,
       })> notesToSync = [];
 
       for (final filePath in files) {
@@ -291,14 +302,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
           final metadata = parser.parse(content);
           final noteId = shouldInsert ? utils.generateId() : existing!.id;
 
-          final isClipperInbox = filePath.toLowerCase().endsWith('${Platform.pathSeparator}inbox.md') ||
-              filePath.toLowerCase().endsWith('/inbox.md');
-
-          final isWelcomeNote = filePath.toLowerCase().endsWith('${Platform.pathSeparator}welcome to prism.md') ||
-              filePath.toLowerCase().endsWith('/welcome to prism.md') ||
-              filePath.toLowerCase().endsWith('${Platform.pathSeparator}productivity tools guide.md') ||
-              filePath.toLowerCase().endsWith('/productivity tools guide.md');
-
           notesToSync.add((
             id: noteId,
             title: metadata.title,
@@ -306,8 +309,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
             wordCount: metadata.wordCount,
             updatedAt: lastMod,
             metadata: metadata,
-            isClipperInbox: isClipperInbox,
-            isWelcomeNote: isWelcomeNote,
           ));
         }
       }
@@ -318,8 +319,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
       // 2. Perform all database modifications inside a single fast transaction
       await database.transaction((txn) async {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-
         if (notesToSync.isNotEmpty || existingNotes.where((n) => (n['is_ghost'] as int? ?? 0) == 0 && !files.contains(n['file_path'] as String)).isNotEmpty) {
           hasChanges = true;
         }
@@ -341,74 +340,8 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
             metadata: item.metadata,
           );
 
-          // If the note is the clipper's Inbox note, ensure it is in the virtual folder 'Inbox'
-          if (item.isClipperInbox) {
-            final folderMaps = await txn.query(
-               'virtual_folders',
-              columns: ['id'],
-              where: 'LOWER(name) = ?',
-              whereArgs: ['inbox'],
-            );
-
-            String folderId;
-            if (folderMaps.isEmpty) {
-              folderId = utils.generateId();
-              final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
-              final rawMax = maxSortMap.first['max_sort'];
-              final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
-
-              await txn.insert('virtual_folders', {
-                'id': folderId,
-                'name': 'Inbox',
-                'color_hex': '#7C6FF7',
-                'icon': 'folder',
-                'created_at': nowMs,
-                'sort_order': maxSort + 1,
-              });
-            } else {
-              folderId = folderMaps.first['id'] as String;
-            }
-
-            await txn.insert(
-              'note_folders',
-              {'note_id': item.id, 'folder_id': folderId},
-              conflictAlgorithm: ConflictAlgorithm.ignore,
-            );
-          }
-
-          // If the note is a welcome note, ensure it is in the virtual folder 'Tutorial'
-          if (item.isWelcomeNote) {
-            final folderMaps = await txn.query(
-              'virtual_folders',
-              columns: ['id'],
-              where: 'LOWER(name) = ?',
-              whereArgs: ['tutorial'],
-            );
-
-            String folderId;
-            if (folderMaps.isEmpty) {
-              folderId = utils.generateId();
-              final maxSortMap = await txn.rawQuery('SELECT MAX(sort_order) as max_sort FROM virtual_folders');
-              final rawMax = maxSortMap.first['max_sort'];
-              final maxSort = rawMax == null ? 0 : (rawMax is int ? rawMax : int.tryParse(rawMax.toString()) ?? 0);
-
-              await txn.insert('virtual_folders', {
-                'id': folderId,
-                'name': 'Tutorial',
-                'color_hex': '#7C6FF7',
-                'icon': 'folder',
-                'created_at': nowMs,
-                'sort_order': maxSort + 1,
-              });
-            } else {
-              folderId = folderMaps.first['id'] as String;
-            }
-
-            await txn.insert(
-              'note_folders',
-              {'note_id': item.id, 'folder_id': folderId},
-              conflictAlgorithm: ConflictAlgorithm.ignore,
-            );
+          if (onNoteSynced != null) {
+            await onNoteSynced!(item.id, item.filePath, txn);
           }
         }
 

@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 import '../utils/utils.dart';
 
 class DatabaseHelper {
@@ -53,6 +56,31 @@ class DatabaseHelper {
     });
   }
 
+  Future<String?> _getDbPassword() async {
+    if (kIsWeb) return null;
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return null;
+    }
+    // Check if databaseFactory is FFI (i.e. we are running in desktop unit tests)
+    if (databaseFactory.runtimeType.toString().contains('Ffi')) {
+      return null;
+    }
+
+    const secureStorage = FlutterSecureStorage();
+    const key = 'prism_db_encryption_key';
+    try {
+      String? password = await secureStorage.read(key: key);
+      if (password == null) {
+        password = const Uuid().v4();
+        await secureStorage.write(key: key, value: password);
+      }
+      return password;
+    } catch (e) {
+      debugPrint('[DB] Error loading/generating secure storage database password: $e');
+      return 'prism_db_fallback_key_2026';
+    }
+  }
+
   Future<Database> openDatabaseForPath(String vaultPath) {
     return _enqueue(() async {
       if (_db != null && _db!.isOpen && _activeVaultPath == vaultPath) {
@@ -71,19 +99,49 @@ class DatabaseHelper {
       }
 
       final path = join(vaultPath, _dbName);
+      final password = await _getDbPassword();
       Database db;
+      final isFfi = kIsWeb ||
+          Platform.isWindows ||
+          Platform.isLinux ||
+          Platform.isMacOS ||
+          databaseFactory.runtimeType.toString().contains('Ffi') ||
+          ffi.databaseFactoryFfi.runtimeType.toString().contains('Ffi');
       try {
-        db = await openDatabase(
-          path,
-          version: _dbVersion,
-          onCreate: _onCreate,
-          onUpgrade: _onUpgrade,
-          onDowngrade: _onDowngrade,
-          onConfigure: (db) async {
-            await db.rawQuery('PRAGMA journal_mode = WAL;');
-            await db.execute('PRAGMA foreign_keys = ON;');
-          },
-        );
+        if (isFfi) {
+          db = await ffi.databaseFactoryFfi.openDatabase(
+            path,
+            options: OpenDatabaseOptions(
+              version: _dbVersion,
+              onCreate: _onCreate,
+              onUpgrade: _onUpgrade,
+              onDowngrade: _onDowngrade,
+              onConfigure: (db) async {
+                await db.rawQuery('PRAGMA journal_mode = WAL;');
+                await db.execute('PRAGMA foreign_keys = ON;');
+                await db.execute('PRAGMA cache_size = -2000;');
+                await db.execute('PRAGMA mmap_size = 268435456;');
+                await db.execute('PRAGMA synchronous = NORMAL;');
+              },
+            ),
+          );
+        } else {
+          db = await openDatabase(
+            path,
+            password: password,
+            version: _dbVersion,
+            onCreate: _onCreate,
+            onUpgrade: _onUpgrade,
+            onDowngrade: _onDowngrade,
+            onConfigure: (db) async {
+              await db.rawQuery('PRAGMA journal_mode = WAL;');
+              await db.execute('PRAGMA foreign_keys = ON;');
+              await db.execute('PRAGMA cache_size = -2000;');
+              await db.execute('PRAGMA mmap_size = 268435456;');
+              await db.execute('PRAGMA synchronous = NORMAL;');
+            },
+          );
+        }
       } catch (e, stack) {
         debugPrint('[DB] Unreadable database at $path — attempting recovery.\n$e\n$stack');
         try {
@@ -97,17 +155,40 @@ class DatabaseHelper {
         }
         // Open a fresh empty database; background syncVault will rebuild
         // the notes index from the .md files on disk.
-        db = await openDatabase(
-          path,
-          version: _dbVersion,
-          onCreate: _onCreate,
-          onUpgrade: _onUpgrade,
-          onDowngrade: _onDowngrade,
-          onConfigure: (db) async {
-            await db.rawQuery('PRAGMA journal_mode = WAL;');
-            await db.execute('PRAGMA foreign_keys = ON;');
-          },
-        );
+        if (isFfi) {
+          db = await ffi.databaseFactoryFfi.openDatabase(
+            path,
+            options: OpenDatabaseOptions(
+              version: _dbVersion,
+              onCreate: _onCreate,
+              onUpgrade: _onUpgrade,
+              onDowngrade: _onDowngrade,
+              onConfigure: (db) async {
+                await db.rawQuery('PRAGMA journal_mode = WAL;');
+                await db.execute('PRAGMA foreign_keys = ON;');
+                await db.execute('PRAGMA cache_size = -2000;');
+                await db.execute('PRAGMA mmap_size = 268435456;');
+                await db.execute('PRAGMA synchronous = NORMAL;');
+              },
+            ),
+          );
+        } else {
+          db = await openDatabase(
+            path,
+            password: password,
+            version: _dbVersion,
+            onCreate: _onCreate,
+            onUpgrade: _onUpgrade,
+            onDowngrade: _onDowngrade,
+            onConfigure: (db) async {
+              await db.rawQuery('PRAGMA journal_mode = WAL;');
+              await db.execute('PRAGMA foreign_keys = ON;');
+              await db.execute('PRAGMA cache_size = -2000;');
+              await db.execute('PRAGMA mmap_size = 268435456;');
+              await db.execute('PRAGMA synchronous = NORMAL;');
+            },
+          );
+        }
       }
       _db = db;
       _activeVaultPath = vaultPath;

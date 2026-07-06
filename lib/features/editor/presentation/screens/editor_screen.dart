@@ -237,10 +237,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final editorState = ref.watch(editorControllerProvider(widget.noteId));
+    final isLoaded = ref.watch(editorControllerProvider(widget.noteId).select((s) => s.isLoaded));
+    final mode = ref.watch(editorControllerProvider(widget.noteId).select((s) => s.editorMode));
+    final showBacklinks = ref.watch(editorControllerProvider(widget.noteId).select((s) => s.showBacklinks));
+    final showWikilinkPopup = ref.watch(editorControllerProvider(widget.noteId).select((s) => s.showWikilinkPopup));
+    final wikilinkQuery = ref.watch(editorControllerProvider(widget.noteId).select((s) => s.wikilinkQuery));
+
     final audioRecordState = ref.watch(audioRecordControllerProvider(widget.noteId));
 
-    final mode = editorState.editorMode;
     _controller.mode = mode;
 
     // StateNotifier — watch synchronously
@@ -258,10 +262,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
-      appBar: _buildAppBar(colorScheme, mode, editorState),
+      appBar: _buildAppBar(colorScheme, mode),
       body: Stack(
         children: [
-          if (!editorState.isLoaded)
+          if (!isLoaded)
             const Center(child: CircularProgressIndicator())
           else
             Column(
@@ -308,18 +312,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           ],
                         )
                       : _buildReadingView(
-                          isDark, colorScheme, fontFamily, sizeVal, paddingVal, editorState),
+                          isDark, colorScheme, fontFamily, sizeVal, paddingVal),
                 ),
                 // Backlinks panel
-                if (MediaQuery.of(context).viewInsets.bottom == 0 && editorState.showBacklinks)
+                if (MediaQuery.of(context).viewInsets.bottom == 0 && showBacklinks)
                   BacklinksPanel(noteId: widget.noteId),
               ],
             ),
 
           // Wikilink autocomplete floating popup
-          if (editorState.showWikilinkPopup)
+          if (showWikilinkPopup)
             WikilinkAutocomplete(
-              query: editorState.wikilinkQuery,
+              query: wikilinkQuery,
               onSelect: _insertWikilink,
               onDismiss: () => ref
                   .read(editorControllerProvider(widget.noteId).notifier)
@@ -446,7 +450,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               Transform.scale(
                                 scale: 0.8,
                                 child: Switch.adaptive(
-                                  value: editorState.showBacklinks,
+                                  value: ref.watch(editorControllerProvider(widget.noteId).select((s) => s.showBacklinks)),
                                   activeColor: DesignColors.primary(context),
                                   onChanged: (val) {
                                     _editorController.toggleShowBacklinks();
@@ -507,7 +511,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   PreferredSizeWidget _buildAppBar(
     ColorScheme colorScheme,
     EditorMode mode,
-    EditorState editorState,
   ) {
     return AppBar(
       leading: IconButton(
@@ -566,33 +569,40 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
       actions: [
         // Save indicator
-        AnimatedOpacity(
-          opacity: editorState.isSaving ? 1 : 0,
-          duration: const Duration(milliseconds: 300),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: colorScheme.primary,
-                  ),
+        Consumer(
+          builder: (context, ref, _) {
+            final isSaving = ref.watch(
+              editorControllerProvider(widget.noteId).select((s) => s.isSaving),
+            );
+            return AnimatedOpacity(
+              opacity: isSaving ? 1 : 0,
+              duration: const Duration(milliseconds: 300),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Saving',
+                      style: DesignTypography.metadata(
+                        context,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  'Saving',
-                  style: DesignTypography.metadata(
-                    context,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
         // Organize note folder assignment button
         IconButton(
@@ -637,7 +647,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     String family,
     double size,
     double paddingHorizontal,
-    EditorState editorState,
   ) {
     final processedData = _getProcessedMarkdown();
     final segments = splitAudioLinks(processedData);

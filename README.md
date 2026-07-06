@@ -108,6 +108,23 @@ flutter test
 
 ---
 
+## ── Release & Production Builds ────────────────────────────────
+
+To compile a secure, minified, and obfuscated release build of the application:
+
+### Android Release Build
+Run the automated build script (which cleans, fetches packages, applies R8 minification, enables Dart code obfuscation, and splits off debug symbol maps):
+```powershell
+.\scripts\build_release.ps1
+```
+Or manually run:
+```bash
+flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+*Note: Make sure to store the split debug symbol mapping files at `build/app/outputs/symbols` in a secure location. They are required to de-obfuscate stack traces from telemetry or crashlytics logs.*
+
+---
+
 ## ── Contribution & Coding Standards ───────────────────────────
 
 To maintain code security, speed, and visual premium feel:
