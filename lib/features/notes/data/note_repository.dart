@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/services/template_service.dart';
+import '../../../../core/services/analytics_service.dart';
 import 'note_model.dart';
 import 'vault_service.dart';
 import 'vault_storage.dart';
@@ -53,6 +54,10 @@ class NoteRepository {
       isDaily: isDaily,
       dailyDate: dailyDate,
     );
+    AnalyticsService.logEvent('create_note', parameters: {
+      'is_daily': isDaily,
+      'content_length': initialContent.length,
+    });
     _ref.read(notesVersionProvider.notifier).state++;
     return note;
   }
@@ -214,9 +219,11 @@ class NoteRepository {
   Future<void> deleteNote(String id) async {
     if (isTemplateId(id)) {
       await _templates.deleteTemplate(_templates.nameFromId(id));
+      AnalyticsService.logEvent('delete_template');
       return;
     }
     await _vaultService.deleteNote(id);
+    AnalyticsService.logEvent('delete_note');
     _ref.read(notesVersionProvider.notifier).state++;
   }
 

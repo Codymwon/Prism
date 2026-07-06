@@ -17,6 +17,7 @@ import '../widgets/graph_header.dart';
 import '../widgets/graph_empty_state.dart';
 import '../widgets/graph_node_widget.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../../../core/services/analytics_service.dart';
 
 
 class GraphScreen extends ConsumerWidget {
@@ -52,6 +53,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logEvent('view_graph');
     _transformationController = TransformationController();
     
     final savedViewport = ref.read(graphViewportStateProvider);

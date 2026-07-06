@@ -13,6 +13,7 @@ import '../utils/utils.dart' as utils;
 import '../../features/notes/data/vault_service.dart';
 import 'google_drive_service.dart';
 import 'sync_encryption_service.dart';
+import 'analytics_service.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage();
@@ -183,6 +184,27 @@ class TwoWaySyncServiceImpl implements TwoWaySyncService {
 
   @override
   Future<Either<SyncFailure, SyncResult>> runSync() async {
+    final result = await _runSyncInternal();
+    result.fold(
+      (failure) {
+        AnalyticsService.logError(Exception(failure.message), null, fatal: false);
+        AnalyticsService.logEvent('sync_run', parameters: {
+          'status': 'failure',
+          'error': failure.runtimeType.toString(),
+        });
+      },
+      (success) {
+        AnalyticsService.logEvent('sync_run', parameters: {
+          'status': 'success',
+          'uploaded': success.uploaded,
+          'downloaded': success.downloaded,
+        });
+      },
+    );
+    return result;
+  }
+
+  Future<Either<SyncFailure, SyncResult>> _runSyncInternal() async {
     try {
       final vaultPath = await _ref.read(activeVaultPathProvider.future);
       if (vaultPath.isEmpty) {

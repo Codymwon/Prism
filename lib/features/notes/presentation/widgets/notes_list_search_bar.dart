@@ -5,6 +5,7 @@ import '../providers/notes_providers.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import 'search_bar_widget.dart';
 import 'notes_sort_bottom_sheet.dart';
+import '../../../../core/services/analytics_service.dart';
 
 class NotesListSearchBar extends ConsumerStatefulWidget {
   const NotesListSearchBar({super.key});
@@ -84,6 +85,7 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
                       ref.read(searchQueryProvider.notifier).state = q;
                       if (q.isNotEmpty && !_isSearching) {
                         setState(() => _isSearching = true);
+                        AnalyticsService.logEvent('perform_search');
                       }
                     },
                     style: DesignTypography.body(context, fontSize: 15),
@@ -140,7 +142,10 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
                 ref.read(searchQueryProvider.notifier).state = '';
                 setState(() => _isSearching = false);
               },
-              onFocused: () => setState(() => _isSearching = true),
+              onFocused: () {
+                setState(() => _isSearching = true);
+                AnalyticsService.logEvent('perform_search');
+              },
               focusNode: _searchFocusNode,
             ),
           ),

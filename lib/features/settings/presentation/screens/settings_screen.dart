@@ -184,6 +184,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SettingsSectionHeader(title: 'Gestures & Feedback'),
                 const HapticToggleTile(),
                 const DragToPinToggleTile(),
+                const AnalyticsToggleTile(),
 
                 // ── Pro Settings Management (Pro only) ──────────────────────
                 if (isPro) ...[

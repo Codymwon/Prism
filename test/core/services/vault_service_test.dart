@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -70,11 +71,29 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     tempDir = await Directory.systemTemp.createTemp('prism_test_hub');
+    
+    // Mock path_provider channel
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async {
+        if (call.method == 'getApplicationDocumentsDirectory') {
+          return p.join(tempDir.path, 'documents');
+        }
+        return null;
+      },
+    );
+
     container = ProviderContainer();
     fakeRef = FakeWidgetRef(container);
   });
 
   tearDown(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      null,
+    );
     container.dispose();
     if (await tempDir.exists()) {
       await tempDir.delete(recursive: true);
@@ -158,6 +177,109 @@ void main() {
       // Verify SharedPreferences has the correct active vault
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('activeVaultName'), equals('Vault2'));
+    });
+
+    test('changeStorageLocation should update baseVaultsDirectory and vaultType in SharedPreferences', () async {
+      final service = container.read(vaultManagementServiceProvider);
+      final selectedPath = tempDir.path;
+      final expectedHubPath = p.join(selectedPath, 'Prism Hub');
+
+      // Call changeStorageLocation
+      await service.changeStorageLocation(
+        newPath: selectedPath,
+        vaultType: 'custom',
+        migrateData: false,
+        ref: fakeRef,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('vaultType'), equals('custom'));
+      expect(prefs.getString('baseVaultsDirectory'), equals(expectedHubPath));
+    });
+
+    test('changeStorageLocation with migrateData true should copy and merge vaults', () async {
+      final service = container.read(vaultManagementServiceProvider);
+
+      // 1. Create a source directory with VaultA and a note
+      final srcDir = Directory(p.join(tempDir.path, 'source_hub'));
+      await srcDir.create();
+      final srcVault = Directory(p.join(srcDir.path, 'VaultA'));
+      await srcVault.create();
+      final srcNote = File(p.join(srcVault.path, 'note1.md'));
+      await srcNote.writeAsString('source content');
+      final srcConflictNote = File(p.join(srcVault.path, 'note2.md'));
+      await srcConflictNote.writeAsString('source conflict content');
+
+      // Set base directory to the source path
+      await container.read(baseVaultsDirectoryProvider.notifier).setDirectory(srcDir.path);
+
+      // 2. Create a destination directory already containing VaultA and note2.md
+      final destDir = Directory(p.join(tempDir.path, 'dest_hub'));
+      await destDir.create();
+      final destVault = Directory(p.join(destDir.path, 'source_hub', 'VaultA'));
+      await destVault.create(recursive: true);
+      final destConflictNote = File(p.join(destVault.path, 'note2.md'));
+      await destConflictNote.writeAsString('destination conflict content');
+
+      // 3. Call changeStorageLocation with migrateData: true
+      await service.changeStorageLocation(
+        newPath: destDir.path,
+        vaultType: 'custom',
+        migrateData: true,
+        ref: fakeRef,
+      );
+
+      // Verify the new directory contains both notes, and note2.md is merged/overwritten with source content
+      final expectedDestVaultPath = p.join(destDir.path, 'source_hub', 'VaultA');
+      expect(await File(p.join(expectedDestVaultPath, 'note1.md')).exists(), isTrue);
+      expect(await File(p.join(expectedDestVaultPath, 'note1.md')).readAsString(), equals('source content'));
+      expect(await File(p.join(expectedDestVaultPath, 'note2.md')).readAsString(), equals('source conflict content'));
+    });
+
+    test('changeStorageLocation failure should rollback SharedPreferences and clean up destination', () async {
+      final service = container.read(vaultManagementServiceProvider);
+
+      // 1. Create a source directory with VaultA and a note
+      final srcDir = Directory(p.join(tempDir.path, 'source_hub'));
+      await srcDir.create();
+      final srcVault = Directory(p.join(srcDir.path, 'VaultA'));
+      await srcVault.create();
+      final srcNote = File(p.join(srcVault.path, 'note1.md'));
+      await srcNote.writeAsString('source content');
+
+      // Initialize base directory in SharedPreferences and provider
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('baseVaultsDirectory', srcDir.path);
+      await prefs.setString('vaultType', 'custom');
+      await container.read(baseVaultsDirectoryProvider.notifier).setDirectory(srcDir.path);
+
+      // 2. Define an invalid destination path that will fail to write/copy
+      final invalidDestPath = p.join(tempDir.path, 'invalid|char*hub');
+
+      // 3. Call changeStorageLocation with migrateData: true (should throw)
+      expect(
+        () => service.changeStorageLocation(
+          newPath: invalidDestPath,
+          vaultType: 'sandbox',
+          migrateData: true,
+          ref: fakeRef,
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      // 4. Verify SharedPreferences still points to the old source directory
+      expect(prefs.getString('baseVaultsDirectory'), equals(srcDir.path));
+      expect(prefs.getString('vaultType'), equals('custom'));
+
+      // 5. Verify the destination directory is deleted/cleaned up or does not exist
+      final destDir = Directory(invalidDestPath);
+      bool exists = false;
+      try {
+        exists = await destDir.exists();
+      } catch (_) {
+        exists = false;
+      }
+      expect(exists, isFalse);
     });
   });
 }

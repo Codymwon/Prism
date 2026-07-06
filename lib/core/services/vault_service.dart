@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../database/vault_providers.dart';
 import 'two_way_sync_service.dart';
+import 'analytics_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,6 +52,7 @@ class VaultManagementService {
   }) async {
     // 1. Set new active vault name provider (saves to SharedPreferences)
     await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
+    AnalyticsService.logEvent('switch_vault');
 
     // 2. Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
@@ -92,6 +94,7 @@ class VaultManagementService {
 
     // Set new active vault (saves to SharedPreferences)
     await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
+    AnalyticsService.logEvent('create_vault');
 
     // Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
@@ -168,16 +171,63 @@ class VaultManagementService {
     required String newPath,
     required WidgetRef ref,
   }) async {
-    // Determine the current hub name (defaults to 'Prism Hub' if not found or empty)
-    final currentBaseDir = ref.read(baseVaultsDirectoryProvider).valueOrNull ?? '';
-    final hubName = currentBaseDir.isNotEmpty ? p.basename(currentBaseDir) : 'Prism Hub';
+    await changeStorageLocation(
+      newPath: newPath,
+      vaultType: 'custom',
+      migrateData: false,
+      ref: ref,
+    );
+  }
 
-    // Align the target path (append hubName if not already the last segment)
+  /// Safely changes storage location path, vault type, and handles optional directory migration
+  Future<void> changeStorageLocation({
+    required String newPath,
+    required String vaultType,
+    required bool migrateData,
+    required WidgetRef ref,
+  }) async {
+    // Determine the current hub name (defaults to 'Prism Hub' if transitioning from sandbox or empty)
+    final currentBaseDir = await ref.read(baseVaultsDirectoryProvider.future);
+    final String hubName;
+    if (currentBaseDir.isEmpty || currentBaseDir.contains('prism_vaults')) {
+      hubName = 'Prism Hub';
+    } else {
+      hubName = p.basename(currentBaseDir);
+    }
+
+    // Align the target path (append hubName if not already the last segment, and not in sandbox)
     final String targetBaseDir;
-    if (p.basename(newPath) == hubName) {
+    if (vaultType == 'sandbox') {
       targetBaseDir = newPath;
     } else {
-      targetBaseDir = p.join(newPath, hubName);
+      if (p.basename(newPath) == hubName) {
+        targetBaseDir = newPath;
+      } else {
+        targetBaseDir = p.join(newPath, hubName);
+      }
+    }
+
+    // Perform directory migration if requested, and the current base directory is different
+    if (migrateData && currentBaseDir.isNotEmpty && currentBaseDir != targetBaseDir) {
+      final currentDir = Directory(currentBaseDir);
+      if (await currentDir.exists()) {
+        try {
+          await _migrateDirectory(currentBaseDir, targetBaseDir);
+        } catch (e, stack) {
+          debugPrint('Error migrating directories: $e');
+          AnalyticsService.logError(e, stack, fatal: false);
+          // Rollback: delete target base directory to clean up partially copied files
+          try {
+            final targetDir = Directory(targetBaseDir);
+            if (await targetDir.exists()) {
+              await targetDir.delete(recursive: true);
+            }
+          } catch (_) {
+            // Ignore cleanup failures
+          }
+          rethrow;
+        }
+      }
     }
 
     // Ensure the target base directory exists
@@ -197,17 +247,16 @@ class VaultManagementService {
       }
     }
 
-    // Update SharedPreferences directly for both values to ensure atomicity
+    // Update SharedPreferences directly to ensure atomicity
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('baseVaultsDirectory', targetBaseDir);
+    await prefs.setString('vaultType', vaultType);
     await prefs.setString('activeVaultName', activeVault);
 
     // Reset selected folder filter
     ref.read(selectedFolderIdProvider.notifier).state = null;
 
     // Invalidate and reload the providers.
-    // Invalidating both simultaneously ensures they reload from SharedPreferences
-    // without an intermediate inconsistent state (preventing database_closed race).
     ref.invalidate(baseVaultsDirectoryProvider);
     ref.invalidate(activeVaultNameProvider);
     ref.invalidate(availableVaultsProvider);
@@ -260,5 +309,27 @@ class VaultManagementService {
     return mostRecentDir != null
         ? p.basename(mostRecentDir.path)
         : p.basename(subDirs.first.path);
+  }
+
+  Future<void> _migrateDirectory(String sourcePath, String destinationPath) async {
+    final sourceDir = Directory(sourcePath);
+    if (!await sourceDir.exists()) return;
+
+    await Directory(destinationPath).create(recursive: true);
+
+    await for (final entity in sourceDir.list(recursive: true)) {
+      final relativePath = p.relative(entity.path, from: sourcePath);
+      final destPath = p.join(destinationPath, relativePath);
+
+      if (entity is Directory) {
+        await Directory(destPath).create(recursive: true);
+      } else if (entity is File) {
+        // Ensure target parent directory exists
+        await Directory(p.dirname(destPath)).create(recursive: true);
+        
+        // Copy file (merging/overwriting duplicates natively)
+        await entity.copy(destPath);
+      }
+    }
   }
 }

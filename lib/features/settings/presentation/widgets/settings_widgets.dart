@@ -595,6 +595,49 @@ class DragToPinToggleTile extends ConsumerWidget {
   }
 }
 
+class AnalyticsToggleTile extends ConsumerWidget {
+  const AnalyticsToggleTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final analyticsEnabled = ref.watch(analyticsEnabledProvider).valueOrNull ?? true;
+
+    return SwitchListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      secondary: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: DesignColors.surfaceVariant(context),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.analytics_outlined,
+          size: 18,
+          color: DesignColors.textSecondary(context),
+        ),
+      ),
+      title: Text(
+        'Share Usage Analytics',
+        style: DesignTypography.body(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        'Help us improve Prism by sharing anonymous app usage stats and crash reports',
+        style: DesignTypography.details(context),
+      ),
+      value: analyticsEnabled,
+      activeThumbColor: DesignColors.primary(context),
+      onChanged: (val) {
+        ref.read(analyticsEnabledProvider.notifier).setEnabled(val);
+      },
+    );
+  }
+}
+
 
 
 

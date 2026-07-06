@@ -18,6 +18,11 @@ import 'features/onboarding/data/onboarding_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'firebase_options.dart';
+import 'package:flutter/foundation.dart';
 
 
 void main() async {
@@ -34,6 +39,30 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final vaultType = prefs.getString('vaultType') ?? 'sandbox';
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Read the user consent preference
+    final analyticsEnabled = prefs.getBool('analyticsEnabled') ?? true;
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(analyticsEnabled);
+    await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(analyticsEnabled);
+
+    // Catch all unhandled library/framework errors
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+
+    // Catch all unhandled platform/asynchronous errors
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  } catch (e) {
+    debugPrint('Firebase failed to initialize (expected in tests/mock setups): $e');
+  }
 
   final container = ProviderContainer(
     overrides: [

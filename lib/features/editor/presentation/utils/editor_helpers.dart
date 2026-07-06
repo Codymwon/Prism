@@ -12,6 +12,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/custom_macro_provider.dart';
+import '../../../../core/services/analytics_service.dart';
 
 /// Standard markdown link tapping handler.
 ///
@@ -246,6 +247,10 @@ void insertMacro({
       .replaceAll('{{date}}', dateStr)
       .replaceAll('{{time}}', timeStr)
       .replaceAll('{{datetime}}', '$dateStr $timeStr');
+
+  AnalyticsService.logEvent('insert_macro', parameters: {
+    'macro_label': macro.label,
+  });
 
   insertFormatting(
     controller: controller,

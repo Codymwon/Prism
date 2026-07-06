@@ -66,6 +66,11 @@ dependencies:
   extension_google_sign_in_as_googleapis_auth: ^2.0.1
   http: ^1.2.0
 
+  # Firebase & Analytics
+  firebase_core: ^3.10.0
+  firebase_analytics: ^11.4.0
+  firebase_crashlytics: ^4.3.0
+
 
   # Code generation
   freezed_annotation: ^2.4.4

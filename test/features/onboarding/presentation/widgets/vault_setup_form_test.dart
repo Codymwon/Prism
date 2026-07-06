@@ -123,10 +123,27 @@ void main() {
       },
     );
 
+    // Mock path_provider channel for getApplicationDocumentsDirectory
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async {
+        if (call.method == 'getApplicationDocumentsDirectory') {
+          return p.join(tempDir.path, 'documents');
+        }
+        return null;
+      },
+    );
+
     tempDir = Directory.systemTemp.createTempSync('prism_test_');
   });
 
   tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      null,
+    );
     if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
   });
 
@@ -238,5 +255,84 @@ void main() {
     expect(startCalled, isTrue);
     expect(importedVault, equals('Vault B')); // most recently modified
     expect(find.text('Name your first vault'), findsNothing); // Step 2 skipped
+  });
+
+  // ── Test 4: storage location options toggling ──────────────────────────────
+  testWidgets('renders storage type cards and toggles visibility of fields',
+      (WidgetTester tester) async {
+    _setViewport(tester);
+
+    await tester.pumpWidget(_buildForm(
+      pickerPath: tempDir.path,
+      onStartSetup: () {},
+    ));
+    await tester.pumpAndSettle();
+
+    // Verify both options are present
+    expect(find.text('Device storage'), findsOneWidget);
+    expect(find.text('App storage'), findsOneWidget);
+
+    // Default: Device storage is selected, Hub Name and Folder Picker are visible
+    expect(find.text('Prism Hub Name'), findsOneWidget);
+    expect(find.text('Select Folder Location'), findsOneWidget);
+
+    // Tap App storage card
+    await tester.tap(find.text('App storage'));
+    await tester.pumpAndSettle();
+
+    // Now Hub Name and Folder Picker should be hidden
+    expect(find.text('Prism Hub Name'), findsNothing);
+    expect(find.text('Select Folder Location'), findsNothing);
+  });
+
+  // ── Test 5: complete onboarding via sandbox app storage ───────────────────
+  testWidgets('completing onboarding via App storage sandbox flow',
+      (WidgetTester tester) async {
+    _setViewport(tester);
+
+    bool startCalled = false;
+    String? persistedHubPath;
+    String? persistedVaultName;
+    String? persistedVaultType;
+
+    await tester.pumpWidget(_buildForm(
+      pickerPath: tempDir.path,
+      onStartSetup: () => startCalled = true,
+      onPersist: (hub, vault, type) async {
+        persistedHubPath = hub;
+        persistedVaultName = vault;
+        persistedVaultType = type;
+      },
+    ));
+    await tester.pumpAndSettle();
+
+    // Select App storage
+    await tester.tap(find.text('App storage'));
+    await tester.pumpAndSettle();
+
+    // Tap Next
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.text('Name your first vault'), findsOneWidget);
+    expect(find.text('Confirm & Begin'), findsOneWidget);
+
+    // Tap Confirm & Begin
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    expect(startCalled, isTrue);
+    expect(persistedVaultType, equals('sandbox'));
+    expect(persistedVaultName, equals('My Vault'));
+    // Since it resolves path_provider, it should contain a sandbox documents path
+    expect(persistedHubPath, contains('prism_vaults'));
   });
 }

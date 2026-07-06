@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/services/vault_service.dart';
@@ -81,30 +82,66 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
   }
 
   Future<void> _changeHubLocation() async {
-    try {
-      final path = await FilePicker.platform.getDirectoryPath();
-      if (path == null) return;
+    final currentBaseDir = ref.read(baseVaultsDirectoryProvider).valueOrNull ?? '';
 
-      setState(() => _isLoading = true);
-      await ref.read(vaultManagementServiceProvider).changeBaseDirectory(newPath: path, ref: ref);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _RelocationBottomSheet(
+        currentBaseDir: currentBaseDir,
+        onRelocate: (destPath, vaultType, migrateData) async {
+          Navigator.pop(context); // Close bottom sheet
+          
+          setState(() => _isLoading = true);
+          try {
+            final String resolvedPath;
+            if (vaultType == 'sandbox') {
+              final docDir = await getApplicationDocumentsDirectory();
+              resolvedPath = p.join(docDir.path, 'prism_vaults');
+            } else {
+              resolvedPath = destPath;
+            }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Storage directory changed to: $path')),
-        );
-        _loadActiveVaultStats();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error changing storage location: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+            await ref.read(vaultManagementServiceProvider).changeStorageLocation(
+              newPath: resolvedPath,
+              vaultType: vaultType,
+              migrateData: migrateData,
+              ref: ref,
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    migrateData 
+                        ? 'Storage location relocated and vaults migrated.' 
+                        : 'Storage location changed.'
+                  ),
+                ),
+              );
+              _loadActiveVaultStats();
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: Colors.redAccent,
+                  content: Text(
+                    'Error relocating storage: $e',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              );
+            }
+          } finally {
+            if (mounted) {
+              setState(() => _isLoading = false);
+            }
+          }
+        },
+      ),
+    );
   }
 
   Future<void> _createVault() async {
@@ -497,6 +534,363 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                 ],
               ),
       ),
+    );
+  }
+}
+
+class _RelocationBottomSheet extends StatefulWidget {
+  final String currentBaseDir;
+  final Function(String path, String vaultType, bool migrateData) onRelocate;
+
+  const _RelocationBottomSheet({
+    required this.currentBaseDir,
+    required this.onRelocate,
+  });
+
+  @override
+  State<_RelocationBottomSheet> createState() => _RelocationBottomSheetState();
+}
+
+class _RelocationBottomSheetState extends State<_RelocationBottomSheet> {
+  String _selectedVaultType = 'custom';
+  String _selectedLocationPath = '';
+  bool _migrateData = true;
+  bool _isPicking = false;
+
+  Future<void> _pickFolder() async {
+    if (_isPicking) return;
+    setState(() => _isPicking = true);
+    try {
+      final path = await FilePicker.platform.getDirectoryPath();
+      if (path != null) {
+        setState(() {
+          _selectedLocationPath = path;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking folder: $e');
+    } finally {
+      setState(() => _isPicking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textStyle = DesignColors.text(context);
+    final textSecStyle = DesignColors.textSecondary(context);
+    final cardBg = DesignColors.surfaceVariant(context);
+    final cardBorder = DesignColors.text(context).withValues(alpha: 0.08);
+
+    return Container(
+      padding: const EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: 32,
+      ),
+      decoration: BoxDecoration(
+        color: DesignColors.surface(context),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: cardBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Relocate Vault Location',
+            style: DesignTypography.heading(
+              context,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: textStyle,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Move your vaults and notes to a new location. Choose device storage or secure app sandbox storage.',
+            style: DesignTypography.body(
+              context,
+              fontSize: 13,
+              color: textSecStyle,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+
+          // Device Storage Card
+          GestureDetector(
+            onTap: () => setState(() => _selectedVaultType = 'custom'),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _selectedVaultType == 'custom'
+                    ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+                    : cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _selectedVaultType == 'custom'
+                      ? colorScheme.primary
+                      : cardBorder,
+                  width: _selectedVaultType == 'custom' ? 2 : 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Radio<String>(
+                        value: 'custom',
+                        groupValue: _selectedVaultType,
+                        activeColor: colorScheme.primary,
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedVaultType = val);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Device storage',
+                        style: DesignTypography.body(
+                          context,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: textStyle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'RECOMMENDED',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 48, top: 4),
+                    child: Text(
+                      'Allows Prism data to be accessed by other apps.',
+                      style: DesignTypography.details(context, color: textSecStyle),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // App Storage Card
+          GestureDetector(
+            onTap: () => setState(() => _selectedVaultType = 'sandbox'),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _selectedVaultType == 'sandbox'
+                    ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+                    : cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _selectedVaultType == 'sandbox'
+                      ? colorScheme.primary
+                      : cardBorder,
+                  width: _selectedVaultType == 'sandbox' ? 2 : 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Radio<String>(
+                        value: 'sandbox',
+                        groupValue: _selectedVaultType,
+                        activeColor: colorScheme.primary,
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedVaultType = val);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'App storage',
+                        style: DesignTypography.body(
+                          context,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: textStyle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 48, top: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• Your data will not be accessible to other apps.',
+                          style: DesignTypography.details(context, color: textSecStyle),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '• Android will delete your data if you uninstall Prism.',
+                          style: DesignTypography.details(context, color: textSecStyle),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Conditional Folder Picker
+          if (_selectedVaultType == 'custom') ...[
+            Text(
+              'Select Destination Folder',
+              style: DesignTypography.body(
+                context,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textStyle,
+              ),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _pickFolder,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _selectedLocationPath.isNotEmpty ? colorScheme.primaryContainer.withValues(alpha: 0.1) : cardBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _selectedLocationPath.isNotEmpty ? colorScheme.primary : cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _selectedLocationPath.isNotEmpty ? Icons.folder_rounded : Icons.folder_open_rounded,
+                      color: _selectedLocationPath.isNotEmpty ? colorScheme.primary : textSecStyle,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _selectedLocationPath.isNotEmpty ? _selectedLocationPath : 'Choose a folder...',
+                        style: DesignTypography.body(
+                          context,
+                          fontSize: 13,
+                          color: _selectedLocationPath.isNotEmpty ? textStyle : DesignColors.textTertiary(context),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // Migration Switch
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cardBorder),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Migrate existing notes to new location',
+                        style: DesignTypography.body(
+                          context,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: textStyle,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Copies all notes and configuration to the new folder.',
+                        style: DesignTypography.details(context, color: textSecStyle),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _migrateData,
+                  onChanged: (val) => setState(() => _migrateData = val),
+                  activeColor: colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Confirm Relocation Button
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              if (_selectedVaultType == 'custom' && _selectedLocationPath.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please select a destination folder.')),
+                );
+                return;
+              }
+              widget.onRelocate(_selectedLocationPath, _selectedVaultType, _migrateData);
+            },
+            child: Text(
+              'Confirm Relocation',
+              style: DesignTypography.body(
+                context,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
     );
   }
 }

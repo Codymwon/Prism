@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 
 export '../../../../core/database/vault_providers.dart';
 
@@ -210,6 +213,31 @@ class ShowBacklinksDefaultNotifier extends AsyncNotifier<bool> {
     state = AsyncData(enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('showBacklinks', enabled);
+  }
+}
+
+// ─── Analytics Enabled Provider ──────────────────────────────────────────────
+final analyticsEnabledProvider =
+    AsyncNotifierProvider<AnalyticsEnabledNotifier, bool>(
+        AnalyticsEnabledNotifier.new);
+
+class AnalyticsEnabledNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('analyticsEnabled') ?? true;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('analyticsEnabled', enabled);
+    try {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(enabled);
+      await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(enabled);
+    } catch (e) {
+      debugPrint('Error toggling Firebase collections: $e');
+    }
   }
 }
 

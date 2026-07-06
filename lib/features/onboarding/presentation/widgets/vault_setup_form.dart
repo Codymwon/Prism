@@ -5,11 +5,16 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import '../../../../core/database/database_helper.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
-import '../../../../core/database/database_helper.dart';
-import '../../../../core/utils/storage_permission_helper.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/onboarding_provider.dart';
+import '../../data/tutorial_provider.dart';
+import '../../../../core/utils/storage_permission_helper.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/database/vault_providers.dart';
 
 class VaultSetupForm extends ConsumerStatefulWidget {
@@ -33,10 +38,11 @@ class VaultSetupForm extends ConsumerStatefulWidget {
 }
 
 class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
-  final String _selectedVaultType = 'custom';
+  String _selectedVaultType = 'custom';
   String _customLocationPath = '';
   bool _isPickingFolder = false;
   bool _isCompleting = false;
+  bool _shareAnalytics = true;
   int _currentStep = 1; // 1: Main Storage Location, 2: First Vault Name
 
   final TextEditingController _hubNameController =
@@ -76,6 +82,12 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
 
   Future<void> _handleNextStep() async {
     print('DEBUG: _handleNextStep started');
+    if (_selectedVaultType == 'sandbox') {
+      setState(() {
+        _currentStep = 2;
+      });
+      return;
+    }
     final hubName = _hubNameController.text.trim();
     if (hubName.isEmpty) {
       print('DEBUG: hubName is empty');
@@ -287,8 +299,14 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     widget.onStartSetup();
 
     try {
-      final hubName = _hubNameController.text.trim();
-      final hubPath = p.join(_customLocationPath, hubName);
+      final String hubPath;
+      if (_selectedVaultType == 'sandbox') {
+        final docDir = await getApplicationDocumentsDirectory();
+        hubPath = p.join(docDir.path, 'prism_vaults');
+      } else {
+        final hubName = _hubNameController.text.trim();
+        hubPath = p.join(_customLocationPath, hubName);
+      }
       final newVaultPath = p.join(hubPath, vaultName);
 
       // Ensure the physical directories exist
@@ -302,10 +320,17 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       } else {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('vaultType', _selectedVaultType);
+        
+        // Save analytics choice and toggle Firebase collections
+        await ref.read(analyticsEnabledProvider.notifier).setEnabled(_shareAnalytics);
+
         await baseVaultsDirNotifier.setDirectory(hubPath);
         await activeVaultNameNotifier.setVaultName(vaultName);
 
         await DatabaseHelper.instance.closeDatabase();
+        AnalyticsService.logEvent('onboarding_complete', parameters: {
+          'vault_type': _selectedVaultType,
+        });
         await onboardingNotifier.completeOnboarding();
       }
     } catch (e) {
@@ -370,178 +395,94 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           const SizedBox(height: 32),
 
           if (_currentStep == 1) ...[
-            // ── Step 1: Prism Hub Name ──────────────────────────────────────
+            // ── Vault Location Selector ─────────────────────────────────────
             Text(
-              'Prism Hub Name',
+              'Vault Location',
               style: DesignTypography.body(
                 context,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: textStyle,
               ),
-            ).animate().fadeIn(delay: 230.ms).slideY(begin: 0.15),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _hubNameController,
-              style: DesignTypography.body(context, fontSize: 14, color: textStyle),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: DesignColors.surfaceVariant(context),
-                hintText: 'e.g. Prism Hub, My Notes, Second Brain',
-                hintStyle: DesignTypography.body(
-                  context,
-                  color: DesignColors.textTertiary(context),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                  borderSide: BorderSide(color: cardBorder),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                  borderSide: BorderSide(color: cardBorder),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
-                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
-                ),
-                prefixIcon: Icon(
-                  Icons.folder_copy_rounded,
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
-              ),
-            ).animate().fadeIn(delay: 250.ms),
-            const SizedBox(height: 28),
-
-            // ── Step 1: Select Folder Location ──────────────────────────────
-            Text(
-              'Select Folder Location',
-              style: DesignTypography.body(
-                context,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: textStyle,
-              ),
-            ).animate().fadeIn(delay: 270.ms).slideY(begin: 0.15),
+            ).animate().fadeIn(delay: 210.ms).slideY(begin: 0.15),
             const SizedBox(height: 10),
-            TactileWrapper(
-              style: TactileFeedbackStyle.standard,
-              onTap: _isPickingFolder ? null : _pickCustomLocation,
+            
+            // Device Storage Card
+            GestureDetector(
+              onTap: () => setState(() => _selectedVaultType = 'custom'),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: locationSelected
-                      ? colorScheme.primaryContainer.withValues(alpha: 0.25)
+                  color: _selectedVaultType == 'custom'
+                      ? colorScheme.primaryContainer.withValues(alpha: 0.15)
                       : cardBg,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: locationSelected ? colorScheme.primary : cardBorder,
-                    width: locationSelected ? 2 : 1,
+                    color: _selectedVaultType == 'custom'
+                        ? colorScheme.primary
+                        : cardBorder,
+                    width: _selectedVaultType == 'custom' ? 2 : 1,
                   ),
-                  boxShadow: locationSelected
-                      ? [
-                          BoxShadow(
-                            color: colorScheme.primary.withValues(alpha: 0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]
-                      : null,
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: locationSelected
-                            ? colorScheme.primary.withValues(alpha: 0.12)
-                            : cardBorder.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: _isPickingFolder
-                          ? Padding(
-                              padding: const EdgeInsets.all(13),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: colorScheme.primary,
-                              ),
-                            )
-                          : Icon(
-                              locationSelected
-                                  ? Icons.folder_rounded
-                                  : Icons.folder_open_rounded,
-                              color: locationSelected
-                                  ? colorScheme.primary
-                                  : textSecStyle,
-                              size: 24,
+                    Row(
+                      children: [
+                        Radio<String>(
+                          value: 'custom',
+                          groupValue: _selectedVaultType,
+                          activeColor: colorScheme.primary,
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedVaultType = val);
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Device storage',
+                          style: DesignTypography.body(
+                            context,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: textStyle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'RECOMMENDED',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
+                    Padding(
+                      padding: const EdgeInsets.only(left: 48, top: 4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
                               Expanded(
                                 child: Text(
-                                  locationSelected
-                                      ? 'Location selected'
-                                      : 'Tap to choose a folder',
-                                  style: DesignTypography.body(
-                                    context,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                    color: locationSelected
-                                        ? colorScheme.primary
-                                        : textStyle,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  'Allows Prism data to be accessed by other apps.',
+                                  style: DesignTypography.details(context, color: textSecStyle),
                                 ),
                               ),
-                              if (locationSelected)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 8),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primary.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      'Change',
-                                      style: DesignTypography.metadata(
-                                        context,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: colorScheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
                             ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            locationSelected
-                                ? _customLocationPath
-                                : 'Prism will create your main directory inside this folder.',
-                            style: DesignTypography.details(
-                              context,
-                              fontSize: 12,
-                              color: locationSelected
-                                  ? textSecStyle
-                                  : DesignColors.textTertiary(context),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -549,15 +490,281 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                   ],
                 ),
               ),
-            ).animate().fadeIn(delay: 290.ms),
-            const SizedBox(height: 32),
+            ).animate().fadeIn(delay: 220.ms),
+            const SizedBox(height: 12),
+
+            // App Storage Card
+            GestureDetector(
+              onTap: () => setState(() => _selectedVaultType = 'sandbox'),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _selectedVaultType == 'sandbox'
+                      ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+                      : cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _selectedVaultType == 'sandbox'
+                        ? colorScheme.primary
+                        : cardBorder,
+                    width: _selectedVaultType == 'sandbox' ? 2 : 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Radio<String>(
+                          value: 'sandbox',
+                          groupValue: _selectedVaultType,
+                          activeColor: colorScheme.primary,
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedVaultType = val);
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'App storage',
+                          style: DesignTypography.body(
+                            context,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: textStyle,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 48, top: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
+                              Expanded(
+                                child: Text(
+                                  'Your data will not be accessible to other apps.',
+                                  style: DesignTypography.details(context, color: textSecStyle),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
+                              Expanded(
+                                child: Text(
+                                  'Android will delete your data if you uninstall Prism.',
+                                  style: DesignTypography.details(context, color: textSecStyle),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ).animate().fadeIn(delay: 230.ms),
+            const SizedBox(height: 28),
+
+            if (_selectedVaultType == 'custom') ...[
+              // ── Step 1: Prism Hub Name ──────────────────────────────────────
+              Text(
+                'Prism Hub Name',
+                style: DesignTypography.body(
+                  context,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: textStyle,
+                ),
+              ).animate().fadeIn(delay: 230.ms).slideY(begin: 0.15),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _hubNameController,
+                style: DesignTypography.body(context, fontSize: 14, color: textStyle),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: DesignColors.surfaceVariant(context),
+                  hintText: 'e.g. Prism Hub, My Notes, Second Brain',
+                  hintStyle: DesignTypography.body(
+                    context,
+                    color: DesignColors.textTertiary(context),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                    borderSide: BorderSide(color: cardBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                    borderSide: BorderSide(color: cardBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
+                    borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.folder_copy_rounded,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ).animate().fadeIn(delay: 250.ms),
+              const SizedBox(height: 28),
+
+              // ── Step 1: Select Folder Location ──────────────────────────────
+              Text(
+                'Select Folder Location',
+                style: DesignTypography.body(
+                  context,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: textStyle,
+                ),
+              ).animate().fadeIn(delay: 270.ms).slideY(begin: 0.15),
+              const SizedBox(height: 10),
+              TactileWrapper(
+                style: TactileFeedbackStyle.standard,
+                onTap: _isPickingFolder ? null : _pickCustomLocation,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: locationSelected
+                        ? colorScheme.primaryContainer.withValues(alpha: 0.25)
+                        : cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: locationSelected ? colorScheme.primary : cardBorder,
+                      width: locationSelected ? 2 : 1,
+                    ),
+                    boxShadow: locationSelected
+                        ? [
+                            BoxShadow(
+                              color: colorScheme.primary.withValues(alpha: 0.08),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: locationSelected
+                              ? colorScheme.primary.withValues(alpha: 0.12)
+                              : cardBorder.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: _isPickingFolder
+                            ? Padding(
+                                padding: const EdgeInsets.all(13),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : Icon(
+                                locationSelected
+                                    ? Icons.folder_rounded
+                                    : Icons.folder_open_rounded,
+                                color: locationSelected
+                                    ? colorScheme.primary
+                                    : textSecStyle,
+                                size: 24,
+                              ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    locationSelected
+                                        ? 'Location selected'
+                                        : 'Tap to choose a folder',
+                                    style: DesignTypography.body(
+                                      context,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: locationSelected
+                                          ? colorScheme.primary
+                                          : textStyle,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (locationSelected)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'Change',
+                                        style: DesignTypography.metadata(
+                                          context,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              locationSelected
+                                  ? _customLocationPath
+                                  : 'Prism will create your main directory inside this folder.',
+                              style: DesignTypography.details(
+                                context,
+                                fontSize: 12,
+                                color: locationSelected
+                                    ? textSecStyle
+                                    : DesignColors.textTertiary(context),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).animate().fadeIn(delay: 290.ms),
+              const SizedBox(height: 32),
+            ],
             // Next Button
             DesignPrimaryButton(
               label: 'Next',
               icon: Icons.arrow_forward_rounded,
-              onTap: (!_isCompleting && locationSelected) ? _handleNextStep : null,
+              onTap: (!_isCompleting && (_selectedVaultType == 'sandbox' || locationSelected)) ? _handleNextStep : null,
             ).animate().fadeIn(delay: 320.ms),
-            if (!locationSelected) ...[
+            if (_selectedVaultType == 'custom' && !locationSelected) ...[
               const SizedBox(height: 12),
               Center(
                 child: Text(
@@ -612,6 +819,55 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                 ),
               ),
             ).animate().fadeIn(delay: 250.ms),
+            const SizedBox(height: 24),
+
+            // Telemetry opt-out disclosure card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: DesignColors.surface(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: cardBorder),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Share anonymous telemetry',
+                          style: DesignTypography.body(
+                            context,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: textStyle,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Help us improve Prism by sharing anonymous feature usage data and crash logs. No personal data, notes, or search queries are ever collected.',
+                          style: DesignTypography.details(
+                            context,
+                            fontSize: 12,
+                            color: textSecStyle,
+                          ).copyWith(height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Switch(
+                    value: _shareAnalytics,
+                    activeColor: colorScheme.primary,
+                    onChanged: (val) {
+                      setState(() => _shareAnalytics = val);
+                    },
+                  ),
+                ],
+              ),
+            ).animate().fadeIn(delay: 260.ms),
             const SizedBox(height: 32),
             // Confirm & Begin Button
             DesignPrimaryButton(

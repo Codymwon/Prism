@@ -11,6 +11,7 @@ import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 part 'editor_controller.freezed.dart';
@@ -143,6 +144,9 @@ class EditorController extends _$EditorController {
 
   Future<void> setEditorMode(EditorMode mode) async {
     state = state.copyWith(editorMode: mode);
+    AnalyticsService.logEvent('change_editor_mode', parameters: {
+      'mode': mode.name,
+    });
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -484,6 +488,7 @@ class AudioRecordController extends _$AudioRecordController {
     focusNode.requestFocus();
 
     if (commit) {
+      AnalyticsService.logEvent('record_audio');
       onSave();
     }
   }
