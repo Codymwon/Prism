@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/editor/presentation/providers/editor_controller.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
+import 'package:prism/features/editor/domain/audio_recorder_service.dart';
+import 'package:prism/features/editor/data/audio_recorder_service_impl.dart';
 import 'package:fake_async/fake_async.dart';
 
 class FakeAudioRecorderService implements AudioRecorderService {

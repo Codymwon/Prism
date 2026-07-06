@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
-import '../../../../core/services/template_service.dart';
 import '../../../../core/utils/utils.dart' as utils;
 import '../note_content_parser.dart';
 import '../metadata_indexer.dart';
@@ -17,30 +16,13 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
   final MetadataIndexer indexer;
   final Future<String> Function() getVaultPath;
 
-  /// Template service resolver. Optional in tests that never exercise the
-  /// template: path; required at runtime via the provider, which always
-  /// supplies it. Calling a template method without it is a programming error.
-  final TemplateService Function()? getTemplateService;
-
   NoteIngestionServiceImpl({
     required this.getDb,
     required this.storage,
     required this.parser,
     required this.indexer,
     required this.getVaultPath,
-    this.getTemplateService,
   });
-
-  TemplateService get _templates {
-    final resolver = getTemplateService;
-    if (resolver == null) {
-      throw StateError(
-        'TemplateService is not configured on this NoteIngestionServiceImpl '
-        'but a template: ID was used. Provide getTemplateService.',
-      );
-    }
-    return resolver();
-  }
 
   @override
   Future<Note> createNote({
@@ -60,8 +42,8 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
       final maps = await database.query(
         'notes',
         columns: ['id', 'file_path'],
-        where: 'LOWER(title) = ? AND is_ghost = 1',
-        whereArgs: [title.toLowerCase()],
+        where: 'title = ? COLLATE NOCASE AND is_ghost = 1',
+        whereArgs: [title],
       );
       if (maps.isNotEmpty) {
         id = maps.first['id'] as String;
@@ -183,8 +165,8 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
     final database = await getDb();
     final maps = await database.query(
       'notes',
-      where: 'LOWER(title) = ?',
-      whereArgs: [title.toLowerCase()],
+      where: 'title = ? COLLATE NOCASE',
+      whereArgs: [title],
     );
     return maps.isEmpty ? null : Note.fromMap(maps.first);
   }
@@ -202,15 +184,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
   @override
   Future<String> readNoteContent(String noteId) async {
-    // Template content lives in .prism/templates/, never in the DB-backed notes table.
-    if (isTemplateId(noteId)) {
-      final templates = _templates;
-      final res = await templates.readTemplate(templates.nameFromId(noteId));
-      return res.fold(
-        (f) => throw ArgumentError(f.message),
-        (content) => content,
-      );
-    }
     final note = await getNoteById(noteId);
     if (note == null) {
       throw ArgumentError('Note not found for ID: $noteId');
@@ -220,15 +193,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
   @override
   Future<void> saveNote(String id, String content) async {
-    // Templates bypass SQLite indexing entirely. We write only the Markdown file
-    // and return BEFORE indexer.indexNote(...) — this is the explicit FTS5 /
-    // relations index bypass for template notes.
-    if (isTemplateId(id)) {
-      final templates = _templates;
-      await templates.writeTemplate(templates.nameFromId(id), content);
-      return;
-    }
-
     final database = await getDb();
     final currentVaultPath = await getVaultPath();
 
@@ -260,13 +224,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
   @override
   Future<void> deleteNote(String id) async {
-    // Templates: delete the Markdown file only, never touch the SQLite index.
-    if (isTemplateId(id)) {
-      final templates = _templates;
-      await templates.deleteTemplate(templates.nameFromId(id));
-      return;
-    }
-
     final database = await getDb();
     final note = await getNoteById(id);
     if (note == null) return;

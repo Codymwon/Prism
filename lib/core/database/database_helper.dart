@@ -7,7 +7,7 @@ import '../utils/utils.dart';
 
 class DatabaseHelper {
   static const _dbName = '.prism.db';
-  static const _dbVersion = 6; // Upgraded to v6 to remove spatial groups
+  static const _dbVersion = 7; // Upgraded to v7 to add composite indexes
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -234,6 +234,8 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_note_tags_tag ON note_tags(tag)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_daily ON notes(is_daily, daily_date)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_title ON notes(title COLLATE NOCASE)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_ghost_updated ON notes(is_ghost, updated_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_ghost_daily ON notes(is_ghost, is_daily, daily_date)');
     
     // Folder indexes
     await db.execute('CREATE INDEX IF NOT EXISTS idx_note_folders_note ON note_folders(note_id)');
@@ -371,6 +373,11 @@ class DatabaseHelper {
     if (oldVersion < 6) {
       await db.execute('DROP TABLE IF EXISTS spatial_group_nodes');
       await db.execute('DROP TABLE IF EXISTS spatial_groups');
+    }
+
+    if (oldVersion < 7) {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_ghost_updated ON notes(is_ghost, updated_at DESC)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_ghost_daily ON notes(is_ghost, is_daily, daily_date)');
     }
   }
 

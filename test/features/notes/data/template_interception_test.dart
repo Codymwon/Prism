@@ -6,6 +6,7 @@ import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/core/services/template_service.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
+import 'package:prism/features/notes/data/template_repository.dart';
 import 'package:prism/features/notes/data/vault_service.dart';
 import 'package:prism/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
@@ -15,9 +16,6 @@ import 'package:path/path.dart' as p;
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Reuses the in-memory DB + FakeVaultStorage pattern from note_repository_test.dart,
-/// but additionally overrides activeVaultPathProvider + templateServiceProvider with a
-/// real temp dir so the repository's template: interception can be exercised end-to-end.
 class FakeVaultStorage implements VaultStorage {
   final Map<String, String> files = {};
   final Map<String, DateTime> modTimes = {};
@@ -56,7 +54,8 @@ void main() {
   late Database db;
   late Directory tempVaultDir;
   late ProviderContainer container;
-  late NoteRepository repository;
+  late TemplateRepository templateRepository;
+  late NoteRepository noteRepository;
 
   setUp(() async {
     tempVaultDir = Directory.systemTemp.createTempSync('prism_repo_template_test');
@@ -120,7 +119,8 @@ void main() {
         }),
       ],
     );
-    repository = container.read(noteRepositoryProvider);
+    templateRepository = container.read(templateRepositoryProvider);
+    noteRepository = container.read(noteRepositoryProvider);
   });
 
   tearDown(() async {
@@ -131,57 +131,53 @@ void main() {
     } catch (_) {}
   });
 
-  group('NoteRepository template: interception', () {
-    test('getNoteById returns a synthetic Note for a template ID', () async {
-      // Seed a template file first so the name resolves.
+  group('TemplateRepository tests', () {
+    test('getTemplateNoteById returns a synthetic Note for a template ID', () async {
       await container.read(templateServiceProvider).writeTemplate('Gratitude', 'x');
 
-      final note = await repository.getNoteById('template:Gratitude');
+      final note = await templateRepository.getTemplateNoteById('template:Gratitude');
 
       expect(note, isNotNull);
-      expect(note!.id, 'template:Gratitude');
+      expect(note.id, 'template:Gratitude');
       expect(note.title, 'Gratitude');
     });
 
-    test('readNoteContent reads from TemplateService, not the DB', () async {
+    test('readTemplateContent reads from TemplateService', () async {
       await container
           .read(templateServiceProvider)
           .writeTemplate('Gratitude', '---\ntitle: "Gratitude"\n---\n\nBe thankful.');
 
-      final content = await repository.readNoteContent('template:Gratitude');
+      final content = await templateRepository.readTemplateContent('template:Gratitude');
 
       expect(content, contains('Be thankful.'));
     });
 
-    test('saveNote writes the template file via TemplateService and does NOT touch the DB', () async {
-      await repository.saveNote('template:Gratitude', '# Gratitude Log\n\nOne thing...');
+    test('saveTemplate writes the template file via TemplateService and does NOT touch the DB', () async {
+      await templateRepository.saveTemplate('template:Gratitude', '# Gratitude Log\n\nOne thing...');
 
-      // The file was written under .prism/templates/
       final file = File(p.join(tempVaultDir.path, '.prism', 'templates', 'gratitude.md'));
       expect(await file.exists(), isTrue);
       expect(await file.readAsString(), '# Gratitude Log\n\nOne thing...');
 
-      // And no row exists in the SQLite notes table for this ID.
       final rows = await db.query('notes', where: 'id = ?', whereArgs: ['template:Gratitude']);
       expect(rows, isEmpty);
     });
 
-    test('deleteNote removes the template file via TemplateService', () async {
+    test('deleteTemplate removes the template file via TemplateService', () async {
       await container.read(templateServiceProvider).writeTemplate('Gratitude', 'temp content');
       final file = File(p.join(tempVaultDir.path, '.prism', 'templates', 'gratitude.md'));
       expect(await file.exists(), isTrue);
 
-      await repository.deleteNote('template:Gratitude');
+      await templateRepository.deleteTemplate('template:Gratitude');
 
       expect(await file.exists(), isFalse);
     });
 
-    test('getAllNotes does NOT include template notes (FTS5 index bypass)', () async {
-      // Create a real note + write a template file.
-      await repository.createNote(title: 'Real Note', initialContent: 'A real note.');
-      await repository.saveNote('template:Gratitude', 'template body');
+    test('NoteRepository.getAllNotes does NOT include template notes', () async {
+      await noteRepository.createNote(title: 'Real Note', initialContent: 'A real note.');
+      await templateRepository.saveTemplate('template:Gratitude', 'template body');
 
-      final all = await repository.getAllNotes();
+      final all = await noteRepository.getAllNotes();
 
       expect(all.any((n) => n.id.startsWith('template:')), isFalse);
       expect(all.any((n) => n.title == 'Real Note'), isTrue);

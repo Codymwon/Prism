@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../../../core/database/vault_providers.dart';
-import '../../../../core/services/template_service.dart';
 import 'adapters/vault_service_impl.dart';
 import 'adapters/markdown_content_parser.dart';
 import 'adapters/sqlite_metadata_indexer.dart';
@@ -39,6 +38,5 @@ final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
     parser: MarkdownContentParser(),
     indexer: SqliteMetadataIndexer(),
     getVaultPath: () => ref.read(activeVaultPathProvider.future),
-    getTemplateService: () => ref.read(templateServiceProvider),
   );
 });

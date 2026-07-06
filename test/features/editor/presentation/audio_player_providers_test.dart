@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:prism/features/editor/presentation/providers/audio_player_providers.dart';
+import 'package:prism/features/editor/domain/audio_player_service.dart';
+import 'package:prism/features/editor/data/audio_player_service_impl.dart';
 
 // ---------------------------------------------------------------------------
 // Fake AudioPlayerService for testing

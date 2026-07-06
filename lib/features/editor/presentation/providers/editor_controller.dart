@@ -3,16 +3,19 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:path/path.dart' as p;
-import 'package:record/record.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
+import '../../../notes/data/template_repository.dart';
+import '../../../../core/services/template_service.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
 import '../../../../core/services/analytics_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../domain/audio_recorder_service.dart';
+import '../../data/audio_recorder_service_impl.dart';
 
 part 'editor_controller.freezed.dart';
 part 'editor_controller.g.dart';
@@ -69,6 +72,29 @@ class EditorController extends _$EditorController {
   }
 
   Future<EditorState?> loadNote({required bool isNew, String? defaultDailyDate}) async {
+    if (isTemplateId(noteId)) {
+      final repo = ref.read(templateRepositoryProvider);
+      final note = await repo.getTemplateNoteById(noteId);
+      String content = '';
+      try {
+        content = await repo.readTemplateContent(noteId);
+      } catch (_) {
+        content = '---\ntitle: "${note.title}"\n---\n\n';
+      }
+
+      state = state.copyWith(
+        isLoaded: true,
+        loadedTitle: note.title,
+        loadedBody: stripFrontmatter(content),
+        lastSaved: content,
+        dailyDate: null,
+        editorMode: EditorMode.livePreview,
+        showBacklinks: false,
+      );
+
+      return state;
+    }
+
     final repo = ref.read(noteRepositoryProvider);
     final note = await repo.getNoteById(noteId);
     if (note == null) return null;
@@ -231,8 +257,13 @@ class EditorController extends _$EditorController {
     if (content == state.lastSaved) return;
 
     state = state.copyWith(isSaving: true);
-    final repo = ref.read(noteRepositoryProvider);
-    await repo.saveNote(noteId, content);
+    if (isTemplateId(noteId)) {
+      final repo = ref.read(templateRepositoryProvider);
+      await repo.saveTemplate(noteId, content);
+    } else {
+      final repo = ref.read(noteRepositoryProvider);
+      await repo.saveNote(noteId, content);
+    }
 
     state = state.copyWith(
       isSaving: false,
@@ -281,64 +312,7 @@ class EditorController extends _$EditorController {
 }
 
 
-// ─── AudioRecorderService ─────────────────────────────────────────────────────
 
-/// Abstract seam for microphone permission and audio recording, decoupling
-/// [AudioRecordController] from the concrete `record` plugin.
-abstract class AudioRecorderService {
-  /// Returns `true` if the app has microphone permission.
-  Future<bool> hasPermission();
-
-  /// Starts recording to [path].
-  Future<void> start(String path);
-
-  /// Stops recording and returns the file path of the recorded audio, if any.
-  Future<String?> stop();
-
-  /// Returns `true` if a recording is in progress.
-  Future<bool> isRecording();
-
-  /// Releases native resources.
-  void dispose();
-}
-
-// ─── AudioRecorderServiceImpl ─────────────────────────────────────────────────
-
-/// Production adapter wrapping the `record` plugin [AudioRecorder].
-class AudioRecorderServiceImpl implements AudioRecorderService {
-  final AudioRecorder _recorder = AudioRecorder();
-
-  @override
-  Future<bool> hasPermission() => _recorder.hasPermission();
-
-  @override
-  Future<void> start(String path) {
-    return _recorder.start(
-      const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        sampleRate: 16000,
-        numChannels: 1,
-        bitRate: 32000,
-      ),
-      path: path,
-    );
-  }
-
-  @override
-  Future<String?> stop() => _recorder.stop();
-
-  @override
-  Future<bool> isRecording() => _recorder.isRecording();
-
-  @override
-  void dispose() => _recorder.dispose();
-}
-
-final audioRecorderServiceProvider = Provider<AudioRecorderService>((ref) {
-  final service = AudioRecorderServiceImpl();
-  ref.onDispose(service.dispose);
-  return service;
-});
 
 // ─── AudioRecordState ─────────────────────────────────────────────────────────
 

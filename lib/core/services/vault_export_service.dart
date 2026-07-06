@@ -155,13 +155,16 @@ class VaultExportServiceImpl implements VaultExportService {
     final noteFolderMap = await folderRepo.getNoteFolderMappings();
     final allFolders = await folderRepo.getAllFolders();
 
+    final allTagsMap = await repo.batchGetTagsForAllNotes();
+    final allBacklinksMap = await repo.batchGetBacklinksForAllNotes();
+
     // Collect all note data on the main isolate (DB + file reads must stay here).
     final noteDataList = <Map<String, dynamic>>[];
     for (var i = 0; i < notes.length; i++) {
       final n = notes[i];
       final content = await repo.readNoteContent(n.id);
-      final tags = await repo.getTagsForNote(n.id);
-      final backlinks = await repo.getBacklinks(n.id);
+      final tags = allTagsMap[n.id] ?? [];
+      final backlinks = allBacklinksMap[n.id] ?? [];
       final folderIds = noteFolderMap[n.id] ?? [];
       final folderNames = folderIds
           .map((fid) => allFolders.firstWhereOrNull((f) => f.id == fid)?.name)

@@ -1,106 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:audioplayers/audioplayers.dart';
+import '../../domain/audio_player_service.dart';
+import '../../data/audio_player_service_impl.dart';
 
-// ─── Service Interface ────────────────────────────────────────────────────────
 
-/// Abstract seam for audio playback, decoupling the notifier from
-/// the concrete `audioplayers` plugin.
-abstract class AudioPlayerService {
-  /// Fired whenever the total duration of the loaded track changes.
-  Stream<Duration> get onDurationChanged;
-
-  /// Fired as the playback position advances.
-  Stream<Duration> get onPositionChanged;
-
-  /// Fired when playback starts (`true`) or stops/pauses (`false`).
-  Stream<bool> get onIsPlayingChanged;
-
-  /// Loads and plays the audio file at [filePath].
-  Future<void> play(String filePath);
-
-  /// Pauses playback.
-  Future<void> pause();
-
-  /// Resumes a paused track.
-  Future<void> resume();
-
-  /// Stops playback and releases resources.
-  Future<void> stop();
-
-  /// Seeks to [position] within the current track.
-  Future<void> seek(Duration position);
-
-  /// Returns the total duration of the current track, if available.
-  Future<Duration?> getDuration();
-
-  /// Releases native resources.
-  void dispose();
-}
-
-// ─── Adapter ─────────────────────────────────────────────────────────────────
-
-/// Production adapter wrapping the `audioplayers` [AudioPlayer].
-class AudioplayersService implements AudioPlayerService {
-  final AudioPlayer _player;
-
-  late final StreamController<bool> _isPlayingController =
-      StreamController<bool>.broadcast();
-
-  StreamSubscription? _stateSub;
-
-  AudioplayersService() : _player = AudioPlayer() {
-    _stateSub = _player.onPlayerStateChanged.listen((s) {
-      _isPlayingController.add(s == PlayerState.playing);
-    });
-  }
-
-  @override
-  Stream<Duration> get onDurationChanged => _player.onDurationChanged;
-
-  @override
-  Stream<Duration> get onPositionChanged => _player.onPositionChanged;
-
-  @override
-  Stream<bool> get onIsPlayingChanged => _isPlayingController.stream;
-
-  @override
-  Future<void> play(String filePath) async {
-    final source = DeviceFileSource(filePath);
-    await _player.play(source);
-  }
-
-  @override
-  Future<void> pause() => _player.pause();
-
-  @override
-  Future<void> resume() => _player.resume();
-
-  @override
-  Future<void> stop() => _player.stop();
-
-  @override
-  Future<void> seek(Duration position) => _player.seek(position);
-
-  @override
-  Future<Duration?> getDuration() => _player.getDuration();
-
-  @override
-  void dispose() {
-    _stateSub?.cancel();
-    _isPlayingController.close();
-    _player.dispose();
-  }
-}
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
-
-final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
-  final service = AudioplayersService();
-  ref.onDispose(service.dispose);
-  return service;
-});
 
 // ─── State ────────────────────────────────────────────────────────────────────
 

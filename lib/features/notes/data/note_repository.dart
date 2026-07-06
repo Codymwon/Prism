@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
-import '../../../core/services/template_service.dart';
 import '../../../../core/services/analytics_service.dart';
 import 'note_model.dart';
 import 'vault_service.dart';
@@ -24,20 +23,7 @@ class NoteRepository {
 
   NoteIngestionService get _vaultService => _ref.read(noteIngestionServiceProvider);
 
-  TemplateService get _templates => _ref.read(templateServiceProvider);
 
-  /// Synthetic [Note] for a virtual `template:<name>` ID. Templates have no
-  /// SQLite row by design — their content lives as Markdown in
-  /// `.prism/templates/` — so we fabricate a lightweight Note object for the
-  /// editor/other readers that expect a Note instance.
-  Note _syntheticTemplateNote(String id) => Note(
-        id: id,
-        title: _templates.nameFromId(id),
-        filePath: '',
-        wordCount: 0,
-        createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
-      );
 
 
   // ── CREATE ────────────────────────────────────────────────────────────────
@@ -87,7 +73,6 @@ class NoteRepository {
   }
 
   Future<Note?> getNoteById(String id) async {
-    if (isTemplateId(id)) return _syntheticTemplateNote(id);
     final db = await _db;
     final maps = await db.query('notes', where: 'id = ?', whereArgs: [id]);
     return maps.isEmpty ? null : Note.fromMap(maps.first);
@@ -97,8 +82,8 @@ class NoteRepository {
     final db = await _db;
     final maps = await db.query(
       'notes',
-      where: 'LOWER(title) = ?',
-      whereArgs: [title.toLowerCase()],
+      where: 'title = ? COLLATE NOCASE',
+      whereArgs: [title],
     );
     return maps.isEmpty ? null : Note.fromMap(maps.first);
   }
@@ -114,14 +99,6 @@ class NoteRepository {
   }
 
   Future<String> readNoteContent(String noteId) async {
-    // Template content lives in .prism/templates/, never the DB or VaultStorage.
-    if (isTemplateId(noteId)) {
-      final res = await _templates.readTemplate(_templates.nameFromId(noteId));
-      return res.fold(
-        (f) => throw ArgumentError(f.message),
-        (content) => content,
-      );
-    }
     final note = await getNoteById(noteId);
     if (note != null) {
       final storage = _ref.read(vaultStorageProvider);
@@ -170,8 +147,8 @@ class NoteRepository {
     final db = await _db;
     final maps = await db.query(
       'notes',
-      where: 'LOWER(title) LIKE ?',
-      whereArgs: ['%${query.toLowerCase()}%'],
+      where: 'title LIKE ? COLLATE NOCASE',
+      whereArgs: ['%$query%'],
       orderBy: 'updated_at DESC',
       limit: 8,
     );
@@ -205,11 +182,6 @@ class NoteRepository {
   // ── UPDATE ────────────────────────────────────────────────────────────────
 
   Future<void> saveNote(String id, String content) async {
-    // Templates bypass SQLite indexing entirely — write the Markdown file only.
-    if (isTemplateId(id)) {
-      await _templates.writeTemplate(_templates.nameFromId(id), content);
-      return;
-    }
     await _vaultService.saveNote(id, content);
     _ref.read(notesVersionProvider.notifier).state++;
   }
@@ -217,11 +189,6 @@ class NoteRepository {
   // ── DELETE ────────────────────────────────────────────────────────────────
 
   Future<void> deleteNote(String id) async {
-    if (isTemplateId(id)) {
-      await _templates.deleteTemplate(_templates.nameFromId(id));
-      AnalyticsService.logEvent('delete_template');
-      return;
-    }
     await _vaultService.deleteNote(id);
     AnalyticsService.logEvent('delete_note');
     _ref.read(notesVersionProvider.notifier).state++;
@@ -265,5 +232,38 @@ class NoteRepository {
     final links = toInt(linkRes.first['COUNT(*)']);
 
     return (totalNotes: notes, totalWords: words, totalLinks: links);
+  }
+
+  Future<Map<String, List<String>>> batchGetTagsForAllNotes() async {
+    final db = await _db;
+    final maps = await db.query('note_tags', columns: ['note_id', 'tag']);
+    final result = <String, List<String>>{};
+    for (final row in maps) {
+      final noteId = row['note_id'] as String;
+      final tag = row['tag'] as String;
+      result.putIfAbsent(noteId, () => []).add(tag);
+    }
+    return result;
+  }
+
+  Future<Map<String, List<Backlink>>> batchGetBacklinksForAllNotes() async {
+    final db = await _db;
+    final maps = await db.rawQuery('''
+      SELECT l.target_id, l.source_id, n.title, l.context_snippet
+      FROM note_links l
+      JOIN notes n ON n.id = l.source_id
+      ORDER BY n.updated_at DESC
+    ''');
+    final result = <String, List<Backlink>>{};
+    for (final row in maps) {
+      final targetId = row['target_id'] as String;
+      final backlink = Backlink(
+        sourceId: row['source_id'] as String,
+        sourceTitle: row['title'] as String,
+        contextSnippet: row['context_snippet'] as String?,
+      );
+      result.putIfAbsent(targetId, () => []).add(backlink);
+    }
+    return result;
   }
 }

@@ -262,7 +262,6 @@ String processWikilinks(String text) {
 /// with `&nbsp;` (excluding fenced code blocks) to prevent checklist checkbox
 /// rendering bugs and ensure correct empty line spacing in view mode.
 String preprocessMarkdown(String text) {
-  print('preprocessMarkdown INPUT: ${Error.safeToString(text)}');
   // 1. Process wikilinks
   final processedLinks = processWikilinks(text);
 
@@ -359,7 +358,6 @@ String preprocessMarkdown(String text) {
   }
 
   final result = parts.join('```');
-  print('preprocessMarkdown OUTPUT: ${Error.safeToString(result)}');
   return result;
 }
 
