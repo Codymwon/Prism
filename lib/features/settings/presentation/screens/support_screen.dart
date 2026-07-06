@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/database/vault_providers.dart';
@@ -31,11 +32,15 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
   String _totalSizeStr = '0 KB';
   String _vaultType = 'sandbox';
   String _appUserId = 'Loading...';
+  String _appVersion = '...';
   bool _isStatsLoading = true;
 
   @override
   void initState() {
     super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _appVersion = '${info.version}+${info.buildNumber}');
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final activePath = ref.read(activeVaultPathProvider).valueOrNull ?? '';
       if (activePath.isNotEmpty) {
@@ -134,7 +139,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
     final osVersion = Platform.operatingSystemVersion;
     return '''
 --- Diagnostic Info ---
-App Version: 1.0.0+1
+App Version: $_appVersion
 Platform: $osName ($osVersion)
 Vault Type: $_vaultType
 Notes Count: $_noteCount
