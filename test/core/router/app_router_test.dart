@@ -11,6 +11,7 @@ import 'package:prism/features/folders/data/folder_model.dart';
 import 'package:prism/features/folders/data/folder_repository.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/features/onboarding/data/tutorial_provider.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class FakeDatabase extends Fake implements Database {
@@ -65,8 +66,10 @@ void main() {
   }
 
   testWidgets('GoRouter routes to /folders/create and /folders/edit/:id', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         databaseProvider.overrideWith((ref) async => FakeDatabase()),
         noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
         folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),

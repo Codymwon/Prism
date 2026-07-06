@@ -10,6 +10,7 @@ import 'package:prism/features/journal/presentation/providers/journal_providers.
 import 'package:prism/features/widgets/widget_helper.dart';
 import 'package:prism/core/router/app_router.dart';
 import 'package:prism/main.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockNoteIngestionService extends Fake implements NoteIngestionService {
@@ -59,9 +60,11 @@ void main() {
     );
     
     // Build PrismApp inside ProviderScope with overrides
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           noteIngestionServiceProvider.overrideWithValue(mockIngestion),
           activeVaultPathProvider.overrideWith((ref) => '/mock/vaults/My Vault'),
           appRouterProvider.overrideWithValue(mockRouter),

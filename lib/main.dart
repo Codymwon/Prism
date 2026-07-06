@@ -35,7 +35,11 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final vaultType = prefs.getString('vaultType') ?? 'sandbox';
 
-  final container = ProviderContainer();
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+    ],
+  );
 
   if (vaultType == 'custom') {
     // Check if we have Android Scoped Storage (All Files Access) permission
@@ -50,11 +54,11 @@ void main() async {
         themeType: themeType,
         fontFamily: fontFamily,
         onPermissionGranted: () async {
-          try {
-            await container.read(databaseProvider.future); // warm up DB via Riverpod
-          } catch (e) {
+          // Warm up DB in the background
+          container.read(databaseProvider.future).catchError((e) {
             debugPrint('Failed to warm up database after permission grant: $e');
-          }
+            return null;
+          });
           runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));
         },
       ));
@@ -64,19 +68,19 @@ void main() async {
 
   final hasOnboarded = prefs.getBool('hasOnboarded') ?? false;
   if (hasOnboarded) {
-    try {
-      await container.read(databaseProvider.future); // warm up DB via Riverpod
-    } catch (e) {
+    // Warm up database in the background without blocking the UI thread
+    container.read(databaseProvider.future).catchError((e) {
       debugPrint('Failed to warm up database at startup: $e');
-    }
+      return null;
+    });
   }
 
-  // Initialize RevenueCat SDK
-  try {
-    await container.read(subscriptionRepositoryProvider).initialize();
-  } catch (e) {
+  // Initialize RevenueCat SDK in the background
+  container.read(subscriptionRepositoryProvider).initialize().then((_) {
+    debugPrint('Subscription repository initialized.');
+  }).catchError((e) {
     debugPrint('Failed to initialize subscription repository at startup: $e');
-  }
+  });
 
   // Silent restore on first launch after a fresh install.
   // This recovers purchases for anonymous users who reinstalled or switched devices.
@@ -84,13 +88,12 @@ void main() async {
   // (Apple guidelines prohibit automatic restore on every launch for iOS).
   final hasRestoredOnInstall = prefs.getBool('hasRestoredOnInstall') ?? false;
   if (!hasRestoredOnInstall && (Platform.isAndroid || Platform.isIOS)) {
-    await prefs.setBool('hasRestoredOnInstall', true);
-    try {
-      await container.read(subscriptionRepositoryProvider).restorePurchases();
+    prefs.setBool('hasRestoredOnInstall', true);
+    container.read(subscriptionRepositoryProvider).restorePurchases().then((_) {
       debugPrint('Silent restore on fresh install completed.');
-    } catch (e) {
+    }).catchError((e) {
       debugPrint('Silent restore on fresh install failed (non-critical): $e');
-    }
+    });
   }
 
   runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));

@@ -7,6 +7,7 @@ import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/features/widgets/widget_helper.dart';
 import 'package:prism/core/router/app_router.dart';
 import 'package:prism/main.dart';
+import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -71,9 +72,11 @@ void main() {
 
     bool databaseProviderInitialized = false;
 
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           // Listen to databaseProvider to detect initialization
           databaseProvider.overrideWith((ref) async {
             databaseProviderInitialized = true;
@@ -101,9 +104,11 @@ void main() {
 
     bool databaseProviderInitialized = false;
 
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           databaseProvider.overrideWith((ref) async {
             databaseProviderInitialized = true;
             return FakeDatabase();

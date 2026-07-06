@@ -54,7 +54,7 @@ class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
 }
 
 class FakeOnboardingNotifier extends OnboardingNotifier {
-  FakeOnboardingNotifier() : super() {
+  FakeOnboardingNotifier(SharedPreferences prefs) : super(prefs) {
     state = true;
   }
 }
@@ -83,14 +83,16 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
+    final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         databaseProvider.overrideWith((ref) async => FakeDatabase()),
         noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
         folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
         tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier()),
         journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier()),
-        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier()),
+        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier(prefs)),
         availableVaultsProvider.overrideWith((ref) async => ['Default']),
         homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
           notes: [],
@@ -133,14 +135,16 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
+    final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         databaseProvider.overrideWith((ref) async => FakeDatabase()),
         noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
         folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
         tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier()),
         journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier()),
-        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier()),
+        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier(prefs)),
         availableVaultsProvider.overrideWith((ref) async => ['Default']),
         homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
           notes: [],

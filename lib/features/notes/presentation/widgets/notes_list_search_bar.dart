@@ -27,15 +27,18 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<bool>(searchFocusProvider, (previous, next) {
-      if (next) {
-        setState(() => _isSearching = true);
-        Future.delayed(const Duration(milliseconds: 100), () {
+    final searchFocus = ref.watch(searchFocusProvider);
+    if (searchFocus) {
+      setState(() => _isSearching = true);
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
           _searchFocusNode.requestFocus();
-        });
+        }
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(searchFocusProvider.notifier).state = false;
-      }
-    });
+      });
+    }
 
     ref.listen<String>(searchQueryProvider, (previous, next) {
       if (next.isEmpty && _controller.text.isNotEmpty) {

@@ -1,23 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('sharedPreferencesProvider must be overridden');
+});
+
 final onboardingStateProvider = StateNotifierProvider<OnboardingNotifier, bool>((ref) {
-  return OnboardingNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return OnboardingNotifier(prefs);
 });
 
 class OnboardingNotifier extends StateNotifier<bool> {
-  OnboardingNotifier() : super(false) {
-    _load();
-  }
+  final SharedPreferences _prefs;
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    state = prefs.getBool('hasOnboarded') ?? false;
-  }
+  OnboardingNotifier(this._prefs) : super(_prefs.getBool('hasOnboarded') ?? false);
 
   Future<void> completeOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasOnboarded', true);
+    await _prefs.setBool('hasOnboarded', true);
     state = true;
   }
 }
