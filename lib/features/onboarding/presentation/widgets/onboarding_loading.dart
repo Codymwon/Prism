@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
 
 class OnboardingLoading extends StatelessWidget {
@@ -18,6 +18,7 @@ class OnboardingLoading extends StatelessWidget {
             child: CircularProgressIndicator(
               strokeWidth: 3,
               color: colorScheme.primary,
+              semanticsLabel: 'Loading',
             ),
           ),
           const SizedBox(height: 24),

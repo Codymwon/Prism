@@ -264,7 +264,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       body: Stack(
         children: [
           if (!isLoaded)
-            const Center(child: CircularProgressIndicator())
+            const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'))
           else
             Column(
               children: [
@@ -586,6 +586,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: colorScheme.primary,
+                        semanticsLabel: 'Saving',
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -770,7 +771,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   ) {
     final isCollapsed = _collapsedHeadings.contains(node.path);
     // The chevron is placed in the gutter, so we adjust the left padding of the row
-    final leftPadding = paddingHorizontal > 24.0 ? paddingHorizontal - 24.0 : 0.0;
+    final leftPadding = paddingHorizontal > 48.0 ? paddingHorizontal - 48.0 : 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,8 +783,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 24,
-                height: 28, // Matches heading height alignment
+                width: 48,
+                height: 48, // Matches standard interactive size
                 child: Center(
                   child: IconButton(
                     icon: AnimatedRotation(
@@ -792,9 +793,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       child: const Icon(Icons.chevron_right, size: 20),
                     ),
                     onPressed: () => _toggleHeadingCollapse(node.path),
-                    splashRadius: 16,
+                    splashRadius: 24,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                   ),
                 ),
               ),

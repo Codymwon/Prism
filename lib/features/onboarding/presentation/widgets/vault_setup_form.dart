@@ -672,6 +672,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: colorScheme.primary,
+                                  semanticsLabel: 'Loading',
                                 ),
                               )
                             : Icon(

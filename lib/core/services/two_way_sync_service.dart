@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 import '../database/vault_providers.dart';
 import '../database/database_providers.dart';
 import '../utils/utils.dart' as utils;
-import '../../features/notes/data/vault_service.dart';
+import 'note_ingestion_service.dart';
 import 'google_drive_service.dart';
 import 'sync_encryption_service.dart';
 import 'analytics_service.dart';

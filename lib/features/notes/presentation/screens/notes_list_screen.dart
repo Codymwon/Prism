@@ -19,19 +19,27 @@ import '../widgets/notes_list_search_bar.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../../settings/presentation/providers/startup_actions.dart';
 
-class NotesListScreen extends ConsumerWidget {
+class NotesListScreen extends ConsumerStatefulWidget {
   const NotesListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Run startup actions (e.g. auto-creating daily note on launch)
+  ConsumerState<NotesListScreen> createState() => _NotesListScreenState();
+}
+
+class _NotesListScreenState extends ConsumerState<NotesListScreen> {
+  @override
+  void initState() {
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final route = await checkAndRunStartupActions(ref.read);
-      if (route != null && context.mounted) {
+      if (route != null && mounted) {
         context.push(route);
       }
     });
+  }
 
+  @override
+  Widget build(BuildContext context) {
     // Pre-warm available vaults list cache so the selector bottom sheet loads instantly
     ref.watch(availableVaultsProvider);
 
@@ -64,25 +72,27 @@ class NotesListScreen extends ConsumerWidget {
             return false; // not consumed
           },
           child: Column(
-          children: [
-            const NotesListSearchBar(),
-            const TagFilterBanner(),
+            children: [
+              const NotesListSearchBar(),
+              const TagFilterBanner(),
 
-          homeDataAsync.maybeWhen(
-            data: (data) => _buildHomeContent(context, ref, data, colorScheme),
-            orElse: () {
-              if (homeDataAsync.hasValue) {
-                return _buildHomeContent(context, ref, homeDataAsync.value!, colorScheme);
-              }
-              return const Expanded(child: SkeletonNoteList());
-            },
-            error: (e, s) => Center(
-              child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
-            ),
+              homeDataAsync.maybeWhen(
+                data: (data) => _buildHomeContent(context, ref, data, colorScheme),
+                orElse: () {
+                  if (homeDataAsync.hasValue) {
+                    return _buildHomeContent(context, ref, homeDataAsync.value!, colorScheme);
+                  }
+                  return const Expanded(child: SkeletonNoteList());
+                },
+                error: (e, s) => Center(
+                  child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),),);
+    );
   }
 
   Widget _buildHomeContent(

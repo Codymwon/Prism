@@ -527,6 +527,7 @@ Widget buildMarkdownImage({
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
+                semanticsLabel: 'Loading',
                 value: loadingProgress.expectedTotalBytes != null
                     ? loadingProgress.cumulativeBytesLoaded /
                         loadingProgress.expectedTotalBytes!

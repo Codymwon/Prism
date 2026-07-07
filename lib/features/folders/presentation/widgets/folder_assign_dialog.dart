@@ -91,7 +91,7 @@ class _FolderAssignDialogState extends ConsumerState<FolderAssignDialog> {
                     return const Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 24.0),
-                        child: CircularProgressIndicator(),
+                        child: CircularProgressIndicator(semanticsLabel: 'Loading'),
                       ),
                     );
                   }

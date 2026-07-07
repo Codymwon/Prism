@@ -154,7 +154,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
               ],
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
           error: (e, _) => Center(
             child: Text(
               'Error loading templates: $e',

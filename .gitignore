@@ -54,14 +54,11 @@ docs/
 
 .agents/
 
-# Client secrets
-android/app/client_secret_*.json
+# Client secrets & Firebase secrets
+android/app/*.json
+lib/firebase_options.dart
 
 # Reserved name files
 nul
-
-# Firebase secrets
-android/app/google-services.json
-lib/firebase_options.dart
 
 

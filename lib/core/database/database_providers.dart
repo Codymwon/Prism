@@ -5,7 +5,7 @@ import 'database_helper.dart';
 import 'prism_metadata_store.dart';
 import '../utils/utils.dart';
 import 'vault_providers.dart';
-import '../../features/notes/data/vault_service.dart';
+import '../services/note_ingestion_service.dart';
 
 part 'database_providers.g.dart';
 

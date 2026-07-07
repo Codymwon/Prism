@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prism/core/database/vault_providers.dart';
-import 'package:prism/features/notes/data/vault_service.dart';
+import 'package:prism/core/services/note_ingestion_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
 import 'package:prism/features/widgets/widget_helper.dart';

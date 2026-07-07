@@ -192,7 +192,7 @@ class AttachmentsScreen extends ConsumerWidget {
               ],
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
           error: (e, _) => Center(
             child: Text(
               'Error loading attachments: $e',

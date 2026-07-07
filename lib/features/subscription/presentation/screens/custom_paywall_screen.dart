@@ -193,7 +193,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                           loading: () => const Center(
                             child: Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
-                              child: CircularProgressIndicator.adaptive(),
+                              child: CircularProgressIndicator.adaptive(semanticsLabel: 'Loading'),
                             ),
                           ),
                           error: (err, _) => Center(
@@ -240,6 +240,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                                         height: 20,
                                         child: CircularProgressIndicator.adaptive(
                                           strokeWidth: 2.5,
+                                          semanticsLabel: 'Loading',
                                         ),
                                       )
                                     : Text(

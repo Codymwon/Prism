@@ -44,7 +44,14 @@ class _FakeActiveVaultName extends ActiveVaultName {
   Future<void> setVaultName(String name) async {}
 }
 
+class FakeRef implements Ref {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class FakeVaultManagementService extends VaultManagementService {
+  FakeVaultManagementService() : super(FakeRef());
+
   String? lastNewPath;
   String? lastVaultType;
   bool? lastMigrateData;
@@ -55,7 +62,6 @@ class FakeVaultManagementService extends VaultManagementService {
     required String newPath,
     required String vaultType,
     required bool migrateData,
-    required WidgetRef ref,
   }) async {
     if (throwError) {
       throw const FileSystemException('Migration failed simulated');

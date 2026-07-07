@@ -90,7 +90,7 @@ class _EditFolderScreenState extends ConsumerState<EditFolderScreen> {
           backgroundColor: DesignColors.background(context),
         ),
         body: const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(semanticsLabel: 'Loading'),
         ),
       ),
       error: (err, _) => Scaffold(

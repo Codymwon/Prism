@@ -49,12 +49,12 @@ class GraphHeader extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          TactileWrapper(
-            onTap: onFocusCenter,
-            style: TactileFeedbackStyle.standard,
-            semanticLabel: 'Center Graph View',
-            child: Tooltip(
-              message: 'Center Graph View',
+          Tooltip(
+            message: 'Reset view',
+            child: TactileWrapper(
+              onTap: onFocusCenter,
+              style: TactileFeedbackStyle.standard,
+              semanticLabel: 'Reset view',
               child: Container(
                 padding: const EdgeInsets.all(8),
                 color: Colors.transparent,
@@ -66,12 +66,12 @@ class GraphHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          TactileWrapper(
-            onTap: onReplay,
-            style: TactileFeedbackStyle.standard,
-            semanticLabel: 'Replay Graph Animation',
-            child: Tooltip(
-              message: 'Replay Graph Animation',
+          Tooltip(
+            message: 'Replay animation',
+            child: TactileWrapper(
+              onTap: onReplay,
+              style: TactileFeedbackStyle.standard,
+              semanticLabel: 'Replay animation',
               child: Container(
                 padding: const EdgeInsets.all(8),
                 color: Colors.transparent,
@@ -83,12 +83,12 @@ class GraphHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          TactileWrapper(
-            onTap: onSettingsToggle,
-            style: TactileFeedbackStyle.standard,
-            semanticLabel: showSettings ? 'Hide Graph Settings' : 'Show Graph Settings',
-            child: Tooltip(
-              message: showSettings ? 'Hide Graph Settings' : 'Show Graph Settings',
+          Tooltip(
+            message: 'Graph settings',
+            child: TactileWrapper(
+              onTap: onSettingsToggle,
+              style: TactileFeedbackStyle.standard,
+              semanticLabel: 'Graph settings',
               child: Container(
                 padding: const EdgeInsets.all(8),
                 color: Colors.transparent,

@@ -101,7 +101,7 @@ class _InlineAudioWaveformPlayerState
     if (_loading) {
       return const SizedBox(
         height: 64,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: 'Loading')),
       );
     }
 

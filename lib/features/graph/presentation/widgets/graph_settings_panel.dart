@@ -347,7 +347,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                                       child: SizedBox(
                                         width: 16,
                                         height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                        child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: 'Loading'),
                                       ),
                                     ),
                                     error: (_, _) => const SizedBox(),

@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import 'note_model.dart';
-import 'vault_service.dart';
+import '../../../core/services/note_ingestion_service.dart';
 import 'vault_storage.dart';
 
 // ─── Repository Provider ──────────────────────────────────────────────────────

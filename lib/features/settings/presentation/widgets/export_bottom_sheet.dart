@@ -123,7 +123,7 @@ class ExportBottomSheet extends ConsumerWidget {
               padding: EdgeInsets.symmetric(vertical: 32),
               child: Column(
                 children: [
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(semanticsLabel: 'Loading'),
                   SizedBox(height: 16),
                   Text('Exporting…', textAlign: TextAlign.center),
                 ],

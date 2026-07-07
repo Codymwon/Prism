@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,63 +9,11 @@ import 'package:prism/core/database/vault_providers.dart';
 
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
-class FakeWidgetRef implements WidgetRef {
-  final ProviderContainer container;
-  FakeWidgetRef(this.container);
-
-  @override
-  BuildContext get context => throw UnimplementedError();
-
-  @override
-  T read<T>(ProviderListenable<T> provider) => container.read(provider);
-
-
-  @override
-  T watch<T>(ProviderListenable<T> provider) {
-    return container.read(provider);
-  }
-
-  @override
-  void invalidate(ProviderOrFamily provider) {
-    container.invalidate(provider);
-  }
-
-  @override
-  bool exists(ProviderBase<Object?> provider) => true;
-
-  @override
-  void listen<T>(
-    ProviderListenable<T> provider,
-    void Function(T? previous, T next) listener, {
-    void Function(Object error, StackTrace stackTrace)? onError,
-  }) {}
-
-  @override
-  ProviderSubscription<T> listenManual<T>(
-    ProviderListenable<T> provider,
-    void Function(T? previous, T next) listener, {
-    void Function(Object error, StackTrace stackTrace)? onError,
-    bool fireImmediately = false,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  T refresh<T>(Refreshable<T> provider) {
-    return container.refresh(provider);
-  }
-
-  void listenSelf(void Function(Object? previous, Object? next) listener, {void Function(Object error, StackTrace stackTrace)? onError}) {}
-
-  void onDispose(void Function() cb) {}
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ProviderContainer container;
   late Directory tempDir;
-  late FakeWidgetRef fakeRef;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -90,7 +37,6 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
     );
-    fakeRef = FakeWidgetRef(container);
   });
 
   tearDown(() async {
@@ -112,7 +58,7 @@ void main() {
       final expectedHubPath = p.join(selectedPath, 'Prism Hub');
 
       // Call the method under test
-      await service.changeBaseDirectory(newPath: selectedPath, ref: fakeRef);
+      await service.changeBaseDirectory(newPath: selectedPath);
 
       // Verify baseVaultsDirectoryProvider is updated to the aligned path
       final baseDir = await container.read(baseVaultsDirectoryProvider.future);
@@ -138,7 +84,7 @@ void main() {
       final selectedPath = hubDir.path;
 
       // Call the method under test
-      await service.changeBaseDirectory(newPath: selectedPath, ref: fakeRef);
+      await service.changeBaseDirectory(newPath: selectedPath);
 
       // Verify baseVaultsDirectoryProvider is updated to the selected path without appending another 'Prism Hub'
       final baseDir = await container.read(baseVaultsDirectoryProvider.future);
@@ -173,7 +119,7 @@ void main() {
       await dbFile2.setLastModified(futureTime);
 
       // Call the method under test
-      await service.changeBaseDirectory(newPath: hubDir.path, ref: fakeRef);
+      await service.changeBaseDirectory(newPath: hubDir.path);
 
       // Verify the active vault is vault2 (most recently modified)
       final activeVault = await container.read(activeVaultNameProvider.future);
@@ -194,7 +140,6 @@ void main() {
         newPath: selectedPath,
         vaultType: 'custom',
         migrateData: false,
-        ref: fakeRef,
       );
 
       final prefs = await SharedPreferences.getInstance();
@@ -231,7 +176,6 @@ void main() {
         newPath: destDir.path,
         vaultType: 'custom',
         migrateData: true,
-        ref: fakeRef,
       );
 
       // Verify the new directory contains both notes, and note2.md is merged/overwritten with source content
@@ -267,7 +211,6 @@ void main() {
           newPath: invalidDestPath,
           vaultType: 'sandbox',
           migrateData: true,
-          ref: fakeRef,
         ),
         throwsA(isA<FileSystemException>()),
       );

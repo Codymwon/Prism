@@ -172,7 +172,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
                 } else if (graphAsync.hasError) {
                   return Center(child: Text('Error: ${graphAsync.error}'));
                 } else {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'));
                 }
               }(),
             ),

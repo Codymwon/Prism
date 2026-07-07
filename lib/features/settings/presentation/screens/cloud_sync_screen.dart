@@ -329,7 +329,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'))
             : ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 children: [
@@ -555,11 +555,11 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                       // ── Synced Vaults List ──────────────────────────────────────────
                       const SettingsSectionHeader(title: 'Vault Sync Settings'),
                       availableVaultsAsync.when(
-                        loading: () => const Center(child: CircularProgressIndicator()),
+                        loading: () => const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
                         error: (err, _) => Text('Error loading vaults: $err', style: const TextStyle(color: Colors.red)),
                         data: (vaults) {
                           return syncedVaultsAsync.when(
-                            loading: () => const Center(child: CircularProgressIndicator()),
+                            loading: () => const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
                             error: (err, _) => Text('Error loading sync config: $err', style: const TextStyle(color: Colors.red)),
                             data: (syncedVaults) {
                               return Column(

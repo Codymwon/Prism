@@ -8,7 +8,7 @@ import 'sqlite_metadata_indexer.dart';
 import '../vault_storage.dart';
 import '../note_model.dart';
 import '../../../folders/data/virtual_folder_sync_helper.dart';
-import '../vault_service.dart';
+import '../../../../core/services/note_ingestion_service.dart';
 
 class NoteIngestionServiceImpl implements NoteIngestionService {
   final Future<Database> Function() getDb;

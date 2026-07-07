@@ -240,7 +240,7 @@ $_conflictContent
               ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'))
           : _error.isNotEmpty
               ? _buildErrorState(fontFamily)
               : _buildCompareBody(colorScheme, fontFamily, sizeVal),

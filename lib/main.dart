@@ -12,7 +12,7 @@ import 'features/journal/presentation/providers/journal_providers.dart';
 import 'features/subscription/presentation/providers/subscription_providers.dart';
 import 'shared/design_system/design_system.dart';
 import 'core/utils/utils.dart';
-import 'features/notes/data/vault_service.dart';
+import 'core/services/note_ingestion_service.dart';
 import 'features/onboarding/data/onboarding_provider.dart';
 import 'core/services/analytics_service.dart';
 

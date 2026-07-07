@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage_permission_helper.dart';
 import '../design_system/design_system.dart';
@@ -160,6 +160,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
+                            semanticsLabel: 'Loading',
                             valueColor: AlwaysStoppedAnimation<Color>(
                               DesignColors.textTertiary(context),
                             ),

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../../../core/database/vault_providers.dart';
+import '../../../folders/presentation/providers/folders_providers.dart';
 import '../widgets/settings_widgets.dart';
 
 class ManageVaultsScreen extends ConsumerStatefulWidget {
@@ -102,11 +103,11 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
               resolvedPath = destPath;
             }
 
+            ref.read(selectedFolderIdProvider.notifier).state = null;
             await ref.read(vaultManagementServiceProvider).changeStorageLocation(
               newPath: resolvedPath,
               vaultType: vaultType,
               migrateData: migrateData,
-              ref: ref,
             );
 
             if (context.mounted) {
@@ -182,10 +183,10 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
 
     setState(() => _isLoading = true);
     try {
+      ref.read(selectedFolderIdProvider.notifier).state = null;
       await ref.read(vaultManagementServiceProvider).createVault(
         vaultName: vaultName,
         baseDir: baseDir,
-        ref: ref,
       );
       _loadActiveVaultStats();
     } catch (e) {
@@ -243,7 +244,6 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
         oldName: oldName,
         newName: newName,
         baseDir: baseDir,
-        ref: ref,
       );
       _loadActiveVaultStats();
     } catch (e) {
@@ -291,10 +291,10 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
 
     setState(() => _isLoading = true);
     try {
+      ref.read(selectedFolderIdProvider.notifier).state = null;
       await ref.read(vaultManagementServiceProvider).deleteVault(
         vaultName: vaultName,
         baseDir: baseDir,
-        ref: ref,
       );
       _loadActiveVaultStats();
     } catch (e) {
@@ -313,9 +313,9 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
   Future<void> _switchVault(String vaultName) async {
     setState(() => _isLoading = true);
     try {
+      ref.read(selectedFolderIdProvider.notifier).state = null;
       await ref.read(vaultManagementServiceProvider).switchVault(
         vaultName: vaultName,
-        ref: ref,
       );
       _loadActiveVaultStats();
       if (mounted) {
@@ -362,7 +362,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'))
             : ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 children: [
@@ -464,7 +464,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                     ],
                   ),
                   availableVaultsAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () => const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
                     error: (err, _) => Text('Error loading vaults: $err', style: const TextStyle(color: Colors.red)),
                     data: (vaults) {
                       return Column(

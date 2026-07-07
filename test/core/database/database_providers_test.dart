@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/core/database/database_helper.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/core/database/vault_providers.dart';
-import 'package:prism/features/notes/data/vault_service.dart';
+import 'package:prism/core/services/note_ingestion_service.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 
 class StubNoteIngestionService implements NoteIngestionService {

@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:path/path.dart' as p;
-import '../../features/folders/presentation/providers/folders_providers.dart';
 import '../database/vault_providers.dart';
 import 'two_way_sync_service.dart';
 import 'analytics_service.dart';
 import '../../features/onboarding/data/onboarding_provider.dart';
 
-final vaultManagementServiceProvider = Provider<VaultManagementService>((ref) {
-  return VaultManagementService();
-});
+part 'vault_service.g.dart';
+
+@riverpod
+VaultManagementService vaultManagementService(VaultManagementServiceRef ref) {
+  return VaultManagementService(ref);
+}
 
 final availableVaultsProvider = FutureProvider<List<String>>((ref) async {
   final baseDir = await ref.watch(baseVaultsDirectoryProvider.future);
@@ -19,6 +22,8 @@ final availableVaultsProvider = FutureProvider<List<String>>((ref) async {
 });
 
 class VaultManagementService {
+  final Ref ref;
+  VaultManagementService(this.ref);
   /// Scans subdirectories in base directory to list available vaults asynchronously
   Future<List<String>> getAvailableVaults(String baseDir, String activeVault) async {
     List<String> vaults = [];
@@ -47,19 +52,15 @@ class VaultManagementService {
   /// Switches active vault name and reconnects SQLite instance
   Future<void> switchVault({
     required String vaultName,
-    required WidgetRef ref,
   }) async {
     // 1. Set new active vault name provider (saves to SharedPreferences)
     await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
     AnalyticsService.logEvent('switch_vault');
 
-    // 2. Reset selected folder filter
-    ref.read(selectedFolderIdProvider.notifier).state = null;
-
-    // 3. Invalidate vaults list cache
+    // 2. Invalidate vaults list cache
     ref.invalidate(availableVaultsProvider);
 
-    // 4. If sync is enabled for this vault, trigger auto-sync in the background
+    // 3. If sync is enabled for this vault, trigger auto-sync in the background
     try {
       final syncedVaults = await ref.read(syncedVaultsProvider.future);
       if (syncedVaults.contains(vaultName)) {
@@ -79,7 +80,6 @@ class VaultManagementService {
   Future<void> createVault({
     required String vaultName,
     required String baseDir,
-    required WidgetRef ref,
   }) async {
     final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
     if (!safePattern.hasMatch(vaultName)) {
@@ -95,9 +95,6 @@ class VaultManagementService {
     await ref.read(activeVaultNameProvider.notifier).setVaultName(vaultName);
     AnalyticsService.logEvent('create_vault');
 
-    // Reset selected folder filter
-    ref.read(selectedFolderIdProvider.notifier).state = null;
-
     // Invalidate vaults list cache
     ref.invalidate(availableVaultsProvider);
   }
@@ -107,7 +104,6 @@ class VaultManagementService {
     required String oldName,
     required String newName,
     required String baseDir,
-    required WidgetRef ref,
   }) async {
     final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
     if (!safePattern.hasMatch(newName)) {
@@ -138,7 +134,6 @@ class VaultManagementService {
   Future<void> deleteVault({
     required String vaultName,
     required String baseDir,
-    required WidgetRef ref,
   }) async {
     final path = p.join(baseDir, vaultName);
     final dir = Directory(path);
@@ -154,7 +149,7 @@ class VaultManagementService {
           throw StateError('Cannot delete the last remaining vault.');
         }
         // Switch to the first remaining vault
-        await switchVault(vaultName: remainingVaults.first, ref: ref);
+        await switchVault(vaultName: remainingVaults.first);
       }
 
       await dir.delete(recursive: true);
@@ -164,17 +159,14 @@ class VaultManagementService {
     ref.invalidate(availableVaultsProvider);
   }
 
-
   /// Safely relocates base vaults directory path and loads/creates active vaults inside asynchronously
   Future<void> changeBaseDirectory({
     required String newPath,
-    required WidgetRef ref,
   }) async {
     await changeStorageLocation(
       newPath: newPath,
       vaultType: 'custom',
       migrateData: false,
-      ref: ref,
     );
   }
 
@@ -183,7 +175,6 @@ class VaultManagementService {
     required String newPath,
     required String vaultType,
     required bool migrateData,
-    required WidgetRef ref,
   }) async {
     // Determine the current hub name (defaults to 'Prism Hub' if transitioning from sandbox or empty)
     final currentBaseDir = await ref.read(baseVaultsDirectoryProvider.future);
@@ -251,9 +242,6 @@ class VaultManagementService {
     await prefs.setString('baseVaultsDirectory', targetBaseDir);
     await prefs.setString('vaultType', vaultType);
     await prefs.setString('activeVaultName', activeVault);
-
-    // Reset selected folder filter
-    ref.read(selectedFolderIdProvider.notifier).state = null;
 
     // Invalidate and reload the providers.
     ref.invalidate(baseVaultsDirectoryProvider);

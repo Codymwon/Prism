@@ -1,14 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
-import '../../../../core/database/database_providers.dart';
-import '../../../../core/database/vault_providers.dart';
-import 'adapters/vault_service_impl.dart';
-import 'adapters/markdown_content_parser.dart';
-import 'adapters/sqlite_metadata_indexer.dart';
-import 'note_model.dart';
-
-import 'vault_storage.dart';
-import '../../folders/data/virtual_folder_sync_helper.dart';
+import '../database/database_providers.dart';
+import '../database/vault_providers.dart';
+import '../../features/notes/data/note_model.dart';
+import '../../features/notes/data/vault_storage.dart';
+import '../../features/notes/data/adapters/vault_service_impl.dart';
+import '../../features/notes/data/adapters/markdown_content_parser.dart';
+import '../../features/notes/data/adapters/sqlite_metadata_indexer.dart';
+import '../../features/folders/data/virtual_folder_sync_helper.dart';
 
 abstract class NoteIngestionService {
   Future<Note> createNote({

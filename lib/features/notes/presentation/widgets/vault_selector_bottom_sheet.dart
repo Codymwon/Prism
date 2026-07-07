@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../../folders/presentation/providers/folders_providers.dart';
 
 class VaultSelectorBottomSheet extends ConsumerStatefulWidget {
   const VaultSelectorBottomSheet({super.key});
@@ -17,7 +18,8 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
     Navigator.pop(context); // Dismiss bottom sheet immediately
 
     try {
-      await ref.read(vaultManagementServiceProvider).switchVault(vaultName: vaultName, ref: ref);
+      ref.read(selectedFolderIdProvider.notifier).state = null;
+      await ref.read(vaultManagementServiceProvider).switchVault(vaultName: vaultName);
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text('Error switching vault: $e', style: const TextStyle(color: Colors.white))),
@@ -43,10 +45,10 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
     try {
       // Await async provider to get the real loaded value
       final baseDir = await ref.read(baseVaultsDirectoryProvider.future);
+      ref.read(selectedFolderIdProvider.notifier).state = null;
       await ref.read(vaultManagementServiceProvider).createVault(
         vaultName: vaultName,
         baseDir: baseDir,
-        ref: ref,
       );
     } catch (e) {
       messenger.showSnackBar(
@@ -122,7 +124,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
               loading: () => const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24.0),
-                  child: CircularProgressIndicator(),
+                  child: CircularProgressIndicator(semanticsLabel: 'Loading'),
                 ),
               ),
               error: (err, stack) => Center(

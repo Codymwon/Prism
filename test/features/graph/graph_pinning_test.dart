@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/core/database/database_providers.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
-import 'package:prism/features/notes/data/vault_service.dart';
+import 'package:prism/core/services/note_ingestion_service.dart';
 import 'package:prism/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
