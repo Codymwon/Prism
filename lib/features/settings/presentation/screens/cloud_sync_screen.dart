@@ -276,7 +276,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
       await purgeRes.fold(
         (fail) async => setState(() => _errorMessage = fail.message),
         (_) async {
-          await ref.read(secureStorageProvider).write(key: 'sync_passphrase', value: null);
+          await ref.read(secureStorageProvider).delete(key: 'sync_passphrase');
           
           final syncedVaults = ref.read(syncedVaultsProvider).valueOrNull ?? [];
           for (final vault in syncedVaults) {

@@ -24,7 +24,7 @@ final activeVaultPathProvider = AutoDisposeFutureProvider<String>.internal(
 // ignore: unused_element
 typedef ActiveVaultPathRef = AutoDisposeFutureProviderRef<String>;
 String _$baseVaultsDirectoryHash() =>
-    r'f9c1a45ef7d733d186a217df474d7c678dc781e0';
+    r'7153e6ba900a0e455f72dd586da3f7da81d53466';
 
 /// See also [BaseVaultsDirectory].
 @ProviderFor(BaseVaultsDirectory)
@@ -40,7 +40,7 @@ final baseVaultsDirectoryProvider =
     );
 
 typedef _$BaseVaultsDirectory = AutoDisposeAsyncNotifier<String>;
-String _$activeVaultNameHash() => r'0ad45e0f21e105be428730ae1a41ae69bb9ba38b';
+String _$activeVaultNameHash() => r'3e4ab69c65a5c3ac3148f348277f451a372f939b';
 
 /// See also [ActiveVaultName].
 @ProviderFor(ActiveVaultName)

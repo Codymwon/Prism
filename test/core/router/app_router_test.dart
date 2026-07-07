@@ -39,15 +39,17 @@ class FakeFolderRepository extends Fake implements FolderRepository {
       ]);
 }
 
-class FakeTutorialNotifier extends TutorialNotifier {
-  FakeTutorialNotifier() : super() {
-    state = true;
+class FakeTutorialState extends TutorialState {
+  @override
+  bool build() {
+    return true;
   }
 }
 
-class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
-  FakeJournalTutorialNotifier() : super() {
-    state = true;
+class FakeJournalTutorialState extends JournalTutorialState {
+  @override
+  bool build() {
+    return true;
   }
 }
 
@@ -73,8 +75,8 @@ void main() {
         databaseProvider.overrideWith((ref) async => FakeDatabase()),
         noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
         folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
-        tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier()),
-        journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier()),
+        tutorialStateProvider.overrideWith(() => FakeTutorialState()),
+        journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState()),
       ],
     );
 

@@ -41,21 +41,24 @@ class FakeFolderRepository extends Fake implements FolderRepository {
       ]);
 }
 
-class FakeTutorialNotifier extends TutorialNotifier {
-  FakeTutorialNotifier() : super() {
-    state = true;
+class FakeTutorialState extends TutorialState {
+  @override
+  bool build() {
+    return true;
   }
 }
 
-class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
-  FakeJournalTutorialNotifier() : super() {
-    state = true;
+class FakeJournalTutorialState extends JournalTutorialState {
+  @override
+  bool build() {
+    return true;
   }
 }
 
-class FakeOnboardingNotifier extends OnboardingNotifier {
-  FakeOnboardingNotifier(super.prefs) {
-    state = true;
+class FakeOnboardingState extends OnboardingState {
+  @override
+  bool build() {
+    return true;
   }
 }
 
@@ -75,7 +78,7 @@ void main() {
     );
   }
 
-  testWidgets('inline folder creation button and drawer add button navigate to AddFolderScreen', (tester) async {
+  testWidgets('tapping inline Folder add button navigates to folders/create', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -90,9 +93,9 @@ void main() {
         databaseProvider.overrideWith((ref) async => FakeDatabase()),
         noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
         folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
-        tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier()),
-        journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier()),
-        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier(prefs)),
+        tutorialStateProvider.overrideWith(() => FakeTutorialState()),
+        journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState()),
+        onboardingStateProvider.overrideWith(() => FakeOnboardingState()),
         availableVaultsProvider.overrideWith((ref) async => ['Default']),
         homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
           notes: [],
@@ -142,9 +145,9 @@ void main() {
         databaseProvider.overrideWith((ref) async => FakeDatabase()),
         noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
         folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
-        tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier()),
-        journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier()),
-        onboardingStateProvider.overrideWith((ref) => FakeOnboardingNotifier(prefs)),
+        tutorialStateProvider.overrideWith(() => FakeTutorialState()),
+        journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState()),
+        onboardingStateProvider.overrideWith(() => FakeOnboardingState()),
         availableVaultsProvider.overrideWith((ref) async => ['Default']),
         homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
           notes: [],

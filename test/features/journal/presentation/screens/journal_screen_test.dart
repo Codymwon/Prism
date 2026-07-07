@@ -12,20 +12,30 @@ import 'package:prism/shared/widgets/app_shell.dart';
 import 'package:prism/shared/widgets/tutorial_overlay.dart';
 import 'package:prism/features/onboarding/data/tutorial_provider.dart';
 
-class MockTutorialNotifier extends TutorialNotifier {
-  MockTutorialNotifier(bool value) : super() {
-    state = value;
+class MockTutorialState extends TutorialState {
+  final bool initialValue;
+  MockTutorialState(this.initialValue);
+
+  @override
+  bool build() {
+    return initialValue;
   }
+
   @override
   Future<void> completeTutorial() async {
     state = true;
   }
 }
 
-class MockJournalTutorialNotifier extends JournalTutorialNotifier {
-  MockJournalTutorialNotifier(bool value) : super() {
-    state = value;
+class MockJournalTutorialState extends JournalTutorialState {
+  final bool initialValue;
+  MockJournalTutorialState(this.initialValue);
+
+  @override
+  bool build() {
+    return initialValue;
   }
+
   @override
   Future<void> completeTutorial() async {
     state = true;
@@ -278,9 +288,9 @@ void main() {
       ProviderScope(
         overrides: [
           // Main tutorial completed
-          tutorialStateProvider.overrideWith((ref) => MockTutorialNotifier(true)),
+          tutorialStateProvider.overrideWith(() => MockTutorialState(true)),
           // Journal tutorial NOT completed
-          journalTutorialStateProvider.overrideWith((ref) => MockJournalTutorialNotifier(false)),
+          journalTutorialStateProvider.overrideWith(() => MockJournalTutorialState(false)),
           allDailyDatesProvider.overrideWith((ref) => <String>{}),
           journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),

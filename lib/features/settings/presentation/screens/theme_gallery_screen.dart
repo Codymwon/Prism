@@ -51,13 +51,13 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
   }
 
   Future<void> _applySelectedTheme(bool isPro) async {
-    final type = (_selectedPreviewThemeType ?? ref.read(themeProvider)) as AppThemeType;
+    final type = (_selectedPreviewThemeType ?? ref.read(themeStateProvider)) as AppThemeType;
     final isLocked = _isThemeLocked(type);
 
     if (isLocked && !isPro) {
       context.push('/settings/paywall');
     } else {
-      await ref.read(themeProvider.notifier).setTheme(type);
+      await ref.read(themeStateProvider.notifier).setTheme(type);
       if (mounted) {
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -72,7 +72,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activeThemeType = ref.watch(themeProvider);
+    final activeThemeType = ref.watch(themeStateProvider);
     final isPro = ref.watch(isProProvider);
     final fontFamily = ref.watch(fontFamilyProvider);
 

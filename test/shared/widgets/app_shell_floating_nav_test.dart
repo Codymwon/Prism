@@ -38,9 +38,13 @@ class FakeNoteRepository extends Fake implements NoteRepository {
   }
 }
 
-class FakeTutorialNotifier extends TutorialNotifier {
-  FakeTutorialNotifier(bool val) : super() {
-    state = val;
+class FakeTutorialState extends TutorialState {
+  final bool initialValue;
+  FakeTutorialState(this.initialValue);
+
+  @override
+  bool build() {
+    return initialValue;
   }
 
   @override
@@ -49,9 +53,13 @@ class FakeTutorialNotifier extends TutorialNotifier {
   }
 }
 
-class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
-  FakeJournalTutorialNotifier(bool val) : super() {
-    state = val;
+class FakeJournalTutorialState extends JournalTutorialState {
+  final bool initialValue;
+  FakeJournalTutorialState(this.initialValue);
+
+  @override
+  bool build() {
+    return initialValue;
   }
 
   @override
@@ -111,8 +119,8 @@ void main() {
     return ProviderScope(
       overrides: [
         noteRepositoryProvider.overrideWithValue(fakeNoteRepository),
-        tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier(true)),
-        journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier(true)),
+        tutorialStateProvider.overrideWith(() => FakeTutorialState(true)),
+        journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState(true)),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -248,8 +256,8 @@ void main() {
         ProviderScope(
           overrides: [
             noteRepositoryProvider.overrideWithValue(fakeNoteRepository),
-            tutorialStateProvider.overrideWith((ref) => FakeTutorialNotifier(false)),
-            journalTutorialStateProvider.overrideWith((ref) => FakeJournalTutorialNotifier(true)),
+            tutorialStateProvider.overrideWith(() => FakeTutorialState(false)),
+            journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState(true)),
           ],
           child: MaterialApp.router(
             routerConfig: router,

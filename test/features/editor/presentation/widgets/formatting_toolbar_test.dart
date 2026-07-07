@@ -6,6 +6,16 @@ import 'package:prism/features/settings/presentation/providers/custom_macro_prov
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
+class FakeCustomMacros extends CustomMacros {
+  final List<CustomMacro> initialMacros;
+  FakeCustomMacros(this.initialMacros);
+
+  @override
+  List<CustomMacro> build() {
+    return initialMacros;
+  }
+}
+
 void main() {
   testWidgets('FormattingToolbar renders without overflowing with many custom macros', (WidgetTester tester) async {
     final controller = TextEditingController();
@@ -21,14 +31,13 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          customMacrosProvider.overrideWith((ref) => CustomMacrosNotifier(prefs)
-            ..setMacros([
-              CustomMacro(label: 'Long Label One', text: '1'),
-              CustomMacro(label: 'Long Label Two', text: '2'),
-              CustomMacro(label: 'Long Label Three', text: '3'),
-              CustomMacro(label: 'Long Label Four', text: '4'),
-              CustomMacro(label: 'Long Label Five', text: '5'),
-            ])),
+          customMacrosProvider.overrideWith(() => FakeCustomMacros([
+            CustomMacro(label: 'Long Label One', text: '1'),
+            CustomMacro(label: 'Long Label Two', text: '2'),
+            CustomMacro(label: 'Long Label Three', text: '3'),
+            CustomMacro(label: 'Long Label Four', text: '4'),
+            CustomMacro(label: 'Long Label Five', text: '5'),
+          ])),
         ],
         child: MaterialApp(
           home: Scaffold(

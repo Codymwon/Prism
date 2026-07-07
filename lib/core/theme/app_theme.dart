@@ -1,34 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../services/analytics_service.dart';
 import '../../features/onboarding/data/onboarding_provider.dart';
+
+part 'app_theme.g.dart';
 
 // ─── Theme Type Enum ─────────────────────────────────────────────────────────
 enum AppThemeType { system, light, dark, sepia, forest, slate, arctic, noir, blush, midnight, matcha }
 
 // ─── Theme Provider ──────────────────────────────────────────────────────────
-final themeProvider = StateNotifierProvider<ThemeNotifier, AppThemeType>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return ThemeNotifier(prefs);
-});
-
-class ThemeNotifier extends StateNotifier<AppThemeType> {
-  final SharedPreferences _prefs;
-
-  ThemeNotifier(this._prefs)
-      : super(
-          AppThemeType.values[(_prefs.getInt('themeType') ?? 0).clamp(
-            0,
-            AppThemeType.values.length - 1,
-          )],
-        );
+@riverpod
+class ThemeState extends _$ThemeState {
+  @override
+  AppThemeType build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return AppThemeType.values[(prefs.getInt('themeType') ?? 0).clamp(
+      0,
+      AppThemeType.values.length - 1,
+    )];
+  }
 
   Future<void> setTheme(AppThemeType type) async {
     state = type;
-    await _prefs.setInt('themeType', type.index);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setInt('themeType', type.index);
     AnalyticsService.logEvent('change_theme', parameters: {
       'theme': type.name,
     });

@@ -76,7 +76,7 @@ class ThemeSelector extends StatelessWidget {
                       type: mode.$1,
                       title: mode.$2,
                       isSelected: isSelected,
-                      onTap: () => ref.read(themeProvider.notifier).setTheme(mode.$1),
+                      onTap: () => ref.read(themeStateProvider.notifier).setTheme(mode.$1),
                     ),
                   ),
                 );

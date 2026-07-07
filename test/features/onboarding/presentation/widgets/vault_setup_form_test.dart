@@ -14,10 +14,11 @@ import 'package:prism/shared/design_system/buttons.dart';
 // Stub Riverpod notifiers – no SharedPreferences, no DB, no platform channels
 // ---------------------------------------------------------------------------
 
-/// Replaces OnboardingNotifier – never reads/writes SharedPreferences.
-class _FakeOnboardingNotifier extends StateNotifier<bool>
-    implements OnboardingNotifier {
-  _FakeOnboardingNotifier() : super(false);
+class _FakeOnboardingState extends OnboardingState {
+  @override
+  bool build() {
+    return false;
+  }
 
   @override
   Future<void> completeOnboarding() async {
@@ -48,7 +49,7 @@ class _FakeActiveVaultName extends ActiveVaultName {
 // ---------------------------------------------------------------------------
 final _providerOverrides = <Override>[
   onboardingStateProvider
-      .overrideWith((_) => _FakeOnboardingNotifier()),
+      .overrideWith(() => _FakeOnboardingState()),
   baseVaultsDirectoryProvider
       .overrideWith(() => _FakeBaseVaultsDirectory()),
   activeVaultNameProvider

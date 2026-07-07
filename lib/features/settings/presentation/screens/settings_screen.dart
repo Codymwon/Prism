@@ -16,7 +16,7 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeType = ref.watch(themeProvider);
+    final themeType = ref.watch(themeStateProvider);
     final fontFamily = ref.watch(fontFamilyProvider);
     final isPro = ref.watch(isProProvider);
 

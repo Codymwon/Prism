@@ -1,89 +1,60 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../onboarding/data/onboarding_provider.dart';
 
 export '../../../../core/database/vault_providers.dart';
 
+part 'settings_provider.g.dart';
+
 // ─── Font Family Provider ────────────────────────────────────────────────────
-class FontFamilyNotifier extends StateNotifier<String> {
-  final SharedPreferences _prefs;
-
-  FontFamilyNotifier(this._prefs) : super('Inter (Sans)') {
-    _load();
-  }
-
-  void _load() {
-    final saved = _prefs.getString('fontFamily');
-    if (saved != null) {
-      state = saved;
-    }
+@riverpod
+class FontFamily extends _$FontFamily {
+  @override
+  String build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getString('fontFamily') ?? 'Inter (Sans)';
   }
 
   Future<void> setFontFamily(String family) async {
     state = family;
-    await _prefs.setString('fontFamily', family);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString('fontFamily', family);
   }
 }
 
-final fontFamilyProvider = StateNotifierProvider<FontFamilyNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return FontFamilyNotifier(prefs);
-});
-
 // ─── Font Size Provider ──────────────────────────────────────────────────────
-class FontSizeNotifier extends StateNotifier<String> {
-  final SharedPreferences _prefs;
-
-  FontSizeNotifier(this._prefs) : super('16pt') {
-    _load();
-  }
-
-  void _load() {
-    final saved = _prefs.getString('fontSize');
-    if (saved != null) {
-      state = saved;
-    }
+@riverpod
+class FontSize extends _$FontSize {
+  @override
+  String build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getString('fontSize') ?? '16pt';
   }
 
   Future<void> setFontSize(String size) async {
     state = size;
-    await _prefs.setString('fontSize', size);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString('fontSize', size);
   }
 }
 
-final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return FontSizeNotifier(prefs);
-});
-
 // ─── Line Width Provider ─────────────────────────────────────────────────────
-class LineWidthNotifier extends StateNotifier<String> {
-  final SharedPreferences _prefs;
-
-  LineWidthNotifier(this._prefs) : super('Comfortable') {
-    _load();
-  }
-
-  void _load() {
-    final saved = _prefs.getString('lineWidth');
-    if (saved != null) {
-      state = saved;
-    }
+@riverpod
+class LineWidth extends _$LineWidth {
+  @override
+  String build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getString('lineWidth') ?? 'Comfortable';
   }
 
   Future<void> setLineWidth(String width) async {
     state = width;
-    await _prefs.setString('lineWidth', width);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString('lineWidth', width);
   }
 }
-
-final lineWidthProvider = StateNotifierProvider<LineWidthNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return LineWidthNotifier(prefs);
-});
 
 // ─── Haptics Enabled Provider ────────────────────────────────────────────────
 final hapticsEnabledProvider =

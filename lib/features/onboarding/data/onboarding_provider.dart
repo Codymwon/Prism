@@ -1,5 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'onboarding_provider.g.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   // In tests or when not overridden, return an in-memory FakeSharedPreferences
@@ -7,18 +9,17 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   return FakeSharedPreferences();
 });
 
-final onboardingStateProvider = StateNotifierProvider<OnboardingNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return OnboardingNotifier(prefs);
-});
-
-class OnboardingNotifier extends StateNotifier<bool> {
-  final SharedPreferences _prefs;
-
-  OnboardingNotifier(this._prefs) : super(_prefs.getBool('hasOnboarded') ?? false);
+@riverpod
+class OnboardingState extends _$OnboardingState {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('hasOnboarded') ?? false;
+  }
 
   Future<void> completeOnboarding() async {
-    await _prefs.setBool('hasOnboarded', true);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setBool('hasOnboarded', true);
     state = true;
   }
 }

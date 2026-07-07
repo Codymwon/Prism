@@ -1,93 +1,68 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'onboarding_provider.dart';
 
-final tutorialStateProvider = StateNotifierProvider<TutorialNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return TutorialNotifier(prefs);
-});
+part 'tutorial_provider.g.dart';
 
-class TutorialNotifier extends StateNotifier<bool> {
-  final SharedPreferences? _prefs;
-
-  TutorialNotifier([this._prefs]) : super(false) {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    state = prefs.getBool('hasCompletedTutorial') ?? false;
+@riverpod
+class TutorialState extends _$TutorialState {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('hasCompletedTutorial') ?? false;
   }
 
   Future<void> completeTutorial() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('hasCompletedTutorial', true);
     state = true;
   }
 
   Future<void> resetTutorial() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('hasCompletedTutorial', false);
     state = false;
   }
 }
 
-final editorTutorialStateProvider = StateNotifierProvider<EditorTutorialNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return EditorTutorialNotifier(prefs);
-});
-
-class EditorTutorialNotifier extends StateNotifier<bool> {
-  final SharedPreferences? _prefs;
-
-  EditorTutorialNotifier([this._prefs]) : super(false) {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    state = prefs.getBool('hasCompletedEditorTutorial') ?? false;
+@riverpod
+class EditorTutorialState extends _$EditorTutorialState {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('hasCompletedEditorTutorial') ?? false;
   }
 
   Future<void> completeTutorial() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('hasCompletedEditorTutorial', true);
     state = true;
   }
 
   Future<void> resetTutorial() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('hasCompletedEditorTutorial', false);
     state = false;
   }
 }
 
-final journalTutorialStateProvider = StateNotifierProvider<JournalTutorialNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return JournalTutorialNotifier(prefs);
-});
-
-class JournalTutorialNotifier extends StateNotifier<bool> {
-  final SharedPreferences? _prefs;
-
-  JournalTutorialNotifier([this._prefs]) : super(false) {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    state = prefs.getBool('hasCompletedJournalTutorial') ?? false;
+@riverpod
+class JournalTutorialState extends _$JournalTutorialState {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('hasCompletedJournalTutorial') ?? false;
   }
 
   Future<void> completeTutorial() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('hasCompletedJournalTutorial', true);
     state = true;
   }
 
   Future<void> resetTutorial() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('hasCompletedJournalTutorial', false);
     state = false;
   }
 }
+

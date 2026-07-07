@@ -196,7 +196,7 @@ class _PrismAppState extends ConsumerState<PrismApp> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
-    final themeType = ref.watch(themeProvider);
+    final themeType = ref.watch(themeStateProvider);
     final fontFamily = ref.watch(fontFamilyProvider);
 
     final resolution = AppTheme.resolve(themeType, fontFamily);

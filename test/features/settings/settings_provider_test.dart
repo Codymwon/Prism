@@ -87,5 +87,53 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('autoPairBrackets'), isFalse);
     });
+
+    test('fontFamilyProvider defaults and sets correctly', () async {
+      // 1. Check default
+      final defaultVal = container.read(fontFamilyProvider);
+      expect(defaultVal, equals('Inter (Sans)'));
+
+      // 2. Set value
+      await container.read(fontFamilyProvider.notifier).setFontFamily('Lora (Serif)');
+
+      // 3. Verify state and SharedPreferences
+      final newVal = container.read(fontFamilyProvider);
+      expect(newVal, equals('Lora (Serif)'));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('fontFamily'), equals('Lora (Serif)'));
+    });
+
+    test('fontSizeProvider defaults and sets correctly', () async {
+      // 1. Check default
+      final defaultVal = container.read(fontSizeProvider);
+      expect(defaultVal, equals('16pt'));
+
+      // 2. Set value
+      await container.read(fontSizeProvider.notifier).setFontSize('18pt');
+
+      // 3. Verify state and SharedPreferences
+      final newVal = container.read(fontSizeProvider);
+      expect(newVal, equals('18pt'));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('fontSize'), equals('18pt'));
+    });
+
+    test('lineWidthProvider defaults and sets correctly', () async {
+      // 1. Check default
+      final defaultVal = container.read(lineWidthProvider);
+      expect(defaultVal, equals('Comfortable'));
+
+      // 2. Set value
+      await container.read(lineWidthProvider.notifier).setLineWidth('Narrow');
+
+      // 3. Verify state and SharedPreferences
+      final newVal = container.read(lineWidthProvider);
+      expect(newVal, equals('Narrow'));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('lineWidth'), equals('Narrow'));
+    });
   });
 }

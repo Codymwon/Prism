@@ -617,7 +617,7 @@ class _NoteDetailsProviderElement
   String get noteId => (origin as NoteDetailsProvider).noteId;
 }
 
-String _$noteSortNotifierHash() => r'1b6f43b7118310443a91c01694cb106049424520';
+String _$noteSortNotifierHash() => r'cf3cc0a742f938e663b17f36a4b43979907c4c2e';
 
 /// See also [NoteSortNotifier].
 @ProviderFor(NoteSortNotifier)
