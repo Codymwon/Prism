@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class JournalEmptyState extends StatelessWidget {
   final String dateStr;
@@ -22,7 +23,7 @@ class JournalEmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            isFuture ? 'A future day' : 'No entry yet',
+            isFuture ? context.l10n.journal_empty_state_future_day_title : context.l10n.journal_empty_state_no_entry_title,
             style: DesignTypography.heading(
               context,
               fontSize: showCalendar ? 16 : 18,
@@ -32,8 +33,8 @@ class JournalEmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isFuture
-                ? 'Come back on this day to start writing'
-                : 'Tap below to start your entry for today',
+                ? context.l10n.journal_empty_state_future_day_desc
+                : context.l10n.journal_empty_state_no_entry_desc,
             style: DesignTypography.body(
               context,
               fontSize: showCalendar ? 13 : 14,
@@ -44,7 +45,7 @@ class JournalEmptyState extends StatelessWidget {
           if (!isFuture) ...[
             const SizedBox(height: 20),
             DesignSecondaryButton(
-              label: 'Start Writing',
+              label: context.l10n.journal_empty_state_start_writing_button,
               icon: DesignIcons.add,
               onTap: onStartWriting,
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class ConflictBanner extends StatelessWidget {
   final String noteId;
@@ -37,7 +38,7 @@ class ConflictBanner extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Conflicted Copy: Review and resolve changes.',
+              context.l10n.editor_conflict_banner_message,
               style: DesignTypography.heading(
                 context,
                 fontSize: 13,

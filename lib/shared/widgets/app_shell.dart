@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:prism/features/onboarding/data/tutorial_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 import '../design_system/design_system.dart';
 import 'tactile_wrapper.dart';
 import 'tutorial_overlay.dart';
@@ -28,6 +29,21 @@ class _AppShellState extends ConsumerState<AppShell> {
     final path = widget.currentPath;
     final index = _tabs.indexWhere((tab) => path.startsWith(tab.path));
     return index == -1 ? 0 : index;
+  }
+
+  String _getTabLabel(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        return context.l10n.shared_app_shell_tab_notes;
+      case 1:
+        return context.l10n.shared_app_shell_tab_journal;
+      case 2:
+        return context.l10n.shared_app_shell_tab_graph;
+      case 3:
+        return context.l10n.shared_app_shell_tab_settings;
+      default:
+        return '';
+    }
   }
 
   static const _tabs = [
@@ -174,7 +190,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                                         ? colorScheme.primary
                                         : DesignColors.textTertiary(context),
                                   ),
-                                  child: Text(tab.label),
+                                  child: Text(_getTabLabel(context, i)),
                                 ),
                               ],
                             ),
@@ -261,8 +277,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       if (!hasCompletedJournalTutorial && _currentIndex == 1) {
         final journalTutorialSteps = [
           TutorialStep(
-            title: 'Calendar Navigation',
-            description: 'Tap the calendar icon to expand the monthly calendar view and navigate across all dates in your vault history.',
+            title: context.l10n.shared_app_shell_tutorial_journal_nav_title,
+            description: context.l10n.shared_app_shell_tutorial_journal_nav_desc,
             icon: Icons.calendar_month_outlined,
             getTargetRect: (size) {
               final topPadding = MediaQuery.of(context).padding.top;
@@ -270,8 +286,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             },
           ),
           TutorialStep(
-            title: 'Weekly Quick Strip',
-            description: 'Quickly slide or tap between the last 7 days to keep your reflection streak alive without opening the full calendar view.',
+            title: context.l10n.shared_app_shell_tutorial_journal_strip_title,
+            description: context.l10n.shared_app_shell_tutorial_journal_strip_desc,
             icon: Icons.view_week_rounded,
             getTargetRect: (size) {
               final topPadding = MediaQuery.of(context).padding.top;
@@ -284,8 +300,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             },
           ),
           TutorialStep(
-            title: 'Daily Streak & Grid',
-            description: 'Track your active daily writing streak and visualize your consistency over the last 28 days with the contribution grid.',
+            title: context.l10n.shared_app_shell_tutorial_journal_streak_title,
+            description: context.l10n.shared_app_shell_tutorial_journal_streak_desc,
             icon: Icons.local_fire_department_rounded,
             getTargetRect: (size) {
               final topPadding = MediaQuery.of(context).padding.top;
@@ -298,8 +314,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             },
           ),
           TutorialStep(
-            title: 'Reflection Templates',
-            description: 'Select an expert journal template (Gratitude, Daily Plan, Reflection, Goals) to quickly structure your writing, or start typing in a blank daily page.',
+            title: context.l10n.shared_app_shell_tutorial_journal_template_title,
+            description: context.l10n.shared_app_shell_tutorial_journal_template_desc,
             icon: Icons.description_rounded,
             getTargetRect: (size) {
               final topPadding = MediaQuery.of(context).padding.top;
@@ -336,8 +352,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     final tutorialSteps = [
       TutorialStep(
-        title: 'Virtual Folders & Tags',
-        description: 'Open the sidebar navigation drawer to organize your notes into virtual folders or browse tag indexes across your vault.',
+        title: context.l10n.shared_app_shell_tutorial_notes_nav_title,
+        description: context.l10n.shared_app_shell_tutorial_notes_nav_desc,
         icon: Icons.folder_open_rounded,
         getTargetRect: (size) {
           final topPadding = MediaQuery.of(context).padding.top;
@@ -345,8 +361,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         },
       ),
       TutorialStep(
-        title: 'Virtual Folders',
-        description: 'Tap any virtual folder card in the horizontal row to filter the notes list below. Tap the "All Notes" card to reset the filter.',
+        title: context.l10n.shared_app_shell_tutorial_notes_folders_title,
+        description: context.l10n.shared_app_shell_tutorial_notes_folders_desc,
         icon: Icons.folder_open_rounded,
         getTargetRect: (size) {
           final topPadding = MediaQuery.of(context).padding.top;
@@ -354,8 +370,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         },
       ),
       TutorialStep(
-        title: 'Daily Reflection Logs',
-        description: 'Access today\'s dedicated calendar note immediately. Jot down reflections with templates (Gratitude, Reflection, Goals), hit word count targets, and grow your daily writing streak.',
+        title: context.l10n.shared_app_shell_tutorial_notes_daily_title,
+        description: context.l10n.shared_app_shell_tutorial_notes_daily_desc,
         icon: Icons.calendar_today_rounded,
         getTargetRect: (size) {
           final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -366,8 +382,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         },
       ),
       TutorialStep(
-        title: 'Mindmap Thought Graph',
-        description: 'Explore your connected mind network. Watch notes become nodes and wikilinks become edges in a dynamic 2D graph layout.',
+        title: context.l10n.shared_app_shell_tutorial_notes_graph_title,
+        description: context.l10n.shared_app_shell_tutorial_notes_graph_desc,
         icon: Icons.hub_outlined,
         getTargetRect: (size) {
           final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -378,8 +394,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         },
       ),
       TutorialStep(
-        title: 'Create & Link Notes',
-        description: 'Tap the floating "+" button to create a new note. Within any note, simply type double brackets [[like this]] to link ideas together and expand your brain.',
+        title: context.l10n.shared_app_shell_tutorial_notes_create_title,
+        description: context.l10n.shared_app_shell_tutorial_notes_create_desc,
         icon: Icons.add_circle_outline_rounded,
         getTargetRect: (size) {
           final bottomPadding = MediaQuery.of(context).padding.bottom;

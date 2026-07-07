@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,7 +73,9 @@ void main() {
         databaseProvider.overrideWith((ref) async => FakeDatabase()),
         folderRepositoryProvider.overrideWithValue(repo),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: EditFolderScreen(folderId: '123'),
       ),
     );

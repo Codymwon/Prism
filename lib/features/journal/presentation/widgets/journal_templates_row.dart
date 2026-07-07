@@ -3,6 +3,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'journal_template_button.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class JournalTemplatesRow extends StatelessWidget {
   final Function(String templateName) onTemplateSelected;
@@ -15,29 +16,29 @@ class JournalTemplatesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final templates = [
-      const JournalTemplateItem(
+      JournalTemplateItem(
         icon: DesignIcons.gratitude,
-        label: 'Gratitude',
+        label: context.l10n.journal_templates_row_gratitude,
         emoji: '🙏',
         baseColor: PrismColors.darkAccentRose,
       ),
-      const JournalTemplateItem(
+      JournalTemplateItem(
         icon: DesignIcons.dailyPlan,
-        label: 'Daily Plan',
+        label: context.l10n.journal_templates_row_daily_plan,
         emoji: '📋',
         baseColor: PrismColors.darkAccentGreen,
       ),
-      const JournalTemplateItem(
+      JournalTemplateItem(
         icon: DesignIcons.reflection,
-        label: 'Reflection',
+        label: context.l10n.journal_templates_row_reflection,
         emoji: '💭',
         baseColor: PrismColors.darkAccentAmber,
       ),
-      const JournalTemplateItem(
+      JournalTemplateItem(
         icon: DesignIcons.goals,
-        label: 'Goals',
+        label: context.l10n.journal_templates_row_goals,
         emoji: '🎯',
-        baseColor: Color(0xFF8AB4F8),
+        baseColor: const Color(0xFF8AB4F8),
       ),
     ];
 

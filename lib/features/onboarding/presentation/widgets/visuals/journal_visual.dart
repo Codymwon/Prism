@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class JournalVisual extends StatelessWidget {
   const JournalVisual({super.key});
@@ -45,7 +46,7 @@ class JournalVisual extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Today\'s Entry',
+                      context.l10n.onboarding_visual_journal_todays_entry,
                       style: DesignTypography.heading(
                         context,
                         fontSize: 10.5,
@@ -82,7 +83,7 @@ class JournalVisual extends StatelessWidget {
                 const SizedBox(height: 6),
                 // Journal text mock lines
                 Text(
-                  '## 🙏 Gratitude',
+                  context.l10n.onboarding_visual_journal_gratitude_heading,
                   style: TextStyle(
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
@@ -102,7 +103,7 @@ class JournalVisual extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '185 / 250 words',
+                          context.l10n.onboarding_visual_journal_word_count,
                           style: DesignTypography.metadata(
                             context,
                             fontSize: 6.5,

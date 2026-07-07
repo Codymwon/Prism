@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../providers/audio_player_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class SubtlePulseIcon extends StatefulWidget {
   const SubtlePulseIcon({super.key});
@@ -114,7 +115,7 @@ class _AudioPlayerBottomSheetState extends ConsumerState<AudioPlayerBottomSheet>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Voice Recording',
+                        context.l10n.editor_audio_player_sheet_voice_recording,
                         style: DesignTypography.heading(
                           context,
                           fontSize: 15,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class VaultStatsBoard extends ConsumerWidget {
   const VaultStatsBoard({super.key});
@@ -17,7 +18,7 @@ class VaultStatsBoard extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 10, bottom: 8),
           child: Text(
-            'VAULT STATISTICS',
+            context.l10n.folders_stats_board_title,
             style: DesignTypography.metadata(
               context,
               fontSize: 10,
@@ -46,7 +47,7 @@ class VaultStatsBoard extends ConsumerWidget {
           error: (err, _) => Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              'Error loading stats: $err',
+              context.l10n.folders_stats_board_error(err.toString()),
               style: TextStyle(color: colorScheme.error, fontSize: 11),
             ),
           ),
@@ -61,9 +62,9 @@ class VaultStatsBoard extends ConsumerWidget {
     ({int totalNotes, int totalWords, int totalLinks}) stats,
   ) {
     final items = [
-      (stats.totalNotes, 'Notes Created', Icons.article_outlined),
-      (stats.totalWords, 'Words Written', Icons.edit_note_rounded),
-      (stats.totalLinks, 'Backlinks Formed', Icons.hub_outlined),
+      (stats.totalNotes, context.l10n.folders_stats_board_notes_created, Icons.article_outlined),
+      (stats.totalWords, context.l10n.folders_stats_board_words_written, Icons.edit_note_rounded),
+      (stats.totalLinks, context.l10n.folders_stats_board_backlinks_formed, Icons.hub_outlined),
     ];
 
     return Container(

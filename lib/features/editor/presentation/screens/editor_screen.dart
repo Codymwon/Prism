@@ -20,6 +20,7 @@ import '../widgets/conflict_banner.dart';
 import '../widgets/editor_write_mode.dart';
 import '../../../../core/providers/shared_preferences_provider.dart';
 import '../controllers/live_preview_controller.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {
   final String noteId;
@@ -360,7 +361,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text(
-                          'EDITOR MODE',
+                          context.l10n.editor_screen_editor_mode,
                           style: DesignTypography.metadata(
                             context,
                             fontSize: 10,
@@ -371,7 +372,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       ),
                       _buildDrawerModeButton(
                         context,
-                        label: 'Live Preview',
+                        label: context.l10n.editor_screen_live_preview,
                         icon: Icons.edit_note,
                         isActive: mode == EditorMode.livePreview,
                         onTap: () {
@@ -382,7 +383,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       const SizedBox(height: 4),
                       _buildDrawerModeButton(
                         context,
-                        label: 'Source Mode',
+                        label: context.l10n.editor_screen_source_mode,
                         icon: Icons.code,
                         isActive: mode == EditorMode.source,
                         onTap: () {
@@ -393,7 +394,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       const SizedBox(height: 4),
                       _buildDrawerModeButton(
                         context,
-                        label: 'Reading View',
+                        label: context.l10n.editor_screen_reading_view,
                         icon: Icons.menu_book,
                         isActive: mode == EditorMode.reading,
                         onTap: () {
@@ -436,7 +437,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Backlinks',
+                                    context.l10n.editor_screen_backlinks,
                                     style: DesignTypography.body(
                                       context,
                                       fontSize: 14,
@@ -448,7 +449,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               Transform.scale(
                                 scale: 0.8,
                                 child: Semantics(
-                                  label: 'Show backlinks',
+                                  label: context.l10n.editor_screen_show_backlinks_semantics,
                                   child: Switch.adaptive(
                                     value: ref.watch(editorControllerProvider(widget.noteId).select((s) => s.showBacklinks)),
                                     activeThumbColor: DesignColors.primary(context),
@@ -617,7 +618,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               builder: (ctx) => FolderAssignDialog(noteId: widget.noteId),
             );
           },
-          tooltip: 'Organize into folders',
+          tooltip: context.l10n.editor_screen_organize_folders_tooltip,
         ),
         // Editor settings drawer trigger button
         IconButton(
@@ -627,7 +628,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _showEditorDrawer = !_showEditorDrawer;
             });
           },
-          tooltip: 'Editor Settings',
+          tooltip: context.l10n.editor_screen_settings_tooltip,
         ),
         const SizedBox(width: 4),
       ],
@@ -966,7 +967,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       debugPrint('Error attaching image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to attach image: $e')),
+          SnackBar(content: Text(context.l10n.editor_screen_failed_image_attach(e.toString()))),
         );
       }
     }

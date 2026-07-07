@@ -6,6 +6,7 @@ import '../../../folders/presentation/providers/folders_providers.dart';
 import 'search_bar_widget.dart';
 import 'notes_sort_bottom_sheet.dart';
 import '../../../../core/services/analytics_service.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class NotesListSearchBar extends ConsumerStatefulWidget {
   const NotesListSearchBar({super.key});
@@ -74,7 +75,7 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
                 IconButton(
                   icon: const Icon(DesignIcons.menu),
                   onPressed: () => Scaffold.of(context).openDrawer(),
-                  tooltip: 'Open drawer',
+                  tooltip: context.l10n.notes_search_bar_open_drawer_tooltip,
                   color: DesignColors.text(context),
                 ),
                 Expanded(
@@ -93,7 +94,7 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
                     decoration: InputDecoration(
                       filled: false,
                       fillColor: Colors.transparent,
-                      hintText: 'Search notes...',
+                      hintText: context.l10n.notes_search_bar_hint,
                       hintStyle: DesignTypography.body(
                         context,
                         fontSize: 15,

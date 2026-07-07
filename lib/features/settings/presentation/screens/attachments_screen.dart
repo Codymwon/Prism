@@ -11,6 +11,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../editor/presentation/widgets/audio_player_bottom_sheet.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class AttachmentFile {
   final File file;
@@ -123,7 +124,7 @@ class AttachmentsScreen extends ConsumerWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Manage Attachments',
+          context.l10n.settings_attachments_title,
           style: DesignTypography.heading(
             context,
             fontSize: 16,
@@ -166,7 +167,7 @@ class AttachmentsScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
                   child: Text(
-                    'ATTACHED FILES',
+                    context.l10n.settings_attachments_section_header,
                     style: DesignTypography.metadata(
                       context,
                       fontSize: 10,
@@ -195,7 +196,7 @@ class AttachmentsScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
           error: (e, _) => Center(
             child: Text(
-              'Error loading attachments: $e',
+              context.l10n.settings_attachments_error(e.toString()),
               style: TextStyle(color: colorScheme.error),
             ),
           ),
@@ -232,7 +233,7 @@ class AttachmentsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Storage Consumed',
+                      context.l10n.settings_attachments_storage_consumed,
                       style: DesignTypography.metadata(
                         context,
                         fontSize: 11,
@@ -251,7 +252,7 @@ class AttachmentsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$totalCount attachments saved',
+                      context.l10n.settings_attachments_count_saved(totalCount),
                       style: DesignTypography.details(context),
                     ),
                   ],
@@ -274,7 +275,7 @@ class AttachmentsScreen extends ConsumerWidget {
                         const Icon(Icons.cleaning_services_rounded, size: 14, color: Colors.redAccent),
                         const SizedBox(width: 6),
                         Text(
-                          'Clean Orphaned',
+                          context.l10n.settings_attachments_clean_orphaned,
                           style: DesignTypography.body(
                             context,
                             fontSize: 11,
@@ -302,7 +303,7 @@ class AttachmentsScreen extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '$orphanedCount unlinked recordings are taking up ${_formatBytes(orphanedSize)} space.',
+                      context.l10n.settings_attachments_orphaned_warning(orphanedCount, _formatBytes(orphanedSize)),
                       style: DesignTypography.details(
                         context,
                         color: isDark ? Colors.orange[200] : Colors.orange[900],
@@ -452,7 +453,7 @@ class AttachmentsScreen extends ConsumerWidget {
                       ),
                     );
                   },
-                  tooltip: 'Play Recording',
+                  tooltip: context.l10n.settings_attachments_play_recording_tooltip,
                   color: colorScheme.primary,
                 ),
               IconButton(
@@ -489,12 +490,12 @@ class AttachmentsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No Attachments Found',
+              context.l10n.settings_attachments_empty_title,
               style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
-              'Voice recordings kept when editing notes will appear here.',
+              context.l10n.settings_attachments_empty_desc,
               style: DesignTypography.details(context),
               textAlign: TextAlign.center,
             ),
@@ -514,7 +515,7 @@ class AttachmentsScreen extends ConsumerWidget {
           style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to permanently delete this audio recording from your device? This action cannot be undone.',
+          context.l10n.settings_attachments_delete_confirm_desc,
           style: DesignTypography.body(context),
         ),
         actions: [
@@ -532,13 +533,13 @@ class AttachmentsScreen extends ConsumerWidget {
                 ref.invalidate(attachmentsProvider);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Attachment deleted.')),
+                    SnackBar(content: Text(context.l10n.settings_attachments_delete_success)),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to delete file: $e')),
+                    SnackBar(content: Text(context.l10n.settings_attachments_delete_error(e.toString()))),
                   );
                 }
               }
@@ -563,11 +564,11 @@ class AttachmentsScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: DesignColors.background(context),
         title: Text(
-          'Purge Orphaned Files',
+          context.l10n.settings_attachments_purge_orphaned_title,
           style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to permanently delete all $count unlinked recordings ($totalSizeStr) from your device storage? Notes will not be affected.',
+          context.l10n.settings_attachments_purge_orphaned_desc(count, totalSizeStr),
           style: DesignTypography.body(context),
         ),
         actions: [
@@ -589,19 +590,19 @@ class AttachmentsScreen extends ConsumerWidget {
                 ref.invalidate(attachmentsProvider);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Successfully cleaned up $deletedCount orphaned files.')),
+                    SnackBar(content: Text(context.l10n.settings_attachments_purge_success(deletedCount))),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error purging files: $e')),
+                    SnackBar(content: Text(context.l10n.settings_attachments_purge_error(e.toString()))),
                   );
                 }
               }
             },
             child: Text(
-              'Purge All',
+              context.l10n.settings_attachments_purge_all_button,
               style: DesignTypography.body(context, color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),

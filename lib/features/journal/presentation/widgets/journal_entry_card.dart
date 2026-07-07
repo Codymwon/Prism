@@ -12,6 +12,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../editor/presentation/utils/editor_helpers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class JournalEntryCard extends ConsumerStatefulWidget {
   final Note note;
@@ -77,7 +78,7 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
         final parsed = DateTime.parse(fallback);
         return DateFormat('EEEE, MMMM d').format(parsed);
       } catch (_) {}
-      return 'Daily Reflection';
+      return context.l10n.journal_entry_card_default_title;
     }
     return fallback;
   }
@@ -292,7 +293,7 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
     final colorScheme = Theme.of(context).colorScheme;
     final currentContent = _localContent ?? widget.content;
     final cardTitle = _getCardTitle(currentContent, widget.note.title);
-    final cardSubtitle = '${_getFormattedSubtitle(widget.note)} • ${widget.note.wordCount} words';
+    final cardSubtitle = context.l10n.journal_entry_card_subtitle(widget.note.wordCount, _getFormattedSubtitle(widget.note));
     final bodyMarkdown = _getBodyMarkdown(currentContent, cardTitle);
     final checklist = extractChecklist(currentContent);
     final imagePath = extractPreviewImage(currentContent);
@@ -430,7 +431,7 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
             else
               Expanded(
                 child: Text(
-                  'No text written yet. Tap to start writing…',
+                  context.l10n.journal_entry_card_empty_content,
                   style: DesignTypography.body(
                     context,
                     fontSize: 13,
@@ -447,7 +448,7 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    'Continue writing',
+                    context.l10n.journal_entry_card_continue_writing_button,
                     style: DesignTypography.body(
                       context,
                       fontSize: 12,
@@ -494,7 +495,7 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'DAILY MINDFUL CHECKLIST',
+                  context.l10n.journal_entry_card_checklist_header,
                   style: DesignTypography.metadata(
                     context,
                     fontSize: 10,
@@ -632,4 +633,3 @@ class _JournalEntryCardState extends ConsumerState<JournalEntryCard> {
     );
   }
 }
-

@@ -6,6 +6,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../settings/presentation/providers/custom_macro_provider.dart';
 import '../utils/editor_helpers.dart';
 import 'audio_player_bottom_sheet.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class FormattingToolbar extends ConsumerStatefulWidget {
   final TextEditingController controller;
@@ -192,7 +193,7 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
               _buildFormattingButton(
                 context,
                 icon: Icons.format_list_bulleted_rounded,
-                tooltip: 'Bullet List',
+                tooltip: context.l10n.editor_formatting_toolbar_tooltip_bullet_list,
                 onTap: () => toggleBlockStyle(
                   controller: widget.controller,
                   focusNode: widget.focusNode,
@@ -203,7 +204,7 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
               _buildFormattingButton(
                 context,
                 icon: Icons.format_size_rounded,
-                tooltip: 'Heading (H1–H4)',
+                tooltip: context.l10n.editor_formatting_toolbar_tooltip_heading,
                 key: _headingKey,
                 onTap: () => _showHeadingMenu(context),
               ),
@@ -253,14 +254,14 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
               _buildFormattingButton(
                 context,
                 icon: Icons.image_outlined,
-                tooltip: 'Attach Image',
+                tooltip: context.l10n.editor_formatting_toolbar_tooltip_attach_image,
                 onTap: widget.onAttachImage,
               ),
               if (Platform.isAndroid)
                 _buildFormattingButton(
                   context,
                   icon: Icons.mic_none_rounded,
-                  tooltip: 'Dictate (Voice-to-Text)',
+                  tooltip: context.l10n.editor_formatting_toolbar_tooltip_dictate,
                   onTap: widget.onToggleDictation,
                 ),
               _buildFormattingButton(
@@ -443,10 +444,10 @@ class AudioRecordOverlay extends StatelessWidget {
     required this.onCommit,
   });
 
-  String _formatDuration(int seconds) {
+  String _formatDuration(BuildContext context, int seconds) {
     final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
     final secs = (seconds % 60).toString().padLeft(2, '0');
-    return 'Recording $minutes:$secs...';
+    return context.l10n.editor_formatting_toolbar_recording_status('$minutes:$secs');
   }
 
   @override
@@ -482,10 +483,10 @@ class AudioRecordOverlay extends StatelessWidget {
             TactileWrapper(
               style: TactileFeedbackStyle.standard,
               onTap: onCancel,
-              semanticLabel: 'Cancel & Discard recording',
-              child: const Tooltip(
-                message: 'Cancel & Discard',
-                child: Icon(
+              semanticLabel: context.l10n.editor_formatting_toolbar_cancel_discard_semantics,
+              child: Tooltip(
+                message: context.l10n.editor_formatting_toolbar_cancel_discard_tooltip,
+                child: const Icon(
                   Icons.delete_outline_rounded,
                   color: Colors.redAccent,
                   size: 20,
@@ -497,7 +498,7 @@ class AudioRecordOverlay extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                _formatDuration(durationSeconds),
+                _formatDuration(context, durationSeconds),
                 style: DesignTypography.body(
                   context,
                   fontSize: 13,
@@ -511,7 +512,7 @@ class AudioRecordOverlay extends StatelessWidget {
             TactileWrapper(
               style: TactileFeedbackStyle.standard,
               onTap: onCommit,
-              semanticLabel: 'Save & Insert recording',
+              semanticLabel: context.l10n.editor_formatting_toolbar_save_insert_semantics,
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(

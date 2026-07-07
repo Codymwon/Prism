@@ -4,6 +4,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../providers/notes_providers.dart';
 import '../../data/note_model.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class NotesSortButton extends ConsumerWidget {
   const NotesSortButton({super.key});
@@ -65,7 +66,7 @@ class NotesSortBottomSheet extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Text(
-              'Sort Order',
+              context.l10n.notes_sort_bottom_sheet_title,
               style: DesignTypography.heading(
                 context,
                 fontSize: 16,
@@ -79,8 +80,8 @@ class NotesSortBottomSheet extends ConsumerWidget {
           _buildSortOptionTile(
             context: context,
             ref: ref,
-            title: 'Last Updated (Recent)',
-            description: 'Recently edited notes and folders float to the top',
+            title: context.l10n.notes_sort_bottom_sheet_last_updated_title,
+            description: context.l10n.notes_sort_bottom_sheet_last_updated_desc,
             icon: Icons.access_time_rounded,
             value: NoteSort.updated,
             isActive: activeSort == NoteSort.updated,
@@ -89,8 +90,8 @@ class NotesSortBottomSheet extends ConsumerWidget {
           _buildSortOptionTile(
             context: context,
             ref: ref,
-            title: 'Date Created',
-            description: 'Newest folders and notes listed first',
+            title: context.l10n.notes_sort_bottom_sheet_date_created_title,
+            description: context.l10n.notes_sort_bottom_sheet_date_created_desc,
             icon: Icons.calendar_today_rounded,
             value: NoteSort.created,
             isActive: activeSort == NoteSort.created,
@@ -99,8 +100,8 @@ class NotesSortBottomSheet extends ConsumerWidget {
           _buildSortOptionTile(
             context: context,
             ref: ref,
-            title: 'Alphabetical (A–Z)',
-            description: 'Sort notes and folders by name alphabetically',
+            title: context.l10n.notes_sort_bottom_sheet_alphabetical_title,
+            description: context.l10n.notes_sort_bottom_sheet_alphabetical_desc,
             icon: Icons.sort_by_alpha_rounded,
             value: NoteSort.title,
             isActive: activeSort == NoteSort.title,

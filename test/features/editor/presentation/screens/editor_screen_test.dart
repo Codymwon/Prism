@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -149,6 +150,8 @@ void main() {
           backlinksProvider(noteId).overrideWith((ref) => []),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: EditorScreen(
             noteId: noteId,
             isNew: false,
@@ -218,6 +221,8 @@ void main() {
           backlinksProvider(noteId).overrideWith((ref) => []),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: EditorScreen(
             noteId: noteId,
             isNew: false,
@@ -283,6 +288,8 @@ void main() {
           backlinksProvider(noteId).overrideWith((ref) => []),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: EditorScreen(
             noteId: noteId,
             isNew: false,
@@ -341,6 +348,8 @@ void main() {
           backlinksProvider(noteId).overrideWith((ref) => []),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: EditorScreen(
             noteId: noteId,
             isNew: false,
@@ -390,6 +399,8 @@ void main() {
           backlinksProvider(noteId).overrideWith((ref) => []),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: EditorScreen(
             noteId: noteId,
             isNew: false,
@@ -465,6 +476,8 @@ void main() {
           backlinksProvider(noteId).overrideWith((ref) => backlinks),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: EditorScreen(
             noteId: noteId,
             isNew: false,

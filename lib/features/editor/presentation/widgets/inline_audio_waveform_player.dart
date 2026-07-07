@@ -12,6 +12,7 @@ import '../providers/audio_player_providers.dart';
 import '../providers/audio_bookmark_providers.dart';
 import '../utils/audio_waveform_peak_generator.dart';
 import 'waveform_painter.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class InlineAudioWaveformPlayer extends ConsumerStatefulWidget {
   final String filePath; // Relative path from the vault root
@@ -121,7 +122,7 @@ class _InlineAudioWaveformPlayerState
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Audio file not found: ${widget.fileName}',
+                context.l10n.editor_inline_audio_file_not_found(widget.fileName),
                 style: DesignTypography.body(context, fontSize: 13, color: Colors.redAccent),
               ),
             ),
@@ -256,22 +257,22 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Bookmark'),
+        title: Text(context.l10n.editor_inline_audio_add_bookmark_title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'At ${_formatDuration(Duration(milliseconds: currentMs))}',
+              context.l10n.editor_inline_audio_bookmark_at_time(_formatDuration(Duration(milliseconds: currentMs))),
               style: DesignTypography.metadata(context, fontSize: 12),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Annotation (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: context.l10n.editor_inline_audio_annotation_hint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
               textInputAction: TextInputAction.done,
@@ -384,7 +385,7 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
                     size: 20,
                     color: colorScheme.primary,
                   ),
-                  tooltip: 'Add bookmark at current position',
+                  tooltip: context.l10n.editor_inline_audio_add_bookmark_tooltip,
                   onPressed: isCurrent
                       ? () => _showAddBookmarkDialog(
                             context,
@@ -455,7 +456,7 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Database Error: ${bookmarkState!.error}',
+                      context.l10n.editor_inline_audio_database_error(bookmarkState!.error.toString()),
                       style: DesignTypography.body(context, fontSize: 11, color: Colors.redAccent),
                     ),
                   ),

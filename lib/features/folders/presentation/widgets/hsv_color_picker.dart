@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class HsvColorPickerDialog extends StatefulWidget {
   final Color initialColor;
@@ -117,7 +118,7 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
                       color: DesignColors.text(context),
                     ).copyWith(fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
-                      labelText: 'HEX CODE',
+                      labelText: context.l10n.folders_color_picker_hex_code,
                       labelStyle: DesignTypography.metadata(
                         context,
                         fontSize: 10,
@@ -139,19 +140,19 @@ class _HsvColorPickerDialogState extends State<HsvColorPickerDialog> {
             const SizedBox(height: 24),
 
             // --- HUE SLIDER ---
-            Text('HUE (${_hue.round()}°)', style: textStyle),
+            Text(context.l10n.folders_color_picker_hue(_hue.round()), style: textStyle),
             const SizedBox(height: 8),
             _buildHueSlider(),
             const SizedBox(height: 16),
 
             // --- SATURATION SLIDER ---
-            Text('SATURATION (${(_saturation * 100).round()}%)', style: textStyle),
+            Text(context.l10n.folders_color_picker_saturation((_saturation * 100).round()), style: textStyle),
             const SizedBox(height: 8),
             _buildSaturationSlider(),
             const SizedBox(height: 16),
 
             // --- VALUE SLIDER ---
-            Text('BRIGHTNESS (${(_value * 100).round()}%)', style: textStyle),
+            Text(context.l10n.folders_color_picker_brightness((_value * 100).round()), style: textStyle),
             const SizedBox(height: 8),
             _buildValueSlider(),
             const SizedBox(height: 28),

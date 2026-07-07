@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../providers/notes_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class TagFilterBanner extends ConsumerWidget {
   const TagFilterBanner({super.key});
@@ -32,7 +33,7 @@ class TagFilterBanner extends ConsumerWidget {
             Icon(Icons.label_outline_rounded, size: 16, color: colorScheme.primary),
             const SizedBox(width: 8),
             Text(
-              'Filtered by tag: #$selectedTag',
+              context.l10n.notes_tag_filter_banner_filtered_by(selectedTag),
               style: DesignTypography.heading(
                 context,
                 fontSize: 13,

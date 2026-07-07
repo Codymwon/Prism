@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: GraphSimulationCanvas(
               nodes: nodes,
@@ -70,6 +73,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: GraphNodeWidget(
               id: 'ghost-1',
@@ -118,6 +123,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: GraphSimulationCanvas(
               nodes: nodes,
@@ -160,6 +167,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: GraphSimulationCanvas(
               nodes: nodes,
@@ -223,6 +232,8 @@ void main() {
           graphAutoFitPerformedProvider.overrideWith((ref) => true),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: GraphSimulationCanvas(
               nodes: nodes,
@@ -298,6 +309,8 @@ void main() {
           graphAutoFitPerformedProvider.overrideWith((ref) => true),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: GraphSimulationCanvas(
               nodes: nodes,
@@ -372,6 +385,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -418,7 +433,9 @@ void main() {
           graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
           graphAutoFitPerformedProvider.overrideWith((ref) => true),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: GraphScreen(),
         ),
       ),
@@ -467,7 +484,9 @@ void main() {
           graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
           graphAutoFitPerformedProvider.overrideWith((ref) => true),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: GraphScreen(),
         ),
       ),
@@ -500,7 +519,9 @@ void main() {
           graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
           graphAutoFitPerformedProvider.overrideWith((ref) => true),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: GraphScreen(),
         ),
       ),

@@ -6,6 +6,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../providers/custom_macro_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class CustomMacrosScreen extends ConsumerStatefulWidget {
   const CustomMacrosScreen({super.key});
@@ -45,7 +46,7 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Toolbar Macros',
+          context.l10n.settings_custom_macros_title,
           style: DesignTypography.heading(
             context,
             fontSize: 16,
@@ -55,7 +56,7 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reset to Defaults',
+            tooltip: context.l10n.settings_custom_macros_reset_tooltip,
             onPressed: () => _confirmReset(context, ref),
           ),
           const SizedBox(width: 8),
@@ -71,7 +72,7 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Quick Macros',
+                    context.l10n.settings_custom_macros_header,
                     style: DesignTypography.display(
                       context,
                       fontSize: 24,
@@ -80,7 +81,7 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Define 3 to 5 custom text injection macros for your accessory formatting toolbar.',
+                    context.l10n.settings_custom_macros_desc,
                     style: DesignTypography.details(context),
                   ),
                 ],
@@ -198,7 +199,7 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
                             ),
                           );
                         },
-                  tooltip: totalCount > 3 ? 'Delete Macro' : 'Cannot delete (Min 3 required)',
+                  tooltip: totalCount > 3 ? context.l10n.settings_custom_macros_delete_tooltip : context.l10n.settings_custom_macros_cannot_delete_desc,
                 ),
               ],
             ),
@@ -233,7 +234,7 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Add Custom Macro',
+              context.l10n.settings_custom_macros_add_button,
               style: DesignTypography.body(
                 context,
                 fontSize: 14,
@@ -275,28 +276,28 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: DesignColors.background(context),
         title: Text(
-          'Reset Macros',
+          context.l10n.settings_custom_macros_reset_confirm_title,
           style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to reset all macros to their defaults? This will erase your custom edits.',
+          context.l10n.settings_custom_macros_reset_confirm_desc,
           style: DesignTypography.body(context),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: DesignTypography.body(context)),
+            child: Text(context.l10n.settings_custom_macros_cancel_button, style: DesignTypography.body(context)),
           ),
           TextButton(
             onPressed: () {
               ref.read(customMacrosProvider.notifier).resetToDefaults();
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Macros reset to defaults.')),
+                SnackBar(content: Text(context.l10n.settings_custom_macros_reset_success)),
               );
             },
             child: Text(
-              'Reset',
+              context.l10n.settings_custom_macros_reset_confirm_button,
               style: DesignTypography.body(context, color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
@@ -413,7 +414,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
           children: [
             const DesignSheetDragHandle(),
             Text(
-              isEdit ? 'Edit Custom Macro' : 'Create Custom Macro',
+              isEdit ? context.l10n.settings_custom_macros_editor_title_edit : context.l10n.settings_custom_macros_editor_title_add,
               style: DesignTypography.heading(
                 context,
                 fontSize: 16,
@@ -425,7 +426,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
             
             // Label Input
             Text(
-              'BUTTON LABEL',
+              context.l10n.settings_custom_macros_label_field,
               style: DesignTypography.metadata(
                 context,
                 fontSize: 10,
@@ -438,7 +439,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
               maxLength: 12,
               style: DesignTypography.body(context, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'e.g. Date, Todo, Tag',
+                hintText: context.l10n.settings_custom_macros_label_hint,
                 hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(
@@ -453,10 +454,10 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
               ),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
-                  return 'Label is required';
+                  return context.l10n.settings_custom_macros_label_required;
                 }
                 if (val.trim().length > 12) {
-                  return 'Label must be 12 chars or less';
+                  return context.l10n.settings_custom_macros_label_length_error;
                 }
                 return null;
               },
@@ -465,7 +466,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
 
             // Text Input
             Text(
-              'MACRO INJECTION TEXT',
+              context.l10n.settings_custom_macros_text_field,
               style: DesignTypography.metadata(
                 context,
                 fontSize: 10,
@@ -479,7 +480,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
               minLines: 2,
               style: DesignTypography.body(context, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Enter text, templates, tags, or placeholders…',
+                hintText: context.l10n.settings_custom_macros_text_hint,
                 hintStyle: DesignTypography.body(context, fontSize: 14, color: DesignColors.textTertiary(context)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(
@@ -493,7 +494,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
               ),
               validator: (val) {
                 if (val == null || val.isEmpty) {
-                  return 'Injection text is required';
+                  return context.l10n.settings_custom_macros_text_required;
                 }
                 return null;
               },
@@ -502,7 +503,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
 
             // Placeholder Pill Shelf
             Text(
-              'TAP DYNAMIC PLACEHOLDERS TO INSERT:',
+              context.l10n.settings_custom_macros_placeholder_title,
               style: DesignTypography.metadata(
                 context,
                 fontSize: 9,
@@ -515,9 +516,9 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildPlaceholderPill(context, _textController, '{{date}}', 'Current Date'),
-                _buildPlaceholderPill(context, _textController, '{{time}}', 'Current Time'),
-                _buildPlaceholderPill(context, _textController, '{{datetime}}', 'Date & Time'),
+                _buildPlaceholderPill(context, _textController, '{{date}}', context.l10n.settings_custom_macros_placeholder_date_desc),
+                _buildPlaceholderPill(context, _textController, '{{time}}', context.l10n.settings_custom_macros_placeholder_time_desc),
+                _buildPlaceholderPill(context, _textController, '{{datetime}}', context.l10n.settings_custom_macros_placeholder_datetime_desc),
               ],
             ),
             const SizedBox(height: 24),
@@ -534,7 +535,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
                     ),
                     onPressed: () => Navigator.pop(context),
                     child: Text(
-                      'Cancel',
+                      context.l10n.settings_custom_macros_cancel_button,
                       style: DesignTypography.body(context, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -565,7 +566,7 @@ class _MacroEditorSheetState extends ConsumerState<_MacroEditorSheet> {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        isEdit ? 'Save Changes' : 'Create Macro',
+                        isEdit ? context.l10n.settings_custom_macros_save_button : context.l10n.settings_custom_macros_create_button_label,
                         style: DesignTypography.body(
                           context,
                           fontWeight: FontWeight.w700,

@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
@@ -95,6 +96,8 @@ Widget _buildForm({
   return ProviderScope(
     overrides: _providerOverrides,
     child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: VaultSetupForm(
           onStartSetup: onStartSetup,

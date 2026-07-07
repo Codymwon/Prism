@@ -18,6 +18,7 @@ import '../widgets/tag_filter_banner.dart';
 import '../widgets/notes_list_search_bar.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../../settings/presentation/providers/startup_actions.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class NotesListScreen extends ConsumerStatefulWidget {
   const NotesListScreen({super.key});
@@ -85,7 +86,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                   return const Expanded(child: SkeletonNoteList());
                 },
                 error: (e, s) => Center(
-                  child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                  child: Text(context.l10n.notes_list_screen_error(e.toString()), style: TextStyle(color: colorScheme.error)),
                 ),
               ),
             ],
@@ -139,7 +140,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                       color: DesignColors.textSecondary(context),
                     ),
                     onPressed: () => FolderDrawer.navigateToAddFolderScreen(context),
-                    tooltip: 'New Folder',
+                    tooltip: context.l10n.notes_list_screen_new_folder_tooltip,
                   ),
                 ],
               ),
@@ -157,7 +158,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               child: Text(
                 folderActive
                     ? _getFolderHeaderString(selectedFolderId, data, activeFolder)
-                    : (isSearching ? 'SEARCH RESULTS' : 'RECENT NOTES'),
+                    : (isSearching ? context.l10n.notes_list_screen_search_results_title : context.l10n.notes_list_screen_recent_notes_title),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -265,7 +266,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                       return const SkeletonNoteList();
                     },
                     error: (e, s) => Center(
-                      child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+                      child: Text(context.l10n.notes_list_screen_error(e.toString()), style: TextStyle(color: colorScheme.error)),
                     ),
                   );
                 }
@@ -296,7 +297,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         onPressed: () {
           ref.read(selectedFolderIdProvider.notifier).state = null;
         },
-        tooltip: 'All Notes',
+        tooltip: context.l10n.notes_list_screen_all_notes_tooltip,
       ),
       title: Text(
         _getAppBarTitle(selectedFolderId, activeFolder),
@@ -318,9 +319,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     if (activeFolder != null) return activeFolder.name;
     switch (folderId) {
       case '__all__':
-        return 'All Notes';
+        return context.l10n.notes_list_screen_all_notes_title;
       case '__daily__':
-        return 'Journal Logs';
+        return context.l10n.notes_list_screen_journal_logs_title;
       case '__uncategorized__':
         return 'Uncategorized';
       case '__folders__':
@@ -346,7 +347,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              isSearching ? 'No notes found' : 'Your workspace awaits',
+              isSearching ? context.l10n.notes_list_screen_no_notes_found_search : context.l10n.notes_list_screen_workspace_awaits_title,
               style: DesignTypography.heading(
                 context,
                 fontSize: 18,
@@ -356,8 +357,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             const SizedBox(height: 8),
             Text(
               isSearching
-                  ? 'Try a different search term'
-                  : 'Tap + to create your first note',
+                  ? context.l10n.notes_list_screen_search_help_desc
+                  : context.l10n.notes_list_screen_create_help_desc,
               style: DesignTypography.body(
                 context,
                 fontSize: 14,
@@ -378,7 +379,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Delete note?', style: DesignTypography.heading(context, fontWeight: FontWeight.bold)),
-        content: Text('This will permanently delete the note and its file.', style: DesignTypography.body(context)),
+        content: Text(context.l10n.notes_list_screen_delete_warning, style: DesignTypography.body(context)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: DesignTypography.details(context))),
           TextButton(
@@ -396,25 +397,24 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   String _getFolderHeaderString(String folderId, HomeScreenData data, VirtualFolder? activeFolder) {
     if (folderId == '__folders__') {
       final total = data.folders.length + 3;
-      return 'Folders • $total folder${total == 1 ? "" : "s"}';
+      return context.l10n.notes_list_screen_folders_count(total);
     }
     if (folderId == '__all__') {
       final count = data.notes.length;
-      return 'All Notes • $count note${count == 1 ? "" : "s"}';
+      return context.l10n.notes_list_screen_all_notes_count(count);
     }
     if (folderId == '__daily__') {
       final count = data.notes.length;
-      return 'Journal Logs • $count note${count == 1 ? "" : "s"}';
+      return context.l10n.notes_list_screen_journal_logs_count(count);
     }
     if (folderId == '__uncategorized__') {
       final count = data.notes.length;
-      return 'Uncategorized • $count note${count == 1 ? "" : "s"}';
+      return context.l10n.notes_list_screen_uncategorized_count(count);
     }
     final name = activeFolder?.name ?? 'Folder';
     final count = activeFolder?.noteCount ?? data.notes.length;
-    return '$name • $count note${count == 1 ? "" : "s"}';
+    return context.l10n.notes_list_screen_custom_folder_count(count, name);
   }
 }
-
 
 

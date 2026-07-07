@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../providers/journal_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class JournalHeader extends ConsumerWidget {
   final DateTime selectedDay;
@@ -50,7 +51,7 @@ class JournalHeader extends ConsumerWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      isToday_ ? 'Today' : DateFormat('EEEE, MMMM d').format(selectedDay),
+                      isToday_ ? context.l10n.journal_header_title_today : DateFormat('EEEE, MMMM d').format(selectedDay),
                       style: DesignTypography.body(
                         context,
                         fontSize: 14,
@@ -79,7 +80,7 @@ class JournalHeader extends ConsumerWidget {
                             ),
                             const SizedBox(width: 3),
                             Text(
-                              '${stats.totalCount} entries',
+                              context.l10n.journal_header_entries_count(stats.totalCount),
                               style: DesignTypography.body(
                                 context,
                                 fontSize: 13,

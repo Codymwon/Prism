@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,8 @@ class TestImageWidget extends ConsumerWidget {
       context: context,
     );
     return MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: widgetResult,
       ),
@@ -46,6 +49,8 @@ void main() {
     Widget buildMarkdown(String data) {
       return ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Builder(
               builder: (context) {

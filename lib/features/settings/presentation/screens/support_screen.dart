@@ -10,6 +10,7 @@ import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../../../../core/providers/shared_preferences_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class SupportScreen extends ConsumerStatefulWidget {
   const SupportScreen({super.key});
@@ -178,7 +179,7 @@ User ID: $_appUserId
         return AlertDialog(
           backgroundColor: DesignColors.surface(context),
           title: Text(
-            'No Email App Found',
+            context.l10n.settings_support_fallback_dialog_title,
             style: DesignTypography.heading(context, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           content: SingleChildScrollView(
@@ -187,7 +188,7 @@ User ID: $_appUserId
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'We couldn\'t automatically launch your email application. You can send your support request manually to our address below:',
+                  context.l10n.settings_support_fallback_dialog_desc,
                   style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context)),
                 ),
                 const SizedBox(height: 12),
@@ -207,7 +208,7 @@ User ID: $_appUserId
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Tap below to copy the diagnostic log and message details to your clipboard, then email them to us.',
+                  context.l10n.settings_support_fallback_dialog_copy_desc,
                   style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context)),
                 ),
               ],
@@ -217,7 +218,7 @@ User ID: $_appUserId
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Cancel',
+                context.l10n.settings_support_cancel_button,
                 style: TextStyle(color: DesignColors.textSecondary(context)),
               ),
             ),
@@ -230,12 +231,12 @@ User ID: $_appUserId
                 Clipboard.setData(ClipboardData(text: fullBody));
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Support log copied to clipboard!'),
+                  SnackBar(
+                    content: Text(context.l10n.settings_support_copy_success),
                   ),
                 );
               },
-              child: const Text('Copy Diagnostics & Email'),
+              child: Text(context.l10n.settings_support_copy_button),
             ),
           ],
         );
@@ -267,7 +268,7 @@ User ID: $_appUserId
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Contact Support',
+          context.l10n.settings_support_title,
           style: DesignTypography.heading(context, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -279,19 +280,19 @@ User ID: $_appUserId
             padding: const EdgeInsets.all(24),
             children: [
               Text(
-                'How can we help you?',
+                context.l10n.settings_support_how_can_we_help,
                 style: DesignTypography.display(context, fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'Submit bug reports, request feature enhancements, or send general feedback directly to the Prism team.',
+                context.l10n.settings_support_subtitle_desc,
                 style: DesignTypography.body(context, fontSize: 14, color: textSecStyle),
               ),
               const SizedBox(height: 28),
 
               // Category Dropdown
               Text(
-                'Category',
+                context.l10n.settings_support_category_label,
                 style: DesignTypography.body(context, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -312,10 +313,10 @@ User ID: $_appUserId
                 ),
                 dropdownColor: DesignColors.surface(context),
                 items: [
-                  DropdownMenuItem(value: 'bug', child: Text('🐛  Report a Bug', style: TextStyle(color: textStyle))),
-                  DropdownMenuItem(value: 'feature', child: Text('✨  Feature Request', style: TextStyle(color: textStyle))),
-                  DropdownMenuItem(value: 'feedback', child: Text('💬  General Feedback', style: TextStyle(color: textStyle))),
-                  DropdownMenuItem(value: 'question', child: Text('❓  Question', style: TextStyle(color: textStyle))),
+                  DropdownMenuItem(value: 'bug', child: Text(context.l10n.settings_support_category_bug, style: TextStyle(color: textStyle))),
+                  DropdownMenuItem(value: 'feature', child: Text(context.l10n.settings_support_category_feature, style: TextStyle(color: textStyle))),
+                  DropdownMenuItem(value: 'feedback', child: Text(context.l10n.settings_support_category_feedback, style: TextStyle(color: textStyle))),
+                  DropdownMenuItem(value: 'question', child: Text(context.l10n.settings_support_category_question, style: TextStyle(color: textStyle))),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _category = val);
@@ -325,7 +326,7 @@ User ID: $_appUserId
 
               // Subject Input
               Text(
-                'Subject',
+                context.l10n.settings_support_subject_label,
                 style: DesignTypography.body(context, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -335,7 +336,7 @@ User ID: $_appUserId
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: DesignColors.surfaceVariant(context),
-                  hintText: 'Summary of the issue...',
+                  hintText: context.l10n.settings_support_subject_hint,
                   hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
@@ -352,7 +353,7 @@ User ID: $_appUserId
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Please enter a subject.';
+                    return context.l10n.settings_support_subject_required;
                   }
                   return null;
                 },
@@ -361,7 +362,7 @@ User ID: $_appUserId
 
               // Message Input
               Text(
-                'Message Details',
+                context.l10n.settings_support_desc_label,
                 style: DesignTypography.body(context, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -372,7 +373,7 @@ User ID: $_appUserId
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: DesignColors.surfaceVariant(context),
-                  hintText: 'Describe the issue or feedback in detail...',
+                  hintText: context.l10n.settings_support_desc_hint,
                   hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(DesignSpacing.borderRadiusMedium),
@@ -389,7 +390,7 @@ User ID: $_appUserId
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Please enter details for your request.';
+                    return context.l10n.settings_support_desc_required;
                   }
                   return null;
                 },
@@ -412,19 +413,19 @@ User ID: $_appUserId
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Attach System Diagnostics',
+                            context.l10n.settings_support_attach_diagnostics,
                             style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Include anonymous device logs and vault stats.',
+                            context.l10n.settings_support_attach_diagnostics_desc,
                             style: DesignTypography.details(context, color: textSecStyle),
                           ),
                         ],
                       ),
                     ),
                     Semantics(
-                      label: 'Attach System Diagnostics',
+                      label: context.l10n.settings_support_attach_diagnostics,
                       child: Switch.adaptive(
                         value: _attachDiagnostics,
                         activeThumbColor: colorScheme.primary,
@@ -458,7 +459,7 @@ User ID: $_appUserId
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Diagnostics Preview',
+                              context.l10n.settings_support_preview_diagnostics,
                               style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.bold, color: colorScheme.primary),
                             ),
                             const SizedBox(height: 12),
@@ -479,7 +480,7 @@ User ID: $_appUserId
 
               // Submit Button
               DesignPrimaryButton(
-                label: 'Send Support Request',
+                label: context.l10n.settings_support_send_button,
                 icon: Icons.send_rounded,
                 onTap: () => _submitSupportRequest(isPro),
               ),

@@ -4,6 +4,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class VaultSelectorBottomSheet extends ConsumerStatefulWidget {
   const VaultSelectorBottomSheet({super.key});
@@ -22,7 +23,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
       await ref.read(vaultManagementServiceProvider).switchVault(vaultName: vaultName);
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Error switching vault: $e', style: const TextStyle(color: Colors.white))),
+        SnackBar(content: Text(context.l10n.notes_vault_selector_switch_error(e.toString()), style: const TextStyle(color: Colors.white))),
       );
     }
   }
@@ -52,7 +53,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
       );
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Error creating vault: $e', style: const TextStyle(color: Colors.white))),
+        SnackBar(content: Text(context.l10n.notes_vault_selector_create_error(e.toString()), style: const TextStyle(color: Colors.white))),
       );
     }
   }
@@ -76,7 +77,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
           const DesignSheetDragHandle(),
           const SizedBox(height: 8),
           Text(
-            'Switch Vault',
+            context.l10n.notes_vault_selector_title,
             style: DesignTypography.heading(
               context,
               fontSize: 16,
@@ -88,7 +89,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
             child: vaultsAsync.when(
               data: (vaults) {
                 if (vaults.isEmpty) {
-                  return const Center(child: Text('No vaults found'));
+                  return Center(child: Text(context.l10n.notes_vault_selector_empty));
                 }
                 return ListView.builder(
                   shrinkWrap: true,
@@ -130,7 +131,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
               error: (err, stack) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: Text('Error loading vaults: $err'),
+                  child: Text(context.l10n.notes_vault_selector_error_loading(err.toString())),
                 ),
               ),
             ),
@@ -194,7 +195,7 @@ class _CreateVaultDialogState extends State<_CreateVaultDialog> {
         autofocus: true,
         style: DesignTypography.body(context),
         decoration: InputDecoration(
-          hintText: 'Vault Name',
+          hintText: context.l10n.notes_vault_selector_hint,
           hintStyle: DesignTypography.body(context, color: DesignColors.textTertiary(context)),
           filled: true,
           fillColor: DesignColors.surfaceVariant(context),
@@ -216,7 +217,7 @@ class _CreateVaultDialogState extends State<_CreateVaultDialog> {
             final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
             if (!safePattern.hasMatch(name)) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Vault name can only contain letters, numbers, spaces, underscores, and hyphens.')),
+                SnackBar(content: Text(context.l10n.notes_vault_selector_validation_error)),
               );
               return;
             }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class ProductivityVisual extends StatelessWidget {
   const ProductivityVisual({super.key});
@@ -50,7 +51,7 @@ class ProductivityVisual extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '📅 Date',
+                      context.l10n.onboarding_visual_productivity_date,
                       style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: primary),
                     ),
                   ),
@@ -61,7 +62,7 @@ class ProductivityVisual extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '☑️ Todo',
+                      context.l10n.onboarding_visual_productivity_todo,
                       style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: accentGreen),
                     ),
                   ),

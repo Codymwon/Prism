@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:prism/l10n/l10n.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage_permission_helper.dart';
 import '../design_system/design_system.dart';
@@ -74,6 +75,8 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
       darkTheme: darkThemeData,
       themeMode: mode,
       themeAnimationDuration: Duration.zero,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Builder(
         builder: (context) {
           final colorScheme = Theme.of(context).colorScheme;
@@ -108,7 +111,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
 
                     // ── Headline ──
                     Text(
-                      'Storage Access Required',
+                      context.l10n.shared_storage_permission_title,
                       style: DesignTypography.display(
                         context,
                         fontSize: 24,
@@ -121,7 +124,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
 
                     // ── Description ──
                     Text(
-                      'Prism is private and offline-first. Your notes are stored directly inside your custom folder on this device.\n\nTo read and write note files in your documents vault, Android requires the "All Files Access" permission.',
+                      context.l10n.shared_storage_permission_desc,
                       style: DesignTypography.body(
                         context,
                         fontSize: 14,
@@ -134,7 +137,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
 
                     // ── Action Button ──
                     DesignPrimaryButton(
-                      label: 'Grant Storage Access',
+                      label: context.l10n.shared_storage_permission_grant_button,
                       icon: Icons.settings_suggest_rounded,
                       onTap: _requestAccess,
                     ),
@@ -142,7 +145,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
 
                     // ── Secondary instructions ──
                     Text(
-                      'Tap above, then enable the toggle for Prism in the Android settings screen. Once enabled, press back to return here.',
+                      context.l10n.shared_storage_permission_secondary_desc,
                       style: DesignTypography.details(
                         context,
                         fontSize: 12,
@@ -160,7 +163,7 @@ class _StoragePermissionScreenState extends State<StoragePermissionScreen> with 
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            semanticsLabel: 'Loading',
+                            semanticsLabel: context.l10n.shared_storage_permission_loading_label,
                             valueColor: AlwaysStoppedAnimation<Color>(
                               DesignColors.textTertiary(context),
                             ),

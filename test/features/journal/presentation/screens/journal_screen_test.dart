@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,7 +61,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalScreen(),
           ),
@@ -109,7 +112,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 2, totalCount: 2)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalScreen(),
           ),
@@ -151,7 +156,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 2, totalCount: 2)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalScreen(),
           ),
@@ -197,7 +204,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalScreen(),
           ),
@@ -226,7 +235,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalScreen(),
           ),
@@ -265,7 +276,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 1, totalCount: 1)),
           dailyNoteProvider.overrideWith((ref, dateStr) => (note: dummyNote, content: '# reflection\nsome content')),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalScreen(),
           ),
@@ -295,7 +308,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: AppShell(
             currentPath: '/journal',
             child: JournalScreen(),

@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -176,6 +177,8 @@ void main() {
             noteByIdProvider('original-id').overrideWith((ref) => originalNote),
           ],
           child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),
@@ -268,6 +271,8 @@ void main() {
             noteByIdProvider('original-id').overrideWith((ref) => originalNote),
           ],
           child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),
@@ -359,6 +364,8 @@ void main() {
             noteByIdProvider('original-id').overrideWith((ref) => originalNote),
           ],
           child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),
@@ -457,6 +464,8 @@ void main() {
             noteByIdProvider('original-id').overrideWith((ref) => originalNote),
           ],
           child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),
@@ -552,6 +561,8 @@ This is conflicted content.
             noteByIdProvider('original-id').overrideWith((ref) => originalNote),
           ],
           child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),

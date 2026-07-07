@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,6 +96,8 @@ void main() {
     return UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Router(
           routerDelegate: MockRouterDelegate(child: const NotesListScreen()),
           backButtonDispatcher: RootBackButtonDispatcher(),
@@ -109,6 +112,8 @@ void main() {
     return UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Router(
           routerDelegate: MockRouterDelegate(
             child: Builder(

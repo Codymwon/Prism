@@ -6,6 +6,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/services/vault_export_service.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../providers/export_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 /// Export Vault bottom sheet.
 ///
@@ -92,7 +93,7 @@ class ExportBottomSheet extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Export Vault',
+                context.l10n.settings_export_bottom_sheet_title,
                 style: DesignTypography.heading(
                   context,
                   fontSize: 18,
@@ -107,7 +108,7 @@ class ExportBottomSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose a format to export your notes',
+            context.l10n.settings_export_bottom_sheet_choose_format,
             style: DesignTypography.body(
               context,
               fontSize: 13,
@@ -119,13 +120,13 @@ class ExportBottomSheet extends ConsumerWidget {
           // ── Body switches on state ───────────────────────────────────────────
           exportState.when(
             // ── Loading state: indeterminate spinner ────────────────────────
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
+            loading: () => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
               child: Column(
                 children: [
-                  CircularProgressIndicator(semanticsLabel: 'Loading'),
-                  SizedBox(height: 16),
-                  Text('Exporting…', textAlign: TextAlign.center),
+                  const CircularProgressIndicator(semanticsLabel: 'Loading'),
+                  const SizedBox(height: 16),
+                  Text(context.l10n.settings_export_bottom_sheet_exporting, textAlign: TextAlign.center),
                 ],
               ),
             ),
@@ -347,7 +348,7 @@ class _SuccessBlock extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Export Complete',
+                    context.l10n.settings_export_bottom_sheet_complete,
                     style: DesignTypography.body(
                       context,
                       fontSize: 15,
@@ -356,7 +357,7 @@ class _SuccessBlock extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${result.noteCount} notes · ${_formatBytes(result.bytes)}',
+                    context.l10n.settings_export_bottom_sheet_notes_count(result.noteCount, _formatBytes(result.bytes)),
                     style: DesignTypography.details(context),
                   ),
                 ],
@@ -401,7 +402,7 @@ class _SuccessBlock extends StatelessWidget {
             ),
           ),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
+          child: Text(context.l10n.settings_export_bottom_sheet_done_button),
         ),
       ],
     );

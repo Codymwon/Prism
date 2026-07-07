@@ -6,6 +6,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../widgets/vault_setup_form.dart';
 import '../widgets/onboarding_loading.dart';
 import '../widgets/onboarding_slide_view.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -20,51 +21,51 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _isSettingUp = false;
   bool _showVaultSetup = false;
 
-  final List<OnboardingSlide> _slides = [
+  List<OnboardingSlide> get _slides => [
     OnboardingSlide(
-      title: 'Absolute Privacy',
-      subtitle: 'Privacy-First Notebook',
-      description: 'Your notes live completely private on your device in standard Markdown. No accounts, no tracking, pure offline speed and security.',
+      title: context.l10n.onboarding_screen_slide1_title,
+      subtitle: context.l10n.onboarding_screen_slide1_subtitle,
+      description: context.l10n.onboarding_screen_slide1_desc,
       icon: Icons.shield_outlined,
       gradientColors: [const Color(0xFFE07A5F), const Color(0xFFF2CC8F)],
       visualType: 'privacy',
     ),
     OnboardingSlide(
-      title: 'Wikilink Connections',
-      subtitle: 'Visual Relational Thinking',
-      description: 'Connect thoughts effortlessly by typing [[wikilinks]]. Explore relationships dynamically with automatic backlink indexes.',
+      title: context.l10n.onboarding_screen_slide2_title,
+      subtitle: context.l10n.onboarding_screen_slide2_subtitle,
+      description: context.l10n.onboarding_screen_slide2_desc,
       icon: Icons.hub_outlined,
       gradientColors: [const Color(0xFF81B29A), const Color(0xFF3D5A80)],
       visualType: 'wikilinks',
     ),
     OnboardingSlide(
-      title: 'Thought Graph Map',
-      subtitle: 'Interactive Mindmap',
-      description: 'Watch your connected notes blossom into an interactive force-directed graph. Visually navigate and spot patterns in your thinking.',
+      title: context.l10n.onboarding_screen_slide3_title,
+      subtitle: context.l10n.onboarding_screen_slide3_subtitle,
+      description: context.l10n.onboarding_screen_slide3_desc,
       icon: Icons.lens_blur_rounded,
       gradientColors: [const Color(0xFF7C6FF7), const Color(0xFFA197F9)],
       visualType: 'graph',
     ),
     OnboardingSlide(
-      title: 'Daily Journaling',
-      subtitle: 'Reflective Habit Building',
-      description: 'Build healthy writing rituals with structured daily templates (Gratitude, Reflection, Goals), set word count targets, and track your active writing streak.',
+      title: context.l10n.onboarding_screen_slide4_title,
+      subtitle: context.l10n.onboarding_screen_slide4_subtitle,
+      description: context.l10n.onboarding_screen_slide4_desc,
       icon: Icons.history_edu_outlined,
       gradientColors: [const Color(0xFFFF9800), const Color(0xFFFF5722)],
       visualType: 'journal',
     ),
     OnboardingSlide(
-      title: 'Editorial Aesthetics',
-      subtitle: 'Friction-Free Design',
-      description: 'Crafted with premium typography and beautiful palettes—Clean Paper, Midnight OLED, and the warm Sepia theme.',
+      title: context.l10n.onboarding_screen_slide5_title,
+      subtitle: context.l10n.onboarding_screen_slide5_subtitle,
+      description: context.l10n.onboarding_screen_slide5_desc,
       icon: Icons.auto_stories_outlined,
       gradientColors: [const Color(0xFFC8A97E), const Color(0xFF5C3D2E)],
       visualType: 'themes',
     ),
     OnboardingSlide(
-      title: 'Smart Productivity',
-      subtitle: 'Speech & Custom Macros',
-      description: 'Dictate notes offline with real-time text formatting and high-fidelity audio attachments. Insert template checklists and custom macros in one tap.',
+      title: context.l10n.onboarding_screen_slide6_title,
+      subtitle: context.l10n.onboarding_screen_slide6_subtitle,
+      description: context.l10n.onboarding_screen_slide6_desc,
       icon: Icons.keyboard_voice_rounded,
       gradientColors: [const Color(0xFF4EA8DE), const Color(0xFF5390D9)],
       visualType: 'productivity',
@@ -158,13 +159,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   ? TactileWrapper(
                                       key: const ValueKey('start_btn'),
                                       style: TactileFeedbackStyle.highImpact,
-                                      semanticLabel: 'Start Writing',
+                                      semanticLabel: context.l10n.onboarding_screen_start_writing_semantic,
                                       onTap: () => setState(() => _showVaultSetup = true),
                                       child: ExcludeSemantics(
                                         child: FloatingActionButton.extended(
                                           onPressed: () {},
                                           label: Text(
-                                            'Start Writing',
+                                            context.l10n.onboarding_screen_start_writing_label,
                                             style: DesignTypography.heading(
                                               context,
                                               fontWeight: FontWeight.w600,
@@ -181,7 +182,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   : TactileWrapper(
                                       key: const ValueKey('next_btn'),
                                       style: TactileFeedbackStyle.standard,
-                                      semanticLabel: 'Next slide',
+                                      semanticLabel: context.l10n.onboarding_screen_next_slide_semantic,
                                       onTap: () => _pageController.nextPage(
                                         duration: const Duration(milliseconds: 300),
                                         curve: Curves.easeInOut,

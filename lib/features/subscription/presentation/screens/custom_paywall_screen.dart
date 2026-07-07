@@ -6,6 +6,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../domain/entities/subscription_package.dart';
 import '../../domain/failures/subscription_failure.dart';
 import '../providers/subscription_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class CustomPaywallScreen extends ConsumerStatefulWidget {
   const CustomPaywallScreen({super.key});
@@ -115,7 +116,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                       
                       Center(
                         child: Text(
-                          isPro ? 'You are a Pro member!' : 'Elevate Your Notebook',
+                          isPro ? context.l10n.paywall_title_pro_active : context.l10n.paywall_title_pro_inactive,
                           style: DesignTypography.heading(
                             context,
                             fontSize: 20,
@@ -129,9 +130,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                       
                       Center(
                         child: Text(
-                          isPro 
-                              ? 'Thank you for supporting Prism. All premium features are unlocked.'
-                              : 'Unlock cross-device sync, custom formats, and premium styling.',
+                          isPro ? context.l10n.paywall_desc_pro_active : context.l10n.paywall_desc_pro_inactive,
                           style: DesignTypography.body(
                             context,
                             color: DesignColors.textSecondary(context),
@@ -161,7 +160,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                             if (packages.isEmpty) {
                               return Center(
                                 child: Text(
-                                  'No subscription options available currently.',
+                                  context.l10n.paywall_empty_packages,
                                   style: DesignTypography.body(context),
                                 ),
                               );
@@ -200,7 +199,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Text(
-                                'Error loading products: $err',
+                                context.l10n.paywall_error_loading(err.toString()),
                                 style: DesignTypography.body(context, color: Colors.red),
                               ),
                             ),
@@ -244,7 +243,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                                         ),
                                       )
                                     : Text(
-                                        'Upgrade Now',
+                                        context.l10n.paywall_upgrade_button,
                                         style: DesignTypography.body(
                                           context,
                                           fontWeight: FontWeight.w700,
@@ -262,7 +261,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: Text(
-                              'Subscription auto-renews until cancelled. Manage or cancel anytime in your Google Play account settings.',
+                              context.l10n.paywall_disclaimer,
                               textAlign: TextAlign.center,
                               style: DesignTypography.body(
                                 context,
@@ -285,7 +284,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                             ),
                             child: Text(
-                              'Restore Purchases',
+                              context.l10n.paywall_restore_button,
                               style: DesignTypography.body(
                                 context,
                                 fontSize: 13,
@@ -319,13 +318,13 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
         children: [
           _buildComparisonHeader(),
           const Divider(height: 16, thickness: 0.5),
-          _buildComparisonRow('E2E Google Drive Sync', free: false, pro: true),
-          _buildComparisonRow('Custom Templates & Macros', free: false, pro: true),
-          _buildComparisonRow('Timeline Audio Bookmarks', free: false, pro: true),
-          _buildComparisonRow('Premium Themes & Fonts', free: false, pro: true),
-          _buildComparisonRow('Vault Export (ZIP/PDF/JSON)', free: false, pro: true),
-          _buildComparisonRow('Unlimited Vaults (Local)', free: true, pro: true),
-          _buildComparisonRow('Local & BYOD AI', free: true, pro: true),
+          _buildComparisonRow(context.l10n.paywall_feature_sync, free: false, pro: true),
+          _buildComparisonRow(context.l10n.paywall_feature_templates_macros, free: false, pro: true),
+          _buildComparisonRow(context.l10n.paywall_feature_audio_bookmarks, free: false, pro: true),
+          _buildComparisonRow(context.l10n.paywall_feature_themes_fonts, free: false, pro: true),
+          _buildComparisonRow(context.l10n.paywall_feature_export, free: false, pro: true),
+          _buildComparisonRow(context.l10n.paywall_feature_unlimited_vaults, free: true, pro: true),
+          _buildComparisonRow(context.l10n.paywall_feature_local_ai, free: true, pro: true),
         ],
       ),
     );
@@ -337,7 +336,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
         Expanded(
           flex: 4,
           child: Text(
-            'Features',
+            context.l10n.paywall_header_features,
             style: DesignTypography.metadata(
               context,
               fontWeight: FontWeight.w700,
@@ -348,7 +347,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
         Expanded(
           flex: 1,
           child: Text(
-            'Free',
+            context.l10n.paywall_header_free,
             textAlign: TextAlign.center,
             style: DesignTypography.metadata(
               context,
@@ -360,7 +359,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
         Expanded(
           flex: 1,
           child: Text(
-            'Pro',
+            context.l10n.paywall_header_pro,
             textAlign: TextAlign.center,
             style: DesignTypography.metadata(
               context,
@@ -396,7 +395,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
               child: free
                   ? Icon(Icons.check_circle_outline_rounded, size: 15, color: primaryColor)
                   : Semantics(
-                      label: 'Not available',
+                      label: context.l10n.paywall_not_available_semantic,
                       excludeSemantics: true,
                       child: Text(
                         '—',
@@ -414,7 +413,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
               child: pro
                   ? Icon(Icons.check_circle_rounded, size: 15, color: primaryColor)
                   : Semantics(
-                      label: 'Not available',
+                      label: context.l10n.paywall_not_available_semantic,
                       excludeSemantics: true,
                       child: Text(
                         '—',
@@ -465,7 +464,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'SAVE 25%',
+                  context.l10n.paywall_save_percentage_yearly,
                   style: DesignTypography.metadata(
                     context,
                     fontSize: 8,
@@ -478,7 +477,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
               const SizedBox(height: 16), // Balance yearly card top badge
             ],
             Text(
-              isYearly ? 'Yearly Access' : 'Monthly Access',
+              isYearly ? context.l10n.paywall_yearly_access : context.l10n.paywall_monthly_access,
               style: DesignTypography.body(
                 context,
                 fontWeight: FontWeight.w700,
@@ -497,7 +496,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
               ),
             ),
             Text(
-              isYearly ? '/year' : '/month',
+              isYearly ? context.l10n.paywall_yearly_suffix : context.l10n.paywall_monthly_suffix,
               style: DesignTypography.details(context),
             ),
           ],
@@ -524,18 +523,18 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
           if (failure is PurchaseCancelledFailure) {
             // User cancelled quietly, no need for alert
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Purchase cancelled.')),
+              SnackBar(content: Text(context.l10n.paywall_purchase_cancelled)),
             );
           } else {
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Purchase Failed'),
+                title: Text(context.l10n.paywall_purchase_failed_title),
                 content: Text(failure.message),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('OK'),
+                    child: Text(context.l10n.paywall_ok),
                   ),
                 ],
               ),
@@ -545,7 +544,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
         (status) {
           if (status.isPro) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Prism Pro unlocked successfully!')),
+              SnackBar(content: Text(context.l10n.paywall_purchase_success)),
             );
             context.pop(); // Close paywall
           }
@@ -572,12 +571,12 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Restore Failed'),
+              title: Text(context.l10n.paywall_restore_failed_title),
               content: Text(failure.message),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
+                  child: Text(context.l10n.paywall_ok),
                 ),
               ],
             ),
@@ -586,12 +585,12 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
         (status) {
           if (status.isPro) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Purchases restored. Prism Pro active!')),
+              SnackBar(content: Text(context.l10n.paywall_restore_success)),
             );
             context.pop(); // Close paywall
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No active purchases found to restore.')),
+              SnackBar(content: Text(context.l10n.paywall_restore_empty)),
             );
           }
         },

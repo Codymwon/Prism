@@ -4,6 +4,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class EditorPreferencesScreen extends ConsumerWidget {
   const EditorPreferencesScreen({super.key});
@@ -27,7 +28,7 @@ class EditorPreferencesScreen extends ConsumerWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Editor Preferences',
+          context.l10n.settings_editor_pref_title,
           style: DesignTypography.heading(
             context,
             fontSize: 16,
@@ -39,7 +40,7 @@ class EditorPreferencesScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           children: [
-            const SettingsSectionHeader(title: 'Text & Layout'),
+            SettingsSectionHeader(title: context.l10n.settings_editor_pref_section_general),
             Card(
               color: DesignColors.surface(context),
               elevation: 0,
@@ -51,15 +52,15 @@ class EditorPreferencesScreen extends ConsumerWidget {
                 children: [
                   SettingsTile(
                     icon: Icons.format_size_rounded,
-                    title: 'Font size',
-                    subtitle: fontSize == '16pt' ? '16pt (Default)' : fontSize,
+                    title: context.l10n.settings_editor_pref_font_size,
+                    subtitle: fontSize == '16pt' ? context.l10n.settings_editor_pref_font_size_default(fontSize) : fontSize,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _showOptionSelector(
                       context: context,
-                      title: 'Select Font Size',
+                      title: context.l10n.settings_editor_pref_select_font_size,
                       options: ['12pt', '14pt', '16pt', '18pt', '20pt'],
                       optionLabels: {
-                        '16pt': '16pt (Default)',
+                        '16pt': context.l10n.settings_editor_pref_font_size_default('16pt'),
                       },
                       currentValue: fontSize,
                       onSelected: (val) => ref.read(fontSizeProvider.notifier).setFontSize(val),
@@ -71,15 +72,15 @@ class EditorPreferencesScreen extends ConsumerWidget {
                   ),
                   SettingsTile(
                     icon: Icons.wrap_text_rounded,
-                    title: 'Line width',
-                    subtitle: lineWidth == 'Comfortable' ? 'Comfortable (Default)' : lineWidth,
+                    title: context.l10n.settings_editor_pref_line_width,
+                    subtitle: lineWidth == 'Comfortable' ? context.l10n.settings_editor_pref_line_width_default(lineWidth) : lineWidth,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _showOptionSelector(
                       context: context,
-                      title: 'Select Line Width',
+                      title: context.l10n.settings_editor_pref_select_line_width,
                       options: ['Narrow', 'Comfortable', 'Wide'],
                       optionLabels: {
-                        'Comfortable': 'Comfortable (Default)',
+                        'Comfortable': context.l10n.settings_editor_pref_line_width_default('Comfortable'),
                       },
                       currentValue: lineWidth,
                       onSelected: (val) => ref.read(lineWidthProvider.notifier).setLineWidth(val),
@@ -90,7 +91,7 @@ class EditorPreferencesScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            const SettingsSectionHeader(title: 'Editor Behaviors'),
+            SettingsSectionHeader(title: context.l10n.settings_editor_pref_section_behaviors),
             Card(
               color: DesignColors.surface(context),
               elevation: 0,
@@ -103,11 +104,11 @@ class EditorPreferencesScreen extends ConsumerWidget {
                   SwitchListTile(
                     activeThumbColor: DesignColors.primary(context),
                     title: Text(
-                      'Display Line Numbers',
+                      context.l10n.settings_editor_pref_show_line_numbers,
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
-                      'Show logical line numbers in the editor margin',
+                      context.l10n.settings_editor_pref_show_line_numbers_desc,
                       style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                     ),
                     value: lineNumbersGutter,
@@ -120,11 +121,11 @@ class EditorPreferencesScreen extends ConsumerWidget {
                   SwitchListTile(
                     activeThumbColor: DesignColors.primary(context),
                     title: Text(
-                      'Auto-pair Brackets & Quotes',
+                      context.l10n.settings_editor_pref_bracket_pairing,
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
-                      'Automatically insert closing brackets and quotes',
+                      context.l10n.settings_editor_pref_bracket_pairing_desc,
                       style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                     ),
                     value: autoPairBrackets,
@@ -137,11 +138,11 @@ class EditorPreferencesScreen extends ConsumerWidget {
                   SwitchListTile(
                     activeThumbColor: DesignColors.primary(context),
                     title: Text(
-                      'Show Backlinks by Default',
+                      context.l10n.settings_editor_pref_show_backlinks,
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
-                      'Display the backlinks panel at the bottom of notes',
+                      context.l10n.settings_editor_pref_show_backlinks_desc,
                       style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                     ),
                     value: showBacklinksDefault,

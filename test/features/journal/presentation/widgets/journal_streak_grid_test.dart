@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:prism/l10n/l10n.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/core/utils/utils.dart';
@@ -13,7 +14,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 24, totalCount: 30)),
           allDailyDatesProvider.overrideWith((ref) => <String>{}),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalStreakGrid(),
           ),
@@ -35,7 +38,9 @@ void main() {
           journalStreakProvider.overrideWith((ref) => (streak: 24, totalCount: 30)),
           allDailyDatesProvider.overrideWith((ref) => <String>{}),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalStreakGrid(),
           ),
@@ -69,6 +74,8 @@ void main() {
           allDailyDatesProvider.overrideWith((ref) => <String>{todayStr, yesterdayStr, oldestStr}),
         ],
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.blue,

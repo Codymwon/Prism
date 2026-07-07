@@ -13,6 +13,7 @@ import '../widgets/journal_week_strip.dart';
 import '../widgets/journal_streak_grid.dart';
 import '../widgets/journal_templates_row.dart';
 import '../widgets/journal_empty_state.dart';
+import 'package:prism/l10n/l10n.dart';
 
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
 final focusedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
@@ -94,7 +95,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         );
       },
       error: (e, _) => Center(
-        child: Text('Error: $e', style: TextStyle(color: colorScheme.error)),
+        child: Text(context.l10n.journal_screen_error(e.toString()), style: TextStyle(color: colorScheme.error)),
       ),
       data: (data) {
         // Update cache on successful load
@@ -146,7 +147,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'START WITH A TEMPLATE',
+            context.l10n.journal_screen_start_with_template,
             style: DesignTypography.metadata(
               context,
               fontSize: 10,
@@ -216,7 +217,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       initialContent = buffer.toString();
     }
     final note = await repo.createNote(
-      title: 'Daily Reflection',
+      title: context.l10n.journal_screen_default_template_title,
       initialContent: initialContent,
       isDaily: true,
       dailyDate: dateStr,

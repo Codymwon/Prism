@@ -8,6 +8,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../providers/settings_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class ThemeGalleryScreen extends ConsumerStatefulWidget {
   const ThemeGalleryScreen({super.key});
@@ -61,8 +62,8 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
       if (mounted) {
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Theme applied successfully!'),
+          SnackBar(
+            content: Text(context.l10n.settings_theme_gallery_applied_success),
             backgroundColor: Colors.green,
           ),
         );
@@ -111,7 +112,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'Use Theme',
+                context.l10n.settings_theme_gallery_apply_button,
                 style: DesignTypography.body(
                   context,
                   fontWeight: FontWeight.bold,
@@ -152,7 +153,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Theme Gallery',
+                          context.l10n.settings_theme_gallery_title,
                           style: DesignTypography.heading(
                             context,
                             fontSize: 20,
@@ -160,7 +161,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                           ),
                         ),
                         Text(
-                          'Curated editorial layouts & typography',
+                          context.l10n.settings_theme_gallery_subtitle,
                           style: DesignTypography.details(context),
                         ),
                       ],
@@ -180,7 +181,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'LIVE SCREEN PREVIEW',
+                            context.l10n.settings_theme_gallery_live_preview_header,
                             style: DesignTypography.metadata(
                               context,
                               fontSize: 9.5,
@@ -217,14 +218,14 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Try premium colors in the mockup',
+                            context.l10n.settings_theme_gallery_try_premium_label,
                             style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Live Preview Mode',
+                                context.l10n.settings_theme_gallery_live_preview_toggle,
                                 style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(width: 8),
@@ -260,7 +261,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                       child: Text(
-                        'LIGHT EDITORIAL PALETTES',
+                        context.l10n.settings_theme_gallery_light_editorial_header,
                         style: DesignTypography.metadata(
                           context,
                           fontSize: 9.5,
@@ -363,9 +364,9 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildTabButton(0, 'List', Icons.view_list_rounded),
-          _buildTabButton(1, 'Editor', Icons.edit_note_rounded),
-          _buildTabButton(2, 'Graph', Icons.hub_outlined),
+          _buildTabButton(0, context.l10n.settings_theme_gallery_tab_list, Icons.view_list_rounded),
+          _buildTabButton(1, context.l10n.settings_theme_gallery_tab_editor, Icons.edit_note_rounded),
+          _buildTabButton(2, context.l10n.settings_theme_gallery_tab_graph, Icons.hub_outlined),
         ],
       ),
     );
@@ -1135,4 +1136,3 @@ class _GalleryThemeCard extends StatelessWidget {
     );
   }
 }
-

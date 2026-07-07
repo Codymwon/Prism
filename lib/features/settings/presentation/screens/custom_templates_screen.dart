@@ -6,6 +6,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/services/template_service.dart';
 import '../../../../core/utils/utils.dart' as utils;
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 final templatesListProvider = FutureProvider.autoDispose<List<String>>((ref) async {
   ref.watch(templatesVersionProvider);
@@ -61,7 +62,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Custom Templates',
+          context.l10n.settings_custom_templates_title,
           style: DesignTypography.heading(
             context,
             fontSize: 16,
@@ -71,7 +72,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
         actions: [
           IconButton(
             icon: const Icon(DesignIcons.add),
-            tooltip: 'Create Template',
+            tooltip: context.l10n.settings_custom_templates_create_button_tooltip,
             onPressed: () => _showCreateDialog(context),
           ),
         ],
@@ -107,7 +108,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Template Manager',
+                                context.l10n.settings_custom_templates_manager_header,
                                 style: DesignTypography.body(
                                   context,
                                   fontWeight: FontWeight.bold,
@@ -115,7 +116,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Manage reusable page templates for note creation.',
+                                context.l10n.settings_custom_templates_manager_desc,
                                 style: DesignTypography.details(context),
                               ),
                             ],
@@ -128,7 +129,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
                   child: Text(
-                    'TEMPLATES',
+                    context.l10n.settings_custom_templates_list_header,
                     style: DesignTypography.metadata(
                       context,
                       fontSize: 10,
@@ -157,7 +158,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
           loading: () => const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
           error: (e, _) => Center(
             child: Text(
-              'Error loading templates: $e',
+              context.l10n.settings_custom_templates_error_loading(e.toString()),
               style: TextStyle(color: colorScheme.error),
             ),
           ),
@@ -224,13 +225,13 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
             onPressed: () {
               context.push('/editor/template:$slug?new=false');
             },
-            tooltip: 'Edit Template Content',
+            tooltip: context.l10n.settings_custom_templates_edit_tooltip,
             color: DesignColors.primary(context),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded, size: 20),
             onPressed: () => _confirmDelete(context, slug, displayName),
-            tooltip: 'Delete Template',
+            tooltip: context.l10n.settings_custom_templates_delete_tooltip,
             color: Colors.redAccent.withValues(alpha: 0.8),
           ),
         ],
@@ -259,12 +260,12 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No Custom Templates',
+              context.l10n.settings_custom_templates_empty_title,
               style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
-              'Create reusable note structures for your journals and workspaces.',
+              context.l10n.settings_custom_templates_empty_desc,
               style: DesignTypography.details(context),
               textAlign: TextAlign.center,
             ),
@@ -281,7 +282,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: DesignColors.background(context),
         title: Text(
-          'Create Template',
+          context.l10n.settings_custom_templates_create_dialog_title,
           style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: Column(
@@ -289,7 +290,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Enter a name for the new template:',
+              context.l10n.settings_custom_templates_create_dialog_prompt,
               style: DesignTypography.body(context, fontSize: 13),
             ),
             const SizedBox(height: 12),
@@ -297,7 +298,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
               controller: nameController,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: 'e.g. Weekly Review',
+                hintText: context.l10n.settings_custom_templates_create_dialog_hint,
                 hintStyle: TextStyle(color: DesignColors.textTertiary(context)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 focusedBorder: OutlineInputBorder(
@@ -316,7 +317,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: DesignTypography.body(context)),
+            child: Text(context.l10n.settings_custom_templates_cancel_button, style: DesignTypography.body(context)),
           ),
           TextButton(
             onPressed: () async {
@@ -332,7 +333,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
                 (failure) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to create template: ${failure.message}')),
+                      SnackBar(content: Text(context.l10n.settings_custom_templates_create_error(failure.message))),
                     );
                   }
                 },
@@ -345,7 +346,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
               );
             },
             child: Text(
-              'Create',
+              context.l10n.settings_custom_templates_create_dialog_confirm_button,
               style: DesignTypography.body(context, color: DesignColors.primary(context), fontWeight: FontWeight.bold),
             ),
           ),
@@ -360,17 +361,17 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: DesignColors.background(context),
         title: Text(
-          'Delete Template',
+          context.l10n.settings_custom_templates_delete_confirm_title,
           style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to permanently delete the template "$displayName"? This action cannot be undone.',
+          context.l10n.settings_custom_templates_delete_confirm_desc(displayName),
           style: DesignTypography.body(context),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: DesignTypography.body(context)),
+            child: Text(context.l10n.settings_custom_templates_cancel_button, style: DesignTypography.body(context)),
           ),
           TextButton(
             onPressed: () async {
@@ -380,7 +381,7 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
                 (failure) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to delete template: ${failure.message}')),
+                      SnackBar(content: Text(context.l10n.settings_custom_templates_delete_error(failure.message))),
                     );
                   }
                 },
@@ -388,14 +389,14 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
                   ref.invalidate(templatesListProvider);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Template deleted.')),
+                      SnackBar(content: Text(context.l10n.settings_custom_templates_delete_success)),
                     );
                   }
                 },
               );
             },
             child: Text(
-              'Delete',
+              context.l10n.settings_custom_templates_delete_confirm_button,
               style: DesignTypography.body(context, color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),

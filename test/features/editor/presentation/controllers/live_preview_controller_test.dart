@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/editor/presentation/controllers/live_preview_controller.dart';
@@ -9,6 +10,8 @@ void main() {
   group('LivePreviewController Tests', () {
     testWidgets('should render cursor line as raw text with dimmed syntax', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) {
@@ -59,6 +62,8 @@ void main() {
 
     testWidgets('should render all lines as raw with dimmed syntax in source mode', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) {
@@ -100,6 +105,8 @@ void main() {
 
     testWidgets('should render hashtag with custom background and color in live preview mode', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) {
@@ -136,6 +143,8 @@ void main() {
 
     testWidgets('should omit heading hashes and separating spaces on non-cursor lines in live preview mode', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) {

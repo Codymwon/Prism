@@ -6,6 +6,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class SettingsSectionHeader extends StatelessWidget {
   final String title;
@@ -44,9 +45,9 @@ class ThemeSelector extends StatelessWidget {
     final isPro = ref.watch(isProProvider);
     // 1. Core modes
     final coreModes = [
-      (AppThemeType.system, 'System Sync'),
-      (AppThemeType.light, 'Clean Paper'),
-      (AppThemeType.dark, 'Dusk Dark'),
+      (AppThemeType.system, context.l10n.settings_widgets_theme_system),
+      (AppThemeType.light, context.l10n.settings_widgets_theme_light),
+      (AppThemeType.dark, context.l10n.settings_widgets_theme_dark),
     ];
 
     // Overlapping visual circles representing editorial theme colors
@@ -140,7 +141,7 @@ class ThemeSelector extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Explore Editorial Themes',
+                            context.l10n.settings_widgets_theme_explore_teaser,
                             style: DesignTypography.body(
                               context,
                               fontSize: 13.5,
@@ -149,7 +150,7 @@ class ThemeSelector extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Sepia, Forest, Noir, Slate, and 4 more...',
+                            context.l10n.settings_widgets_theme_teaser_list,
                             style: DesignTypography.details(context),
                           ),
                         ],
@@ -446,7 +447,7 @@ class ProGateTile extends ConsumerWidget {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('$title is coming soon!'),
+                content: Text(context.l10n.settings_widgets_coming_soon(title)),
               ),
             );
           }
@@ -532,7 +533,7 @@ class HapticToggleTile extends ConsumerWidget {
         ),
       ),
       title: Text(
-        'Haptic Feedback',
+        context.l10n.settings_widgets_haptic_feedback,
         style: DesignTypography.body(
           context,
           fontSize: 14,
@@ -540,7 +541,7 @@ class HapticToggleTile extends ConsumerWidget {
         ),
       ),
       subtitle: Text(
-        'Vibrate on satisfying button presses and interactions',
+        context.l10n.settings_widgets_haptic_feedback_desc,
         style: DesignTypography.details(context),
       ),
       value: hapticsEnabled,
@@ -575,7 +576,7 @@ class DragToPinToggleTile extends ConsumerWidget {
         ),
       ),
       title: Text(
-        'Pin Graph Nodes on Drag',
+        context.l10n.settings_widgets_pin_nodes,
         style: DesignTypography.body(
           context,
           fontSize: 14,
@@ -583,7 +584,7 @@ class DragToPinToggleTile extends ConsumerWidget {
         ),
       ),
       subtitle: Text(
-        'Pin year/week calendar nodes when dragging them',
+        context.l10n.settings_widgets_pin_nodes_desc,
         style: DesignTypography.details(context),
       ),
       value: dragToPinEnabled,
@@ -618,7 +619,7 @@ class AnalyticsToggleTile extends ConsumerWidget {
         ),
       ),
       title: Text(
-        'Share Usage Analytics',
+        context.l10n.settings_widgets_analytics,
         style: DesignTypography.body(
           context,
           fontSize: 14,
@@ -626,7 +627,7 @@ class AnalyticsToggleTile extends ConsumerWidget {
         ),
       ),
       subtitle: Text(
-        'Help us improve Prism by sharing anonymous app usage stats and crash reports',
+        context.l10n.settings_widgets_analytics_desc,
         style: DesignTypography.details(context),
       ),
       value: analyticsEnabled,
@@ -637,7 +638,6 @@ class AnalyticsToggleTile extends ConsumerWidget {
     );
   }
 }
-
 
 
 

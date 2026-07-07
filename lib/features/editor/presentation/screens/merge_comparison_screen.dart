@@ -10,6 +10,7 @@ import '../utils/editor_helpers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class MergeComparisonScreen extends ConsumerStatefulWidget {
   final String noteId;
@@ -51,7 +52,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       final conflict = await repo.getNoteById(widget.noteId);
       if (conflict == null) {
         setState(() {
-          _error = 'Conflict note not found.';
+          _error = context.l10n.editor_merge_comparison_note_not_found;
           _isLoading = false;
         });
         return;
@@ -59,7 +60,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
 
       if (!conflict.isConflicted || conflict.originalNoteId == null) {
         setState(() {
-          _error = 'This note is not marked as conflicted.';
+          _error = context.l10n.editor_merge_comparison_not_conflicted;
           _isLoading = false;
         });
         return;
@@ -69,7 +70,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       final original = await repo.getNoteById(conflict.originalNoteId!);
       if (original == null) {
         setState(() {
-          _error = 'Original note was deleted or not found.';
+          _error = context.l10n.editor_merge_comparison_original_deleted;
           _isLoading = false;
         });
         return;
@@ -97,7 +98,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load note contents: $e';
+        _error = context.l10n.editor_merge_comparison_failed_load(e.toString());
         _isLoading = false;
       });
     }
@@ -116,7 +117,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Conflicted copy discarded. Keeping original note.',
+              context.l10n.editor_merge_comparison_discarded_success,
               style: GoogleFonts.inter(),
             ),
           ),
@@ -125,7 +126,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       }
     } catch (e) {
       setState(() {
-        _error = 'Error discarding conflicted copy: $e';
+        _error = context.l10n.editor_merge_comparison_discard_error(e.toString());
         _isLoading = false;
       });
     }
@@ -149,7 +150,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Original note replaced with conflicted copy contents.',
+              context.l10n.editor_merge_comparison_replaced_success,
               style: GoogleFonts.inter(),
             ),
           ),
@@ -158,7 +159,7 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       }
     } catch (e) {
       setState(() {
-        _error = 'Error resolving conflict: $e';
+        _error = context.l10n.editor_merge_comparison_replace_error(e.toString());
         _isLoading = false;
       });
     }
@@ -191,7 +192,7 @@ $_conflictContent
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Notes merged with Git conflict markers. Please resolve manually.',
+              context.l10n.editor_merge_comparison_merged_markers,
               style: GoogleFonts.inter(),
             ),
             duration: const Duration(seconds: 4),
@@ -201,7 +202,7 @@ $_conflictContent
       }
     } catch (e) {
       setState(() {
-        _error = 'Error merging notes: $e';
+        _error = context.l10n.editor_merge_comparison_merge_error(e.toString());
         _isLoading = false;
       });
     }
@@ -218,7 +219,7 @@ $_conflictContent
       backgroundColor: DesignColors.background(context),
       appBar: AppBar(
         title: Text(
-          'Compare & Resolve',
+          context.l10n.editor_merge_comparison_compare_resolve,
           style: getEditorFont(
             fontFamily,
             fontSize: 18,
@@ -233,9 +234,9 @@ $_conflictContent
                 indicatorColor: colorScheme.primary,
                 labelColor: colorScheme.primary,
                 unselectedLabelColor: DesignColors.textSecondary(context),
-                tabs: const [
-                  Tab(text: 'Original Note'),
-                  Tab(text: 'Conflicted Copy'),
+                tabs: [
+                  Tab(text: context.l10n.editor_merge_comparison_tab_original),
+                  Tab(text: context.l10n.editor_merge_comparison_tab_conflict),
                 ],
               ),
       ),
@@ -255,8 +256,8 @@ $_conflictContent
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildMarkdownPreview(_originalContent, colorScheme, 'Original Note', fontFamily, sizeVal),
-              _buildMarkdownPreview(_conflictContent, colorScheme, 'Conflicted Copy', fontFamily, sizeVal),
+              _buildMarkdownPreview(_originalContent, colorScheme, context.l10n.editor_merge_comparison_tab_original, fontFamily, sizeVal),
+              _buildMarkdownPreview(_conflictContent, colorScheme, context.l10n.editor_merge_comparison_tab_conflict, fontFamily, sizeVal),
             ],
           ),
         ),
@@ -271,7 +272,7 @@ $_conflictContent
     if (content.trim().isEmpty) {
       return Center(
         child: Text(
-          'Note is empty.',
+          context.l10n.editor_merge_comparison_empty_note,
           style: getEditorFont(
             family,
             fontSize: size,
@@ -318,7 +319,7 @@ $_conflictContent
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'How would you like to resolve this conflict?',
+              context.l10n.editor_merge_comparison_how_to_resolve,
               style: getEditorFont(
                 fontFamily,
                 fontSize: 12,
@@ -341,7 +342,7 @@ $_conflictContent
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
-                      'Keep Original',
+                      context.l10n.editor_merge_comparison_keep_original,
                       style: getEditorFont(
                         fontFamily,
                         fontWeight: FontWeight.w600,
@@ -360,7 +361,7 @@ $_conflictContent
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
-                      'Keep Conflicted',
+                      context.l10n.editor_merge_comparison_keep_conflicted,
                       style: getEditorFont(
                         fontFamily,
                         fontWeight: FontWeight.w600,
@@ -384,7 +385,7 @@ $_conflictContent
                 elevation: 2,
               ),
               child: Text(
-                'Merge Both Copies',
+                context.l10n.editor_merge_comparison_merge_both,
                 style: getEditorFont(
                   fontFamily,
                   fontWeight: FontWeight.w700,
@@ -409,7 +410,7 @@ $_conflictContent
             Icon(Icons.error_outline_rounded, size: 48, color: Colors.red[400]),
             const SizedBox(height: 16),
             Text(
-              'Resolution Error',
+              context.l10n.editor_merge_comparison_resolution_error,
               style: getEditorFont(
                 fontFamily,
                 fontSize: 18,
@@ -429,7 +430,7 @@ $_conflictContent
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => context.go('/notes'),
-              child: const Text('Back to Notes'),
+              child: Text(context.l10n.editor_merge_comparison_back_to_notes),
             ),
           ],
         ),

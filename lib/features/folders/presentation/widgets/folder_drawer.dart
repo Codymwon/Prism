@@ -12,6 +12,7 @@ import '../../../notes/data/note_repository.dart';
 import '../../../notes/presentation/widgets/vault_selector_title.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class FolderDrawer extends ConsumerWidget {
   const FolderDrawer({super.key});
@@ -25,7 +26,7 @@ class FolderDrawer extends ConsumerWidget {
       if (eligibleNotes.isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No notes found in this vault')),
+            SnackBar(content: Text(context.l10n.folders_drawer_no_notes)),
           );
         }
         return;
@@ -40,7 +41,7 @@ class FolderDrawer extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error finding random note: $e')),
+          SnackBar(content: Text(context.l10n.folders_drawer_random_note_error(e.toString()))),
         );
       }
     }
@@ -102,7 +103,7 @@ class FolderDrawer extends ConsumerWidget {
               _buildToolTile(
                 context,
                 icon: Icons.description_outlined,
-                title: 'Manage Templates',
+                title: context.l10n.folders_drawer_manage_templates,
                 onTap: () {
                   Navigator.of(context).pop();
                   context.push('/settings/custom-templates');
@@ -114,7 +115,7 @@ class FolderDrawer extends ConsumerWidget {
               _buildToolTile(
                 context,
                 icon: Icons.bolt_outlined,
-                title: 'Manage Macros',
+                title: context.l10n.folders_drawer_manage_macros,
                 onTap: () {
                   Navigator.of(context).pop();
                   context.push('/settings/custom-macros');
@@ -215,7 +216,7 @@ class FolderDrawer extends ConsumerWidget {
             // Header
             ListTile(
               title: Text(
-                'Folder: ${folder.name}',
+                context.l10n.folders_drawer_folder_menu_title(folder.name),
                 style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
@@ -224,7 +225,7 @@ class FolderDrawer extends ConsumerWidget {
             // Edit
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: Text('Edit details', style: DesignTypography.body(context)),
+              title: Text(context.l10n.folders_drawer_edit_details, style: DesignTypography.body(context)),
               onTap: () {
                 Navigator.pop(ctx);
                 navigateToEditFolderScreen(context, folder.id);
@@ -240,7 +241,7 @@ class FolderDrawer extends ConsumerWidget {
                 DesignDialogs.showSimpleConfirmDialog(
                   context: context,
                   title: 'Delete Folder?',
-                  content: 'This will delete the "${folder.name}" category organization. None of the physical markdown files will be deleted.',
+                  content: context.l10n.folders_drawer_delete_warning(folder.name),
                   confirmText: 'Delete',
                   onConfirm: () async {
                     // If deleted folder was active, clear filter

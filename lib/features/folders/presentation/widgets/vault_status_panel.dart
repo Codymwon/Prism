@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/database/vault_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class VaultStatusPanel extends ConsumerWidget {
   const VaultStatusPanel({super.key});
@@ -57,7 +58,7 @@ class VaultStatusPanel extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            activeVaultPath.isEmpty ? 'Loading path...' : activeVaultPath,
+            activeVaultPath.isEmpty ? context.l10n.folders_status_panel_loading_path : activeVaultPath,
             style: DesignTypography.mono(
               fontSize: 10,
               color: DesignColors.textTertiary(context),
@@ -82,7 +83,7 @@ class VaultStatusPanel extends ConsumerWidget {
                 const Icon(Icons.offline_pin_outlined, size: 12, color: Colors.green),
                 const SizedBox(width: 4),
                 Text(
-                  'Local Safe / Private Sync Ready',
+                  context.l10n.folders_status_panel_ready,
                   style: DesignTypography.metadata(
                     context,
                     fontSize: 9,

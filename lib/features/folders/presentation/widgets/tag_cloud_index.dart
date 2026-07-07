@@ -4,6 +4,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../providers/folders_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class TagCloudIndex extends ConsumerWidget {
   const TagCloudIndex({super.key});
@@ -20,7 +21,7 @@ class TagCloudIndex extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 10, bottom: 8),
           child: Text(
-            'TAG INDEX',
+            context.l10n.folders_tag_cloud_title,
             style: DesignTypography.metadata(
               context,
               fontSize: 10,
@@ -47,7 +48,7 @@ class TagCloudIndex extends ConsumerWidget {
           error: (err, _) => Padding(
             padding: const EdgeInsets.all(10.0),
             child: Text(
-              'Error index: $err',
+              context.l10n.folders_tag_cloud_error(err.toString()),
               style: TextStyle(color: colorScheme.error, fontSize: 11),
             ),
           ),
@@ -67,7 +68,7 @@ class TagCloudIndex extends ConsumerWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
         child: Text(
-          'No tags parsed yet. Add #tags to your notes to auto-index them.',
+          context.l10n.folders_tag_cloud_empty,
           style: DesignTypography.details(
             context,
             fontSize: 11,

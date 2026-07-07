@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/folders/presentation/widgets/folder_icon_display.dart';
@@ -6,6 +7,8 @@ void main() {
   group('FolderIconDisplay', () {
     Widget buildWidget({required String iconKey, required Color color}) {
       return MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: FolderIconDisplay(

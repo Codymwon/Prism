@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -165,6 +166,8 @@ void main() {
             backlinksProvider(noteId).overrideWith((ref) => []),
           ],
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: EditorScreen(
               noteId: noteId,
               isNew: false,

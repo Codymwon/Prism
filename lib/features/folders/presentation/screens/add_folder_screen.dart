@@ -6,6 +6,7 @@ import '../../data/folder_repository.dart';
 import '../widgets/folder_icon_display.dart';
 import '../widgets/folder_icon_picker.dart';
 import '../widgets/hsv_color_picker.dart';
+import 'package:prism/l10n/l10n.dart';
 
 const List<Color> _kSwatches = [
   Color(0xFF7C6FF7), // Indigo (default)
@@ -128,7 +129,7 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
                         color: DesignColors.textSecondary(context),
                       ),
                       label: Text(
-                        'Add icon',
+                        context.l10n.folders_add_folder_add_icon,
                         style: DesignTypography.metadata(
                           context,
                           fontSize: 12,
@@ -153,7 +154,7 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
                             color: DesignColors.textTertiary(context),
                           ),
                           label: Text(
-                            'Change icon',
+                            context.l10n.folders_add_folder_change_icon,
                             style: DesignTypography.metadata(
                               context,
                               fontSize: 11,
@@ -175,7 +176,7 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
-                            '✕ Remove',
+                            context.l10n.folders_add_folder_remove_icon,
                             style: DesignTypography.metadata(
                               context,
                               fontSize: 11,
@@ -196,7 +197,7 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
               autofocus: true,
               style: DesignTypography.body(context, fontSize: 16),
               decoration: InputDecoration(
-                hintText: 'Folder name',
+                hintText: context.l10n.folders_add_folder_hint,
                 hintStyle: DesignTypography.body(
                     context, color: DesignColors.textTertiary(context)),
                 filled: true,

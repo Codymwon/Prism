@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class WikilinksVisual extends StatelessWidget {
   const WikilinksVisual({super.key});
@@ -26,7 +27,7 @@ class WikilinksVisual extends StatelessWidget {
           // Right Note Card
           Positioned(
             right: 10,
-            child: _buildInteractiveNoteCard(context, 'Brain Map', Icons.hub_outlined, accentGreen),
+            child: _buildInteractiveNoteCard(context, context.l10n.onboarding_visual_wikilinks_brain_map, Icons.hub_outlined, accentGreen),
           ),
           // Double brackets floating & pulsing
           Positioned(
@@ -39,7 +40,7 @@ class WikilinksVisual extends StatelessWidget {
                 border: Border.all(color: border),
               ),
               child: Text(
-                '[[ wikilink ]]',
+                context.l10n.onboarding_visual_wikilinks_wikilink_label,
                 style: DesignTypography.body(
                   context,
                   fontSize: 12,

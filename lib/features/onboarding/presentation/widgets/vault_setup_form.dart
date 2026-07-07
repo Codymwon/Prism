@@ -13,6 +13,7 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/onboarding_provider.dart';
 import '../../../../core/utils/storage_permission_helper.dart';
 import '../../../../core/services/analytics_service.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class VaultSetupForm extends ConsumerStatefulWidget {
   final VoidCallback onStartSetup;
@@ -42,10 +43,19 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   bool _shareAnalytics = true;
   int _currentStep = 1; // 1: Main Storage Location, 2: First Vault Name
 
-  final TextEditingController _hubNameController =
-      TextEditingController(text: 'Prism Hub');
-  final TextEditingController _vaultNameController =
-      TextEditingController(text: 'My Vault');
+  final TextEditingController _hubNameController = TextEditingController();
+  final TextEditingController _vaultNameController = TextEditingController();
+  bool _didInitControllers = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didInitControllers) {
+      _hubNameController.text = context.l10n.onboarding_vault_setup_default_hub_name;
+      _vaultNameController.text = context.l10n.onboarding_vault_setup_default_vault_name;
+      _didInitControllers = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -70,7 +80,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open folder picker: $e')),
+        SnackBar(content: Text(context.l10n.onboarding_vault_setup_folder_picker_error(e.toString()))),
       );
     } finally {
       if (mounted) setState(() => _isPickingFolder = false);
@@ -93,7 +103,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         debugPrint('DEBUG: hubName is empty');
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name for the main folder.')),
+        SnackBar(content: Text(context.l10n.onboarding_vault_setup_name_required_error)),
       );
       return;
     }
@@ -103,9 +113,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         debugPrint('DEBUG: hubName does not match safePattern');
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Folder name can only contain letters, numbers, spaces, underscores, and hyphens.',
+            context.l10n.onboarding_vault_setup_invalid_chars_error,
           ),
         ),
       );
@@ -117,7 +127,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         debugPrint('DEBUG: _customLocationPath is empty');
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a storage folder.')),
+        SnackBar(content: Text(context.l10n.onboarding_vault_setup_folder_required_error)),
       );
       return;
     }
@@ -139,11 +149,11 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         builder: (ctx) => AlertDialog(
           backgroundColor: DesignColors.surface(context),
           title: Text(
-            'Storage Access Required',
+            context.l10n.onboarding_vault_setup_permission_title,
             style: DesignTypography.heading(context, fontWeight: FontWeight.bold),
           ),
           content: Text(
-            'To write and sync note files inside your chosen documents folder, Android requires the "All Files Access" permission.',
+            context.l10n.onboarding_vault_setup_permission_desc,
             style: DesignTypography.body(context),
           ),
           actions: [
@@ -163,8 +173,8 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         await StoragePermissionHelper.requestAllFilesAccess();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please enable All Files Access for Prism and tap Next again.'),
+            SnackBar(
+              content: Text(context.l10n.onboarding_vault_setup_permission_retry_desc),
             ),
           );
         }
@@ -256,7 +266,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Found existing vaults in "$hubName". Imported and opened "$activeVault".',
+                  context.l10n.onboarding_vault_setup_import_success(hubName, activeVault),
                 ),
               ),
             );
@@ -270,7 +280,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             setState(() => _isCompleting = false);
             widget.onEndSetup();
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Import failed: $e. Please try again.')),
+              SnackBar(content: Text(context.l10n.onboarding_vault_setup_import_error(e.toString()))),
             );
           }
           return;
@@ -307,9 +317,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
     if (!safePattern.hasMatch(vaultName)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Vault name can only contain letters, numbers, spaces, underscores, and hyphens.',
+            context.l10n.onboarding_vault_setup_invalid_chars_error,
           ),
         ),
       );
@@ -370,7 +380,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         setState(() => _isCompleting = false);
         widget.onEndSetup();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Setup failed: $e. Please try again.')),
+          SnackBar(content: Text(context.l10n.onboarding_vault_setup_setup_error(e.toString()))),
         );
       }
     }
@@ -403,7 +413,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ).animate().fadeIn().slideY(begin: 0.2),
           const SizedBox(height: 8),
           Text(
-            _currentStep == 1 ? 'Configure Vault Location' : 'Name your first vault',
+            _currentStep == 1 ? context.l10n.onboarding_vault_setup_config_location_title : context.l10n.onboarding_vault_setup_name_vault_title,
             style: DesignTypography.display(
               context,
               fontSize: 26,
@@ -414,8 +424,8 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           const SizedBox(height: 12),
           Text(
             _currentStep == 1
-                ? 'Prism stores all your notes directly on your device. Choose where your main storage folder (Prism Hub) lives. You can switch between multiple vaults later.'
-                : 'This will be your first workspace folder created inside the main directory.',
+                ? context.l10n.onboarding_vault_setup_choose_location_desc
+                : context.l10n.onboarding_vault_setup_first_vault_desc,
             style: DesignTypography.body(
               context,
               fontSize: 14,
@@ -428,7 +438,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           if (_currentStep == 1) ...[
             // ── Vault Location Selector ─────────────────────────────────────
             Text(
-              'Vault Location',
+              context.l10n.onboarding_vault_setup_vault_location_label,
               style: DesignTypography.body(
                 context,
                 fontSize: 13,
@@ -475,7 +485,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Device storage',
+                                context.l10n.onboarding_vault_setup_device_storage_label,
                                 style: DesignTypography.body(
                                   context,
                                   fontWeight: FontWeight.w700,
@@ -513,7 +523,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                                     Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
                                     Expanded(
                                       child: Text(
-                                        'Allows Prism data to be accessed by other apps.',
+                                        context.l10n.onboarding_vault_setup_device_storage_desc,
                                         style: DesignTypography.details(context, color: textSecStyle),
                                       ),
                                     ),
@@ -557,7 +567,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'App storage',
+                                context.l10n.onboarding_vault_setup_app_storage_label,
                                 style: DesignTypography.body(
                                   context,
                                   fontWeight: FontWeight.w700,
@@ -578,7 +588,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                                     Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
                                     Expanded(
                                       child: Text(
-                                        'Your data will not be accessible to other apps.',
+                                        context.l10n.onboarding_vault_setup_app_storage_desc_android,
                                         style: DesignTypography.details(context, color: textSecStyle),
                                       ),
                                     ),
@@ -591,7 +601,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                                     Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
                                     Expanded(
                                       child: Text(
-                                        'Android will delete your data if you uninstall Prism.',
+                                        context.l10n.onboarding_vault_setup_app_storage_desc_warning,
                                         style: DesignTypography.details(context, color: textSecStyle),
                                       ),
                                     ),
@@ -612,7 +622,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             if (_selectedVaultType == 'custom') ...[
               // ── Step 1: Prism Hub Name ──────────────────────────────────────
               Text(
-                'Prism Hub Name',
+                context.l10n.onboarding_vault_setup_hub_name_label,
                 style: DesignTypography.body(
                   context,
                   fontSize: 13,
@@ -627,7 +637,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: DesignColors.surfaceVariant(context),
-                  hintText: 'e.g. Prism Hub, My Notes, Second Brain',
+                  hintText: context.l10n.onboarding_vault_setup_hub_name_hint,
                   hintStyle: DesignTypography.body(
                     context,
                     color: DesignColors.textTertiary(context),
@@ -730,8 +740,8 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                                 Expanded(
                                   child: Text(
                                     locationSelected
-                                        ? 'Location selected'
-                                        : 'Tap to choose a folder',
+                                        ? context.l10n.onboarding_vault_setup_location_selected
+                                        : context.l10n.onboarding_vault_setup_choose_folder_prompt,
                                     style: DesignTypography.body(
                                       context,
                                       fontWeight: FontWeight.w700,
@@ -773,7 +783,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                             Text(
                               locationSelected
                                   ? _customLocationPath
-                                  : 'Prism will create your main directory inside this folder.',
+                                  : context.l10n.onboarding_vault_setup_location_creation_desc,
                               style: DesignTypography.details(
                                 context,
                                 fontSize: 12,
@@ -803,7 +813,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  'Choose a storage folder above to continue',
+                  context.l10n.onboarding_vault_setup_choose_folder_warning,
                   style: DesignTypography.details(
                     context,
                     fontSize: 12,
@@ -815,7 +825,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ] else ...[
             // ── Step 2: Vault Name ──────────────────────────────────────────
             Text(
-              'Vault Name',
+              context.l10n.onboarding_vault_setup_vault_name_label,
               style: DesignTypography.body(
                 context,
                 fontSize: 13,
@@ -830,7 +840,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: DesignColors.surfaceVariant(context),
-                hintText: 'e.g. My Vault, Personal, Research',
+                hintText: context.l10n.onboarding_vault_setup_vault_name_hint,
                 hintStyle: DesignTypography.body(
                   context,
                   color: DesignColors.textTertiary(context),
@@ -872,7 +882,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Share anonymous telemetry',
+                          context.l10n.onboarding_vault_setup_telemetry_title,
                           style: DesignTypography.body(
                             context,
                             fontWeight: FontWeight.w700,
@@ -882,7 +892,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Help us improve Prism by sharing anonymous feature usage data and crash logs. No personal data, notes, or search queries are ever collected.',
+                          context.l10n.onboarding_vault_setup_telemetry_desc,
                           style: DesignTypography.details(
                             context,
                             fontSize: 12,
@@ -906,7 +916,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             const SizedBox(height: 32),
             // Confirm & Begin Button
             DesignPrimaryButton(
-              label: 'Confirm & Begin',
+              label: context.l10n.onboarding_vault_setup_confirm_button,
               icon: Icons.check_rounded,
               onTap: !_isCompleting ? _completeOnboarding : null,
             ).animate().fadeIn(delay: 280.ms),
@@ -915,7 +925,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
               child: TextButton(
                 onPressed: () => setState(() => _currentStep = 1),
                 child: Text(
-                  'Back to step 1',
+                  context.l10n.onboarding_vault_setup_back_button,
                   style: DesignTypography.details(
                     context,
                     color: DesignColors.textSecondary(context),
@@ -932,4 +942,3 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     );
   }
 }
-

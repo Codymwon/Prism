@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:prism/l10n/l10n.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../notes/data/note_model.dart';
@@ -66,7 +67,7 @@ class _BacklinksPanelState extends ConsumerState<BacklinksPanel> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${backlinks.length} backlink${backlinks.length == 1 ? '' : 's'}',
+                      context.l10n.editor_backlinks_panel_title(backlinks.length),
                       style: DesignTypography.heading(
                         context,
                         fontSize: 12,

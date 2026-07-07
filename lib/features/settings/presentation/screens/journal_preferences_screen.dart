@@ -4,13 +4,14 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class JournalPreferencesScreen extends ConsumerWidget {
   const JournalPreferencesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final startOfWeek = ref.watch(startOfWeekProvider).valueOrNull ?? 'Sunday';
+    final startOfWeek = ref.watch(startOfWeekProvider).valueOrNull ?? context.l10n.settings_journal_pref_week_start_sunday;
     final autoCreate = ref.watch(autoCreateDailyNoteOnLaunchProvider).valueOrNull ?? false;
 
     return Scaffold(
@@ -23,7 +24,7 @@ class JournalPreferencesScreen extends ConsumerWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Journal Preferences',
+          context.l10n.settings_journal_pref_title,
           style: DesignTypography.heading(
             context,
             fontSize: 16,
@@ -35,7 +36,7 @@ class JournalPreferencesScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           children: [
-            const SettingsSectionHeader(title: 'Calendar & Streaks'),
+            SettingsSectionHeader(title: context.l10n.settings_journal_pref_section_calendar),
             Card(
               color: DesignColors.surface(context),
               elevation: 0,
@@ -47,13 +48,13 @@ class JournalPreferencesScreen extends ConsumerWidget {
                 children: [
                   SettingsTile(
                     icon: Icons.calendar_today_rounded,
-                    title: 'Start of Week',
+                    title: context.l10n.settings_journal_pref_week_start,
                     subtitle: startOfWeek,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _showOptionSelector(
                       context: context,
-                      title: 'Select Start of Week',
-                      options: ['Sunday', 'Monday'],
+                      title: context.l10n.settings_journal_pref_select_week_start,
+                      options: [context.l10n.settings_journal_pref_week_start_sunday, context.l10n.settings_journal_pref_week_start_monday],
                       currentValue: startOfWeek,
                       onSelected: (val) => ref.read(startOfWeekProvider.notifier).setStartOfWeek(val),
                     ),
@@ -63,7 +64,7 @@ class JournalPreferencesScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            const SettingsSectionHeader(title: 'Reflections Startup'),
+            SettingsSectionHeader(title: context.l10n.settings_journal_pref_section_behavior),
             Card(
               color: DesignColors.surface(context),
               elevation: 0,
@@ -76,11 +77,11 @@ class JournalPreferencesScreen extends ConsumerWidget {
                   SwitchListTile(
                     activeThumbColor: DesignColors.primary(context),
                     title: Text(
-                      'Auto-create Daily Note on Launch',
+                      context.l10n.settings_journal_pref_auto_create,
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
-                      "Open or create today's journal note when launching the app",
+                      context.l10n.settings_journal_pref_auto_create_desc,
                       style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                     ),
                     value: autoCreate,

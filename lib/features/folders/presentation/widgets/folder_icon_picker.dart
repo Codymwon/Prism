@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../shared/design_system/design_system.dart';
 import 'folder_icon_display.dart';
+import 'package:prism/l10n/l10n.dart';
 
 /// Full bottom-sheet icon picker.
 /// Returns the selected icon key string via [Navigator.pop].
@@ -55,7 +56,7 @@ class _FolderIconPickerSheetState extends State<FolderIconPickerSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Choose Icon',
+                      context.l10n.folders_icon_picker_title,
                       style: DesignTypography.heading(
                         context,
                         fontSize: 18,

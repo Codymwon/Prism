@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class GraphEmptyState extends StatelessWidget {
   const GraphEmptyState({super.key});
@@ -18,7 +19,7 @@ class GraphEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No connections yet',
+            context.l10n.graph_empty_state_title,
             style: GoogleFonts.inter(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -29,7 +30,7 @@ class GraphEmptyState extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 48),
             child: Text(
-              'Start linking notes with [[wikilinks]] and your graph will grow here',
+              context.l10n.graph_empty_state_description,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: DesignColors.textSecondary(context),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../folders/presentation/widgets/folder_drawer.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class GroupedEmptyState extends ConsumerWidget {
   const GroupedEmptyState({super.key});
@@ -31,7 +32,7 @@ class GroupedEmptyState extends ConsumerWidget {
             ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOut),
             const SizedBox(height: 24),
             Text(
-              'Organize your thoughts',
+              context.l10n.notes_grouped_empty_state_title,
               style: DesignTypography.display(
                 context,
                 fontSize: 22,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class OnboardingLoading extends StatelessWidget {
   const OnboardingLoading({super.key});
@@ -23,7 +24,7 @@ class OnboardingLoading extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Setting up Prism…',
+            context.l10n.onboarding_loading_title,
             style: DesignTypography.heading(
               context,
               fontSize: 16,
@@ -33,7 +34,7 @@ class OnboardingLoading extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Preparing onboarding guides and setting up workspace.',
+            context.l10n.onboarding_loading_description,
             style: DesignTypography.details(
               context,
               fontSize: 12,

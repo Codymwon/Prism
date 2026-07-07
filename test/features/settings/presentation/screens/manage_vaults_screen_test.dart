@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -111,7 +112,9 @@ void main() {
         activeVaultNameProvider.overrideWith(() => _FakeActiveVaultName('My Vault')),
         availableVaultsProvider.overrideWith((ref) => Future.value(['My Vault'])),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: ManageVaultsScreen(),
       ),
     );

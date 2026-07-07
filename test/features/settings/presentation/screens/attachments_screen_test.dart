@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -123,7 +124,9 @@ void main() {
         overrides: [
           attachmentsProvider.overrideWith((ref) => attachments),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: AttachmentsScreen(),
         ),
       ),

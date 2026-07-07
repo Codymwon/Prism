@@ -10,6 +10,7 @@ import '../widgets/settings_widgets.dart';
 import '../widgets/export_bottom_sheet.dart';
 import '../../../onboarding/data/tutorial_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -32,7 +33,7 @@ class SettingsScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   Text(
-                    'Settings',
+                    context.l10n.settings_main_title,
                     style: DesignTypography.display(
                       context,
                       color: DesignColors.text(context),
@@ -68,14 +69,14 @@ class SettingsScreen extends ConsumerWidget {
                               Icon(Icons.star_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                               const SizedBox(width: 8),
                               Text(
-                                'Prism Pro',
+                                context.l10n.settings_main_pro_tile_title,
                                 style: DesignTypography.heading(context, fontSize: 15, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Unlock cloud sync, custom templates & macros, and premium typography & themes.',
+                            context.l10n.settings_main_pro_tile_desc,
                             style: DesignTypography.body(context, fontSize: 12.5, color: DesignColors.textSecondary(context)),
                           ),
                           const SizedBox(height: 12),
@@ -88,7 +89,7 @@ class SettingsScreen extends ConsumerWidget {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () => context.push('/settings/paywall'),
-                            child: Text('Upgrade to Pro', style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                            child: Text(context.l10n.settings_main_pro_tile_upgrade_button, style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                           ),
                         ],
                       ),
@@ -96,20 +97,20 @@ class SettingsScreen extends ConsumerWidget {
                   ).animate().fadeIn(duration: 400.ms),
 
                 // ── Appearance ───────────────────────────────────────────
-                const SettingsSectionHeader(title: 'Appearance'),
+                SettingsSectionHeader(title: context.l10n.settings_main_section_appearance),
                 ThemeSelector(themeType: themeType, ref: ref),
                 SettingsTile(
                   icon: Icons.text_fields_rounded,
-                  title: 'Font family',
-                  subtitle: fontFamily == 'Inter (Sans)' ? 'Inter (Sans) (Default)' : fontFamily,
+                  title: context.l10n.settings_main_appearance_font_family,
+                  subtitle: fontFamily == 'Inter (Sans)' ? context.l10n.settings_main_appearance_font_family_default(fontFamily) : fontFamily,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => _showFontSelector(
                     context: context,
                     ref: ref,
-                    title: 'Select Font Family',
+                    title: context.l10n.settings_main_appearance_select_font_family,
                     options: ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)'],
                     optionLabels: {
-                      'Inter (Sans)': 'Inter (Sans) (Default)',
+                      'Inter (Sans)': context.l10n.settings_main_appearance_font_family_default('Inter (Sans)'),
                     },
                     currentValue: fontFamily,
                     onSelected: (val) => ref.read(fontFamilyProvider.notifier).setFontFamily(val),
@@ -117,53 +118,53 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 // ── Preferences ──────────────────────────────────────────
-                const SettingsSectionHeader(title: 'Preferences'),
+                SettingsSectionHeader(title: context.l10n.settings_main_section_preferences),
                 SettingsTile(
                   icon: Icons.edit_note_rounded,
-                  title: 'Editor Preferences',
-                  subtitle: 'Font size, line width, line numbers, and auto-pairing',
+                  title: context.l10n.settings_main_editor_title,
+                  subtitle: context.l10n.settings_main_editor_desc,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/editor-preferences'),
                 ),
                 SettingsTile(
                   icon: Icons.calendar_today_rounded,
-                  title: 'Journal Preferences',
-                  subtitle: 'Start of week and auto-creation settings',
+                  title: context.l10n.settings_main_journal_title,
+                  subtitle: context.l10n.settings_main_journal_desc,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/journal-preferences'),
                 ),
                 ProGateTile(
                   icon: Icons.keyboard_command_key_rounded,
-                  title: 'Custom Toolbar Macros',
-                  subtitle: 'Define 3–5 custom quick-insert macros',
+                  title: context.l10n.settings_main_macros_title,
+                  subtitle: context.l10n.settings_main_macros_desc,
                   onTap: () => context.push('/settings/custom-macros'),
                 ),
                 ProGateTile(
                   icon: Icons.note_add_rounded,
-                  title: 'Custom Templates',
-                  subtitle: 'Create reusable note templates',
+                  title: context.l10n.settings_main_templates_title,
+                  subtitle: context.l10n.settings_main_templates_desc,
                   onTap: () => context.push('/settings/custom-templates'),
                 ),
                 SettingsTile(
                   icon: Icons.audio_file_rounded,
-                  title: 'Manage Attachments',
-                  subtitle: 'View and delete audio attachments',
+                  title: context.l10n.settings_main_attachments_title,
+                  subtitle: context.l10n.settings_main_attachments_desc,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/attachments'),
                 ),
 
                 // ── Sync & Data ─────────────────────────────────────────
-                const SettingsSectionHeader(title: 'Sync & Data'),
+                SettingsSectionHeader(title: context.l10n.settings_main_section_sync),
                 ProGateTile(
                   icon: Icons.sync_rounded,
-                  title: 'Cloud Sync',
-                  subtitle: 'Google Drive sync, backups, and security',
+                  title: context.l10n.settings_main_sync_title,
+                  subtitle: context.l10n.settings_main_sync_desc,
                   onTap: () => context.push('/settings/cloud-sync'),
                 ),
                 SettingsTile(
                   icon: Icons.file_download_outlined,
-                  title: 'Vault Export',
-                  subtitle: 'Download all notes as ZIP, PDF or JSON',
+                  title: context.l10n.settings_main_export_title,
+                  subtitle: context.l10n.settings_main_export_desc,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => showModalBottomSheet(
                     context: context,
@@ -174,25 +175,25 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 SettingsTile(
                   icon: Icons.folder_open_outlined,
-                  title: 'Manage Vaults',
-                  subtitle: 'Switch vaults, check stats, or change Hub location',
+                  title: context.l10n.settings_main_vaults_title,
+                  subtitle: context.l10n.settings_main_vaults_desc,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/manage-vaults'),
                 ),
 
                 // ── Gestures & Feedback ──────────────────────────────────
-                const SettingsSectionHeader(title: 'Gestures & Feedback'),
+                SettingsSectionHeader(title: context.l10n.settings_main_section_gestures),
                 const HapticToggleTile(),
                 const DragToPinToggleTile(),
                 const AnalyticsToggleTile(),
 
                 // ── Pro Settings Management (Pro only) ──────────────────────
                 if (isPro) ...[
-                  const SettingsSectionHeader(title: 'Subscription'),
+                  SettingsSectionHeader(title: context.l10n.settings_main_section_subscription),
                   SettingsTile(
                     icon: Icons.star_rounded,
-                    title: 'Prism Pro Active',
-                    subtitle: 'Manage subscription & billing',
+                    title: context.l10n.settings_main_pro_status_active,
+                    subtitle: context.l10n.settings_main_pro_status_desc,
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () async {
                       final result = await ref.read(subscriptionRepositoryProvider).presentCustomerCenter();
@@ -200,7 +201,7 @@ class SettingsScreen extends ConsumerWidget {
                         (failure) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Failed to open Customer Center: ${failure.message}'),
+                              content: Text(context.l10n.settings_main_pro_customer_center_error(failure.message)),
                             ),
                           );
                         },
@@ -211,11 +212,11 @@ class SettingsScreen extends ConsumerWidget {
                 ],
 
                 // ── Feedback & Support ──────────────────────────────────
-                const SettingsSectionHeader(title: 'Feedback & Support'),
+                SettingsSectionHeader(title: context.l10n.settings_main_section_feedback),
                 SettingsTile(
                   icon: Icons.mail_outline_rounded,
-                  title: 'Contact Support & Feedback',
-                  subtitle: 'Report bugs, suggest features, or get help',
+                  title: context.l10n.settings_main_support_title,
+                  subtitle: context.l10n.settings_main_support_desc,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/support'),
                 ),

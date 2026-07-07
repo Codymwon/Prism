@@ -4,6 +4,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import 'vault_selector_bottom_sheet.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class VaultSelectorTitle extends ConsumerWidget {
   const VaultSelectorTitle({super.key});
@@ -21,7 +22,7 @@ class VaultSelectorTitle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeVaultName = ref.watch(activeVaultNameProvider).valueOrNull ?? 'My Vault';
+    final activeVaultName = ref.watch(activeVaultNameProvider).valueOrNull ?? context.l10n.notes_vault_selector_title_default;
 
     return TactileWrapper(
       onTap: () => _showVaultSelectorBottomSheet(context),

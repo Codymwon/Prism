@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../providers/graph_color_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 
 class GraphSettingsPanel extends ConsumerStatefulWidget {
@@ -118,7 +119,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Graph Settings',
+                          context.l10n.graph_settings_panel_title,
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -144,7 +145,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                           children: [
                             // Repulsion Force Slider
                             _buildSlider(
-                              title: 'Repulsion Force',
+                              title: context.l10n.graph_settings_panel_repulsion_force,
                               value: _localRepulsionRate,
                               min: 0.05,
                               max: 1.5,
@@ -159,7 +160,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
 
                             // Spring rest length (via Repulsion Percentage)
                             _buildSlider(
-                              title: 'Link Spring Distance',
+                              title: context.l10n.graph_settings_panel_link_spring_distance,
                               value: _localRepulsionPercentage,
                               min: 0.3,
                               max: 2.0,
@@ -174,7 +175,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
 
                             // Attraction Rate Slider
                             _buildSlider(
-                              title: 'Spring Stiffness',
+                              title: context.l10n.graph_settings_panel_spring_stiffness,
                               value: _localAttractionRate,
                               min: 0.05,
                               max: 0.9,
@@ -189,7 +190,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
 
                             // Friction Damping Slider
                             _buildSlider(
-                              title: 'Simulation Damping',
+                              title: context.l10n.graph_settings_panel_simulation_damping,
                               value: _localDamping,
                               min: 0.7,
                               max: 0.98,
@@ -209,7 +210,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Drag to Pin',
+                                    context.l10n.graph_settings_panel_drag_to_pin,
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
@@ -234,7 +235,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Color by',
+                                  context.l10n.graph_settings_panel_color_by,
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
@@ -269,7 +270,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                             if (ref.watch(graphColorModeProvider).valueOrNull == 'tags') ...[
                               const SizedBox(height: 8),
                               Text(
-                                'Tag Colors',
+                                context.l10n.graph_settings_panel_tag_colors,
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -284,7 +285,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                                     data: (tags) {
                                       if (tags.isEmpty) {
                                         return Text(
-                                          'No tags found',
+                                          context.l10n.graph_settings_panel_no_tags,
                                           style: GoogleFonts.inter(
                                             fontSize: 11,
                                             fontStyle: FontStyle.italic,
@@ -369,7 +370,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                           onPressed: widget.onResetDefaults,
                           icon: const Icon(Icons.restart_alt_rounded, size: 16),
                           label: Text(
-                            'Reset Defaults',
+                            context.l10n.graph_settings_panel_reset_defaults,
                             style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                           style: TextButton.styleFrom(
@@ -466,7 +467,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Reset (HSL Hash)',
+                context.l10n.graph_settings_panel_reset_hsl,
                 style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic),
               ),
             ],

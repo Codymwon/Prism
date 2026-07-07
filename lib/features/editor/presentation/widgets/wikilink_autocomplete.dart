@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class WikilinkAutocomplete extends ConsumerWidget {
   final String query;
@@ -64,7 +65,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                         Icon(Icons.link_rounded, size: 13, color: DesignColors.primary(context)),
                         const SizedBox(width: 6),
                         Text(
-                          'Link to note',
+                          context.l10n.editor_wikilink_autocomplete_link_to_note,
                           style: DesignTypography.heading(
                             context,
                             fontSize: 11,
@@ -98,7 +99,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                               context,
                               isDark,
                               note.title,
-                              subtitle: note.isGhost ? 'Ghost note' : '${note.wordCount} words',
+                              subtitle: note.isGhost ? context.l10n.editor_wikilink_autocomplete_ghost_note : context.l10n.editor_wikilink_autocomplete_words(note.wordCount),
                               icon: note.isGhost
                                   ? Icons.radio_button_unchecked_rounded
                                   : Icons.article_rounded,
@@ -110,7 +111,7 @@ class WikilinkAutocomplete extends ConsumerWidget {
                             context,
                             isDark,
                             query,
-                            subtitle: 'Create new note',
+                            subtitle: context.l10n.editor_wikilink_autocomplete_create_note,
                             icon: Icons.add_circle_outline_rounded,
                             isCreate: true,
                           ),

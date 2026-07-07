@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../providers/journal_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class JournalStreakGrid extends ConsumerWidget {
   const JournalStreakGrid({super.key});
@@ -43,7 +44,7 @@ class JournalStreakGrid extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Day Active Streak',
+                    context.l10n.journal_streak_grid_title,
                     style: DesignTypography.body(
                       context,
                       fontSize: 12,
@@ -68,7 +69,7 @@ class JournalStreakGrid extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Consistency Grid',
+                        context.l10n.journal_streak_grid_consistency_grid,
                         style: DesignTypography.body(
                           context,
                           fontSize: 12,

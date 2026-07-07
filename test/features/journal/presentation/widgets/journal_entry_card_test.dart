@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,8 @@ The morning is crisp and quiet. Grateful for the warm tea.
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalEntryCard(
               note: dummyNote,
@@ -77,6 +80,8 @@ Some other journal text here.
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalEntryCard(
               note: dummyNote,
@@ -128,6 +133,8 @@ Here is a beautiful picture:
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalEntryCard(
               note: dummyNote,
@@ -157,6 +164,8 @@ No images here, just plain text.
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalEntryCard(
               note: dummyNote,
@@ -194,6 +203,8 @@ Here is a web image:
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalEntryCard(
               note: dummyNote,
@@ -248,6 +259,8 @@ Here is a web image:
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalEntryCard(
               note: todayNote,
@@ -264,6 +277,8 @@ Here is a web image:
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: JournalEntryCard(
               note: yesterdayNote,
@@ -299,6 +314,8 @@ Here is a web image:
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Center(
               child: SizedBox(
@@ -340,6 +357,8 @@ Writing a entry with a #journaling hashtag.
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Builder(
               builder: (context) {
@@ -387,6 +406,8 @@ Writing a entry with a #journaling hashtag.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -414,6 +435,8 @@ Here is the daily entry.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -446,6 +469,8 @@ Here is the daily entry.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -472,6 +497,8 @@ Here is the daily entry.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -499,6 +526,8 @@ Here is the daily entry.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -524,6 +553,8 @@ Here is the daily entry.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -557,6 +588,8 @@ Here is the daily entry.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -601,6 +634,8 @@ Here is the daily entry.
             noteRepositoryProvider.overrideWithValue(mockRepo),
           ],
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -639,6 +674,8 @@ I am grateful for food.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,
@@ -673,6 +710,8 @@ I am grateful for food.
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: JournalEntryCard(
                 note: dummyNote,

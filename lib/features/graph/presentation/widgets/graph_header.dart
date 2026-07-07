@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class GraphHeader extends StatelessWidget {
   final bool showSettings;
@@ -31,7 +32,7 @@ class GraphHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Graph View',
+                context.l10n.graph_header_title,
                 style: GoogleFonts.inter(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
@@ -40,7 +41,7 @@ class GraphHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                'Your connected ideas',
+                context.l10n.graph_header_subtitle,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: DesignColors.textSecondary(context),
@@ -50,11 +51,11 @@ class GraphHeader extends StatelessWidget {
           ),
           const Spacer(),
           Tooltip(
-            message: 'Reset view',
+            message: context.l10n.graph_header_reset_tooltip,
             child: TactileWrapper(
               onTap: onFocusCenter,
               style: TactileFeedbackStyle.standard,
-              semanticLabel: 'Reset view',
+              semanticLabel: context.l10n.graph_header_reset_tooltip,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 color: Colors.transparent,
@@ -67,11 +68,11 @@ class GraphHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Tooltip(
-            message: 'Replay animation',
+            message: context.l10n.graph_header_replay_tooltip,
             child: TactileWrapper(
               onTap: onReplay,
               style: TactileFeedbackStyle.standard,
-              semanticLabel: 'Replay animation',
+              semanticLabel: context.l10n.graph_header_replay_tooltip,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 color: Colors.transparent,
@@ -84,11 +85,11 @@ class GraphHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Tooltip(
-            message: 'Graph settings',
+            message: context.l10n.graph_header_settings_tooltip,
             child: TactileWrapper(
               onTap: onSettingsToggle,
               style: TactileFeedbackStyle.standard,
-              semanticLabel: 'Graph settings',
+              semanticLabel: context.l10n.graph_header_settings_tooltip,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 color: Colors.transparent,

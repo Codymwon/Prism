@@ -4,6 +4,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../../data/folder_repository.dart';
 import '../../presentation/providers/folders_providers.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class FolderAssignDialog extends ConsumerStatefulWidget {
   final String noteId;
@@ -35,7 +36,7 @@ class _FolderAssignDialogState extends ConsumerState<FolderAssignDialog> {
           children: [
             const DesignSheetDragHandle(),
             Text(
-              'Organize Note',
+              context.l10n.folders_assign_dialog_title,
               style: DesignTypography.heading(
                 context,
                 fontSize: 18,
@@ -62,7 +63,7 @@ class _FolderAssignDialogState extends ConsumerState<FolderAssignDialog> {
                   if (foldersAsync.hasError && foldersAsync.valueOrNull == null) {
                     return Center(
                       child: Text(
-                        'Error loading folders: ${foldersAsync.error}',
+                        context.l10n.folders_assign_dialog_error_folders(foldersAsync.error.toString()),
                         style: TextStyle(color: Theme.of(context).colorScheme.error),
                       ),
                     );
@@ -70,7 +71,7 @@ class _FolderAssignDialogState extends ConsumerState<FolderAssignDialog> {
                   if (assignedFoldersAsync.hasError && assignedFoldersAsync.valueOrNull == null) {
                     return Center(
                       child: Text(
-                        'Error loading assignments: ${assignedFoldersAsync.error}',
+                        context.l10n.folders_assign_dialog_error_assignments(assignedFoldersAsync.error.toString()),
                         style: TextStyle(color: Theme.of(context).colorScheme.error),
                       ),
                     );
@@ -100,7 +101,7 @@ class _FolderAssignDialogState extends ConsumerState<FolderAssignDialog> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 24.0),
                       child: Text(
-                        'No virtual folders created yet. Add them from the sidebar drawer first!',
+                        context.l10n.folders_assign_dialog_empty,
                         style: DesignTypography.details(
                           context,
                           fontSize: 13,

@@ -18,6 +18,7 @@ import '../widgets/graph_empty_state.dart';
 import '../widgets/graph_node_widget.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../../../core/services/analytics_service.dart';
+import 'package:prism/l10n/l10n.dart';
 
 
 class GraphScreen extends ConsumerWidget {
@@ -171,7 +172,7 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
                     ],
                   );
                 } else if (graphAsync.hasError) {
-                  return Center(child: Text('Error: ${graphAsync.error}'));
+                  return Center(child: Text(context.l10n.graph_screen_error(graphAsync.error.toString())));
                 } else {
                   return const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'));
                 }

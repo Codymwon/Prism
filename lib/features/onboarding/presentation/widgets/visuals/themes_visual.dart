@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class ThemesVisual extends StatelessWidget {
   const ThemesVisual({super.key});
@@ -18,7 +19,7 @@ class ThemesVisual extends StatelessWidget {
             top: 45,
             child: _buildThemeMockCard(
               context: context,
-              title: 'Clean Paper',
+              title: context.l10n.onboarding_visual_themes_clean_paper,
               bgColor: const Color(0xFFF9F6F0),
               textColor: const Color(0xFF2C2C2C),
               borderColor: const Color(0xFFE6DED4),
@@ -33,7 +34,7 @@ class ThemesVisual extends StatelessWidget {
             top: 30,
             child: _buildThemeMockCard(
               context: context,
-              title: 'Midnight OLED',
+              title: context.l10n.onboarding_visual_themes_midnight_oled,
               bgColor: const Color(0xFF0C0C0C),
               textColor: const Color(0xFFECECEC),
               borderColor: const Color(0xFF222222),
@@ -47,7 +48,7 @@ class ThemesVisual extends StatelessWidget {
             top: 15,
             child: _buildThemeMockCard(
               context: context,
-              title: 'Warm Sepia',
+              title: context.l10n.onboarding_visual_themes_warm_sepia,
               bgColor: const Color(0xFFFAF5EC),
               textColor: const Color(0xFF433422),
               borderColor: const Color(0xFFE8DEC9),

@@ -9,6 +9,7 @@ import '../../../../core/services/vault_service.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../widgets/settings_widgets.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class ManageVaultsScreen extends ConsumerStatefulWidget {
   const ManageVaultsScreen({super.key});
@@ -115,8 +116,8 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                 SnackBar(
                   content: Text(
                     migrateData 
-                        ? 'Storage location relocated and vaults migrated.' 
-                        : 'Storage location changed.'
+                        ? context.l10n.settings_manage_vaults_relocate_migrate_success 
+                        : context.l10n.settings_manage_vaults_relocate_change_success
                   ),
                 ),
               );
@@ -128,7 +129,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                 SnackBar(
                   backgroundColor: Colors.redAccent,
                   content: Text(
-                    'Error relocating storage: $e',
+                    context.l10n.settings_manage_vaults_relocate_error(e.toString()),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -153,26 +154,26 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: DesignColors.surface(context),
         title: Text(
-          'Create New Vault',
+          context.l10n.settings_manage_vaults_create_dialog_title,
           style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Vault Name',
-            hintText: 'e.g. Work, Personal',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: context.l10n.settings_manage_vaults_rename_dialog_hint,
+            hintText: context.l10n.settings_manage_vaults_create_dialog_hint,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel', style: TextStyle(color: DesignColors.textSecondary(context))),
+            child: Text(context.l10n.settings_manage_vaults_cancel_button, style: TextStyle(color: DesignColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Create'),
+            child: Text(context.l10n.settings_manage_vaults_create_dialog_confirm_button),
           ),
         ],
       ),
@@ -192,7 +193,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create vault: $e')),
+          SnackBar(content: Text(context.l10n.settings_manage_vaults_create_error(e.toString()))),
         );
       }
     } finally {
@@ -211,25 +212,25 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: DesignColors.surface(context),
         title: Text(
-          'Rename Vault',
+          context.l10n.settings_manage_vaults_rename_dialog_title,
           style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'New Name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: context.l10n.settings_manage_vaults_rename_dialog_label,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel', style: TextStyle(color: DesignColors.textSecondary(context))),
+            child: Text(context.l10n.settings_manage_vaults_cancel_button, style: TextStyle(color: DesignColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Rename'),
+            child: Text(context.l10n.settings_manage_vaults_rename_dialog_confirm_button),
           ),
         ],
       ),
@@ -249,7 +250,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to rename vault: $e')),
+          SnackBar(content: Text(context.l10n.settings_manage_vaults_rename_error(e.toString()))),
         );
       }
     } finally {
@@ -266,22 +267,22 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: DesignColors.surface(context),
         title: Text(
-          'Delete Vault "$vaultName"?',
+          context.l10n.settings_manage_vaults_delete_dialog_title(vaultName),
           style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'This will permanently delete this vault directory and all notes inside it from this device. This cannot be undone.',
+          context.l10n.settings_manage_vaults_delete_dialog_desc_warning,
           style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel', style: TextStyle(color: DesignColors.textSecondary(context))),
+            child: Text(context.l10n.settings_manage_vaults_cancel_button, style: TextStyle(color: DesignColors.textSecondary(context))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete Permanently'),
+            child: Text(context.l10n.settings_manage_vaults_delete_confirm_button),
           ),
         ],
       ),
@@ -459,7 +460,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                       IconButton(
                         icon: Icon(Icons.add_rounded, color: DesignColors.primary(context)),
                         onPressed: _createVault,
-                        tooltip: 'Create New Vault',
+                        tooltip: context.l10n.settings_manage_vaults_create_dialog_title,
                       ),
                     ],
                   ),
@@ -514,7 +515,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                                   IconButton(
                                     icon: const Icon(Icons.edit_outlined, size: 18),
                                     onPressed: () => _renameVault(vault),
-                                    tooltip: 'Rename Vault',
+                                    tooltip: context.l10n.settings_manage_vaults_rename_dialog_title,
                                   ),
                                   if (vaults.length > 1)
                                     IconButton(

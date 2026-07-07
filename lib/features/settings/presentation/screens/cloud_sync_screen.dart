@@ -7,6 +7,7 @@ import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/services/two_way_sync_service.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/vault_service.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class CloudSyncScreen extends ConsumerStatefulWidget {
   const CloudSyncScreen({super.key});
@@ -45,7 +46,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
         _isSyncConfigured = await ref.read(twoWaySyncServiceProvider).isSyncConfigured();
       }
     } catch (e) {
-      _errorMessage = 'Error initializing sync service: $e';
+      _errorMessage = context.l10n.settings_cloud_sync_init_error(e.toString());
     }
     setState(() => _isLoading = false);
   }
@@ -76,11 +77,11 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
       _passphraseController.clear();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed out successfully.')),
+          SnackBar(content: Text(context.l10n.settings_cloud_sync_signout_success)),
         );
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Failed to sign out: $e');
+      setState(() => _errorMessage = context.l10n.settings_cloud_sync_signout_error(e.toString()));
     }
     setState(() => _isLoading = false);
   }
@@ -88,7 +89,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
   Future<void> _handleConfigureSync() async {
     final pass = _passphraseController.text.trim();
     if (pass.isEmpty) {
-      setState(() => _errorMessage = 'Passphrase cannot be empty');
+      setState(() => _errorMessage = context.l10n.settings_cloud_sync_passphrase_empty);
       return;
     }
     setState(() {
@@ -104,8 +105,8 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sync configured successfully!'),
+            SnackBar(
+              content: Text(context.l10n.settings_cloud_sync_configured_success),
               backgroundColor: Colors.green,
             ),
           );
@@ -134,11 +135,11 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
         builder: (context) => AlertDialog(
           backgroundColor: DesignColors.surface(context),
           title: Text(
-            'Disable Sync for $vaultName?',
+            context.l10n.settings_cloud_sync_disable_title(vaultName),
             style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           content: Text(
-            'Would you like to keep your encrypted backup on Google Drive, or delete it from the cloud?',
+            context.l10n.settings_cloud_sync_disable_desc,
             style: DesignTypography.body(context, fontSize: 14, color: DesignColors.textSecondary(context)),
           ),
           actions: [
@@ -148,7 +149,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop('keep'),
-              child: Text('Keep in Cloud', style: TextStyle(color: DesignColors.primary(context))),
+              child: Text(context.l10n.settings_cloud_sync_keep_cloud_button, style: TextStyle(color: DesignColors.primary(context))),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop('delete'),
@@ -167,13 +168,13 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
         final deleteRes = await ref.read(twoWaySyncServiceProvider).deleteVaultCloudData(vaultName);
         await deleteRes.fold(
           (fail) async {
-            setState(() => _errorMessage = 'Failed to delete cloud data: ${fail.message}');
+            setState(() => _errorMessage = context.l10n.settings_cloud_sync_delete_cloud_error(fail.message));
           },
           (_) async {
             await syncedVaultsNotifier.disableSync(vaultName);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Cloud backup for $vaultName deleted successfully.')),
+                SnackBar(content: Text(context.l10n.settings_cloud_sync_delete_cloud_success(vaultName))),
               );
             }
           },
@@ -196,7 +197,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Sync successful! Uploaded: ${result.uploaded}, Downloaded: ${result.downloaded}',
+                context.l10n.settings_cloud_sync_sync_success(result.uploaded, result.downloaded),
               ),
               backgroundColor: Colors.green,
             ),
@@ -217,27 +218,27 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: DesignColors.surface(context),
-        title: const Text('Purge All Cloud Backups?', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        title: Text(context.l10n.settings_cloud_sync_purge_title, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This will permanently delete all synced vaults and files from your Google Drive AppData folder and sign you out.',
+              context.l10n.settings_cloud_sync_purge_desc,
               style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context)),
             ),
             const SizedBox(height: 16),
             Text(
-              'Enter your global sync passphrase to confirm:',
+              context.l10n.settings_cloud_sync_purge_passphrase_prompt,
               style: DesignTypography.body(context, fontSize: 13, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: confirmController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Sync Passphrase',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.settings_cloud_sync_passphrase_label,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -254,11 +255,11 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                 Navigator.of(context).pop(true);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Incorrect passphrase!'), backgroundColor: Colors.redAccent),
+                  SnackBar(content: Text(context.l10n.settings_cloud_sync_passphrase_incorrect), backgroundColor: Colors.redAccent),
                 );
               }
             },
-            child: const Text('Purge Everything'),
+            child: Text(context.l10n.settings_cloud_sync_purge_everything_button),
           ),
         ],
       ),
@@ -289,8 +290,8 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('All cloud data purged and signed out successfully!'),
+              SnackBar(
+                content: Text(context.l10n.settings_cloud_sync_purge_success_msg),
                 backgroundColor: Colors.green,
               ),
             );
@@ -319,7 +320,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Cloud Sync',
+          context.l10n.settings_cloud_sync_title,
           style: DesignTypography.heading(
             context,
             fontSize: 16,
@@ -350,7 +351,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'Global Selective Sync',
+                      context.l10n.settings_cloud_sync_section_header,
                       style: DesignTypography.heading(
                         context,
                         fontSize: 18,
@@ -364,7 +365,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'Secure your notes with end-to-end encryption. Toggle sync for each vault individually and keep your data backed up on Google Drive.',
+                        context.l10n.settings_cloud_sync_section_desc,
                         style: DesignTypography.body(
                           context,
                           fontSize: 13,
@@ -404,7 +405,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                   ],
 
                   // ── Google Drive Connection ───────────────────────────────────────
-                  const SettingsSectionHeader(title: 'Google Drive Connection'),
+                  SettingsSectionHeader(title: context.l10n.settings_cloud_sync_gdrive_header),
                   Card(
                     color: DesignColors.surface(context),
                     elevation: 0,
@@ -419,7 +420,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                         children: [
                           if (!isGoogleSignedIn) ...[
                             Text(
-                              'Connect your Google Drive account to enable cloud backups.',
+                              context.l10n.settings_cloud_sync_gdrive_desc,
                               style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context)),
                             ),
                             const SizedBox(height: 16),
@@ -431,7 +432,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                               icon: const Icon(Icons.login_rounded),
-                              label: const Text('Connect Google Drive'),
+                              label: Text(context.l10n.settings_cloud_sync_connect_button),
                               onPressed: _handleGoogleSignIn,
                             ),
                           ] else ...[
@@ -458,7 +459,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
                                   onPressed: _handleGoogleSignOut,
-                                  tooltip: 'Disconnect Account',
+                                  tooltip: context.l10n.settings_cloud_sync_disconnect_tooltip,
                                 ),
                               ],
                             ),
@@ -472,7 +473,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
 
                   if (isGoogleSignedIn) ...[
                     // ── Encryption Passphrase ─────────────────────────────────────────
-                    const SettingsSectionHeader(title: 'Security & Encryption'),
+                    SettingsSectionHeader(title: context.l10n.settings_cloud_sync_security_header),
                     Card(
                       color: DesignColors.surface(context),
                       elevation: 0,
@@ -495,11 +496,11 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'End-to-End Encryption Active',
+                                          context.l10n.settings_cloud_sync_e2e_title,
                                           style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
                                         ),
                                         Text(
-                                          'All notes are encrypted on-device before syncing.',
+                                          context.l10n.settings_cloud_sync_e2e_desc,
                                           style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                                         ),
                                       ],
@@ -522,7 +523,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                                 controller: _passphraseController,
                                 obscureText: _obscurePassphrase,
                                 decoration: InputDecoration(
-                                  labelText: 'Sync Passphrase',
+                                  labelText: context.l10n.settings_cloud_sync_passphrase_label,
                                   border: const OutlineInputBorder(),
                                   suffixIcon: IconButton(
                                     icon: Icon(

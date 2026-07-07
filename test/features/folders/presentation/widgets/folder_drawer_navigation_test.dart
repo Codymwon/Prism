@@ -1,3 +1,4 @@
+import 'package:prism/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,6 +75,8 @@ void main() {
   Widget buildTestApp(WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
     );
   }
@@ -161,7 +164,9 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
+        child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             drawer: FolderDrawer(),
             body: SizedBox.shrink(),

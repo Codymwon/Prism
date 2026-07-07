@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../utils/editor_helpers.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import 'package:prism/l10n/l10n.dart';
 
 class EditorWriteMode extends ConsumerWidget {
   final TextEditingController titleController;
@@ -43,7 +44,7 @@ class EditorWriteMode extends ConsumerWidget {
               color: DesignColors.text(context),
             ),
             decoration: InputDecoration(
-              hintText: 'Note Title',
+              hintText: context.l10n.editor_write_mode_title_hint,
               hintStyle: getEditorFont(
                 family,
                 fontSize: size * 1.5,
@@ -97,7 +98,7 @@ class EditorWriteMode extends ConsumerWidget {
                       color: DesignColors.text(context),
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Start writing… use [[note]] for links, #tag for tags',
+                      hintText: context.l10n.editor_write_mode_content_hint,
                       hintStyle: getEditorFont(
                         family,
                         fontSize: size - 1.0,

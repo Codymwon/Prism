@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:prism/l10n/l10n.dart';
 import '../../shared/design_system/design_system.dart';
 import '../../shared/widgets/tactile_wrapper.dart';
 
@@ -66,7 +67,7 @@ class _SpotlightTutorialOverlayState extends State<SpotlightTutorialOverlay> {
       scopesRoute: true,
       namesRoute: true,
       explicitChildNodes: true,
-      label: 'Tutorial overlay',
+      label: context.l10n.shared_tutorial_overlay_label,
       child: Stack(
         children: [
           // 1. Semi-transparent dimming layer with cutout spotlight
@@ -144,8 +145,8 @@ class _SpotlightTutorialOverlayState extends State<SpotlightTutorialOverlay> {
                             color: primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            'STEP ${_currentStepIndex + 1} OF ${widget.steps.length}',
+                           child: Text(
+                            context.l10n.shared_tutorial_overlay_step_counter(_currentStepIndex + 1, widget.steps.length),
                             style: DesignTypography.metadata(
                               context,
                               fontSize: 10,
@@ -162,7 +163,7 @@ class _SpotlightTutorialOverlayState extends State<SpotlightTutorialOverlay> {
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
-                            'Skip Tour',
+                            context.l10n.shared_tutorial_overlay_skip_tour,
                             style: DesignTypography.body(
                               context,
                               fontSize: 12,
@@ -244,8 +245,8 @@ class _SpotlightTutorialOverlayState extends State<SpotlightTutorialOverlay> {
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(color: DesignColors.border(context)),
                                 ),
-                                child: Text(
-                                  'Back',
+                                 child: Text(
+                                  context.l10n.shared_tutorial_overlay_back_button,
                                   style: DesignTypography.body(
                                     context,
                                     fontSize: 13,
@@ -276,7 +277,9 @@ class _SpotlightTutorialOverlayState extends State<SpotlightTutorialOverlay> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  _currentStepIndex == widget.steps.length - 1 ? 'Got it!' : 'Next',
+                                  _currentStepIndex == widget.steps.length - 1
+                                      ? context.l10n.shared_tutorial_overlay_got_it_button
+                                      : context.l10n.shared_tutorial_overlay_next_button,
                                   style: DesignTypography.heading(
                                     context,
                                     fontSize: 13,
