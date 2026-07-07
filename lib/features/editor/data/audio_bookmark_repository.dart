@@ -1,5 +1,5 @@
 import 'package:sqflite/sqflite.dart';
-import '../../notes/data/audio_bookmark_model.dart';
+import 'audio_bookmark_model.dart';
 
 /// Repository for CRUD operations on audio bookmark timestamps.
 /// Bookmarks are stored in the [audio_bookmarks] table (added in DB v4).

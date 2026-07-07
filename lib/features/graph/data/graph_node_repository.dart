@@ -4,7 +4,6 @@ import '../../../core/database/database_service.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/database/vault_providers.dart';
 import '../../notes/data/note_repository.dart';
-import '../../notes/data/note_model.dart';
 import 'graph_models.dart';
 
 final graphNodeRepositoryProvider = Provider<GraphNodeRepository>((ref) => GraphNodeRepository(ref));

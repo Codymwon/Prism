@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:prism/features/editor/data/audio_bookmark_repository.dart';
-import 'package:prism/features/notes/data/audio_bookmark_model.dart';
+import 'package:prism/features/editor/data/audio_bookmark_model.dart';
 
 // ---------------------------------------------------------------------------
 // Helper: create and migrate the schema to version 4 in-memory

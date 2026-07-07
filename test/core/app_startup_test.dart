@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prism/core/database/database_providers.dart';
-import 'package:prism/features/widgets/widget_helper.dart';
+import 'package:prism/core/platform/widget_helper.dart';
 import 'package:prism/core/router/app_router.dart';
 import 'package:prism/main.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';

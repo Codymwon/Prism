@@ -7,7 +7,7 @@ import 'core/database/database_providers.dart';
 import 'core/utils/storage_permission_helper.dart';
 import 'shared/widgets/storage_permission_screen.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
-import 'features/widgets/widget_helper.dart';
+import 'core/platform/widget_helper.dart';
 import 'features/journal/presentation/providers/journal_providers.dart';
 import 'features/subscription/presentation/providers/subscription_providers.dart';
 import 'shared/design_system/design_system.dart';
@@ -15,6 +15,7 @@ import 'core/utils/utils.dart';
 import 'core/services/note_ingestion_service.dart';
 import 'features/onboarding/data/onboarding_provider.dart';
 import 'core/services/analytics_service.dart';
+import 'l10n/l10n.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -233,6 +234,8 @@ class _PrismAppState extends ConsumerState<PrismApp> with WidgetsBindingObserver
       themeMode: mode,
       themeAnimationDuration: Duration.zero,
       routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
     );
   }
 }

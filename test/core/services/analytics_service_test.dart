@@ -4,12 +4,19 @@ import 'package:prism/core/services/analytics_service.dart';
 
 void main() {
   setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     AnalyticsService.clearLogs();
   });
 
+  Future<void> setupPrefs(Map<String, Object> values) async {
+    SharedPreferences.setMockInitialValues(values);
+    final prefs = await SharedPreferences.getInstance();
+    AnalyticsService.initialize(prefs);
+  }
+
   group('AnalyticsService Consent and Event Logging Tests', () {
     test('Logs events when analytics is enabled (default)', () async {
-      SharedPreferences.setMockInitialValues({}); // Defaults to enabled (true)
+      await setupPrefs({}); // Defaults to enabled (true)
 
       await AnalyticsService.logEvent(
         'test_event',
@@ -22,7 +29,7 @@ void main() {
     });
 
     test('Does not log events when analytics is disabled', () async {
-      SharedPreferences.setMockInitialValues({'analyticsEnabled': false});
+      await setupPrefs({'analyticsEnabled': false});
 
       await AnalyticsService.logEvent('test_event');
 
@@ -30,7 +37,7 @@ void main() {
     });
 
     test('Logs errors when analytics is enabled (default)', () async {
-      SharedPreferences.setMockInitialValues({}); // Defaults to enabled (true)
+      await setupPrefs({}); // Defaults to enabled (true)
 
       final exception = Exception('Test exception');
       final stackTrace = StackTrace.current;
@@ -43,7 +50,7 @@ void main() {
     });
 
     test('Does not log errors when analytics is disabled', () async {
-      SharedPreferences.setMockInitialValues({'analyticsEnabled': false});
+      await setupPrefs({'analyticsEnabled': false});
 
       await AnalyticsService.logError(Exception('Test exception'), null);
 
@@ -51,7 +58,7 @@ void main() {
     });
 
     test('Correctly captures change_theme event with theme name parameter', () async {
-      SharedPreferences.setMockInitialValues({});
+      await setupPrefs({});
 
       await AnalyticsService.logEvent('change_theme', parameters: {'theme': 'midnight'});
 
@@ -61,7 +68,7 @@ void main() {
     });
 
     test('Correctly captures change_editor_mode event with view mode parameter', () async {
-      SharedPreferences.setMockInitialValues({});
+      await setupPrefs({});
 
       await AnalyticsService.logEvent('change_editor_mode', parameters: {'mode': 'livePreview'});
 
@@ -71,7 +78,7 @@ void main() {
     });
 
     test('Correctly captures insert_macro event with macro label parameter', () async {
-      SharedPreferences.setMockInitialValues({});
+      await setupPrefs({});
 
       await AnalyticsService.logEvent('insert_macro', parameters: {'macro_label': 'Todo List'});
 
@@ -81,7 +88,7 @@ void main() {
     });
 
     test('Correctly captures sync_run event with status and details parameters', () async {
-      SharedPreferences.setMockInitialValues({});
+      await setupPrefs({});
 
       await AnalyticsService.logEvent('sync_run', parameters: {
         'status': 'success',
@@ -99,7 +106,7 @@ void main() {
     });
 
     test('Correctly captures perform_search event', () async {
-      SharedPreferences.setMockInitialValues({});
+      await setupPrefs({});
 
       await AnalyticsService.logEvent('perform_search');
 

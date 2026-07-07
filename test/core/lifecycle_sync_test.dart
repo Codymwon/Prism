@@ -7,7 +7,7 @@ import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/core/services/note_ingestion_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:prism/features/journal/presentation/providers/journal_providers.dart';
-import 'package:prism/features/widgets/widget_helper.dart';
+import 'package:prism/core/platform/widget_helper.dart';
 import 'package:prism/core/router/app_router.dart';
 import 'package:prism/main.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';

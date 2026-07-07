@@ -447,12 +447,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               ),
                               Transform.scale(
                                 scale: 0.8,
-                                child: Switch.adaptive(
-                                  value: ref.watch(editorControllerProvider(widget.noteId).select((s) => s.showBacklinks)),
-                                  activeThumbColor: DesignColors.primary(context),
-                                  onChanged: (val) {
-                                    _editorController.toggleShowBacklinks();
-                                  },
+                                child: Semantics(
+                                  label: 'Show backlinks',
+                                  child: Switch.adaptive(
+                                    value: ref.watch(editorControllerProvider(widget.noteId).select((s) => s.showBacklinks)),
+                                    activeThumbColor: DesignColors.primary(context),
+                                    onChanged: (val) {
+                                      _editorController.toggleShowBacklinks();
+                                    },
+                                  ),
                                 ),
                               ),
                             ],

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/utils/utils.dart';
-import '../../../../features/notes/data/audio_bookmark_model.dart';
+import '../../data/audio_bookmark_model.dart';
 import '../../data/audio_bookmark_repository.dart';
 
 import '../../../../core/database/database_providers.dart';

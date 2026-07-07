@@ -12,7 +12,7 @@ import 'package:prism/features/notes/data/vault_storage.dart';
 import 'package:prism/features/graph/data/graph_node_repository.dart';
 import 'package:prism/features/graph/presentation/providers/graph_providers.dart';
 import 'package:prism/features/graph/presentation/screens/graph_screen.dart';
-import 'package:prism/features/notes/data/note_model.dart';
+import 'package:prism/features/graph/data/graph_models.dart';
 import 'package:prism/features/settings/presentation/providers/settings_provider.dart';
 
 class FakeVaultStorage implements VaultStorage {

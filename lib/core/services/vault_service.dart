@@ -7,6 +7,7 @@ import '../database/vault_providers.dart';
 import 'two_way_sync_service.dart';
 import 'analytics_service.dart';
 import '../providers/shared_preferences_provider.dart';
+import '../database/database_helper.dart';
 
 part 'vault_service.g.dart';
 
@@ -24,6 +25,10 @@ final availableVaultsProvider = FutureProvider<List<String>>((ref) async {
 class VaultManagementService {
   final Ref ref;
   VaultManagementService(this.ref);
+
+  /// Closes the active vault's database.
+  Future<void> closeDatabase() => DatabaseHelper.instance.closeDatabase();
+
   /// Scans subdirectories in base directory to list available vaults asynchronously
   Future<List<String>> getAvailableVaults(String baseDir, String activeVault) async {
     List<String> vaults = [];

@@ -6,7 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import '../../../../core/database/database_helper.dart';
+import '../../../../core/services/vault_service.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
@@ -248,7 +248,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             await baseVaultsDirNotifier.setDirectory(hubPath);
             await activeVaultNameNotifier.setVaultName(activeVault);
 
-            await DatabaseHelper.instance.closeDatabase();
+            await ref.read(vaultManagementServiceProvider).closeDatabase();
             await onboardingNotifier.completeOnboarding();
           }
 
@@ -356,7 +356,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         await baseVaultsDirNotifier.setDirectory(hubPath);
         await activeVaultNameNotifier.setVaultName(vaultName);
 
-        await DatabaseHelper.instance.closeDatabase();
+        await ref.read(vaultManagementServiceProvider).closeDatabase();
         AnalyticsService.logEvent('onboarding_complete', parameters: {
           'vault_type': _selectedVaultType,
         });

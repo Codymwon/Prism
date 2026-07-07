@@ -395,11 +395,15 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
             child: Center(
               child: free
                   ? Icon(Icons.check_circle_outline_rounded, size: 15, color: primaryColor)
-                  : Text(
-                      '—',
-                      style: TextStyle(
-                        color: DesignColors.textTertiary(context),
-                        fontSize: 11,
+                  : Semantics(
+                      label: 'Not available',
+                      excludeSemantics: true,
+                      child: Text(
+                        '—',
+                        style: TextStyle(
+                          color: DesignColors.textTertiary(context),
+                          fontSize: 11,
+                        ),
                       ),
                     ),
             ),
@@ -409,11 +413,15 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
             child: Center(
               child: pro
                   ? Icon(Icons.check_circle_rounded, size: 15, color: primaryColor)
-                  : Text(
-                      '—',
-                      style: TextStyle(
-                        color: DesignColors.textTertiary(context),
-                        fontSize: 11,
+                  : Semantics(
+                      label: 'Not available',
+                      excludeSemantics: true,
+                      child: Text(
+                        '—',
+                        style: TextStyle(
+                          color: DesignColors.textTertiary(context),
+                          fontSize: 11,
+                        ),
                       ),
                     ),
             ),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/router/app_router.dart';
-import '../../../core/utils/utils.dart';
-import '../notes/data/note_repository.dart';
-import '../notes/presentation/providers/notes_providers.dart';
-import '../../core/providers/shared_preferences_provider.dart';
+import '../router/app_router.dart';
+import '../utils/utils.dart';
+import '../../features/notes/data/note_repository.dart';
+import '../../features/notes/presentation/providers/notes_providers.dart';
+import '../providers/shared_preferences_provider.dart';
 
 final widgetHelperProvider = Provider<WidgetHelper>((ref) {
   return WidgetHelper(ref);

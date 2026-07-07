@@ -12,21 +12,21 @@ const _uuid = Uuid();
 String generateId() => _uuid.v4();
 
 /// Returns the vault folder path (DocumentDirectory/prism_vaults/activeVault).
-Future<String> getVaultPath() async {
-  final prefs = await SharedPreferences.getInstance();
-  String? baseDir = prefs.getString('baseVaultsDirectory');
+Future<String> getVaultPath({SharedPreferences? prefs}) async {
+  final resolvedPrefs = prefs ?? await SharedPreferences.getInstance();
+  String? baseDir = resolvedPrefs.getString('baseVaultsDirectory');
   if (baseDir == null || baseDir.isEmpty) {
     final docDir = await getApplicationDocumentsDirectory();
     baseDir = p.join(docDir.path, 'prism_vaults');
   }
-  final activeVault = prefs.getString('activeVaultName') ?? 'My Vault';
+  final activeVault = resolvedPrefs.getString('activeVaultName') ?? 'My Vault';
   final vaultPath = p.join(baseDir, activeVault);
-  await seedWelcomeNotes(vaultPath);
+  await seedWelcomeNotes(vaultPath, prefs: resolvedPrefs);
   return vaultPath;
 }
 
 /// Seeds default welcome notes inside the vault if it is new or empty.
-Future<void> seedWelcomeNotes(String vaultPath) async {
+Future<void> seedWelcomeNotes(String vaultPath, {SharedPreferences? prefs}) async {
   // Always ensure the directory exists first to prevent database open/setup failures
   final vault = Directory(vaultPath);
   bool isNew = !await vault.exists();
@@ -34,10 +34,10 @@ Future<void> seedWelcomeNotes(String vaultPath) async {
     await vault.create(recursive: true);
   }
 
-  final prefs = await SharedPreferences.getInstance();
+  final resolvedPrefs = prefs ?? await SharedPreferences.getInstance();
   // Use a per-vault key so fresh/custom vaults get welcome notes seeded as well
   final vaultKey = 'welcomeNotesSeeded_${vaultPath.hashCode}';
-  final alreadySeeded = prefs.getBool(vaultKey) ?? false;
+  final alreadySeeded = resolvedPrefs.getBool(vaultKey) ?? false;
   if (alreadySeeded) {
     return;
   }
@@ -63,7 +63,7 @@ Future<void> seedWelcomeNotes(String vaultPath) async {
       final guideFile = File(p.join(vaultPath, 'Productivity Tools Guide.md'));
       await guideFile.writeAsString(_productivityGuideContent);
 
-      await prefs.setBool(vaultKey, true);
+      await resolvedPrefs.setBool(vaultKey, true);
     } catch (e) {
       debugPrint('Error seeding default welcome notes: $e');
     }

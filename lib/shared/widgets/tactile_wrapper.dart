@@ -40,7 +40,8 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _redFlashAnimation;
+  late Animation<Decoration> _destructiveDecoration;
+  late Animation<Decoration> _shadowDecoration;
   bool _isLongPressed = false;
 
   @override
@@ -71,9 +72,37 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
       ),
     );
 
-    _redFlashAnimation = Tween<double>(begin: 0.0, end: 0.15).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    final curve = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _destructiveDecoration = DecorationTween(
+      begin: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      end: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ).animate(curve);
+
+    _shadowDecoration = DecorationTween(
+      begin: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      end: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16.0,
+            spreadRadius: 1.0,
+            offset: const Offset(0, 8.0),
+          ),
+        ],
+      ),
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
   }
 
   @override
@@ -152,49 +181,23 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
 
     // Apply specific enhancements for specific states
     if (widget.style == TactileFeedbackStyle.destructive) {
-      resultWidget = AnimatedBuilder(
-        animation: _redFlashAnimation,
-        builder: (context, childWidget) {
-          return Stack(
-            children: [
-              childWidget!,
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: _redFlashAnimation.value),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+      resultWidget = Stack(
+        children: [
+          resultWidget,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBoxTransition(
+                decoration: _destructiveDecoration,
+                child: const SizedBox.shrink(),
               ),
-            ],
-          );
-        },
-        child: resultWidget,
+            ),
+          ),
+        ],
       );
     } else if (widget.style == TactileFeedbackStyle.longPressLift) {
       // Elevate the shadow during long press liftoff
-      resultWidget = AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, childWidget) {
-          final t = ((_scaleAnimation.value - 1.0) / 0.03).clamp(0.0, 1.0);
-          return Container(
-            decoration: BoxDecoration(
-              boxShadow: t > 0.0
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08 * t),
-                        blurRadius: 16.0 * t,
-                        spreadRadius: 1.0 * t,
-                        offset: Offset(0, 8.0 * t),
-                      )
-                    ]
-                  : [],
-            ),
-            child: childWidget,
-          );
-        },
+      resultWidget = DecoratedBoxTransition(
+        decoration: _shadowDecoration,
         child: resultWidget,
       );
     }

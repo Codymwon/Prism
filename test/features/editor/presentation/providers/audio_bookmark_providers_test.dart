@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:prism/features/editor/presentation/providers/audio_bookmark_providers.dart';
 import 'package:prism/features/editor/data/audio_bookmark_repository.dart';
-import 'package:prism/features/notes/data/audio_bookmark_model.dart';
+import 'package:prism/features/editor/data/audio_bookmark_model.dart';
 
 class FakeAudioBookmarkRepository implements AudioBookmarkRepository {
   @override

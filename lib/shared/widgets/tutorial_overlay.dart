@@ -62,243 +62,249 @@ class _SpotlightTutorialOverlayState extends State<SpotlightTutorialOverlay> {
     final primary = DesignColors.primary(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Stack(
-      children: [
-        // 1. Semi-transparent dimming layer with cutout spotlight
-        IgnorePointer(
-          ignoring: false, // User must interact with the tutorial overlay actions
-          child: CustomPaint(
-            size: screenSize,
-            painter: SpotlightPainter(
-              targetRect: targetRect,
-              barrierColor: Colors.black.withValues(alpha: isDark ? 0.75 : 0.6),
-              glowColor: primary,
-            ),
-          ),
-        ),
-
-        // 2. Click shield behind everything except spotlight & card to advance or prevent random taps
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: _nextStep,
-            behavior: HitTestBehavior.translucent,
-            child: const SizedBox.shrink(),
-          ),
-        ),
-
-        // 3. Spotlight Target Highlight Tappable Area
-        Positioned.fromRect(
-          rect: targetRect.inflate(8.0),
-          child: GestureDetector(
-            onTap: _nextStep,
-            child: Container(
-              color: Colors.transparent,
-            ),
-          ),
-        ),
-
-        // 4. Beautiful Instructional Card
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOutCubic,
-          left: 20,
-          right: 20,
-          top: isTargetInTopHalf ? targetRect.bottom + 24 : null,
-          bottom: !isTargetInTopHalf ? (screenSize.height - targetRect.top) + 24 : null,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: DesignColors.surface(context),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: DesignColors.border(context),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                    spreadRadius: 4,
-                  ),
-                ],
+    return Semantics(
+      scopesRoute: true,
+      namesRoute: true,
+      explicitChildNodes: true,
+      label: 'Tutorial overlay',
+      child: Stack(
+        children: [
+          // 1. Semi-transparent dimming layer with cutout spotlight
+          IgnorePointer(
+            ignoring: false, // User must interact with the tutorial overlay actions
+            child: CustomPaint(
+              size: screenSize,
+              painter: SpotlightPainter(
+                targetRect: targetRect,
+                barrierColor: Colors.black.withValues(alpha: isDark ? 0.75 : 0.6),
+                glowColor: primary,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Step Indicator & Skip Button Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'STEP ${_currentStepIndex + 1} OF ${widget.steps.length}',
-                          style: DesignTypography.metadata(
-                            context,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: primary,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: widget.onSkipped,
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          'Skip Tour',
-                          style: DesignTypography.body(
-                            context,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: DesignColors.textSecondary(context),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+            ),
+          ),
 
-                  // Title + Pulsing Icon Row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          currentStep.icon,
-                          color: primary,
-                          size: 20,
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
-                            begin: const Offset(0.9, 0.9),
-                            end: const Offset(1.1, 1.1),
-                            duration: 1000.ms,
-                          ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          currentStep.title,
-                          style: DesignTypography.heading(
-                            context,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: DesignColors.text(context),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+          // 2. Click shield behind everything except spotlight & card to advance or prevent random taps
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _nextStep,
+              behavior: HitTestBehavior.translucent,
+              child: const SizedBox.shrink(),
+            ),
+          ),
 
-                  // Description text
-                  Text(
-                    currentStep.description,
-                    style: DesignTypography.body(
-                      context,
-                      fontSize: 13.5,
-                      height: 1.5,
-                      color: DesignColors.textSecondary(context),
+          // 3. Spotlight Target Highlight Tappable Area
+          Positioned.fromRect(
+            rect: targetRect.inflate(8.0),
+            child: GestureDetector(
+              onTap: _nextStep,
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+
+          // 4. Beautiful Instructional Card
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOutCubic,
+            left: 20,
+            right: 20,
+            top: isTargetInTopHalf ? targetRect.bottom + 24 : null,
+            bottom: !isTargetInTopHalf ? (screenSize.height - targetRect.top) + 24 : null,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: DesignColors.surface(context),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: DesignColors.border(context),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                      spreadRadius: 4,
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Step Indicator & Skip Button Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'STEP ${_currentStepIndex + 1} OF ${widget.steps.length}',
+                            style: DesignTypography.metadata(
+                              context,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: primary,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: widget.onSkipped,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Skip Tour',
+                            style: DesignTypography.body(
+                              context,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: DesignColors.textSecondary(context),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                  // Action Buttons Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (_currentStepIndex > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: TactileWrapper(
-                            style: TactileFeedbackStyle.standard,
-                            onTap: () {
-                              setState(() {
-                                _currentStepIndex--;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: DesignColors.surfaceVariant(context),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: DesignColors.border(context)),
-                              ),
-                              child: Text(
-                                'Back',
-                                style: DesignTypography.body(
-                                  context,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: DesignColors.text(context),
+                    // Title + Pulsing Icon Row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            currentStep.icon,
+                            color: primary,
+                            size: 20,
+                          ),
+                        ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
+                              begin: const Offset(0.9, 0.9),
+                              end: const Offset(1.1, 1.1),
+                              duration: 1000.ms,
+                            ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            currentStep.title,
+                            style: DesignTypography.heading(
+                              context,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: DesignColors.text(context),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Description text
+                    Text(
+                      currentStep.description,
+                      style: DesignTypography.body(
+                        context,
+                        fontSize: 13.5,
+                        height: 1.5,
+                        color: DesignColors.textSecondary(context),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Action Buttons Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (_currentStepIndex > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: TactileWrapper(
+                              style: TactileFeedbackStyle.standard,
+                              onTap: () {
+                                setState(() {
+                                  _currentStepIndex--;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: DesignColors.surfaceVariant(context),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: DesignColors.border(context)),
+                                ),
+                                child: Text(
+                                  'Back',
+                                  style: DesignTypography.body(
+                                    context,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: DesignColors.text(context),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      TactileWrapper(
-                        style: TactileFeedbackStyle.highImpact,
-                        onTap: _nextStep,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: primary,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primary.withValues(alpha: 0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _currentStepIndex == widget.steps.length - 1 ? 'Got it!' : 'Next',
-                                style: DesignTypography.heading(
-                                  context,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                        TactileWrapper(
+                          style: TactileFeedbackStyle.highImpact,
+                          onTap: _nextStep,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: primary,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primary.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              Icon(
-                                _currentStepIndex == widget.steps.length - 1
-                                    ? Icons.check_rounded
-                                    : Icons.arrow_forward_rounded,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _currentStepIndex == widget.steps.length - 1 ? 'Got it!' : 'Next',
+                                  style: DesignTypography.heading(
+                                    context,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  _currentStepIndex == widget.steps.length - 1
+                                      ? Icons.check_rounded
+                                      : Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ).animate(key: ValueKey(_currentStepIndex)).fadeIn(duration: 250.ms).slideY(begin: 0.05, end: 0, duration: 250.ms),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

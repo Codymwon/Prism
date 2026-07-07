@@ -18,11 +18,12 @@ class AnalyticsService {
   static final List<Map<String, dynamic>> loggedErrors = [];
 
   static Future<bool> isEnabled() async {
+    final prefs = _prefs;
+    if (prefs == null) return false;
     try {
-      final prefs = _prefs ?? await SharedPreferences.getInstance();
       return prefs.getBool('analyticsEnabled') ?? true;
     } catch (_) {
-      return true; // Default to true if SharedPreferences is not initialized
+      return false;
     }
   }
 

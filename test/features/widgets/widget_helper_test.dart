@@ -8,7 +8,7 @@ import 'package:prism/core/utils/utils.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
-import 'package:prism/features/widgets/widget_helper.dart';
+import 'package:prism/core/platform/widget_helper.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 class MockNoteRepository implements NoteRepository {

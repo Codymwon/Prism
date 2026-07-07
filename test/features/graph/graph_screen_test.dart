@@ -8,7 +8,6 @@ import 'package:prism/features/graph/presentation/providers/graph_providers.dart
 import 'package:prism/features/graph/presentation/providers/graph_color_provider.dart';
 import 'package:prism/features/graph/data/graph_node_repository.dart';
 import 'package:prism/features/graph/data/graph_models.dart';
-import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/graph/presentation/widgets/graph_node_widget.dart';
 import 'package:prism/shared/widgets/tactile_wrapper.dart';
 

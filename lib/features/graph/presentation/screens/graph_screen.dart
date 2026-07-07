@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../data/graph_node_repository.dart';
@@ -10,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
-import '../../../notes/data/note_model.dart';
+import '../../data/graph_models.dart';
 import '../widgets/graph_settings_panel.dart';
 import '../widgets/graph_header.dart';
 import '../widgets/graph_empty_state.dart';
@@ -260,7 +261,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     
     final order = <String>[];
     final visited = <String>{};
-    final queue = <String>[];
+    final queue = Queue<String>();
     
     // Build adjacency list for edges
     final adj = <String, List<String>>{};
@@ -278,7 +279,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     visited.add(startNode.id);
     
     while (queue.isNotEmpty) {
-      final current = queue.removeAt(0);
+      final current = queue.removeFirst();
       order.add(current);
       
       final neighbors = adj[current]!..sort();

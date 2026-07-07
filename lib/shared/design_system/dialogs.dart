@@ -7,14 +7,16 @@ class DesignSheetDragHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 36,
-        height: 4,
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(2),
+    return ExcludeSemantics(
+      child: Center(
+        child: Container(
+          width: 36,
+          height: 4,
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
       ),
     );

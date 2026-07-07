@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database_providers.dart';
-import '../../../notes/data/note_model.dart';
 import '../../data/graph_models.dart';
 import '../../data/graph_node_repository.dart';
 

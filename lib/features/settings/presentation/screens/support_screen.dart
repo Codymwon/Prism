@@ -423,10 +423,13 @@ User ID: $_appUserId
                         ],
                       ),
                     ),
-                    Switch.adaptive(
-                      value: _attachDiagnostics,
-                      activeThumbColor: colorScheme.primary,
-                      onChanged: (val) => setState(() => _attachDiagnostics = val),
+                    Semantics(
+                      label: 'Attach System Diagnostics',
+                      child: Switch.adaptive(
+                        value: _attachDiagnostics,
+                        activeThumbColor: colorScheme.primary,
+                        onChanged: (val) => setState(() => _attachDiagnostics = val),
+                      ),
                     ),
                   ],
                 ),

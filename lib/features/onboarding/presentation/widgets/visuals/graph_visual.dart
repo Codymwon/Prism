@@ -1,9 +1,84 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../../shared/design_system/design_system.dart';
 
-class GraphVisual extends StatelessWidget {
+class GraphVisual extends StatefulWidget {
   const GraphVisual({super.key});
+
+  @override
+  State<GraphVisual> createState() => _GraphVisualState();
+}
+
+class _GraphVisualState extends State<GraphVisual> with TickerProviderStateMixin {
+  late AnimationController _centerController;
+  late AnimationController _topLeftController;
+  late AnimationController _topRightController;
+  late AnimationController _bottomLeftController;
+  late AnimationController _bottomRightController;
+
+  late Animation<double> _centerAnimation;
+  late Animation<double> _topLeftAnimation;
+  late Animation<double> _topRightAnimation;
+  late Animation<double> _bottomLeftAnimation;
+  late Animation<double> _bottomRightAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _centerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+
+    _topLeftController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    _topRightController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1700),
+    )..repeat(reverse: true);
+
+    _bottomLeftController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+
+    _bottomRightController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+
+    _centerAnimation = Tween<double>(begin: -4, end: 4).animate(
+      CurvedAnimation(parent: _centerController, curve: Curves.easeInOut),
+    );
+
+    _topLeftAnimation = Tween<double>(begin: 3, end: -3).animate(
+      CurvedAnimation(parent: _topLeftController, curve: Curves.easeInOut),
+    );
+
+    _topRightAnimation = Tween<double>(begin: -3, end: 3).animate(
+      CurvedAnimation(parent: _topRightController, curve: Curves.easeInOut),
+    );
+
+    _bottomLeftAnimation = Tween<double>(begin: -2, end: 4).animate(
+      CurvedAnimation(parent: _bottomLeftController, curve: Curves.easeInOut),
+    );
+
+    _bottomRightAnimation = Tween<double>(begin: 4, end: -2).animate(
+      CurvedAnimation(parent: _bottomRightController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _centerController.dispose();
+    _topLeftController.dispose();
+    _topRightController.dispose();
+    _bottomLeftController.dispose();
+    _bottomRightController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,42 +109,75 @@ class GraphVisual extends StatelessWidget {
             ),
           ),
           // Center Node
-          Center(
-            child: _buildGraphNode(context, 'Brain', Icons.lens_blur_rounded, primary, 28)
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .moveY(begin: -4, end: 4, duration: 1800.ms, curve: Curves.easeInOut),
+          AnimatedBuilder(
+            animation: _centerAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _centerAnimation.value),
+                child: child,
+              );
+            },
+            child: _buildGraphNode(context, 'Brain', Icons.lens_blur_rounded, primary, 28),
           ),
           // Top-Left Node
           Positioned(
             top: 25,
             left: 25,
-            child: _buildGraphNode(context, 'Journal', Icons.calendar_today_rounded, accentGreen, 20)
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .moveY(begin: 3, end: -3, duration: 1500.ms, curve: Curves.easeInOut),
+            child: AnimatedBuilder(
+              animation: _topLeftAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _topLeftAnimation.value),
+                  child: child,
+                );
+              },
+              child: _buildGraphNode(context, 'Journal', Icons.calendar_today_rounded, accentGreen, 20),
+            ),
           ),
           // Top-Right Node
           Positioned(
             top: 30,
             right: 25,
-            child: _buildGraphNode(context, 'Work', Icons.work_outline_rounded, accentAmber, 20)
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .moveY(begin: -3, end: 3, duration: 1700.ms, curve: Curves.easeInOut),
+            child: AnimatedBuilder(
+              animation: _topRightAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _topRightAnimation.value),
+                  child: child,
+                );
+              },
+              child: _buildGraphNode(context, 'Work', Icons.work_outline_rounded, accentAmber, 20),
+            ),
           ),
           // Bottom-Left Node
           Positioned(
             bottom: 25,
             left: 35,
-            child: _buildGraphNode(context, 'Quotes', Icons.format_quote_rounded, Colors.purple, 20)
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .moveY(begin: -2, end: 4, duration: 1600.ms, curve: Curves.easeInOut),
+            child: AnimatedBuilder(
+              animation: _bottomLeftAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _bottomLeftAnimation.value),
+                  child: child,
+                );
+              },
+              child: _buildGraphNode(context, 'Quotes', Icons.format_quote_rounded, Colors.purple, 20),
+            ),
           ),
           // Bottom-Right Node
           Positioned(
             bottom: 20,
             right: 35,
-            child: _buildGraphNode(context, 'Tasks', Icons.check_circle_outline_rounded, Colors.teal, 20)
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .moveY(begin: 4, end: -2, duration: 1400.ms, curve: Curves.easeInOut),
+            child: AnimatedBuilder(
+              animation: _bottomRightAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _bottomRightAnimation.value),
+                  child: child,
+                );
+              },
+              child: _buildGraphNode(context, 'Tasks', Icons.check_circle_outline_rounded, Colors.teal, 20),
+            ),
           ),
         ],
       ),
