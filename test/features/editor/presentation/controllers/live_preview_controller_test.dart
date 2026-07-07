@@ -33,7 +33,7 @@ void main() {
               // Let's inspect the span tree.
               // We'll write a helper to traverse the span tree and verify styles.
               expect(span, isA<TextSpan>());
-              final textSpan = span as TextSpan;
+              final textSpan = span;
               expect(textSpan.children, isNotNull);
 
               // Line 1 spans (cursor line): should have '###' as a span
@@ -78,7 +78,7 @@ void main() {
                 withComposing: false,
               );
 
-              final spans = _flattenSpans(span as TextSpan);
+              final spans = _flattenSpans(span);
 
               // Line 1: '###' is dimmed
               final hashSpan = spans.firstWhere((s) => s.text == '###');
@@ -119,7 +119,7 @@ void main() {
                 withComposing: false,
               );
 
-              final spans = _flattenSpans(span as TextSpan);
+              final spans = _flattenSpans(span);
               final tagSpan = spans.firstWhere((s) => s.text == '#tag');
 
               // Hashtag text should be bold, primary color, and have a background highlight
@@ -156,7 +156,7 @@ void main() {
                 withComposing: false,
               );
 
-              final spans = _flattenSpans(span as TextSpan);
+              final spans = _flattenSpans(span);
 
               // Verification:
               // The hashes '###' and separating space ' ' should NOT be in the flattened spans at all,

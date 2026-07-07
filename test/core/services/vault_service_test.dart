@@ -56,10 +56,8 @@ class FakeWidgetRef implements WidgetRef {
     return container.refresh(provider);
   }
 
-  @override
   void listenSelf(void Function(Object? previous, Object? next) listener, {void Function(Object error, StackTrace stackTrace)? onError}) {}
 
-  @override
   void onDispose(void Function() cb) {}
 }
 

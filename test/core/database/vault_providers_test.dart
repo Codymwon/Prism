@@ -34,7 +34,7 @@ void main() {
     addTearDown(container.dispose);
 
     // Keep the provider alive
-    container.listen(syncedVaultsProvider, (_, __) {});
+    container.listen(syncedVaultsProvider, (_, _) {});
 
     // Wait for the provider to build
     final initialList = await container.read(syncedVaultsProvider.future);

@@ -54,7 +54,7 @@ class FakeJournalTutorialNotifier extends JournalTutorialNotifier {
 }
 
 class FakeOnboardingNotifier extends OnboardingNotifier {
-  FakeOnboardingNotifier(SharedPreferences prefs) : super(prefs) {
+  FakeOnboardingNotifier(super.prefs) {
     state = true;
   }
 }

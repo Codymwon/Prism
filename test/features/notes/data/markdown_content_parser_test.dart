@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
-import 'package:prism/core/utils/utils.dart';
 
 void main() {
   group('MarkdownContentParser tests', () {

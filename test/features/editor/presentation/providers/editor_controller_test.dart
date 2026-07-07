@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/features/editor/presentation/providers/editor_controller.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
 import 'package:prism/features/notes/data/note_model.dart';
-import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 // We can create a simple mock/fake for NoteRepository

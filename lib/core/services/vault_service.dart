@@ -8,8 +8,6 @@ import 'two_way_sync_service.dart';
 import 'analytics_service.dart';
 import '../../features/onboarding/data/onboarding_provider.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 final vaultManagementServiceProvider = Provider<VaultManagementService>((ref) {
   return VaultManagementService();
 });
@@ -292,7 +290,7 @@ class VaultManagementService {
         final dbFile = File(p.join(subDir.path, '.prism.db'));
         if (await dbFile.exists()) {
           final dbTime = await dbFile.lastModified();
-          if (subDirLatest != null && dbTime.isAfter(subDirLatest)) {
+          if (dbTime.isAfter(subDirLatest)) {
             subDirLatest = dbTime;
           }
         }

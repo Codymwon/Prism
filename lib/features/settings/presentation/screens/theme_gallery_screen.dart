@@ -235,7 +235,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                                   scale: 0.8,
                                   child: Switch(
                                     value: _livePreviewMode,
-                                    activeColor: DesignColors.primary(context),
+                                    activeThumbColor: DesignColors.primary(context),
                                     onChanged: (val) {
                                       setState(() {
                                         _livePreviewMode = val;

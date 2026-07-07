@@ -98,7 +98,7 @@ Widget _buildForm({
         body: VaultSetupForm(
           onStartSetup: onStartSetup,
           onEndSetup: onEndSetup ?? () {},
-          onPersist: onPersist ?? (_, __, ___) async {},
+          onPersist: onPersist ?? (_, _, _) async {},
         ),
       ),
     ),
@@ -176,7 +176,7 @@ void main() {
     await tester.pumpWidget(_buildForm(
       pickerPath: tempDir.path,
       onStartSetup: () => startCalled = true,
-      onPersist: (_, __, ___) async => persistCalled = true,
+      onPersist: (_, _, _) async => persistCalled = true,
     ));
     await tester.pumpAndSettle();
 
@@ -236,7 +236,7 @@ void main() {
     await tester.pumpWidget(_buildForm(
       pickerPath: tempDir.path,
       onStartSetup: () => startCalled = true,
-      onPersist: (_, vault, __) async => importedVault = vault,
+      onPersist: (_, vault, _) async => importedVault = vault,
     ));
     await tester.pumpAndSettle();
 

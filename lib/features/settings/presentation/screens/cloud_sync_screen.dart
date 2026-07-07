@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -575,7 +574,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                                       side: BorderSide(color: DesignColors.text(context).withValues(alpha: 0.05)),
                                     ),
                                     child: SwitchListTile(
-                                      activeColor: DesignColors.primary(context),
+                                      activeThumbColor: DesignColors.primary(context),
                                       title: Text(
                                         vault,
                                         style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),

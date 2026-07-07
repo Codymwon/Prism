@@ -3,19 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/database/database_helper.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/onboarding_provider.dart';
-import '../../data/tutorial_provider.dart';
 import '../../../../core/utils/storage_permission_helper.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../../core/database/vault_providers.dart';
 
 class VaultSetupForm extends ConsumerStatefulWidget {
   final VoidCallback onStartSetup;
@@ -81,7 +77,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   }
 
   Future<void> _handleNextStep() async {
-    print('DEBUG: _handleNextStep started');
+    debugPrint('DEBUG: _handleNextStep started');
     if (_selectedVaultType == 'sandbox') {
       setState(() {
         _currentStep = 2;
@@ -90,7 +86,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     }
     final hubName = _hubNameController.text.trim();
     if (hubName.isEmpty) {
-      print('DEBUG: hubName is empty');
+      debugPrint('DEBUG: hubName is empty');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a name for the main folder.')),
       );
@@ -98,7 +94,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     }
     final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
     if (!safePattern.hasMatch(hubName)) {
-      print('DEBUG: hubName does not match safePattern');
+      debugPrint('DEBUG: hubName does not match safePattern');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -110,7 +106,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     }
 
     if (_customLocationPath.isEmpty) {
-      print('DEBUG: _customLocationPath is empty');
+      debugPrint('DEBUG: _customLocationPath is empty');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a storage folder.')),
       );
@@ -119,9 +115,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
 
     // Check and request storage permission immediately for custom vaults
     final hasAccess = await StoragePermissionHelper.hasAllFilesAccess();
-    print('DEBUG: hasAccess = $hasAccess');
+    debugPrint('DEBUG: hasAccess = $hasAccess');
     if (!mounted) {
-      print('DEBUG: not mounted after permission check');
+      debugPrint('DEBUG: not mounted after permission check');
       return;
     }
     if (!hasAccess) {
@@ -167,7 +163,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     final hubPath = p.join(_customLocationPath, hubName);
     final hubDir = Directory(hubPath);
     final hubExists = await hubDir.exists();
-    print('DEBUG: hubPath = $hubPath, exists = $hubExists');
+    debugPrint('DEBUG: hubPath = $hubPath, exists = $hubExists');
     if (hubExists) {
       List<Directory> subDirs = [];
       try {
@@ -181,7 +177,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         debugPrint('Error scanning existing hub: $e');
       }
 
-      print('DEBUG: subDirs count = ${subDirs.length}');
+      debugPrint('DEBUG: subDirs count = ${subDirs.length}');
       if (subDirs.isNotEmpty) {
         // Find most recently modified vault based on file/db timestamps
         Directory? mostRecentDir;
@@ -194,7 +190,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             final dbFile = File(p.join(subDir.path, '.prism.db'));
             if (await dbFile.exists()) {
               final dbTime = await dbFile.lastModified();
-              if (subDirLatest != null && dbTime.isAfter(subDirLatest)) {
+              if (dbTime.isAfter(subDirLatest)) {
                 subDirLatest = dbTime;
               }
             }
@@ -213,7 +209,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             ? p.basename(mostRecentDir.path)
             : p.basename(subDirs.first.path);
 
-        print('DEBUG: existing vaults found. Active vault = $activeVault. Auto-importing...');
+        debugPrint('DEBUG: existing vaults found. Active vault = $activeVault. Auto-importing...');
         // Auto-import and bypass Step 2 entirely
         setState(() => _isCompleting = true);
         widget.onStartSetup();
@@ -259,18 +255,18 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       }
     }
 
-    print('DEBUG: no existing vaults, transitioning to step 2');
+    debugPrint('DEBUG: no existing vaults, transitioning to step 2');
     // No existing vaults, proceed to Step 2
     setState(() {
-      print('DEBUG: setState for step 2 called');
+      debugPrint('DEBUG: setState for step 2 called');
       _currentStep = 2;
     });
   }
 
   Future<void> _completeOnboarding() async {
-    print('DEBUG: _completeOnboarding started');
+    debugPrint('DEBUG: _completeOnboarding started');
     if (_isCompleting) {
-      print('DEBUG: already completing, returning');
+      debugPrint('DEBUG: already completing, returning');
       return;
     }
 
@@ -295,7 +291,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
     final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
 
-    print('DEBUG: calling onStartSetup()');
+    debugPrint('DEBUG: calling onStartSetup()');
     widget.onStartSetup();
 
     try {
@@ -407,172 +403,175 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             ).animate().fadeIn(delay: 210.ms).slideY(begin: 0.15),
             const SizedBox(height: 10),
             
-            // Device Storage Card
-            GestureDetector(
-              onTap: () => setState(() => _selectedVaultType = 'custom'),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _selectedVaultType == 'custom'
-                      ? colorScheme.primaryContainer.withValues(alpha: 0.15)
-                      : cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _selectedVaultType == 'custom'
-                        ? colorScheme.primary
-                        : cardBorder,
-                    width: _selectedVaultType == 'custom' ? 2 : 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Radio<String>(
-                          value: 'custom',
-                          groupValue: _selectedVaultType,
-                          activeColor: colorScheme.primary,
-                          onChanged: (val) {
-                            if (val != null) setState(() => _selectedVaultType = val);
-                          },
+            RadioGroup<String>(
+              groupValue: _selectedVaultType,
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedVaultType = val);
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Device Storage Card
+                  GestureDetector(
+                    onTap: () => setState(() => _selectedVaultType = 'custom'),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _selectedVaultType == 'custom'
+                            ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+                            : cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _selectedVaultType == 'custom'
+                              ? colorScheme.primary
+                              : cardBorder,
+                          width: _selectedVaultType == 'custom' ? 2 : 1,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Device storage',
-                          style: DesignTypography.body(
-                            context,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            color: textStyle,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Radio<String>(
+                                value: 'custom',
+                                activeColor: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Device storage',
+                                style: DesignTypography.body(
+                                  context,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: textStyle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'RECOMMENDED',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'RECOMMENDED',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
+                          Padding(
+                            padding: const EdgeInsets.only(left: 48, top: 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
+                                    Expanded(
+                                      child: Text(
+                                        'Allows Prism data to be accessed by other apps.',
+                                        style: DesignTypography.details(context, color: textSecStyle),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 48, top: 4),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
-                              Expanded(
-                                child: Text(
-                                  'Allows Prism data to be accessed by other apps.',
-                                  style: DesignTypography.details(context, color: textSecStyle),
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ).animate().fadeIn(delay: 220.ms),
-            const SizedBox(height: 12),
+                  ).animate().fadeIn(delay: 220.ms),
+                  const SizedBox(height: 12),
 
-            // App Storage Card
-            GestureDetector(
-              onTap: () => setState(() => _selectedVaultType = 'sandbox'),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _selectedVaultType == 'sandbox'
-                      ? colorScheme.primaryContainer.withValues(alpha: 0.15)
-                      : cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _selectedVaultType == 'sandbox'
-                        ? colorScheme.primary
-                        : cardBorder,
-                    width: _selectedVaultType == 'sandbox' ? 2 : 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Radio<String>(
-                          value: 'sandbox',
-                          groupValue: _selectedVaultType,
-                          activeColor: colorScheme.primary,
-                          onChanged: (val) {
-                            if (val != null) setState(() => _selectedVaultType = val);
-                          },
+                  // App Storage Card
+                  GestureDetector(
+                    onTap: () => setState(() => _selectedVaultType = 'sandbox'),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _selectedVaultType == 'sandbox'
+                            ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+                            : cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _selectedVaultType == 'sandbox'
+                              ? colorScheme.primary
+                              : cardBorder,
+                          width: _selectedVaultType == 'sandbox' ? 2 : 1,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'App storage',
-                          style: DesignTypography.body(
-                            context,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            color: textStyle,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 48, top: 4),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
-                              Expanded(
-                                child: Text(
-                                  'Your data will not be accessible to other apps.',
-                                  style: DesignTypography.details(context, color: textSecStyle),
+                              Radio<String>(
+                                value: 'sandbox',
+                                activeColor: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'App storage',
+                                style: DesignTypography.body(
+                                  context,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: textStyle,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
-                              Expanded(
-                                child: Text(
-                                  'Android will delete your data if you uninstall Prism.',
-                                  style: DesignTypography.details(context, color: textSecStyle),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 48, top: 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
+                                    Expanded(
+                                      child: Text(
+                                        'Your data will not be accessible to other apps.',
+                                        style: DesignTypography.details(context, color: textSecStyle),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
+                                    Expanded(
+                                      child: Text(
+                                        'Android will delete your data if you uninstall Prism.',
+                                        style: DesignTypography.details(context, color: textSecStyle),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ).animate().fadeIn(delay: 230.ms),
+                ],
               ),
-            ).animate().fadeIn(delay: 230.ms),
+            ),
             const SizedBox(height: 28),
 
             if (_selectedVaultType == 'custom') ...[
@@ -860,7 +859,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                   const SizedBox(width: 12),
                   Switch(
                     value: _shareAnalytics,
-                    activeColor: colorScheme.primary,
+                    activeThumbColor: colorScheme.primary,
                     onChanged: (val) {
                       setState(() => _shareAnalytics = val);
                     },

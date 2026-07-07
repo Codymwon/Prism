@@ -1,5 +1,4 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';

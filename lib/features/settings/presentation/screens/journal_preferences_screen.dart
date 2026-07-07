@@ -74,7 +74,7 @@ class JournalPreferencesScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   SwitchListTile(
-                    activeColor: DesignColors.primary(context),
+                    activeThumbColor: DesignColors.primary(context),
                     title: Text(
                       'Auto-create Daily Note on Launch',
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),

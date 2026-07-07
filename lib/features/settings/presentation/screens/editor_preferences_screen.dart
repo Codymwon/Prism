@@ -101,7 +101,7 @@ class EditorPreferencesScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   SwitchListTile(
-                    activeColor: DesignColors.primary(context),
+                    activeThumbColor: DesignColors.primary(context),
                     title: Text(
                       'Display Line Numbers',
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
@@ -118,7 +118,7 @@ class EditorPreferencesScreen extends ConsumerWidget {
                     child: Divider(color: DesignColors.border(context), height: 1),
                   ),
                   SwitchListTile(
-                    activeColor: DesignColors.primary(context),
+                    activeThumbColor: DesignColors.primary(context),
                     title: Text(
                       'Auto-pair Brackets & Quotes',
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
@@ -135,7 +135,7 @@ class EditorPreferencesScreen extends ConsumerWidget {
                     child: Divider(color: DesignColors.border(context), height: 1),
                   ),
                   SwitchListTile(
-                    activeColor: DesignColors.primary(context),
+                    activeThumbColor: DesignColors.primary(context),
                     title: Text(
                       'Show Backlinks by Default',
                       style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),

@@ -16,7 +16,6 @@ import 'package:path/path.dart' as p;
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cryptography/cryptography.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class FakeGoogleDriveService extends Fake implements GoogleDriveService {
   final Map<String, List<int>> files = {};
@@ -170,7 +169,7 @@ void main() {
     );
 
     // Enable sync by default for all existing tests
-    container.listen(syncedVaultsProvider, (_, __) {});
+    container.listen(syncedVaultsProvider, (_, _) {});
     await container.read(syncedVaultsProvider.notifier).enableSync(vaultName);
 
     final vaultHash = (await container.read(syncEncryptionServiceProvider).hashVaultName(vaultName)).getOrElse((_) => throw Exception());

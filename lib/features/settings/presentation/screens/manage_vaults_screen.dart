@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../../../shared/design_system/design_system.dart';
-import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../widgets/settings_widgets.dart';
@@ -110,7 +109,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
               ref: ref,
             );
 
-            if (mounted) {
+            if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -123,7 +122,7 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
               _loadActiveVaultStats();
             }
           } catch (e) {
-            if (mounted) {
+            if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   backgroundColor: Colors.redAccent,
@@ -634,141 +633,144 @@ class _RelocationBottomSheetState extends State<_RelocationBottomSheet> {
           ),
           const SizedBox(height: 24),
 
-          // Device Storage Card
-          GestureDetector(
-            onTap: () => setState(() => _selectedVaultType = 'custom'),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _selectedVaultType == 'custom'
-                    ? colorScheme.primaryContainer.withValues(alpha: 0.15)
-                    : cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: _selectedVaultType == 'custom'
-                      ? colorScheme.primary
-                      : cardBorder,
-                  width: _selectedVaultType == 'custom' ? 2 : 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Radio<String>(
-                        value: 'custom',
-                        groupValue: _selectedVaultType,
-                        activeColor: colorScheme.primary,
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedVaultType = val);
-                        },
+          RadioGroup<String>(
+            groupValue: _selectedVaultType,
+            onChanged: (val) {
+              if (val != null) setState(() => _selectedVaultType = val);
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Device Storage Card
+                GestureDetector(
+                  onTap: () => setState(() => _selectedVaultType = 'custom'),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _selectedVaultType == 'custom'
+                          ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+                          : cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _selectedVaultType == 'custom'
+                            ? colorScheme.primary
+                            : cardBorder,
+                        width: _selectedVaultType == 'custom' ? 2 : 1,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Device storage',
-                        style: DesignTypography.body(
-                          context,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          color: textStyle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'RECOMMENDED',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 48, top: 4),
-                    child: Text(
-                      'Allows Prism data to be accessed by other apps.',
-                      style: DesignTypography.details(context, color: textSecStyle),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // App Storage Card
-          GestureDetector(
-            onTap: () => setState(() => _selectedVaultType = 'sandbox'),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _selectedVaultType == 'sandbox'
-                    ? colorScheme.primaryContainer.withValues(alpha: 0.15)
-                    : cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: _selectedVaultType == 'sandbox'
-                      ? colorScheme.primary
-                      : cardBorder,
-                  width: _selectedVaultType == 'sandbox' ? 2 : 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Radio<String>(
-                        value: 'sandbox',
-                        groupValue: _selectedVaultType,
-                        activeColor: colorScheme.primary,
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedVaultType = val);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'App storage',
-                        style: DesignTypography.body(
-                          context,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          color: textStyle,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 48, top: 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '• Your data will not be accessible to other apps.',
-                          style: DesignTypography.details(context, color: textSecStyle),
+                        Row(
+                          children: [
+                            Radio<String>(
+                              value: 'custom',
+                              activeColor: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Device storage',
+                              style: DesignTypography.body(
+                                context,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: textStyle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'RECOMMENDED',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '• Android will delete your data if you uninstall Prism.',
-                          style: DesignTypography.details(context, color: textSecStyle),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 48, top: 4),
+                          child: Text(
+                            'Allows Prism data to be accessed by other apps.',
+                            style: DesignTypography.details(context, color: textSecStyle),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+
+                // App Storage Card
+                GestureDetector(
+                  onTap: () => setState(() => _selectedVaultType = 'sandbox'),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _selectedVaultType == 'sandbox'
+                          ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+                          : cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _selectedVaultType == 'sandbox'
+                            ? colorScheme.primary
+                            : cardBorder,
+                        width: _selectedVaultType == 'sandbox' ? 2 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Radio<String>(
+                              value: 'sandbox',
+                              activeColor: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'App storage',
+                              style: DesignTypography.body(
+                                context,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: textStyle,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 48, top: 4),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '• Your data will not be accessible to other apps.',
+                                style: DesignTypography.details(context, color: textSecStyle),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '• Android will delete your data if you uninstall Prism.',
+                                style: DesignTypography.details(context, color: textSecStyle),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
@@ -854,7 +856,7 @@ class _RelocationBottomSheetState extends State<_RelocationBottomSheet> {
                 Switch(
                   value: _migrateData,
                   onChanged: (val) => setState(() => _migrateData = val),
-                  activeColor: colorScheme.primary,
+                  activeThumbColor: colorScheme.primary,
                 ),
               ],
             ),

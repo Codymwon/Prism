@@ -8,7 +8,6 @@ import 'package:prism/features/graph/presentation/providers/graph_providers.dart
 import 'package:prism/features/graph/presentation/providers/graph_color_provider.dart';
 import 'package:prism/features/graph/data/graph_node_repository.dart';
 import 'package:prism/features/graph/data/graph_models.dart';
-import 'package:prism/core/database/database_service.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/graph/presentation/widgets/graph_node_widget.dart';
 import 'package:prism/shared/widgets/tactile_wrapper.dart';
@@ -548,7 +547,7 @@ void main() {
 
     addTearDown(container.dispose);
 
-    container.listen(graphNodeColorsProvider, (_, __) {});
+    container.listen(graphNodeColorsProvider, (_, _) {});
 
     // 1. Default color mode 'none' -> should be empty
     var colors = await container.read(graphNodeColorsProvider.future);
@@ -577,18 +576,6 @@ class FakeGraphNodeRepository implements GraphNodeRepository {
     required this.tags,
     required this.folders,
   });
-
-  @override
-  Ref get _ref => throw UnimplementedError();
-
-  @override
-  Future<DatabaseService> get _db => throw UnimplementedError();
-
-  @override
-  Future<void> _flush(DatabaseService db) async {}
-
-  @override
-  int _getIsoWeekNumber(DateTime date) => 1;
 
   @override
   Future<({List<GraphNode> nodes, List<GraphEdge> edges})> getGraphData() async {

@@ -111,7 +111,7 @@ void main() {
     );
   }
 
-  void _setViewport(WidgetTester tester) {
+  void setViewport(WidgetTester tester) {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -121,7 +121,7 @@ void main() {
   }
 
   testWidgets('renders ManageVaultsScreen and opens relocation bottom sheet', (WidgetTester tester) async {
-    _setViewport(tester);
+    setViewport(tester);
     FilePicker.platform = _StubFilePicker(p.join(tempDir.path, 'new_location'));
 
     await tester.pumpWidget(buildScreen());

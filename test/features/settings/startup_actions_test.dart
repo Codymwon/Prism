@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/note_repository.dart';
-import 'package:prism/features/settings/presentation/providers/settings_provider.dart';
 import 'package:prism/features/settings/presentation/providers/startup_actions.dart';
 import 'package:prism/core/utils/utils.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';

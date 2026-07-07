@@ -59,7 +59,7 @@ void main() {
       ],
     );
     // Listen to the provider to keep it alive during the test
-    container.listen(audioRecordControllerProvider('test-note'), (_, __) {});
+    container.listen(audioRecordControllerProvider('test-note'), (_, _) {});
   });
 
   tearDown(() {
@@ -225,7 +225,7 @@ void main() {
           noteByIdProvider('test-note').overrideWith((ref) => Future.value(null)),
         ],
       );
-      localContainer.listen(audioRecordControllerProvider('test-note'), (_, __) {});
+      localContainer.listen(audioRecordControllerProvider('test-note'), (_, _) {});
 
       final controller = localContainer.read(audioRecordControllerProvider('test-note').notifier);
 

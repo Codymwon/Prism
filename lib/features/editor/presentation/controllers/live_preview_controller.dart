@@ -21,8 +21,8 @@ class LivePreviewController extends TextEditingController {
     this.imageBuilder,
     this.tableBuilder,
     this.checkboxBuilder,
-    String? text,
-  }) : super(text: text);
+    super.text,
+  });
 
   @override
   TextSpan buildTextSpan({
@@ -356,7 +356,6 @@ class LivePreviewController extends TextEditingController {
           decoration: TextDecoration.underline,
         );
       case InlineType.plain:
-      default:
         return defaultStyle;
     }
   }

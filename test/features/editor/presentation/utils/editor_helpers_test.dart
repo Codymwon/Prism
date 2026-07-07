@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:prism/features/editor/presentation/utils/editor_helpers.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:prism/core/utils/utils.dart';
-import 'package:markdown/markdown.dart' as md;
 
 class TestImageWidget extends ConsumerWidget {
   final Uri uri;

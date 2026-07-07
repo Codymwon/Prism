@@ -13,7 +13,6 @@ import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 
 import '../../../../core/services/analytics_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/audio_recorder_service.dart';
 import '../../data/audio_recorder_service_impl.dart';
 import '../../../onboarding/data/onboarding_provider.dart';
@@ -386,9 +385,7 @@ class AudioRecordController extends _$AudioRecordController {
       }
 
       String? effectiveVaultPath = vaultPath;
-      if (effectiveVaultPath == null) {
-        effectiveVaultPath = await ref.read(activeVaultPathProvider.future);
-      }
+      effectiveVaultPath ??= await ref.read(activeVaultPathProvider.future);
 
       final note = await ref.read(noteByIdProvider(noteId).future);
       if (note != null && note.filePath.isNotEmpty) {

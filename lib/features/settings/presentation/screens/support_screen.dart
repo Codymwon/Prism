@@ -316,7 +316,7 @@ User ID: $_appUserId
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 style: DesignTypography.body(context, fontSize: 14, color: textStyle),
                 decoration: InputDecoration(
                   filled: true,
@@ -445,7 +445,7 @@ User ID: $_appUserId
                     ),
                     Switch.adaptive(
                       value: _attachDiagnostics,
-                      activeColor: colorScheme.primary,
+                      activeThumbColor: colorScheme.primary,
                       onChanged: (val) => setState(() => _attachDiagnostics = val),
                     ),
                   ],

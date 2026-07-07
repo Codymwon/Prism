@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../features/onboarding/data/onboarding_provider.dart';

@@ -18,10 +18,8 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 import '../providers/editor_controller.dart';
 import '../widgets/conflict_banner.dart';
 import '../widgets/editor_write_mode.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../onboarding/data/onboarding_provider.dart';
 import '../controllers/live_preview_controller.dart';
-import '../utils/markdown_line_parser.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {
   final String noteId;
@@ -451,7 +449,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                 scale: 0.8,
                                 child: Switch.adaptive(
                                   value: ref.watch(editorControllerProvider(widget.noteId).select((s) => s.showBacklinks)),
-                                  activeColor: DesignColors.primary(context),
+                                  activeThumbColor: DesignColors.primary(context),
                                   onChanged: (val) {
                                     _editorController.toggleShowBacklinks();
                                   },

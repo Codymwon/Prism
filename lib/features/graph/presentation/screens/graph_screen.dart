@@ -11,7 +11,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../notes/data/note_model.dart';
-import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../widgets/graph_settings_panel.dart';
 import '../widgets/graph_header.dart';
 import '../widgets/graph_empty_state.dart';
@@ -116,7 +115,6 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final graphAsync = ref.watch(graphDataProvider);
 
     return Scaffold(
@@ -753,8 +751,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     final ty = viewHeight / 2 - centerY * scale;
 
     widget.transformationController.value = Matrix4.identity()
-      ..translate(tx, ty)
-      ..scale(scale);
+      ..translateByDouble(tx, ty, 0.0, 1.0)
+      ..scaleByDouble(scale, scale, scale, 1.0);
   }
 
   @override

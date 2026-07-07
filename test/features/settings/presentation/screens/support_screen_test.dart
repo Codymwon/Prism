@@ -111,7 +111,7 @@ void main() {
     );
   }
 
-  void _setViewport(WidgetTester tester) {
+  void setViewport(WidgetTester tester) {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -121,7 +121,7 @@ void main() {
   }
 
   testWidgets('renders SupportScreen with form fields and updates selection', (WidgetTester tester) async {
-    _setViewport(tester);
+    setViewport(tester);
     await tester.pumpWidget(buildScreen(isPro: false));
     await tester.pump();
 
@@ -143,7 +143,7 @@ void main() {
   });
 
   testWidgets('toggling Attach System Diagnostics hides and shows diagnostics card', (WidgetTester tester) async {
-    _setViewport(tester);
+    setViewport(tester);
     await tester.pumpWidget(buildScreen(isPro: true));
     await tester.pump();
 
@@ -170,7 +170,7 @@ void main() {
   });
 
   testWidgets('form validation triggers error when fields are empty', (WidgetTester tester) async {
-    _setViewport(tester);
+    setViewport(tester);
     await tester.pumpWidget(buildScreen(isPro: false));
     await tester.pump();
 

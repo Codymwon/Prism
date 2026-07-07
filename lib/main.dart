@@ -18,7 +18,6 @@ import 'core/services/analytics_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -92,9 +91,8 @@ void main() async {
         fontFamily: fontFamily,
         onPermissionGranted: () async {
           // Warm up DB in the background
-          container.read(databaseProvider.future).catchError((e) {
+          container.read(databaseProvider.future).then((_) {}).catchError((e) {
             debugPrint('Failed to warm up database after permission grant: $e');
-            return null;
           });
           runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));
         },
@@ -106,9 +104,8 @@ void main() async {
   final hasOnboarded = prefs.getBool('hasOnboarded') ?? false;
   if (hasOnboarded) {
     // Warm up database in the background without blocking the UI thread
-    container.read(databaseProvider.future).catchError((e) {
+    container.read(databaseProvider.future).then((_) {}).catchError((e) {
       debugPrint('Failed to warm up database at startup: $e');
-      return null;
     });
   }
 
