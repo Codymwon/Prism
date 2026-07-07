@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/design_system/design_system.dart';
+import '../../../../shared/widgets/tactile_wrapper.dart';
 
 class GraphHeader extends StatelessWidget {
   final bool showSettings;
@@ -48,28 +49,57 @@ class GraphHeader extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          IconButton(
-            icon: Icon(
-              Icons.gps_fixed_rounded,
-              color: DesignColors.textSecondary(context),
+          TactileWrapper(
+            onTap: onFocusCenter,
+            style: TactileFeedbackStyle.standard,
+            semanticLabel: 'Center Graph View',
+            child: Tooltip(
+              message: 'Center Graph View',
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.transparent,
+                child: Icon(
+                  Icons.gps_fixed_rounded,
+                  color: DesignColors.textSecondary(context),
+                ),
+              ),
             ),
-            onPressed: onFocusCenter,
           ),
-          IconButton(
-            icon: Icon(
-              Icons.play_circle_outline,
-              color: DesignColors.textSecondary(context),
+          const SizedBox(width: 8),
+          TactileWrapper(
+            onTap: onReplay,
+            style: TactileFeedbackStyle.standard,
+            semanticLabel: 'Replay Graph Animation',
+            child: Tooltip(
+              message: 'Replay Graph Animation',
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.transparent,
+                child: Icon(
+                  Icons.play_circle_outline,
+                  color: DesignColors.textSecondary(context),
+                ),
+              ),
             ),
-            onPressed: onReplay,
           ),
-          IconButton(
-            icon: Icon(
-              showSettings ? Icons.settings_rounded : Icons.settings_outlined,
-              color: showSettings 
-                  ? colorScheme.primary 
-                  : DesignColors.textSecondary(context),
+          const SizedBox(width: 8),
+          TactileWrapper(
+            onTap: onSettingsToggle,
+            style: TactileFeedbackStyle.standard,
+            semanticLabel: showSettings ? 'Hide Graph Settings' : 'Show Graph Settings',
+            child: Tooltip(
+              message: showSettings ? 'Hide Graph Settings' : 'Show Graph Settings',
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.transparent,
+                child: Icon(
+                  showSettings ? Icons.settings_rounded : Icons.settings_outlined,
+                  color: showSettings 
+                      ? colorScheme.primary 
+                      : DesignColors.textSecondary(context),
+                ),
+              ),
             ),
-            onPressed: onSettingsToggle,
           ),
         ],
       ),

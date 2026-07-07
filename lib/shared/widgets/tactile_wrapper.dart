@@ -17,6 +17,8 @@ class TactileWrapper extends ConsumerStatefulWidget {
   final VoidCallback? onDoubleTap;
   final TactileFeedbackStyle style;
   final bool ignoreChildPointer;
+  final String? semanticLabel;
+  final bool isEnabled;
 
   const TactileWrapper({
     super.key,
@@ -26,6 +28,8 @@ class TactileWrapper extends ConsumerStatefulWidget {
     this.onDoubleTap,
     this.style = TactileFeedbackStyle.standard,
     this.ignoreChildPointer = true,
+    this.semanticLabel,
+    this.isEnabled = true,
   });
 
   @override
@@ -196,15 +200,20 @@ class _TactileWrapperState extends ConsumerState<TactileWrapper>
     }
 
     return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTapDown: _handleTapDown,
-        onTapUp: _handleTapUp,
-        onTapCancel: _handleTapCancel,
-        onLongPress: widget.onLongPress != null ? _handleLongPress : null,
-        onDoubleTap: widget.onDoubleTap,
-        behavior: HitTestBehavior.opaque,
-        child: resultWidget,
+      cursor: widget.isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: Semantics(
+        label: widget.semanticLabel,
+        button: true,
+        enabled: widget.isEnabled,
+        child: GestureDetector(
+          onTapDown: widget.isEnabled ? _handleTapDown : null,
+          onTapUp: widget.isEnabled ? _handleTapUp : null,
+          onTapCancel: widget.isEnabled ? _handleTapCancel : null,
+          onLongPress: widget.isEnabled && widget.onLongPress != null ? _handleLongPress : null,
+          onDoubleTap: widget.isEnabled ? widget.onDoubleTap : null,
+          behavior: HitTestBehavior.opaque,
+          child: resultWidget,
+        ),
       ),
     );
   }

@@ -364,6 +364,7 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
       key: key,
       style: TactileFeedbackStyle.standard,
       onTap: onTap,
+      semanticLabel: tooltip,
       child: Tooltip(
         message: tooltip,
         child: Container(
@@ -394,6 +395,7 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
     return TactileWrapper(
       style: TactileFeedbackStyle.standard,
       onTap: onTap,
+      semanticLabel: tooltip,
       child: Tooltip(
         message: tooltip,
         child: Container(
@@ -480,6 +482,7 @@ class AudioRecordOverlay extends StatelessWidget {
             TactileWrapper(
               style: TactileFeedbackStyle.standard,
               onTap: onCancel,
+              semanticLabel: 'Cancel & Discard recording',
               child: const Tooltip(
                 message: 'Cancel & Discard',
                 child: Icon(
@@ -508,6 +511,7 @@ class AudioRecordOverlay extends StatelessWidget {
             TactileWrapper(
               style: TactileFeedbackStyle.standard,
               onTap: onCommit,
+              semanticLabel: 'Save & Insert recording',
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
