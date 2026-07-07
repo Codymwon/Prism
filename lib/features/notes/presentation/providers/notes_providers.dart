@@ -5,7 +5,7 @@ import '../../data/note_repository.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../../../folders/data/folder_repository.dart';
 import '../../../folders/data/folder_model.dart';
-import '../../../onboarding/data/onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 part 'notes_providers.g.dart';
 
@@ -67,24 +67,19 @@ Future<List<Note>> notes(NotesRef ref) async {
   final folderId = ref.watch(selectedFolderIdProvider);
   if (folderId != null) {
     if (folderId == '__all__') {
-      final all = await repo.getAllNotes(sort: sort);
-      return all.where((n) => !n.isDaily).toList();
+      return repo.getAllNonDailyNotes(sort: sort);
     }
     if (folderId == '__daily__') {
-      final all = await repo.getAllNotes(sort: sort);
-      return all.where((n) => n.isDaily).toList();
+      return repo.getDailyNotes(sort: sort);
     }
     if (folderId == '__uncategorized__') {
-      final all = await repo.getAllNotes(sort: sort);
-      final mappings = await ref.watch(noteFolderMappingsProvider.future);
-      return all.where((n) => !n.isDaily && (mappings[n.id] == null || mappings[n.id]!.isEmpty)).toList();
+      return repo.getUncategorizedNotes(sort: sort);
     }
     final folderRepo = ref.watch(folderRepositoryProvider);
     return folderRepo.getNotesInFolder(folderId, sort: sort);
   }
   
-  final all = await repo.getAllNotes(sort: sort);
-  return all.where((n) => !n.isDaily).toList();
+  return repo.getAllNonDailyNotes(sort: sort);
 }
 
 @riverpod

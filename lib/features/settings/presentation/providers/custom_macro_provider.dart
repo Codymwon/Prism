@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../onboarding/data/onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 part 'custom_macro_provider.g.dart';
 

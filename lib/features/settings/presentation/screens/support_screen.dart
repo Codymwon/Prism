@@ -1,15 +1,15 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path/path.dart' as p;
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
-import '../../../onboarding/data/onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 class SupportScreen extends ConsumerStatefulWidget {
   const SupportScreen({super.key});
@@ -63,27 +63,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
       final prefs = ref.read(sharedPreferencesProvider);
       final vaultType = prefs.getString('vaultType') ?? 'sandbox';
 
-      final dir = Directory(activePath);
-      int notes = 0;
-      int attachments = 0;
-      int bytes = 0;
-
-      if (dir.existsSync()) {
-        final entities = dir.listSync(recursive: true, followLinks: false);
-        for (final entity in entities) {
-          if (entity is File) {
-            final ext = p.extension(entity.path).toLowerCase();
-            final size = entity.lengthSync();
-            bytes += size;
-
-            if (ext == '.md') {
-              notes++;
-            } else if (ext == '.m4a') {
-              attachments++;
-            }
-          }
-        }
-      }
+      final (notes, attachments, bytes) = await _calculateVaultStats(activePath);
 
       String userId = 'Anonymous';
       try {
@@ -507,4 +487,60 @@ User ID: $_appUserId
       ),
     );
   }
+}
+
+Future<(int, int, int)> _calculateVaultStats(String activePath) async {
+  if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    final dir = Directory(activePath);
+    int notesCount = 0;
+    int attachmentsCount = 0;
+    int totalBytes = 0;
+
+    if (dir.existsSync()) {
+      final entities = dir.listSync(recursive: true, followLinks: false);
+      for (final entity in entities) {
+        if (entity is File) {
+          final ext = entity.path.split('.').last.toLowerCase();
+          try {
+            final size = entity.lengthSync();
+            totalBytes += size;
+          } catch (_) {}
+
+          if (ext == 'md') {
+            notesCount++;
+          } else if (ext == 'm4a') {
+            attachmentsCount++;
+          }
+        }
+      }
+    }
+    return (notesCount, attachmentsCount, totalBytes);
+  }
+
+  return Isolate.run(() {
+    final dir = Directory(activePath);
+    int notesCount = 0;
+    int attachmentsCount = 0;
+    int totalBytes = 0;
+
+    if (dir.existsSync()) {
+      final entities = dir.listSync(recursive: true, followLinks: false);
+      for (final entity in entities) {
+        if (entity is File) {
+          final ext = entity.path.split('.').last.toLowerCase();
+          try {
+            final size = entity.lengthSync();
+            totalBytes += size;
+          } catch (_) {}
+
+          if (ext == 'md') {
+            notesCount++;
+          } else if (ext == 'm4a') {
+            attachmentsCount++;
+          }
+        }
+      }
+    }
+    return (notesCount, attachmentsCount, totalBytes);
+  });
 }

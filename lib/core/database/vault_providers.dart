@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import '../../features/onboarding/data/onboarding_provider.dart';
+import '../providers/shared_preferences_provider.dart';
 
 part 'vault_providers.g.dart';
 

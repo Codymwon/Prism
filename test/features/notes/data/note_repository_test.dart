@@ -303,4 +303,52 @@ void main() {
       expect(content, equals('hello from fake storage'));
     });
   });
+
+  group('NoteRepository virtual folders optimized queries', () {
+    test('getAllNonDailyNotes, getDailyNotes, and getUncategorizedNotes work correctly', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      // Create a daily note
+      await repository.createNote(
+        title: 'Daily Reflection 1',
+        initialContent: 'Reflection.',
+        isDaily: true,
+        dailyDate: '2026-06-04',
+      );
+
+      // Create a non-daily note
+      final nonDaily = await repository.createNote(
+        title: 'Project Ideas',
+        initialContent: 'This is a normal note.',
+      );
+
+      // Create another non-daily note that will be categorized
+      final categorized = await repository.createNote(
+        title: 'Categorized Note',
+        initialContent: 'This note is in a folder.',
+      );
+
+      // Insert folder mapping for the categorized note
+      await db.insert('note_folders', {
+        'note_id': categorized.id,
+        'folder_id': 'folder-1',
+      });
+
+      // Verify getDailyNotes returns only the daily note
+      final dailyNotes = await repository.getDailyNotes();
+      expect(dailyNotes.length, equals(1));
+      expect(dailyNotes.first.title, equals('Daily Reflection 1'));
+
+      // Verify getAllNonDailyNotes returns both non-daily notes
+      final nonDailyNotes = await repository.getAllNonDailyNotes();
+      expect(nonDailyNotes.length, equals(2));
+      expect(nonDailyNotes.any((n) => n.id == nonDaily.id), isTrue);
+      expect(nonDailyNotes.any((n) => n.id == categorized.id), isTrue);
+
+      // Verify getUncategorizedNotes returns only the uncategorized non-daily note
+      final uncategorizedNotes = await repository.getUncategorizedNotes();
+      expect(uncategorizedNotes.length, equals(1));
+      expect(uncategorizedNotes.first.id, equals(nonDaily.id));
+    });
+  });
 }

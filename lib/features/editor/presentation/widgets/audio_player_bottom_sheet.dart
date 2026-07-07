@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../providers/audio_player_providers.dart';
 
 class SubtlePulseIcon extends StatefulWidget {
   const SubtlePulseIcon({super.key});
@@ -47,7 +47,7 @@ class _SubtlePulseIconState extends State<SubtlePulseIcon> with SingleTickerProv
   }
 }
 
-class AudioPlayerBottomSheet extends StatefulWidget {
+class AudioPlayerBottomSheet extends ConsumerStatefulWidget {
   final String filePath;
   final String fileName;
 
@@ -58,61 +58,21 @@ class AudioPlayerBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<AudioPlayerBottomSheet> createState() => _AudioPlayerBottomSheetState();
+  ConsumerState<AudioPlayerBottomSheet> createState() => _AudioPlayerBottomSheetState();
 }
 
-class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
-  late final AudioPlayer _player;
-  Duration _duration = Duration.zero;
-  Duration _position = Duration.zero;
-  bool _isPlaying = false;
-  StreamSubscription? _durationSubscription;
-  StreamSubscription? _positionSubscription;
-  StreamSubscription? _playerStateSubscription;
-
+class _AudioPlayerBottomSheetState extends ConsumerState<AudioPlayerBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer();
-    _initPlayer();
-  }
-
-  void _initPlayer() async {
-    try {
-      // 1. Set up listeners first so they don't miss initial metadata events
-      _durationSubscription = _player.onDurationChanged.listen((d) {
-        setState(() => _duration = d);
-      });
-      _positionSubscription = _player.onPositionChanged.listen((p) {
-        setState(() => _position = p);
-      });
-      _playerStateSubscription = _player.onPlayerStateChanged.listen((state) {
-        setState(() => _isPlaying = state == PlayerState.playing);
-      });
-
-      // 2. Set the source
-      final source = DeviceFileSource(widget.filePath);
-      await _player.setSource(source);
-      
-      // 3. Start playback
-      await _player.play(source);
-
-      // 4. Fallback: Query the duration directly if it was already resolved and missed in the stream
-      final duration = await _player.getDuration();
-      if (duration != null && duration != Duration.zero) {
-        setState(() => _duration = duration);
-      }
-    } catch (e) {
-      debugPrint('Audio player initialization error: $e');
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(audioPlayerStateProvider.notifier).play(widget.filePath, widget.fileName);
+    });
   }
 
   @override
   void dispose() {
-    _durationSubscription?.cancel();
-    _positionSubscription?.cancel();
-    _playerStateSubscription?.cancel();
-    _player.dispose();
+    ref.read(audioPlayerStateProvider.notifier).stop();
     super.dispose();
   }
 
@@ -125,6 +85,12 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final playerState = ref.watch(audioPlayerStateProvider);
+    final isCurrent = playerState.filePath == widget.filePath;
+    final isPlaying = isCurrent && playerState.isPlaying;
+    final duration = isCurrent ? playerState.duration : Duration.zero;
+    final position = isCurrent ? playerState.position : Duration.zero;
+
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -179,10 +145,10 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
               ),
               child: Slider(
-                value: _position.inMilliseconds.toDouble().clamp(0.0, _duration.inMilliseconds.toDouble()),
-                max: _duration.inMilliseconds > 0 ? _duration.inMilliseconds.toDouble() : 1.0,
+                value: position.inMilliseconds.toDouble().clamp(0.0, duration.inMilliseconds.toDouble()),
+                max: duration.inMilliseconds > 0 ? duration.inMilliseconds.toDouble() : 1.0,
                 onChanged: (val) async {
-                  await _player.seek(Duration(milliseconds: val.toInt()));
+                  await ref.read(audioPlayerStateProvider.notifier).seek(Duration(milliseconds: val.toInt()));
                 },
               ),
             ),
@@ -191,8 +157,8 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_formatDuration(_position), style: DesignTypography.metadata(context, fontSize: 11)),
-                  Text(_formatDuration(_duration), style: DesignTypography.metadata(context, fontSize: 11)),
+                  Text(_formatDuration(position), style: DesignTypography.metadata(context, fontSize: 11)),
+                  Text(_formatDuration(duration), style: DesignTypography.metadata(context, fontSize: 11)),
                 ],
               ),
             ),
@@ -203,19 +169,14 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
                 IconButton(
                   icon: const Icon(Icons.replay_10_rounded, size: 28),
                   onPressed: () async {
-                    final newPos = _position - const Duration(seconds: 10);
-                    await _player.seek(newPos < Duration.zero ? Duration.zero : newPos);
+                    await ref.read(audioPlayerStateProvider.notifier).seekRelative(const Duration(seconds: -10));
                   },
                 ),
                 const SizedBox(width: 16),
                 TactileWrapper(
                   style: TactileFeedbackStyle.standard,
                   onTap: () async {
-                    if (_isPlaying) {
-                      await _player.pause();
-                    } else {
-                      await _player.resume();
-                    }
+                    await ref.read(audioPlayerStateProvider.notifier).playOrToggle(widget.filePath, widget.fileName);
                   },
                   child: Container(
                     width: 56,
@@ -225,7 +186,7 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                       color: colorScheme.onPrimary,
                       size: 32,
                     ),
@@ -235,8 +196,7 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
                 IconButton(
                   icon: const Icon(Icons.forward_10_rounded, size: 28),
                   onPressed: () async {
-                    final newPos = _position + const Duration(seconds: 10);
-                    await _player.seek(newPos > _duration ? _duration : newPos);
+                    await ref.read(audioPlayerStateProvider.notifier).seekRelative(const Duration(seconds: 10));
                   },
                 ),
               ],

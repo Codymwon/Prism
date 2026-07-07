@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/graph_node_repository.dart';
-import '../../../onboarding/data/onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 // ─── Graph Color Mode Provider ──────────────────────────────────────────────
 final graphColorModeProvider =

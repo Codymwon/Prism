@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import '../database/vault_providers.dart';
 import 'two_way_sync_service.dart';
 import 'analytics_service.dart';
-import '../../features/onboarding/data/onboarding_provider.dart';
+import '../providers/shared_preferences_provider.dart';
 
 part 'vault_service.g.dart';
 

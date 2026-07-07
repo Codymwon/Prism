@@ -18,7 +18,7 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 import '../providers/editor_controller.dart';
 import '../widgets/conflict_banner.dart';
 import '../widgets/editor_write_mode.dart';
-import '../../../onboarding/data/onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 import '../controllers/live_preview_controller.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {

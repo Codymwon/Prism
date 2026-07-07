@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
@@ -77,7 +78,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   }
 
   Future<void> _handleNextStep() async {
-    debugPrint('DEBUG: _handleNextStep started');
+    if (kDebugMode) {
+      debugPrint('DEBUG: _handleNextStep started');
+    }
     if (_selectedVaultType == 'sandbox') {
       setState(() {
         _currentStep = 2;
@@ -86,7 +89,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     }
     final hubName = _hubNameController.text.trim();
     if (hubName.isEmpty) {
-      debugPrint('DEBUG: hubName is empty');
+      if (kDebugMode) {
+        debugPrint('DEBUG: hubName is empty');
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a name for the main folder.')),
       );
@@ -94,7 +99,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     }
     final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
     if (!safePattern.hasMatch(hubName)) {
-      debugPrint('DEBUG: hubName does not match safePattern');
+      if (kDebugMode) {
+        debugPrint('DEBUG: hubName does not match safePattern');
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -106,7 +113,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     }
 
     if (_customLocationPath.isEmpty) {
-      debugPrint('DEBUG: _customLocationPath is empty');
+      if (kDebugMode) {
+        debugPrint('DEBUG: _customLocationPath is empty');
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a storage folder.')),
       );
@@ -115,9 +124,13 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
 
     // Check and request storage permission immediately for custom vaults
     final hasAccess = await StoragePermissionHelper.hasAllFilesAccess();
-    debugPrint('DEBUG: hasAccess = $hasAccess');
+    if (kDebugMode) {
+      debugPrint('DEBUG: hasAccess = $hasAccess');
+    }
     if (!mounted) {
-      debugPrint('DEBUG: not mounted after permission check');
+      if (kDebugMode) {
+        debugPrint('DEBUG: not mounted after permission check');
+      }
       return;
     }
     if (!hasAccess) {
@@ -163,7 +176,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     final hubPath = p.join(_customLocationPath, hubName);
     final hubDir = Directory(hubPath);
     final hubExists = await hubDir.exists();
-    debugPrint('DEBUG: hubPath = $hubPath, exists = $hubExists');
+    if (kDebugMode) {
+      debugPrint('DEBUG: hubPath = $hubPath, exists = $hubExists');
+    }
     if (hubExists) {
       List<Directory> subDirs = [];
       try {
@@ -174,10 +189,14 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           }
         }
       } catch (e) {
-        debugPrint('Error scanning existing hub: $e');
+        if (kDebugMode) {
+          debugPrint('Error scanning existing hub: $e');
+        }
       }
 
-      debugPrint('DEBUG: subDirs count = ${subDirs.length}');
+      if (kDebugMode) {
+        debugPrint('DEBUG: subDirs count = ${subDirs.length}');
+      }
       if (subDirs.isNotEmpty) {
         // Find most recently modified vault based on file/db timestamps
         Directory? mostRecentDir;
@@ -209,7 +228,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             ? p.basename(mostRecentDir.path)
             : p.basename(subDirs.first.path);
 
-        debugPrint('DEBUG: existing vaults found. Active vault = $activeVault. Auto-importing...');
+        if (kDebugMode) {
+          debugPrint('DEBUG: existing vaults found. Active vault = $activeVault. Auto-importing...');
+        }
         // Auto-import and bypass Step 2 entirely
         setState(() => _isCompleting = true);
         widget.onStartSetup();
@@ -242,7 +263,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           }
           return;
         } catch (e) {
-          debugPrint('Error importing existing vaults: $e');
+          if (kDebugMode) {
+            debugPrint('Error importing existing vaults: $e');
+          }
           if (mounted) {
             setState(() => _isCompleting = false);
             widget.onEndSetup();
@@ -255,18 +278,26 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       }
     }
 
-    debugPrint('DEBUG: no existing vaults, transitioning to step 2');
+    if (kDebugMode) {
+      debugPrint('DEBUG: no existing vaults, transitioning to step 2');
+    }
     // No existing vaults, proceed to Step 2
     setState(() {
-      debugPrint('DEBUG: setState for step 2 called');
+      if (kDebugMode) {
+        debugPrint('DEBUG: setState for step 2 called');
+      }
       _currentStep = 2;
     });
   }
 
   Future<void> _completeOnboarding() async {
-    debugPrint('DEBUG: _completeOnboarding started');
+    if (kDebugMode) {
+      debugPrint('DEBUG: _completeOnboarding started');
+    }
     if (_isCompleting) {
-      debugPrint('DEBUG: already completing, returning');
+      if (kDebugMode) {
+        debugPrint('DEBUG: already completing, returning');
+      }
       return;
     }
 
@@ -291,7 +322,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
     final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
 
-    debugPrint('DEBUG: calling onStartSetup()');
+    if (kDebugMode) {
+      debugPrint('DEBUG: calling onStartSetup()');
+    }
     widget.onStartSetup();
 
     try {
@@ -330,7 +363,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         await onboardingNotifier.completeOnboarding();
       }
     } catch (e) {
-      debugPrint('Error during vault initialization: $e');
+      if (kDebugMode) {
+        debugPrint('Error during vault initialization: $e');
+      }
       if (mounted) {
         setState(() => _isCompleting = false);
         widget.onEndSetup();

@@ -217,6 +217,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   String? _draggedNodeId;
   String? _selectedNodeId;
   bool _playedEntranceAnimation = false;
+  final _rand = Random();
 
   final Map<String, int> _nodeIndices = {};
   Float64List? _flatPositions;
@@ -225,15 +226,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   // Cache to store pre-built static subtrees of node widgets
   final Map<String, Widget> _nodeContentCache = {};
-  Map<String, String?>? _lastResolvedColors;
 
-  bool _mapEquals(Map<String, String?> a, Map<String, String?> b) {
-    if (a.length != b.length) return false;
-    for (final key in a.keys) {
-      if (a[key] != b[key]) return false;
-    }
-    return true;
-  }
 
   bool _isReplaying = false;
   final Map<String, double> _nodeOpacities = {};
@@ -402,13 +395,12 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   }
 
   void triggerReLayout() {
-    final rand = Random();
     const centerX = 2500.0;
     const centerY = 2500.0;
     
     for (final node in widget.nodes) {
-      final angle = rand.nextDouble() * 2 * pi;
-      final radius = 50 + rand.nextDouble() * 150;
+      final angle = _rand.nextDouble() * 2 * pi;
+      final radius = 50 + _rand.nextDouble() * 150;
       _positions[node.id] = Offset(
         centerX + cos(angle) * radius,
         centerY + sin(angle) * radius,
@@ -420,7 +412,6 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   }
 
   void _initializePositions(List<GraphNode> nodes) {
-    final rand = Random();
     const centerX = 2500.0;
     const centerY = 2500.0;
 
@@ -449,8 +440,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
         _velocities[gn.id] = Offset.zero;
       } else if (!_positions.containsKey(gn.id)) {
         // Soft cosmic distribution outward from the center
-        final angle = rand.nextDouble() * 2 * pi;
-        final radius = 50 + rand.nextDouble() * 150;
+        final angle = _rand.nextDouble() * 2 * pi;
+        final radius = 50 + _rand.nextDouble() * 150;
         _positions[gn.id] = Offset(
           centerX + cos(angle) * radius,
           centerY + sin(angle) * radius,
@@ -507,6 +498,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
           _nodeOpacities.clear();
           _revealedEdgeKeys.clear();
         });
+        _ticker.stop();
+        fitToContent();
+        ref.read(graphAutoFitPerformedProvider.notifier).state = true;
       }
       return;
     }
@@ -554,8 +548,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
         double dy = pyA - pyB;
         double distSq = dx * dx + dy * dy;
         if (distSq == 0.0) {
-          final rand = Random();
-          final angle = rand.nextDouble() * 2 * pi;
+          final angle = _rand.nextDouble() * 2 * pi;
           dx = cos(angle) * 0.1;
           dy = sin(angle) * 0.1;
           distSq = 0.01;
@@ -760,10 +753,14 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     // Warm up settings provider to ensure it's loaded during interaction
     final _ = ref.watch(dragToPinEnabledProvider);
 
-    final resolvedColors = ref.watch(graphNodeColorsProvider).valueOrNull ?? const {};
-    final colorsChanged = _lastResolvedColors == null || !_mapEquals(_lastResolvedColors!, resolvedColors);
-    if (_nodeContentCache.isEmpty || colorsChanged) {
-      _lastResolvedColors = resolvedColors;
+    ref.listen<AsyncValue<Map<String, String?>>>(graphNodeColorsProvider, (prev, next) {
+      final resolvedColors = next.valueOrNull ?? const {};
+      _buildNodeContentCache(resolvedColors);
+      setState(() {});
+    });
+
+    if (_nodeContentCache.isEmpty) {
+      final resolvedColors = ref.read(graphNodeColorsProvider).valueOrNull ?? const {};
       _buildNodeContentCache(resolvedColors);
     }
 

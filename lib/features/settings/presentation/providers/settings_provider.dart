@@ -2,7 +2,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../onboarding/data/onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 export '../../../../core/database/vault_providers.dart';
 

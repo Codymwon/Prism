@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../services/analytics_service.dart';
-import '../../features/onboarding/data/onboarding_provider.dart';
+import '../providers/shared_preferences_provider.dart';
 
 part 'app_theme.g.dart';
 

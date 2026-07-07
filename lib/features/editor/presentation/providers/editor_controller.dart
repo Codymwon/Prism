@@ -15,7 +15,7 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../domain/audio_recorder_service.dart';
 import '../../data/audio_recorder_service_impl.dart';
-import '../../../onboarding/data/onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 part 'editor_controller.freezed.dart';
 part 'editor_controller.g.dart';

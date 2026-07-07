@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'onboarding_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 part 'tutorial_provider.g.dart';
 

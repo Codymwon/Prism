@@ -72,6 +72,52 @@ class NoteRepository {
     return maps.map(Note.fromMap).toList();
   }
 
+  Future<List<Note>> getAllNonDailyNotes({NoteSort sort = NoteSort.updated}) async {
+    final db = await _db;
+    final orderBy = switch (sort) {
+      NoteSort.updated => 'updated_at DESC',
+      NoteSort.created => 'created_at DESC',
+      NoteSort.title => 'title ASC',
+    };
+    final maps = await db.query(
+      'notes',
+      where: 'is_ghost = 0 AND is_daily = 0',
+      orderBy: orderBy,
+    );
+    return maps.map(Note.fromMap).toList();
+  }
+
+  Future<List<Note>> getDailyNotes({NoteSort sort = NoteSort.updated}) async {
+    final db = await _db;
+    final orderBy = switch (sort) {
+      NoteSort.updated => 'updated_at DESC',
+      NoteSort.created => 'created_at DESC',
+      NoteSort.title => 'title ASC',
+    };
+    final maps = await db.query(
+      'notes',
+      where: 'is_ghost = 0 AND is_daily = 1',
+      orderBy: orderBy,
+    );
+    return maps.map(Note.fromMap).toList();
+  }
+
+  Future<List<Note>> getUncategorizedNotes({NoteSort sort = NoteSort.updated}) async {
+    final db = await _db;
+    final orderBy = switch (sort) {
+      NoteSort.updated => 'updated_at DESC',
+      NoteSort.created => 'created_at DESC',
+      NoteSort.title => 'title ASC',
+    };
+    final maps = await db.query(
+      'notes',
+      where: 'is_ghost = 0 AND is_daily = 0 AND id NOT IN (SELECT note_id FROM note_folders)',
+      orderBy: orderBy,
+    );
+    return maps.map(Note.fromMap).toList();
+  }
+
+
   Future<Note?> getNoteById(String id) async {
     final db = await _db;
     final maps = await db.query('notes', where: 'id = ?', whereArgs: [id]);

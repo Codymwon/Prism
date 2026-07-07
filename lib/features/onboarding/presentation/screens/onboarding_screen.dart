@@ -158,37 +158,43 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   ? TactileWrapper(
                                       key: const ValueKey('start_btn'),
                                       style: TactileFeedbackStyle.highImpact,
+                                      semanticLabel: 'Start Writing',
                                       onTap: () => setState(() => _showVaultSetup = true),
-                                      child: FloatingActionButton.extended(
-                                        onPressed: () {},
-                                        label: Text(
-                                          'Start Writing',
-                                          style: DesignTypography.heading(
-                                            context,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                            color: Colors.white,
+                                      child: ExcludeSemantics(
+                                        child: FloatingActionButton.extended(
+                                          onPressed: () {},
+                                          label: Text(
+                                            'Start Writing',
+                                            style: DesignTypography.heading(
+                                              context,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                              color: Colors.white,
+                                            ),
                                           ),
+                                          icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                                          backgroundColor: colorScheme.primary,
+                                          foregroundColor: Colors.white,
                                         ),
-                                        icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                                        backgroundColor: colorScheme.primary,
-                                        foregroundColor: Colors.white,
                                       ),
                                     )
                                   : TactileWrapper(
                                       key: const ValueKey('next_btn'),
                                       style: TactileFeedbackStyle.standard,
+                                      semanticLabel: 'Next slide',
                                       onTap: () => _pageController.nextPage(
                                         duration: const Duration(milliseconds: 300),
                                         curve: Curves.easeInOut,
                                       ),
-                                      child: FloatingActionButton(
-                                        onPressed: () {},
-                                        backgroundColor: DesignColors.surface(context),
-                                        foregroundColor: colorScheme.primary,
-                                        elevation: 1,
-                                        shape: const CircleBorder(),
-                                        child: const Icon(Icons.chevron_right_rounded, size: 28),
+                                      child: ExcludeSemantics(
+                                        child: FloatingActionButton(
+                                          onPressed: () {},
+                                          backgroundColor: DesignColors.surface(context),
+                                          foregroundColor: colorScheme.primary,
+                                          elevation: 1,
+                                          shape: const CircleBorder(),
+                                          child: const Icon(Icons.chevron_right_rounded, size: 28),
+                                        ),
                                       ),
                                     ),
                             ),
