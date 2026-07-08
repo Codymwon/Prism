@@ -80,7 +80,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Positioned(
-      top: 10,
+      top: 100,
       right: 16,
       left: 16,
       child: Align(

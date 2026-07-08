@@ -123,66 +123,67 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
-      body: Column(
+      body: Stack(
         children: [
-          SafeArea(
-            child: GraphHeader(
-              showSettings: _showSettings,
-              onReplay: _triggerReplayAnimation,
-              onFocusCenter: () => _canvasKey.currentState?.fitToContent(),
-              onSettingsToggle: () => setState(() => _showSettings = !_showSettings),
+          // 1. Full-screen Graph simulation viewport (extends behind header!)
+          Positioned.fill(
+            child: () {
+              if (graphAsync.hasValue) {
+                final data = graphAsync.requireValue;
+                if (data.nodes.isEmpty) {
+                  return const GraphEmptyState();
+                }
+                return GraphSimulationCanvas(
+                  key: _canvasKey,
+                  nodes: data.nodes,
+                  edges: data.edges,
+                  repulsionRate: _repulsionRate,
+                  repulsionPercentage: _repulsionPercentage,
+                  attractionRate: _attractionRate,
+                  damping: _damping,
+                  transformationController: _transformationController,
+                );
+              } else if (graphAsync.hasError) {
+                return Center(child: Text(context.l10n.graph_screen_error(graphAsync.error.toString())));
+              } else {
+                return const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'));
+              }
+            }(),
+          ),
+
+          // 2. Floating dynamic settings panel (Obsidian style)
+          if (_showSettings && graphAsync.hasValue && graphAsync.requireValue.nodes.isNotEmpty)
+            GraphSettingsPanel(
+              repulsionRate: _repulsionRate,
+              repulsionPercentage: _repulsionPercentage,
+              attractionRate: _attractionRate,
+              damping: _damping,
+              onChangedRepulsionRate: (val) => setState(() => _repulsionRate = val),
+              onChangedRepulsionPercentage: (val) => setState(() => _repulsionPercentage = val),
+              onChangedAttractionRate: (val) => setState(() => _attractionRate = val),
+              onChangedDamping: (val) => setState(() => _damping = val),
+              onClose: () => setState(() => _showSettings = false),
+              onResetDefaults: _resetToDefaults,
+              onReLayout: _triggerReLayout,
+            ),
+
+          // 3. Floating GraphHeader at the top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: GraphHeader(
+                showSettings: _showSettings,
+                onReplay: _triggerReplayAnimation,
+                onFocusCenter: () => _canvasKey.currentState?.fitToContent(),
+                onSettingsToggle: () => setState(() => _showSettings = !_showSettings),
+              ),
             ),
           ),
-            Expanded(
-              child: () {
-                if (graphAsync.hasValue) {
-                  final data = graphAsync.requireValue;
-                  if (data.nodes.isEmpty) {
-                    return const GraphEmptyState();
-                  }
-                  return Stack(
-                    children: [
-                      // Continuous Spring-Physics Graph simulation viewport (isolated rebuilds!)
-                      Positioned.fill(
-                        child: GraphSimulationCanvas(
-                          key: _canvasKey,
-                          nodes: data.nodes,
-                          edges: data.edges,
-                          repulsionRate: _repulsionRate,
-                          repulsionPercentage: _repulsionPercentage,
-                          attractionRate: _attractionRate,
-                          damping: _damping,
-                          transformationController: _transformationController,
-                        ),
-                      ),
-                      
-                      // Floating dynamic settings panel (Obsidian style)
-                      if (_showSettings)
-                        GraphSettingsPanel(
-                          repulsionRate: _repulsionRate,
-                          repulsionPercentage: _repulsionPercentage,
-                          attractionRate: _attractionRate,
-                          damping: _damping,
-                          onChangedRepulsionRate: (val) => setState(() => _repulsionRate = val),
-                          onChangedRepulsionPercentage: (val) => setState(() => _repulsionPercentage = val),
-                          onChangedAttractionRate: (val) => setState(() => _attractionRate = val),
-                          onChangedDamping: (val) => setState(() => _damping = val),
-                          onClose: () => setState(() => _showSettings = false),
-                          onResetDefaults: _resetToDefaults,
-                          onReLayout: _triggerReLayout,
-                        ),
-                    ],
-                  );
-                } else if (graphAsync.hasError) {
-                  return Center(child: Text(context.l10n.graph_screen_error(graphAsync.error.toString())));
-                } else {
-                  return const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'));
-                }
-              }(),
-            ),
-          ],
-        ),
-      );
+        ],
+      ),
+    );
   }
 }
 
