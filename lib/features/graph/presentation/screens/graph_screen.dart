@@ -234,6 +234,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   final Map<String, double> _nodeOpacities = {};
   DateTime? _replayStartTime;
   List<String> _bfsOrder = [];
+  
+  AnimationController? _viewportAnimationController;
+  Animation<Matrix4>? _viewportAnimation;
 
   @visibleForTesting
   bool get isReplayingForTesting => _isReplaying;
@@ -352,6 +355,16 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     _initializePositions(widget.nodes);
     _ticker = createTicker(_tick);
     _ticker.start();
+
+    _viewportAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _viewportAnimationController!.addListener(() {
+      if (_viewportAnimation != null) {
+        widget.transformationController.value = _viewportAnimation!.value;
+      }
+    });
     
     // Play entrance animation once, then mark played
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -421,6 +434,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   void dispose() {
     _ticker.dispose();
     _repaintNotifier.dispose();
+    _viewportAnimationController?.dispose();
     super.dispose();
   }
 
@@ -766,7 +780,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     }
   }
 
-  void fitToContent() {
+  void fitToContent({bool animate = true}) {
     if (!mounted || _positions.isEmpty) return;
 
     double minX = double.infinity;
@@ -797,9 +811,24 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     final tx = viewWidth / 2 - centerX * scale;
     final ty = viewHeight / 2 - centerY * scale;
 
-    widget.transformationController.value = Matrix4.identity()
+    final targetMatrix = Matrix4.identity()
       ..translateByDouble(tx, ty, 0.0, 1.0)
       ..scaleByDouble(scale, scale, scale, 1.0);
+
+    if (animate) {
+      _viewportAnimationController?.stop();
+      final currentMatrix = widget.transformationController.value;
+      _viewportAnimation = Matrix4Tween(
+        begin: currentMatrix,
+        end: targetMatrix,
+      ).animate(CurvedAnimation(
+        parent: _viewportAnimationController!,
+        curve: Curves.easeInOutCubic,
+      ));
+      _viewportAnimationController?.forward(from: 0.0);
+    } else {
+      widget.transformationController.value = targetMatrix;
+    }
   }
 
   @override
