@@ -93,7 +93,9 @@ class _GraphScreenContentState extends ConsumerState<GraphScreenContent> {
     const canvasWidth = 5000.0;
     const canvasHeight = 5000.0;
     final x = -(canvasWidth - size.width) / 2;
-    final y = -(canvasHeight - size.height) / 2;
+    // Account for header offset (~100px) so initial placement is visually centered
+    const headerOffset = 100.0;
+    final y = -(canvasHeight - (size.height - headerOffset)) / 2 - headerOffset;
     _transformationController.value = Matrix4.translationValues(x, y, 0.0);
   }
 
@@ -237,6 +239,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   
   AnimationController? _viewportAnimationController;
   Animation<Matrix4>? _viewportAnimation;
+  double _canvasViewWidth = 400.0;
+  double _canvasViewHeight = 300.0;
 
   @visibleForTesting
   bool get isReplayingForTesting => _isReplaying;
@@ -800,9 +804,8 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     final centerX = (minX + maxX) / 2;
     final centerY = (minY + maxY) / 2;
 
-    final size = MediaQuery.of(context).size;
-    final viewWidth = size.width > 0 ? size.width : 400.0;
-    final viewHeight = size.height > 0 ? size.height : 300.0;
+    final viewWidth = _canvasViewWidth > 0 ? _canvasViewWidth : 400.0;
+    final viewHeight = _canvasViewHeight > 0 ? _canvasViewHeight : 300.0;
 
     final scaleX = viewWidth / width;
     final scaleY = viewHeight / height;
@@ -851,102 +854,109 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     const canvasWidth = 5000.0;
     const canvasHeight = 5000.0;
 
-    Widget graphContent = InteractiveViewer(
-      transformationController: widget.transformationController,
-      constrained: false,
-      boundaryMargin: const EdgeInsets.all(1000),
-      minScale: 0.1,
-      maxScale: 3.0,
-      child: SizedBox(
-        width: canvasWidth,
-        height: canvasHeight,
-        child: Stack(
-          children: [
-            // 1. Draw connecting elastic lines (Custom Paint background)
-            Positioned.fill(
-              child: CustomPaint(
-                painter: GraphLinksPainter(
-                  positions: _positions,
-                  edges: widget.edges,
-                  color: colorScheme.primary.withValues(alpha: 0.35),
-                  ghostNodeIds: widget.nodes.where((n) => n.isGhost).map((n) => n.id).toSet(),
-                  nodeOpacities: _nodeOpacities,
-                  isReplaying: _isReplaying,
-                  repaint: _repaintNotifier,
-                ),
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _canvasViewWidth = constraints.maxWidth;
+        _canvasViewHeight = constraints.maxHeight;
 
-            // 2. Draw interactive node widgets (Positioned using Flow layout)
-            Positioned.fill(
-              child: Flow(
-                delegate: GraphFlowDelegate(
-                  positions: _positions,
-                  nodes: widget.nodes,
-                  repaint: _repaintNotifier,
-                ),
-                children: widget.nodes.map((gn) {
-                  return GestureDetector(
-                    key: ValueKey('drag_${gn.id}'),
-                    behavior: HitTestBehavior.opaque,
-                    onPanStart: (details) {
-                      _draggedNodeId = gn.id;
-                      _wakeSimulation();
-                    },
-                    onPanUpdate: (details) {
-                      final delta = details.delta;
-                      final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(50.0, 4950.0);
-                      final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(40.0, 4960.0);
-                      _positions[gn.id] = Offset(newX, newY);
-                      _velocities[gn.id] = Offset.zero;
-                      _repaintNotifier.notify();
-                    },
-                    onPanEnd: (details) {
-                      _draggedNodeId = null;
-                      if (!mounted) return;
-                      final finalPos = _positions[gn.id];
-                      if (finalPos != null && !gn.isGhost && !gn.isTemporal) {
-                        final dragToPin = ref.read(dragToPinEnabledProvider).valueOrNull ?? false;
-                        if (dragToPin) {
-                          ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
-                        } else {
-                          if (gn.isPinned) {
-                            ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
-                          }
-                        }
-                      }
-                    },
-                    child: SizedBox(
-                      width: 100,
-                      height: 80,
-                      child: Transform.scale(
-                        scale: _isReplaying
-                            ? Curves.easeOutBack.transform(_nodeOpacities[gn.id] ?? 0.0)
-                            : 1.0,
-                        child: Opacity(
-                          opacity: _isReplaying ? (_nodeOpacities[gn.id] ?? 0.0) : 1.0,
-                          child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
-                        ),
-                      ),
+        Widget graphContent = InteractiveViewer(
+          transformationController: widget.transformationController,
+          constrained: false,
+          boundaryMargin: const EdgeInsets.all(1000),
+          minScale: 0.1,
+          maxScale: 3.0,
+          child: SizedBox(
+            width: canvasWidth,
+            height: canvasHeight,
+            child: Stack(
+              children: [
+                // 1. Draw connecting elastic lines (Custom Paint background)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: GraphLinksPainter(
+                      positions: _positions,
+                      edges: widget.edges,
+                      color: colorScheme.primary.withValues(alpha: 0.35),
+                      ghostNodeIds: widget.nodes.where((n) => n.isGhost).map((n) => n.id).toSet(),
+                      nodeOpacities: _nodeOpacities,
+                      isReplaying: _isReplaying,
+                      repaint: _repaintNotifier,
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                ),
+
+                // 2. Draw interactive node widgets (Positioned using Flow layout)
+                Positioned.fill(
+                  child: Flow(
+                    delegate: GraphFlowDelegate(
+                      positions: _positions,
+                      nodes: widget.nodes,
+                      repaint: _repaintNotifier,
+                    ),
+                    children: widget.nodes.map((gn) {
+                      return GestureDetector(
+                        key: ValueKey('drag_${gn.id}'),
+                        behavior: HitTestBehavior.opaque,
+                        onPanStart: (details) {
+                          _draggedNodeId = gn.id;
+                          _wakeSimulation();
+                        },
+                        onPanUpdate: (details) {
+                          final delta = details.delta;
+                          final newX = ((_positions[gn.id]?.dx ?? 0.0) + delta.dx).clamp(50.0, 4950.0);
+                          final newY = ((_positions[gn.id]?.dy ?? 0.0) + delta.dy).clamp(40.0, 4960.0);
+                          _positions[gn.id] = Offset(newX, newY);
+                          _velocities[gn.id] = Offset.zero;
+                          _repaintNotifier.notify();
+                        },
+                        onPanEnd: (details) {
+                          _draggedNodeId = null;
+                          if (!mounted) return;
+                          final finalPos = _positions[gn.id];
+                          if (finalPos != null && !gn.isGhost && !gn.isTemporal) {
+                            final dragToPin = ref.read(dragToPinEnabledProvider).valueOrNull ?? false;
+                            if (dragToPin) {
+                              ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
+                            } else {
+                              if (gn.isPinned) {
+                                ref.read(graphNodeRepositoryProvider).pinNode(gn.id, finalPos.dx, finalPos.dy);
+                              }
+                            }
+                          }
+                        },
+                        child: SizedBox(
+                          width: 100,
+                          height: 80,
+                          child: Transform.scale(
+                            scale: _isReplaying
+                                ? Curves.easeOutBack.transform(_nodeOpacities[gn.id] ?? 0.0)
+                                : 1.0,
+                            child: Opacity(
+                              opacity: _isReplaying ? (_nodeOpacities[gn.id] ?? 0.0) : 1.0,
+                              child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+
+        // Play entry animation only once when GraphSimulationCanvas is first mounted
+        if (!widget.disableEntranceAnimation && !_playedEntranceAnimation) {
+          return graphContent
+              .animate()
+              .fadeIn(duration: 600.ms)
+              .scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack);
+        }
+
+        return graphContent;
+      },
     );
-
-    // Play entry animation only once when GraphSimulationCanvas is first mounted
-    if (!widget.disableEntranceAnimation && !_playedEntranceAnimation) {
-      return graphContent
-          .animate()
-          .fadeIn(duration: 600.ms)
-          .scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack);
-    }
-
-    return graphContent;
   }
 }
 
