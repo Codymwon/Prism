@@ -25,7 +25,7 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
   AppThemeType? _selectedPreviewThemeType;
   
   // Whether previewing premium colors in the mockup is enabled
-  bool _livePreviewMode = true;
+  bool _livePreviewMode = false;
 
   bool _isThemeLocked(AppThemeType type) {
     return type != AppThemeType.system &&
@@ -174,41 +174,43 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
               child: CustomScrollView(
                 slivers: [
                   // ── Interactive Screen Mockup Selector (Tabs) ────────────────
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            context.l10n.settings_theme_gallery_live_preview_header,
-                            style: DesignTypography.metadata(
-                              context,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              color: DesignColors.textTertiary(context),
+                  if (_livePreviewMode)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              context.l10n.settings_theme_gallery_live_preview_header,
+                              style: DesignTypography.metadata(
+                                context,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: DesignColors.textTertiary(context),
+                              ),
                             ),
-                          ),
-                          // Screen tabs selector
-                          _buildSegmentedTabs(),
-                        ],
+                            // Screen tabs selector
+                            _buildSegmentedTabs(),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   
                   // Live Scaffold Preview Card wrapped in Theme widget to override colors
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Theme(
-                        data: previewThemeData,
-                        child: _AppMockupPreview(tabIndex: _previewTab),
-                      )
-                      .animate(key: ValueKey(_previewTab))
-                      .fadeIn(duration: 300.ms)
-                      .slideY(begin: 0.03, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
+                  if (_livePreviewMode)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Theme(
+                          data: previewThemeData,
+                          child: _AppMockupPreview(tabIndex: _previewTab),
+                        )
+                        .animate(key: ValueKey(_previewTab))
+                        .fadeIn(duration: 300.ms)
+                        .slideY(begin: 0.03, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
+                      ),
                     ),
-                  ),
                   
                   // Live Preview Mode Toggle Switch
                   SliverToBoxAdapter(
@@ -217,9 +219,11 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            context.l10n.settings_theme_gallery_try_premium_label,
-                            style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
+                          Expanded(
+                            child: Text(
+                              context.l10n.settings_theme_gallery_try_premium_label,
+                              style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
+                            ),
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
@@ -447,12 +451,19 @@ class _AppMockupPreview extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        child: switch (tabIndex) {
-          0 => _buildNotesListMockup(context, theme, primaryColor),
-          1 => _buildEditorMockup(context, theme, primaryColor),
-          2 => _buildGraphMockup(context, theme, primaryColor),
-          _ => const SizedBox.shrink(),
-        },
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: SizedBox(
+            width: 320,
+            height: 191,
+            child: switch (tabIndex) {
+              0 => _buildNotesListMockup(context, theme, primaryColor),
+              1 => _buildEditorMockup(context, theme, primaryColor),
+              2 => _buildGraphMockup(context, theme, primaryColor),
+              _ => const SizedBox.shrink(),
+            },
+          ),
+        ),
       ),
     );
   }
