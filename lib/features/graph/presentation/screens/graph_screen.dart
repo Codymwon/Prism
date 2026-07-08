@@ -211,7 +211,7 @@ class GraphSimulationCanvas extends ConsumerStatefulWidget {
   ConsumerState<GraphSimulationCanvas> createState() => GraphSimulationCanvasState();
 }
 
-class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> with SingleTickerProviderStateMixin {
+class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> with TickerProviderStateMixin {
   late Ticker _ticker;
   final _RepaintNotifier _repaintNotifier = _RepaintNotifier();
   final Map<String, Offset> _positions = {};
