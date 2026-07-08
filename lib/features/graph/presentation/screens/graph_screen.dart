@@ -240,6 +240,15 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   void triggerReplayAnimation() {
     if (widget.nodes.isEmpty) return;
+    
+    // Reset positions to a compact center cluster for replay organic growth
+    const centerX = 2500.0;
+    const centerY = 2500.0;
+    for (final node in widget.nodes) {
+      _positions[node.id] = Offset(centerX, centerY);
+      _velocities[node.id] = Offset.zero;
+    }
+    
     setState(() {
       _isReplaying = true;
       _nodeOpacities.clear();
@@ -250,6 +259,33 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
       _replayStartTime = DateTime.now();
     });
     _wakeSimulation();
+  }
+
+  void _spawnNearParent(String nodeId) {
+    // Find any already-revealed neighbor
+    final revealedNeighborId = widget.edges
+        .where((edge) => edge.sourceId == nodeId || edge.targetId == nodeId)
+        .map((edge) => edge.sourceId == nodeId ? edge.targetId : edge.sourceId)
+        .firstWhereOrNull((neighborId) => (_nodeOpacities[neighborId] ?? 0.0) > 0.0);
+
+    if (revealedNeighborId != null) {
+      final parentPos = _positions[revealedNeighborId];
+      if (parentPos != null) {
+        final angle = _rand.nextDouble() * 2 * pi;
+        _positions[nodeId] = Offset(
+          parentPos.dx + cos(angle) * 10.0,
+          parentPos.dy + sin(angle) * 10.0,
+        );
+        return;
+      }
+    }
+
+    // Default to center if no parent/neighbor is revealed yet
+    final angle = _rand.nextDouble() * 2 * pi;
+    _positions[nodeId] = Offset(
+      2500.0 + cos(angle) * 10.0,
+      2500.0 + sin(angle) * 10.0,
+    );
   }
 
   List<String> _calculateBfsOrder() {
@@ -472,6 +508,11 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
         } else {
           final fadeProgress = (elapsedMs - startRevealTime) / 300.0;
           final opacity = fadeProgress.clamp(0.0, 1.0);
+          
+          if ((_nodeOpacities[nodeId] ?? 0.0) == 0.0 && opacity > 0.0) {
+            _spawnNearParent(nodeId);
+          }
+          
           _nodeOpacities[nodeId] = opacity;
           if (opacity < 1.0) {
             allFinished = false;
@@ -486,11 +527,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
           _isReplaying = false;
           _nodeOpacities.clear();
         });
-        _ticker.stop();
         fitToContent();
         ref.read(graphAutoFitPerformedProvider.notifier).state = true;
       }
-      return;
     }
 
     const centerX = 2500.0;
@@ -526,9 +565,17 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     // 2. Coulomb Repulsion: push all nodes apart (n^2 complexity but fast for small sets)
     final double repulsionRateVal = widget.repulsionRate;
     for (int i = 0; i < n; i++) {
+      final idA = widget.nodes[i].id;
+      final double opacityA = _isReplaying ? (_nodeOpacities[idA] ?? 0.0) : 1.0;
+      if (opacityA <= 0.0) continue; // Inactive node feels/exerts no repulsion
+
       final double pxA = _flatPositions![2 * i];
       final double pyA = _flatPositions![2 * i + 1];
       for (int j = i + 1; j < n; j++) {
+        final idB = widget.nodes[j].id;
+        final double opacityB = _isReplaying ? (_nodeOpacities[idB] ?? 0.0) : 1.0;
+        if (opacityB <= 0.0) continue;
+
         final double pxB = _flatPositions![2 * j];
         final double pyB = _flatPositions![2 * j + 1];
 
@@ -565,6 +612,13 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
       final idxB = _nodeIndices[edge.targetId];
 
       if (idxA != null && idxB != null) {
+        final idA = edge.sourceId;
+        final idB = edge.targetId;
+        final double opacityA = _isReplaying ? (_nodeOpacities[idA] ?? 0.0) : 1.0;
+        final double opacityB = _isReplaying ? (_nodeOpacities[idB] ?? 0.0) : 1.0;
+
+        if (opacityA <= 0.0 || opacityB <= 0.0) continue; // Both nodes must be active
+
         final double pxA = _flatPositions![2 * idxA];
         final double pyA = _flatPositions![2 * idxA + 1];
         final double pxB = _flatPositions![2 * idxB];
@@ -591,6 +645,10 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     // 4. Center Gravity Force: keep nodes centered in viewport
     const double gravityStrength = 0.008;
     for (int i = 0; i < n; i++) {
+      final id = widget.nodes[i].id;
+      final double opacity = _isReplaying ? (_nodeOpacities[id] ?? 0.0) : 1.0;
+      if (opacity <= 0.0) continue;
+
       final double px = _flatPositions![2 * i];
       final double py = _flatPositions![2 * i + 1];
       _flatForces![2 * i] += (centerX - px) * gravityStrength;
@@ -603,6 +661,14 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
     for (int i = 0; i < n; i++) {
       final id = widget.nodes[i].id;
+      final double opacity = _isReplaying ? (_nodeOpacities[id] ?? 0.0) : 1.0;
+
+      if (opacity <= 0.0) {
+        _flatVelocities![2 * i] = 0.0;
+        _flatVelocities![2 * i + 1] = 0.0;
+        continue;
+      }
+
       if (id == _draggedNodeId) continue; // Dragged node stays pinned under user's finger!
 
       if (pinnedNodeIds.contains(id)) {
@@ -686,7 +752,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     _repaintNotifier.notify();
 
     // Check if the simulation has cooled down to rest
-    if (_draggedNodeId == null && maxVelocity < 0.05) {
+    if (!_isReplaying && _draggedNodeId == null && maxVelocity < 0.05) {
       _ticker.stop();
       for (final id in _velocities.keys) {
         _velocities[id] = Offset.zero;
