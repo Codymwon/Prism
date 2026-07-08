@@ -33,7 +33,7 @@ class GraphNodeRepository {
     final db = await _db;
 
     final noteMaps = await db.rawQuery('''
-      SELECT n.id, n.title, n.is_daily, n.daily_date, n.is_ghost,
+      SELECT n.id, n.title, n.is_daily, n.daily_date, n.is_ghost, n.created_at,
         (SELECT COUNT(*) FROM (
           SELECT 1 FROM note_links WHERE source_id = n.id
           UNION ALL
@@ -55,6 +55,9 @@ class GraphNodeRepository {
           : rawCount is bool ? (rawCount ? 1 : 0)
           : int.tryParse(rawCount.toString()) ?? 0;
       
+      final rawCreatedAt = m['created_at'] is int ? m['created_at'] as int : 0;
+      final createdAt = DateTime.fromMillisecondsSinceEpoch(rawCreatedAt);
+
       nodes.add(GraphNode(
         id: m['id'] as String,
         title: m['title'] as String,
@@ -62,6 +65,7 @@ class GraphNodeRepository {
         colorHex: null,
         isTemporal: false,
         isGhost: m['is_ghost'] == 1 || m['is_ghost'] == true,
+        createdAt: createdAt,
       ));
     }
 
@@ -112,6 +116,7 @@ class GraphNodeRepository {
               colorHex: null,
               isTemporal: true,
               temporalType: 'year',
+              createdAt: DateTime(date.year, 1, 1),
             ));
           }
 
@@ -128,6 +133,7 @@ class GraphNodeRepository {
               colorHex: null,
               isTemporal: true,
               temporalType: 'week',
+              createdAt: date,
             ));
           }
 

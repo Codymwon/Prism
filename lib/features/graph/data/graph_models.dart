@@ -63,6 +63,7 @@ class GraphNode {
   final bool isPinned;
   final double? pinnedX;
   final double? pinnedY;
+  final DateTime createdAt;
 
   const GraphNode({
     required this.id,
@@ -75,6 +76,7 @@ class GraphNode {
     this.isPinned = false,
     this.pinnedX,
     this.pinnedY,
+    required this.createdAt,
   });
 
   GraphNode copyWith({
@@ -88,6 +90,7 @@ class GraphNode {
     bool? isPinned,
     double? pinnedX,
     double? pinnedY,
+    DateTime? createdAt,
   }) {
     return GraphNode(
       id: id ?? this.id,
@@ -100,6 +103,7 @@ class GraphNode {
       isPinned: isPinned ?? this.isPinned,
       pinnedX: pinnedX ?? this.pinnedX,
       pinnedY: pinnedY ?? this.pinnedY,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

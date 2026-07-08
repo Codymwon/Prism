@@ -297,49 +297,11 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   List<String> _calculateBfsOrder() {
     if (widget.nodes.isEmpty) return [];
     
-    // Find the node with the highest linkCount
-    final startNode = widget.nodes.reduce((a, b) => a.linkCount >= b.linkCount ? a : b);
-    
-    final order = <String>[];
-    final visited = <String>{};
-    final queue = Queue<String>();
-    
-    // Build adjacency list for edges
-    final adj = <String, List<String>>{};
-    for (final node in widget.nodes) {
-      adj[node.id] = [];
-    }
-    for (final edge in widget.edges) {
-      if (adj.containsKey(edge.sourceId) && adj.containsKey(edge.targetId)) {
-        adj[edge.sourceId]!.add(edge.targetId);
-        adj[edge.targetId]!.add(edge.sourceId);
-      }
-    }
-    
-    queue.add(startNode.id);
-    visited.add(startNode.id);
-    
-    while (queue.isNotEmpty) {
-      final current = queue.removeFirst();
-      order.add(current);
+    // Sort nodes chronologically by their creation dates (Obsidian-Style)
+    final sortedNodes = List<GraphNode>.from(widget.nodes)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       
-      final neighbors = adj[current]!..sort();
-      for (final neighbor in neighbors) {
-        if (!visited.contains(neighbor)) {
-          visited.add(neighbor);
-          queue.add(neighbor);
-        }
-      }
-    }
-    
-    // Add any disconnected nodes
-    for (final node in widget.nodes) {
-      if (!visited.contains(node.id)) {
-        order.add(node.id);
-      }
-    }
-    
-    return order;
+    return sortedNodes.map((n) => n.id).toList();
   }
 
   @visibleForTesting
