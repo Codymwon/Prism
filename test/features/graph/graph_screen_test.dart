@@ -15,8 +15,8 @@ import 'package:prism/shared/widgets/tactile_wrapper.dart';
 void main() {
   testWidgets('Graph nodes within Flow are constrained to 100x80 and do not take up 2500x2500', (WidgetTester tester) async {
     final nodes = [
-      const GraphNode(id: '1', title: 'Node 1', linkCount: 1),
-      const GraphNode(id: '2', title: 'Node 2', linkCount: 2),
+      GraphNode(id: '1', title: 'Node 1', linkCount: 1, createdAt: DateTime(2026)),
+      GraphNode(id: '2', title: 'Node 2', linkCount: 2, createdAt: DateTime(2026)),
     ];
     final edges = [
       const GraphEdge(sourceId: '1', targetId: '2'),
@@ -115,8 +115,8 @@ void main() {
 
   testWidgets('GestureDetector for temporal nodes has non-null pan callbacks just like normal nodes', (WidgetTester tester) async {
     final nodes = [
-      const GraphNode(id: 'normal-1', title: 'Normal Node', linkCount: 1, isTemporal: false),
-      const GraphNode(id: 'temporal-1', title: 'Temporal Node', linkCount: 1, isTemporal: true),
+      GraphNode(id: 'normal-1', title: 'Normal Node', linkCount: 1, isTemporal: false, createdAt: DateTime(2026)),
+      GraphNode(id: 'temporal-1', title: 'Temporal Node', linkCount: 1, isTemporal: true, createdAt: DateTime(2026)),
     ];
     final edges = <GraphEdge>[];
 
@@ -160,7 +160,7 @@ void main() {
 
   testWidgets('Dragging a temporal node updates its position in memory but does not write to repository', (WidgetTester tester) async {
     final nodes = [
-      const GraphNode(id: 'temporal-1', title: 'Temporal Node', linkCount: 1, isTemporal: true),
+      GraphNode(id: 'temporal-1', title: 'Temporal Node', linkCount: 1, isTemporal: true, createdAt: DateTime(2026)),
     ];
     final edges = <GraphEdge>[];
 
@@ -222,7 +222,7 @@ void main() {
     });
 
     final nodes = [
-      const GraphNode(id: 'normal-1', title: 'Normal Node', linkCount: 1, isTemporal: false, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0),
+      GraphNode(id: 'normal-1', title: 'Normal Node', linkCount: 1, isTemporal: false, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0, createdAt: DateTime(2026)),
     ];
     final edges = <GraphEdge>[];
 
@@ -294,7 +294,7 @@ void main() {
 
   testWidgets('Node dragging is scale-invariant under different zoom levels', (WidgetTester tester) async {
     final nodes = [
-      const GraphNode(id: 'node-1', title: 'Test Node', linkCount: 1, isTemporal: false, isPinned: true),
+      GraphNode(id: 'node-1', title: 'Test Node', linkCount: 1, isTemporal: false, isPinned: true, createdAt: DateTime(2026)),
     ];
     final edges = <GraphEdge>[];
 
@@ -373,8 +373,8 @@ void main() {
 
   testWidgets('Graph auto-fit zoom adjusts TransformationController scale when positions are resolved', (WidgetTester tester) async {
     final nodes = [
-      const GraphNode(id: 'node-1', title: 'Test Node 1', linkCount: 1, isPinned: true, pinnedX: 100.0, pinnedY: 100.0),
-      const GraphNode(id: 'node-2', title: 'Test Node 2', linkCount: 2, isPinned: true, pinnedX: 4900.0, pinnedY: 4900.0),
+      GraphNode(id: 'node-1', title: 'Test Node 1', linkCount: 1, isPinned: true, pinnedX: 100.0, pinnedY: 100.0, createdAt: DateTime(2026)),
+      GraphNode(id: 'node-2', title: 'Test Node 2', linkCount: 2, isPinned: true, pinnedX: 4900.0, pinnedY: 4900.0, createdAt: DateTime(2026)),
     ];
     final edges = [
       const GraphEdge(sourceId: 'node-1', targetId: 'node-2'),
@@ -423,7 +423,7 @@ void main() {
   testWidgets('GraphScreen shows play button and GPS button in header and they trigger callbacks', (WidgetTester tester) async {
     // Override graph providers to supply a simple mock graph
     final nodes = [
-      const GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0),
+      GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0, createdAt: DateTime(2026)),
     ];
     final edges = <GraphEdge>[];
 
@@ -471,8 +471,8 @@ void main() {
 
   testWidgets('GraphReplay animation pauses physics and controls node visibility', (WidgetTester tester) async {
     final nodes = [
-      const GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0),
-      const GraphNode(id: 'node-2', title: 'Node 2', linkCount: 2, isPinned: true, pinnedX: 1300.0, pinnedY: 1300.0),
+      GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1, isPinned: true, pinnedX: 1250.0, pinnedY: 1250.0, createdAt: DateTime(2026)),
+      GraphNode(id: 'node-2', title: 'Node 2', linkCount: 2, isPinned: true, pinnedX: 1300.0, pinnedY: 1300.0, createdAt: DateTime(2026)),
     ];
     final edges = [
       const GraphEdge(sourceId: 'node-1', targetId: 'node-2'),
@@ -509,7 +509,7 @@ void main() {
 
   testWidgets('Graph Color Mode dropdown updates color mode provider state', (WidgetTester tester) async {
     final nodes = [
-      const GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1),
+      GraphNode(id: 'node-1', title: 'Node 1', linkCount: 1, createdAt: DateTime(2026)),
     ];
     final edges = <GraphEdge>[];
 

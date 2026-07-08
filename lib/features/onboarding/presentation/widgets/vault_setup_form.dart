@@ -241,6 +241,14 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         if (kDebugMode) {
           debugPrint('DEBUG: existing vaults found. Active vault = $activeVault. Auto-importing...');
         }
+        
+        // Capture everything from ref BEFORE calling widget.onStartSetup()
+        final onboardingNotifier = ref.read(onboardingStateProvider.notifier);
+        final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
+        final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
+        final prefs = ref.read(sharedPreferencesProvider);
+        final vaultService = ref.read(vaultManagementServiceProvider);
+
         // Auto-import and bypass Step 2 entirely
         setState(() => _isCompleting = true);
         widget.onStartSetup();
@@ -249,16 +257,11 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           if (widget.onPersist != null) {
             await widget.onPersist!(hubPath, activeVault, _selectedVaultType);
           } else {
-            final onboardingNotifier = ref.read(onboardingStateProvider.notifier);
-            final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
-            final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
-
-            final prefs = ref.read(sharedPreferencesProvider);
             await prefs.setString('vaultType', _selectedVaultType);
             await baseVaultsDirNotifier.setDirectory(hubPath);
             await activeVaultNameNotifier.setVaultName(activeVault);
 
-            await ref.read(vaultManagementServiceProvider).closeDatabase();
+            await vaultService.closeDatabase();
             await onboardingNotifier.completeOnboarding();
           }
 
@@ -328,9 +331,13 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
 
     setState(() => _isCompleting = true);
 
+    // Capture everything from ref BEFORE calling widget.onStartSetup()
     final onboardingNotifier = ref.read(onboardingStateProvider.notifier);
     final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
     final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
+    final prefs = ref.read(sharedPreferencesProvider);
+    final analyticsEnabledNotifier = ref.read(analyticsEnabledProvider.notifier);
+    final vaultService = ref.read(vaultManagementServiceProvider);
 
     if (kDebugMode) {
       debugPrint('DEBUG: calling onStartSetup()');
@@ -357,16 +364,15 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (widget.onPersist != null) {
         await widget.onPersist!(hubPath, vaultName, _selectedVaultType);
       } else {
-        final prefs = ref.read(sharedPreferencesProvider);
         await prefs.setString('vaultType', _selectedVaultType);
         
         // Save analytics choice and toggle Firebase collections
-        await ref.read(analyticsEnabledProvider.notifier).setEnabled(_shareAnalytics);
+        await analyticsEnabledNotifier.setEnabled(_shareAnalytics);
 
         await baseVaultsDirNotifier.setDirectory(hubPath);
         await activeVaultNameNotifier.setVaultName(vaultName);
 
-        await ref.read(vaultManagementServiceProvider).closeDatabase();
+        await vaultService.closeDatabase();
         AnalyticsService.logEvent('onboarding_complete', parameters: {
           'vault_type': _selectedVaultType,
         });

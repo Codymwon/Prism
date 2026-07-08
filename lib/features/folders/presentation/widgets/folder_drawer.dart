@@ -13,6 +13,7 @@ import '../../../notes/presentation/widgets/vault_selector_title.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
 import 'package:prism/l10n/l10n.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
 
 class FolderDrawer extends ConsumerWidget {
   const FolderDrawer({super.key});
@@ -50,6 +51,7 @@ class FolderDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isPro = ref.watch(isProProvider);
 
     return Drawer(
       backgroundColor: DesignColors.background(context),
@@ -104,9 +106,14 @@ class FolderDrawer extends ConsumerWidget {
                 context,
                 icon: Icons.description_outlined,
                 title: context.l10n.folders_drawer_manage_templates,
+                isLocked: !isPro,
                 onTap: () {
                   Navigator.of(context).pop();
-                  context.push('/settings/custom-templates');
+                  if (!isPro) {
+                    context.push('/settings/paywall');
+                  } else {
+                    context.push('/settings/custom-templates');
+                  }
                 },
               ),
               const SizedBox(height: 8),
@@ -116,9 +123,14 @@ class FolderDrawer extends ConsumerWidget {
                 context,
                 icon: Icons.bolt_outlined,
                 title: context.l10n.folders_drawer_manage_macros,
+                isLocked: !isPro,
                 onTap: () {
                   Navigator.of(context).pop();
-                  context.push('/settings/custom-macros');
+                  if (!isPro) {
+                    context.push('/settings/paywall');
+                  } else {
+                    context.push('/settings/custom-macros');
+                  }
                 },
               ),
               const SizedBox(height: 8),
@@ -150,6 +162,7 @@ class FolderDrawer extends ConsumerWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    bool isLocked = false,
   }) {
     return TactileWrapper(
       style: TactileFeedbackStyle.standard,
@@ -184,9 +197,9 @@ class FolderDrawer extends ConsumerWidget {
               ),
             ),
             Icon(
-              Icons.chevron_right_rounded,
+              isLocked ? Icons.lock_outline_rounded : Icons.chevron_right_rounded,
               size: 16,
-              color: DesignColors.textTertiary(context),
+              color: isLocked ? DesignColors.primary(context) : DesignColors.textTertiary(context),
             ),
           ],
         ),

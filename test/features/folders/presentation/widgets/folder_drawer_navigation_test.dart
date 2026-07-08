@@ -16,6 +16,7 @@ import 'package:prism/features/notes/presentation/providers/notes_providers.dart
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:prism/core/services/vault_service.dart';
+import 'package:prism/features/subscription/presentation/providers/subscription_providers.dart';
 
 class FakeDatabase extends Fake implements Database {
   @override
@@ -188,5 +189,112 @@ void main() {
     expect(find.text('Manage Templates'), findsOneWidget);
     expect(find.text('Manage Macros'), findsOneWidget);
     expect(find.text('Serendipity'), findsOneWidget);
+  });
+
+  testWidgets('FolderDrawer gates templates and macros for non-Pro users (shows lock icons)', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        databaseProvider.overrideWith((ref) async => FakeDatabase()),
+        noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
+        folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
+        tutorialStateProvider.overrideWith(() => FakeTutorialState()),
+        journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState()),
+        onboardingStateProvider.overrideWith(() => FakeOnboardingState()),
+        availableVaultsProvider.overrideWith((ref) async => ['Default']),
+        homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
+          notes: [],
+          folders: [],
+          mappings: {},
+        ))),
+        isProProvider.overrideWithValue(false),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            drawer: const FolderDrawer(),
+            body: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open the drawer
+    final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+    scaffoldState.openDrawer();
+    await tester.pumpAndSettle();
+
+    // Verify lock icons are shown for templates and macros, but not serendipity
+    expect(find.byIcon(Icons.lock_outline_rounded), findsNWidgets(2));
+  });
+
+  testWidgets('FolderDrawer shows chevrons for Pro users (no lock icons)', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        databaseProvider.overrideWith((ref) async => FakeDatabase()),
+        noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
+        folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
+        tutorialStateProvider.overrideWith(() => FakeTutorialState()),
+        journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState()),
+        onboardingStateProvider.overrideWith(() => FakeOnboardingState()),
+        availableVaultsProvider.overrideWith((ref) async => ['Default']),
+        homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
+          notes: [],
+          folders: [],
+          mappings: {},
+        ))),
+        isProProvider.overrideWithValue(true),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            drawer: const FolderDrawer(),
+            body: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open the drawer
+    final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+    scaffoldState.openDrawer();
+    await tester.pumpAndSettle();
+
+    // Verify no lock icons are shown
+    expect(find.byIcon(Icons.lock_outline_rounded), findsNothing);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(3)); // 2 shortcuts + 1 serendipity
   });
 }

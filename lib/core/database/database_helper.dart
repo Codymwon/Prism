@@ -118,10 +118,10 @@ class DatabaseHelper {
               onDowngrade: _onDowngrade,
               onConfigure: (db) async {
                 await db.rawQuery('PRAGMA journal_mode = WAL;');
-                await db.execute('PRAGMA foreign_keys = ON;');
-                await db.execute('PRAGMA cache_size = -2000;');
-                await db.execute('PRAGMA mmap_size = 268435456;');
-                await db.execute('PRAGMA synchronous = NORMAL;');
+                await db.rawQuery('PRAGMA foreign_keys = ON;');
+                await db.rawQuery('PRAGMA cache_size = -2000;');
+                await db.rawQuery('PRAGMA mmap_size = 268435456;');
+                await db.rawQuery('PRAGMA synchronous = NORMAL;');
               },
             ),
           );
@@ -135,10 +135,10 @@ class DatabaseHelper {
             onDowngrade: _onDowngrade,
             onConfigure: (db) async {
               await db.rawQuery('PRAGMA journal_mode = WAL;');
-              await db.execute('PRAGMA foreign_keys = ON;');
-              await db.execute('PRAGMA cache_size = -2000;');
-              await db.execute('PRAGMA mmap_size = 268435456;');
-              await db.execute('PRAGMA synchronous = NORMAL;');
+              await db.rawQuery('PRAGMA foreign_keys = ON;');
+              await db.rawQuery('PRAGMA cache_size = -2000;');
+              await db.rawQuery('PRAGMA mmap_size = 268435456;');
+              await db.rawQuery('PRAGMA synchronous = NORMAL;');
             },
           );
         }
@@ -165,10 +165,10 @@ class DatabaseHelper {
               onDowngrade: _onDowngrade,
               onConfigure: (db) async {
                 await db.rawQuery('PRAGMA journal_mode = WAL;');
-                await db.execute('PRAGMA foreign_keys = ON;');
-                await db.execute('PRAGMA cache_size = -2000;');
-                await db.execute('PRAGMA mmap_size = 268435456;');
-                await db.execute('PRAGMA synchronous = NORMAL;');
+                await db.rawQuery('PRAGMA foreign_keys = ON;');
+                await db.rawQuery('PRAGMA cache_size = -2000;');
+                await db.rawQuery('PRAGMA mmap_size = 268435456;');
+                await db.rawQuery('PRAGMA synchronous = NORMAL;');
               },
             ),
           );
@@ -182,10 +182,10 @@ class DatabaseHelper {
             onDowngrade: _onDowngrade,
             onConfigure: (db) async {
               await db.rawQuery('PRAGMA journal_mode = WAL;');
-              await db.execute('PRAGMA foreign_keys = ON;');
-              await db.execute('PRAGMA cache_size = -2000;');
-              await db.execute('PRAGMA mmap_size = 268435456;');
-              await db.execute('PRAGMA synchronous = NORMAL;');
+              await db.rawQuery('PRAGMA foreign_keys = ON;');
+              await db.rawQuery('PRAGMA cache_size = -2000;');
+              await db.rawQuery('PRAGMA mmap_size = 268435456;');
+              await db.rawQuery('PRAGMA synchronous = NORMAL;');
             },
           );
         }

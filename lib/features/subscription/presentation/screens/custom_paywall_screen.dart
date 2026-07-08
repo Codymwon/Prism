@@ -105,7 +105,7 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                             ],
                           ),
                           child: const Icon(
-                            Icons.star_rounded,
+                            Icons.diamond_rounded,
                             color: Colors.white,
                             size: 24,
                           ),

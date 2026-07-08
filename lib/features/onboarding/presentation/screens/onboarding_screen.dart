@@ -85,125 +85,135 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Scaffold(
       backgroundColor: DesignColors.background(context),
       body: SafeArea(
-        child: _isSettingUp
-            ? const OnboardingLoading()
-            : _showVaultSetup
-                ? VaultSetupForm(
-                    onStartSetup: () => setState(() => _isSettingUp = true),
-                    onEndSetup: () {
-                      if (mounted) {
-                        setState(() => _isSettingUp = false);
-                      }
-                    },
-                  )
-                : Column(
-                    children: [
-                      // Upper Top Skip Button
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: TextButton(
-                            onPressed: () => setState(() => _showVaultSetup = true),
-                            child: Text(
-                              'Skip',
-                              style: DesignTypography.body(
-                                context,
-                                color: DesignColors.textSecondary(context),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+        child: Stack(
+          children: [
+            if (_showVaultSetup)
+              VaultSetupForm(
+                onStartSetup: () => setState(() => _isSettingUp = true),
+                onEndSetup: () {
+                  if (mounted) {
+                    setState(() => _isSettingUp = false);
+                  }
+                },
+              )
+            else
+              Column(
+                children: [
+                  // Upper Top Skip Button
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: TextButton(
+                        onPressed: () => setState(() => _showVaultSetup = true),
+                        child: Text(
+                          'Skip',
+                          style: DesignTypography.body(
+                            context,
+                            color: DesignColors.textSecondary(context),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-
-                      // Carousel
-                      Expanded(
-                        child: PageView.builder(
-                          controller: _pageController,
-                          onPageChanged: (idx) => setState(() => _currentPage = idx),
-                          itemCount: _slides.length,
-                          itemBuilder: (context, idx) => OnboardingSlideView(slide: _slides[idx]),
-                        ),
-                      ),
-
-                      // Bottom Controls Row
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Dots indicator
-                            SmoothPageIndicator(
-                              controller: _pageController,
-                              count: _slides.length,
-                              effect: ExpandingDotsEffect(
-                                dotColor: DesignColors.border(context).withValues(alpha: 0.5),
-                                activeDotColor: colorScheme.primary,
-                                dotHeight: 8,
-                                dotWidth: 8,
-                                expansionFactor: 3,
-                                spacing: 6,
-                              ),
-                              onDotClicked: (index) => _pageController.animateToPage(
-                                index,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              ),
-                            ),
-
-                            // Action Button
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: _currentPage == _slides.length - 1
-                                  ? TactileWrapper(
-                                      key: const ValueKey('start_btn'),
-                                      style: TactileFeedbackStyle.highImpact,
-                                      semanticLabel: context.l10n.onboarding_screen_start_writing_semantic,
-                                      onTap: () => setState(() => _showVaultSetup = true),
-                                      child: ExcludeSemantics(
-                                        child: FloatingActionButton.extended(
-                                          onPressed: () {},
-                                          label: Text(
-                                            context.l10n.onboarding_screen_start_writing_label,
-                                            style: DesignTypography.heading(
-                                              context,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                                          backgroundColor: colorScheme.primary,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : TactileWrapper(
-                                      key: const ValueKey('next_btn'),
-                                      style: TactileFeedbackStyle.standard,
-                                      semanticLabel: context.l10n.onboarding_screen_next_slide_semantic,
-                                      onTap: () => _pageController.nextPage(
-                                        duration: const Duration(milliseconds: 300),
-                                        curve: Curves.easeInOut,
-                                      ),
-                                      child: ExcludeSemantics(
-                                        child: FloatingActionButton(
-                                          onPressed: () {},
-                                          backgroundColor: DesignColors.surface(context),
-                                          foregroundColor: colorScheme.primary,
-                                          elevation: 1,
-                                          shape: const CircleBorder(),
-                                          child: const Icon(Icons.chevron_right_rounded, size: 28),
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+
+                  // Carousel
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      onPageChanged: (idx) => setState(() => _currentPage = idx),
+                      itemCount: _slides.length,
+                      itemBuilder: (context, idx) => OnboardingSlideView(slide: _slides[idx]),
+                    ),
+                  ),
+
+                  // Bottom Controls Row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Dots indicator
+                        SmoothPageIndicator(
+                          controller: _pageController,
+                          count: _slides.length,
+                          effect: ExpandingDotsEffect(
+                            dotColor: DesignColors.border(context).withValues(alpha: 0.5),
+                            activeDotColor: colorScheme.primary,
+                            dotHeight: 8,
+                            dotWidth: 8,
+                            expansionFactor: 3,
+                            spacing: 6,
+                          ),
+                          onDotClicked: (index) => _pageController.animateToPage(
+                            index,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          ),
+                        ),
+
+                        // Action Button
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _currentPage == _slides.length - 1
+                              ? TactileWrapper(
+                                  key: const ValueKey('start_btn'),
+                                  style: TactileFeedbackStyle.highImpact,
+                                  semanticLabel: context.l10n.onboarding_screen_start_writing_semantic,
+                                  onTap: () => setState(() => _showVaultSetup = true),
+                                  child: ExcludeSemantics(
+                                    child: FloatingActionButton.extended(
+                                      onPressed: () {},
+                                      label: Text(
+                                        context.l10n.onboarding_screen_start_writing_label,
+                                        style: DesignTypography.heading(
+                                          context,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                                      backgroundColor: colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : TactileWrapper(
+                                  key: const ValueKey('next_btn'),
+                                  style: TactileFeedbackStyle.standard,
+                                  semanticLabel: context.l10n.onboarding_screen_next_slide_semantic,
+                                  onTap: () => _pageController.nextPage(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  ),
+                                  child: ExcludeSemantics(
+                                    child: FloatingActionButton(
+                                      onPressed: () {},
+                                      backgroundColor: DesignColors.surface(context),
+                                      foregroundColor: colorScheme.primary,
+                                      elevation: 1,
+                                      shape: const CircleBorder(),
+                                      child: const Icon(Icons.chevron_right_rounded, size: 28),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            if (_isSettingUp)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: DesignColors.background(context),
+                  child: const OnboardingLoading(),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

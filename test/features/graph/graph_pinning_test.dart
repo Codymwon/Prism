@@ -380,7 +380,7 @@ void main() {
 
       final mockRepo = FakeGraphNodeRepository();
       final nodes = [
-        const GraphNode(id: 'note-1', title: 'Normal Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: false),
+        GraphNode(id: 'note-1', title: 'Normal Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: false, createdAt: DateTime(2026)),
       ];
 
       await tester.pumpWidget(
@@ -448,7 +448,7 @@ void main() {
 
       final mockRepo = FakeGraphNodeRepository();
       final nodes = [
-        const GraphNode(id: 'ghost-1', title: 'Ghost Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: true),
+        GraphNode(id: 'ghost-1', title: 'Ghost Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: true, createdAt: DateTime(2026)),
       ];
 
       await tester.pumpWidget(
@@ -515,7 +515,7 @@ void main() {
 
       final mockRepo = FakeGraphNodeRepository();
       final nodes = [
-        const GraphNode(id: 'note-1', title: 'Unpinned Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: false),
+        GraphNode(id: 'note-1', title: 'Unpinned Note', linkCount: 1, isTemporal: false, isPinned: false, isGhost: false, createdAt: DateTime(2026)),
       ];
 
       await tester.pumpWidget(
@@ -582,7 +582,7 @@ void main() {
 
       final mockRepo = FakeGraphNodeRepository();
       final nodes = [
-        const GraphNode(id: 'note-1', title: 'Pinned Note', linkCount: 1, isTemporal: false, isPinned: true, isGhost: false),
+        GraphNode(id: 'note-1', title: 'Pinned Note', linkCount: 1, isTemporal: false, isPinned: true, isGhost: false, createdAt: DateTime(2026)),
       ];
 
       await tester.pumpWidget(

@@ -5,23 +5,28 @@ import 'revenuecat_client_wrapper.dart';
 
 class DefaultRevenueCatClientWrapper implements RevenueCatClientWrapper {
   late final StreamController<CustomerInfo> _controller;
+  bool _configured = false;
 
   DefaultRevenueCatClientWrapper() {
     _controller = StreamController<CustomerInfo>.broadcast(
-      onListen: () {
-        Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
-        // Eagerly seed the stream with the current cached customer info so that
-        // cold starts always emit an initial value, regardless of whether
-        // RevenueCat fires an update event (which it may skip if nothing changed).
-        Purchases.getCustomerInfo().then((info) {
-          if (!_controller.isClosed) {
-            _controller.add(info);
-          }
-        }).catchError((_) {
-          // Silently ignore — stream will still receive events from the listener
-        });
-      },
+      onListen: _setupListener,
     );
+  }
+
+  void _setupListener() {
+    if (!_configured) return;
+    try {
+      Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+      Purchases.getCustomerInfo().then((info) {
+        if (!_controller.isClosed) {
+          _controller.add(info);
+        }
+      }).catchError((_) {
+        // Silently ignore — stream will still receive events from the listener
+      });
+    } catch (_) {
+      // Silently ignore
+    }
   }
 
   void _onCustomerInfoUpdated(CustomerInfo customerInfo) {
@@ -36,6 +41,10 @@ class DefaultRevenueCatClientWrapper implements RevenueCatClientWrapper {
   @override
   Future<void> configure(PurchasesConfiguration configuration) async {
     await Purchases.configure(configuration);
+    _configured = true;
+    if (_controller.hasListener) {
+      _setupListener();
+    }
   }
 
   @override

@@ -52,10 +52,10 @@ class SettingsScreen extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                           width: 1,
@@ -66,35 +66,35 @@ class SettingsScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.star_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                              Icon(Icons.diamond_rounded, color: Theme.of(context).colorScheme.primary, size: 18),
                               const SizedBox(width: 8),
                               Text(
                                 context.l10n.settings_main_pro_tile_title,
-                                style: DesignTypography.heading(context, fontSize: 15, fontWeight: FontWeight.bold),
+                                style: DesignTypography.heading(context, fontSize: 14, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Text(
                             context.l10n.settings_main_pro_tile_desc,
-                            style: DesignTypography.body(context, fontSize: 12.5, color: DesignColors.textSecondary(context)),
+                            style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).colorScheme.primary,
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () => context.push('/settings/paywall'),
-                            child: Text(context.l10n.settings_main_pro_tile_upgrade_button, style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                            child: Text(context.l10n.settings_main_pro_tile_upgrade_button, style: DesignTypography.body(context, fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
                           ),
                         ],
                       ),
                     ),
-                  ).animate().fadeIn(duration: 400.ms),
+                  ),
 
                 // ── Appearance ───────────────────────────────────────────
                 SettingsSectionHeader(title: context.l10n.settings_main_section_appearance),
@@ -191,7 +191,7 @@ class SettingsScreen extends ConsumerWidget {
                 if (isPro) ...[
                   SettingsSectionHeader(title: context.l10n.settings_main_section_subscription),
                   SettingsTile(
-                    icon: Icons.star_rounded,
+                    icon: Icons.diamond_rounded,
                     title: context.l10n.settings_main_pro_status_active,
                     subtitle: context.l10n.settings_main_pro_status_desc,
                     trailing: const Icon(Icons.chevron_right_rounded),
