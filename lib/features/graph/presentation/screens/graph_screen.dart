@@ -232,7 +232,6 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
 
   bool _isReplaying = false;
   final Map<String, double> _nodeOpacities = {};
-  final Set<String> _revealedEdgeKeys = {};
   DateTime? _replayStartTime;
   List<String> _bfsOrder = [];
 
@@ -247,7 +246,6 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
       for (final n in widget.nodes) {
         _nodeOpacities[n.id] = 0.0;
       }
-      _revealedEdgeKeys.clear();
       _bfsOrder = _calculateBfsOrder();
       _replayStartTime = DateTime.now();
     });
@@ -462,7 +460,6 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
       final elapsedMs = now.difference(startTime).inMilliseconds;
       
       bool allFinished = true;
-      final Set<String> visibleNodes = {};
       
       for (int i = 0; i < _bfsOrder.length; i++) {
         final nodeId = _bfsOrder[i];
@@ -476,19 +473,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
           final fadeProgress = (elapsedMs - startRevealTime) / 300.0;
           final opacity = fadeProgress.clamp(0.0, 1.0);
           _nodeOpacities[nodeId] = opacity;
-          if (opacity > 0.1) {
-            visibleNodes.add(nodeId);
-          }
           if (opacity < 1.0) {
             allFinished = false;
           }
-        }
-      }
-      
-      _revealedEdgeKeys.clear();
-      for (final edge in widget.edges) {
-        if (visibleNodes.contains(edge.sourceId) && visibleNodes.contains(edge.targetId)) {
-          _revealedEdgeKeys.add('${edge.sourceId}->${edge.targetId}');
         }
       }
       
@@ -498,7 +485,6 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
         setState(() {
           _isReplaying = false;
           _nodeOpacities.clear();
-          _revealedEdgeKeys.clear();
         });
         _ticker.stop();
         fitToContent();
@@ -789,7 +775,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                   edges: widget.edges,
                   color: colorScheme.primary.withValues(alpha: 0.35),
                   ghostNodeIds: widget.nodes.where((n) => n.isGhost).map((n) => n.id).toSet(),
-                  revealedEdgeKeys: _revealedEdgeKeys,
+                  nodeOpacities: _nodeOpacities,
                   isReplaying: _isReplaying,
                   repaint: _repaintNotifier,
                 ),
@@ -838,9 +824,14 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                     child: SizedBox(
                       width: 100,
                       height: 80,
-                      child: Opacity(
-                        opacity: _isReplaying ? (_nodeOpacities[gn.id] ?? 0.0) : 1.0,
-                        child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
+                      child: Transform.scale(
+                        scale: _isReplaying
+                            ? Curves.easeOutBack.transform(_nodeOpacities[gn.id] ?? 0.0)
+                            : 1.0,
+                        child: Opacity(
+                          opacity: _isReplaying ? (_nodeOpacities[gn.id] ?? 0.0) : 1.0,
+                          child: _nodeContentCache[gn.id] ?? const SizedBox.shrink(),
+                        ),
                       ),
                     ),
                   );
@@ -927,7 +918,7 @@ class GraphLinksPainter extends CustomPainter {
   final List<GraphEdge> edges;
   final Color color;
   final Set<String> ghostNodeIds;
-  final Set<String> revealedEdgeKeys;
+  final Map<String, double> nodeOpacities;
   final bool isReplaying;
 
   GraphLinksPainter({
@@ -935,7 +926,7 @@ class GraphLinksPainter extends CustomPainter {
     required this.edges,
     required this.color,
     required this.ghostNodeIds,
-    required this.revealedEdgeKeys,
+    required this.nodeOpacities,
     required this.isReplaying,
     required Listenable repaint,
   }) : super(repaint: repaint);
@@ -943,16 +934,29 @@ class GraphLinksPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final edge in edges) {
-      if (isReplaying && !revealedEdgeKeys.contains('${edge.sourceId}->${edge.targetId}')) {
-        continue;
-      }
       final src = positions[edge.sourceId];
       final tgt = positions[edge.targetId];
       if (src != null && src.dx.isFinite && src.dy.isFinite &&
           tgt != null && tgt.dx.isFinite && tgt.dy.isFinite) {
-        final isGhostConnection = ghostNodeIds.contains(edge.sourceId) || ghostNodeIds.contains(edge.targetId);
         
-        final finalAlpha = isGhostConnection ? 0.15 : 0.35;
+        double edgeOpacity = 1.0;
+        if (isReplaying) {
+          final opacityA = nodeOpacities[edge.sourceId] ?? 0.0;
+          final opacityB = nodeOpacities[edge.targetId] ?? 0.0;
+          final minOpacity = min(opacityA, opacityB);
+          
+          if (minOpacity < 0.85) {
+            continue; // Keep edge hidden until both nodes are mostly popped up
+          }
+          // Fade in the edge quickly from 0.0 to 1.0 as the minOpacity goes from 0.85 to 1.0
+          edgeOpacity = ((minOpacity - 0.85) / 0.15).clamp(0.0, 1.0);
+        }
+
+        final isGhostConnection = ghostNodeIds.contains(edge.sourceId) || ghostNodeIds.contains(edge.targetId);
+        final baseAlpha = isGhostConnection ? 0.15 : 0.35;
+        final finalAlpha = baseAlpha * edgeOpacity;
+
+        if (finalAlpha <= 0.001) continue;
 
         final edgePaint = Paint()
           ..color = color.withValues(alpha: finalAlpha)
@@ -970,7 +974,7 @@ class GraphLinksPainter extends CustomPainter {
            oldDelegate.edges != edges || 
            oldDelegate.color != color ||
            oldDelegate.ghostNodeIds != ghostNodeIds ||
-           oldDelegate.revealedEdgeKeys != revealedEdgeKeys ||
+           oldDelegate.nodeOpacities != nodeOpacities ||
            oldDelegate.isReplaying != isReplaying;
   }
 }
