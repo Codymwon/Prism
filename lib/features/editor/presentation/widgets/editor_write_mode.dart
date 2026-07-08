@@ -107,7 +107,7 @@ class EditorWriteMode extends ConsumerWidget {
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.only(top: 12, bottom: 100),
+                      contentPadding: const EdgeInsets.only(top: 12, bottom: 24),
                       fillColor: Colors.transparent,
                       filled: true,
                     ),
@@ -176,7 +176,7 @@ class _LineNumbersGutterState extends State<_LineNumbersGutter> {
             physics: const NeverScrollableScrollPhysics(),
             child: Container(
               width: 32,
-              padding: const EdgeInsets.only(top: 12, bottom: 100),
+              padding: const EdgeInsets.only(top: 12, bottom: 24),
               child: Text(
                 linesText,
                 style: getEditorFont(
