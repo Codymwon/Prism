@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/subscription_package.dart';
 import '../../domain/entities/subscription_status.dart';
 import '../../domain/failures/subscription_failure.dart';
@@ -182,6 +183,17 @@ class RevenueCatSubscriptionRepository implements SubscriptionRepository {
       await _clientWrapper.presentCustomerCenter();
       return const Right(unit);
     } catch (e) {
+      if (_isAndroid) {
+        try {
+          final playStoreUri = Uri.parse('https://play.google.com/store/account/subscriptions');
+          final success = await launchUrl(playStoreUri, mode: LaunchMode.externalApplication);
+          if (success) {
+            return const Right(unit);
+          }
+        } catch (launchError) {
+          debugPrint('Failed to launch Play Store subscriptions fallback: $launchError');
+        }
+      }
       return Left(_mapException(e));
     }
   }

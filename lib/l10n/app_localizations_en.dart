@@ -976,6 +976,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboarding_vault_setup_back_button => 'Back to step 1';
 
   @override
+  String get onboarding_vault_setup_back_button_step2 => 'Back to step 2';
+
+  @override
+  String get onboarding_vault_setup_privacy_title => 'Privacy & Telemetry';
+
+  @override
+  String get onboarding_vault_setup_privacy_desc =>
+      'Prism is built from the ground up to respect your privacy. Choose whether you would like to share anonymous usage data and crash reports to help us improve the app.';
+
+  @override
   String get onboarding_vault_setup_default_hub_name => 'Prism Hub';
 
   @override

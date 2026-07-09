@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
 import '../../../../shared/design_system/design_system.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
@@ -966,8 +967,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } catch (e) {
       debugPrint('Error attaching image: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.editor_screen_failed_image_attach(e.toString()))),
+        PrismToast.show(
+          context,
+          context.l10n.editor_screen_failed_image_attach(e.toString()),
+          icon: Icons.error_outline_rounded,
         );
       }
     }
@@ -989,8 +992,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        PrismToast.show(
+          context,
+          e.toString().replaceAll('Exception: ', ''),
+          icon: Icons.error_outline_rounded,
         );
       }
     }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../providers/settings_provider.dart';
@@ -61,11 +62,10 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
       await ref.read(themeStateProvider.notifier).setTheme(type);
       if (mounted) {
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.settings_theme_gallery_applied_success),
-            backgroundColor: Colors.green,
-          ),
+        PrismToast.show(
+          context,
+          context.l10n.settings_theme_gallery_applied_success,
+          icon: Icons.palette_outlined,
         );
       }
     }

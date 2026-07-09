@@ -9,6 +9,7 @@ import '../../../../core/services/vault_service.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../widgets/settings_widgets.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class ManageVaultsScreen extends ConsumerStatefulWidget {
@@ -112,27 +113,21 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
             );
 
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    migrateData 
-                        ? context.l10n.settings_manage_vaults_relocate_migrate_success 
-                        : context.l10n.settings_manage_vaults_relocate_change_success
-                  ),
-                ),
+              PrismToast.show(
+                context,
+                migrateData 
+                    ? context.l10n.settings_manage_vaults_relocate_migrate_success 
+                    : context.l10n.settings_manage_vaults_relocate_change_success,
+                icon: Icons.check_circle_outline_rounded,
               );
               _loadActiveVaultStats();
             }
           } catch (e) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  backgroundColor: Colors.redAccent,
-                  content: Text(
-                    context.l10n.settings_manage_vaults_relocate_error(e.toString()),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
+              PrismToast.show(
+                context,
+                context.l10n.settings_manage_vaults_relocate_error(e.toString()),
+                icon: Icons.error_outline_rounded,
               );
             }
           } finally {
@@ -192,8 +187,10 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       _loadActiveVaultStats();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.settings_manage_vaults_create_error(e.toString()))),
+        PrismToast.show(
+          context,
+          context.l10n.settings_manage_vaults_create_error(e.toString()),
+          icon: Icons.error_outline_rounded,
         );
       }
     } finally {
@@ -249,8 +246,10 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       _loadActiveVaultStats();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.settings_manage_vaults_rename_error(e.toString()))),
+        PrismToast.show(
+          context,
+          context.l10n.settings_manage_vaults_rename_error(e.toString()),
+          icon: Icons.error_outline_rounded,
         );
       }
     } finally {
@@ -300,8 +299,10 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       _loadActiveVaultStats();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete vault: $e')),
+        PrismToast.show(
+          context,
+          'Failed to delete vault: $e',
+          icon: Icons.error_outline_rounded,
         );
       }
     } finally {
@@ -320,14 +321,18 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
       );
       _loadActiveVaultStats();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Switched to vault: $vaultName')),
+        PrismToast.show(
+          context,
+          'Switched to vault: $vaultName',
+          icon: Icons.check_circle_outline_rounded,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to switch vault: $e')),
+        PrismToast.show(
+          context,
+          'Failed to switch vault: $e',
+          icon: Icons.error_outline_rounded,
         );
       }
     } finally {
@@ -874,8 +879,10 @@ class _RelocationBottomSheetState extends State<_RelocationBottomSheet> {
             ),
             onPressed: () {
               if (_selectedVaultType == 'custom' && _selectedLocationPath.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select a destination folder.')),
+                PrismToast.show(
+                  context,
+                  'Please select a destination folder.',
+                  icon: Icons.warning_amber_rounded,
                 );
                 return;
               }

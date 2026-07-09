@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../core/database/vault_providers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../editor/presentation/widgets/audio_player_bottom_sheet.dart';
@@ -532,14 +533,18 @@ class AttachmentsScreen extends ConsumerWidget {
                 }
                 ref.invalidate(attachmentsProvider);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.l10n.settings_attachments_delete_success)),
+                  PrismToast.show(
+                    context,
+                    context.l10n.settings_attachments_delete_success,
+                    icon: Icons.delete_outline_rounded,
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.l10n.settings_attachments_delete_error(e.toString()))),
+                  PrismToast.show(
+                    context,
+                    context.l10n.settings_attachments_delete_error(e.toString()),
+                    icon: Icons.error_outline_rounded,
                   );
                 }
               }
@@ -589,14 +594,18 @@ class AttachmentsScreen extends ConsumerWidget {
                 }
                 ref.invalidate(attachmentsProvider);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.l10n.settings_attachments_purge_success(deletedCount))),
+                  PrismToast.show(
+                    context,
+                    context.l10n.settings_attachments_purge_success(deletedCount),
+                    icon: Icons.delete_sweep_outlined,
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.l10n.settings_attachments_purge_error(e.toString()))),
+                  PrismToast.show(
+                    context,
+                    context.l10n.settings_attachments_purge_error(e.toString()),
+                    icon: Icons.error_outline_rounded,
                   );
                 }
               }

@@ -56,17 +56,7 @@ class _InlineAudioWaveformPlayerState
   Future<void> _resolvePath() async {
     try {
       final vaultPath = await ref.read(activeVaultPathProvider.future);
-      String effectiveVaultPath = vaultPath;
-
-      final noteId = widget.noteId;
-      if (noteId != null) {
-        final note = await ref.read(noteByIdProvider(noteId).future);
-        if (note != null && note.filePath.isNotEmpty) {
-          effectiveVaultPath = p.dirname(note.filePath);
-        }
-      }
-
-      final absPath = p.join(effectiveVaultPath, widget.filePath);
+      final absPath = p.join(vaultPath, widget.filePath);
       final file = File(absPath);
       if (await file.exists()) {
         final peaks = await Isolate.run(() async {

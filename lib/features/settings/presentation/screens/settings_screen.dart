@@ -4,10 +4,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
-import '../widgets/export_bottom_sheet.dart';
 import '../../../onboarding/data/tutorial_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import 'package:prism/l10n/l10n.dart';
@@ -166,12 +166,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: context.l10n.settings_main_export_title,
                   subtitle: context.l10n.settings_main_export_desc,
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => const ExportBottomSheet(),
-                  ),
+                  onTap: () => context.push('/settings/vault-export'),
                 ),
                 SettingsTile(
                   icon: Icons.folder_open_outlined,
@@ -199,10 +194,10 @@ class SettingsScreen extends ConsumerWidget {
                       final result = await ref.read(subscriptionRepositoryProvider).presentCustomerCenter();
                       result.fold(
                         (failure) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(context.l10n.settings_main_pro_customer_center_error(failure.message)),
-                            ),
+                          PrismToast.show(
+                            context,
+                            context.l10n.settings_main_pro_customer_center_error(failure.message),
+                            icon: Icons.error_outline_rounded,
                           );
                         },
                         (_) {},
@@ -243,8 +238,10 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: '1.0.0',
                   trailing: const SizedBox.shrink(),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Prism v1.0.0 — private offline notebook.')),
+                    PrismToast.show(
+                      context,
+                      'Prism v1.0.0 — private offline notebook.',
+                      icon: Icons.info_outline_rounded,
                     );
                   },
                 ),

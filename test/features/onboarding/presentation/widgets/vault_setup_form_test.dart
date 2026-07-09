@@ -1,4 +1,6 @@
+import 'package:google_fonts/google_fonts.dart';
 import 'package:prism/l10n/l10n.dart';
+import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
@@ -140,6 +142,53 @@ void main() {
     );
 
     tempDir = Directory.systemTemp.createTempSync('prism_test_');
+    GoogleFonts.config.allowRuntimeFetching = false;
+
+    // Intercept asset loading to load google_fonts from the local directory
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(
+      'flutter/assets',
+      (ByteData? message) async {
+        if (message == null) return null;
+        final key = utf8.decode(message.buffer.asUint8List());
+        if (key == 'AssetManifest.json') {
+          final manifest = {
+            'google_fonts/Inter-Bold.ttf': ['google_fonts/Inter-Bold.ttf'],
+            'google_fonts/Inter-Medium.ttf': ['google_fonts/Inter-Medium.ttf'],
+            'google_fonts/Inter-Regular.ttf': ['google_fonts/Inter-Regular.ttf'],
+            'google_fonts/Inter-SemiBold.ttf': ['google_fonts/Inter-SemiBold.ttf'],
+            'google_fonts/RobotoMono-Regular.ttf': ['google_fonts/RobotoMono-Regular.ttf'],
+            'google_fonts/Inter-ExtraBold.ttf': ['google_fonts/Inter-ExtraBold.ttf'],
+          };
+          final jsonStr = json.encode(manifest);
+          final bytes = utf8.encode(jsonStr);
+          return ByteData.view(Uint8List.fromList(bytes).buffer);
+        }
+        if (key == 'AssetManifest.bin') {
+          final manifest = {
+            'google_fonts/Inter-Bold.ttf': ['google_fonts/Inter-Bold.ttf'],
+            'google_fonts/Inter-Medium.ttf': ['google_fonts/Inter-Medium.ttf'],
+            'google_fonts/Inter-Regular.ttf': ['google_fonts/Inter-Regular.ttf'],
+            'google_fonts/Inter-SemiBold.ttf': ['google_fonts/Inter-SemiBold.ttf'],
+            'google_fonts/RobotoMono-Regular.ttf': ['google_fonts/RobotoMono-Regular.ttf'],
+            'google_fonts/Inter-ExtraBold.ttf': ['google_fonts/Inter-ExtraBold.ttf'],
+          };
+          return const StandardMessageCodec().encodeMessage(manifest);
+        }
+
+        if (key.endsWith('.ttf')) {
+          var filename = p.basename(key);
+          if (filename == 'Inter-ExtraBold.ttf') {
+            filename = 'Inter-Bold.ttf'; // Fallback to Inter-Bold in test environment
+          }
+          final file = File('google_fonts/$filename');
+          if (file.existsSync()) {
+            final bytes = file.readAsBytesSync();
+            return ByteData.view(bytes.buffer);
+          }
+        }
+        return null;
+      },
+    );
   });
 
   tearDown(() {
@@ -169,8 +218,8 @@ void main() {
     expect(find.text('Confirm & Begin'), findsNothing);
   });
 
-  // ── Test 2: new hub → Step 1 → Step 2 → Confirm ──────────────────────────
-  testWidgets('new hub: Step 1 → Step 2 → onStartSetup called',
+  // ── Test 2: new hub → Step 1 → Step 2 → Step 3 → Confirm ────────────────
+  testWidgets('new hub: Step 1 → Step 2 → Step 3 → onStartSetup called',
       (WidgetTester tester) async {
     _setViewport(tester);
 
@@ -189,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Location selected'), findsOneWidget);
 
-    // Next → dir scan is real I/O, use runAsync
+    // Step 1 -> Step 2
     await tester.runAsync(() async {
       await tester.tap(find.byType(DesignPrimaryButton));
       await tester.pump();
@@ -198,9 +247,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Name your first vault'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
+
+    // Step 2 -> Step 3
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.text('Privacy & Telemetry'), findsOneWidget);
     expect(find.text('Confirm & Begin'), findsOneWidget);
 
-    // Confirm → creates vault dir + calls onPersist
+    // Confirm -> creates vault dir + calls onPersist
     await tester.runAsync(() async {
       await tester.tap(find.byType(DesignPrimaryButton));
       await tester.pump();
@@ -216,8 +276,8 @@ void main() {
     );
   });
 
-  // ── Test 3: existing hub → auto-import, skip Step 2 ──────────────────────
-  testWidgets('existing hub: auto-imports and skips Step 2',
+  // ── Test 3: existing hub → auto-import, skip Step 2, show Step 3 ─────────
+  testWidgets('existing hub: auto-imports, skips Step 2, shows Step 3',
       (WidgetTester tester) async {
     _setViewport(tester);
 
@@ -248,7 +308,7 @@ void main() {
     await tester.tap(find.text('Tap to choose a folder'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    // Next → detects existing vaults, calls onPersist, skips Step 2
+    // Next → detects existing vaults, transitions to Step 3, skips Step 2
     await tester.runAsync(() async {
       await tester.tap(find.byType(DesignPrimaryButton));
       await tester.pump();
@@ -256,9 +316,20 @@ void main() {
     });
     await tester.pumpAndSettle();
 
+    expect(find.text('Name your first vault'), findsNothing); // Step 2 skipped
+    expect(find.text('Privacy & Telemetry'), findsOneWidget); // Shows privacy preferences
+    expect(find.text('Confirm & Begin'), findsOneWidget);
+
+    // Confirm & Begin -> completes auto-import
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
     expect(startCalled, isTrue);
     expect(importedVault, equals('Vault B')); // most recently modified
-    expect(find.text('Name your first vault'), findsNothing); // Step 2 skipped
   });
 
   // ── Test 4: storage location options toggling ──────────────────────────────
@@ -314,7 +385,7 @@ void main() {
     await tester.tap(find.text('App storage'));
     await tester.pumpAndSettle();
 
-    // Tap Next
+    // Tap Next (Step 1 -> Step 2)
     await tester.runAsync(() async {
       await tester.tap(find.byType(DesignPrimaryButton));
       await tester.pump();
@@ -323,6 +394,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Name your first vault'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
+
+    // Tap Next (Step 2 -> Step 3)
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.text('Privacy & Telemetry'), findsOneWidget);
     expect(find.text('Confirm & Begin'), findsOneWidget);
 
     // Tap Confirm & Begin

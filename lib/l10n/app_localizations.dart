@@ -1603,6 +1603,24 @@ abstract class AppLocalizations {
   /// **'Back to step 1'**
   String get onboarding_vault_setup_back_button;
 
+  /// No description provided for @onboarding_vault_setup_back_button_step2.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to step 2'**
+  String get onboarding_vault_setup_back_button_step2;
+
+  /// No description provided for @onboarding_vault_setup_privacy_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & Telemetry'**
+  String get onboarding_vault_setup_privacy_title;
+
+  /// No description provided for @onboarding_vault_setup_privacy_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Prism is built from the ground up to respect your privacy. Choose whether you would like to share anonymous usage data and crash reports to help us improve the app.'**
+  String get onboarding_vault_setup_privacy_desc;
+
   /// No description provided for @onboarding_vault_setup_default_hub_name.
   ///
   /// In en, this message translates to:

@@ -161,9 +161,11 @@ User ID: $_appUserId
     });
 
     try {
-      if (await canLaunchUrl(emailUri)) {
-        await launchUrl(emailUri);
-      } else {
+      final success = await launchUrl(
+        emailUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!success) {
         _showCopyFallbackDialog(bodyBuffer.toString());
       }
     } catch (e) {

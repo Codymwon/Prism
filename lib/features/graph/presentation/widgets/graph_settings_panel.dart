@@ -86,7 +86,10 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
       child: Align(
         alignment: Alignment.topCenter,
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
+          constraints: BoxConstraints(
+            maxWidth: 400,
+            maxHeight: MediaQuery.of(context).size.height * 0.72,
+          ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: BackdropFilter(
@@ -302,41 +305,46 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                                             runSpacing: 6,
                                             children: tags.map((tag) {
                                               final currentColor = userTagColors[tag];
-                                              return Chip(
-                                                padding: EdgeInsets.zero,
-                                                labelPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                                                label: Text(
-                                                  '#$tag',
-                                                  style: GoogleFonts.inter(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: isDark ? PrismColors.darkText : PrismColors.lightText,
+                                              return InkWell(
+                                                onTap: () {
+                                                  _showColorPicker(context, ref, tag);
+                                                },
+                                                borderRadius: BorderRadius.circular(6),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: (isDark ? PrismColors.darkBorder : PrismColors.lightBorder)
+                                                        .withValues(alpha: 0.3),
+                                                    borderRadius: BorderRadius.circular(6),
                                                   ),
-                                                ),
-                                                avatar: GestureDetector(
-                                                  onTapDown: (details) {
-                                                    _showColorPicker(context, ref, tag, details.globalPosition);
-                                                  },
-                                                  child: Container(
-                                                    width: 16,
-                                                    height: 16,
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: currentColor != null && currentColor.isNotEmpty
-                                                          ? _parseHexColor(currentColor)
-                                                          : Colors.grey.withValues(alpha: 0.5),
-                                                      border: Border.all(
-                                                        color: isDark ? Colors.white24 : Colors.black12,
-                                                        width: 1,
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        width: 12,
+                                                        height: 12,
+                                                        decoration: BoxDecoration(
+                                                          shape: BoxShape.circle,
+                                                          color: currentColor != null && currentColor.isNotEmpty
+                                                              ? _parseHexColor(currentColor)
+                                                              : Colors.grey.withValues(alpha: 0.5),
+                                                          border: Border.all(
+                                                            color: isDark ? Colors.white24 : Colors.black12,
+                                                            width: 1,
+                                                          ),
+                                                        ),
                                                       ),
-                                                    ),
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        '#$tag',
+                                                        style: GoogleFonts.inter(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: isDark ? PrismColors.darkText : PrismColors.lightText,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ),
-                                                backgroundColor: (isDark ? PrismColors.darkBorder : PrismColors.lightBorder)
-                                                    .withValues(alpha: 0.3),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  side: BorderSide.none,
                                                 ),
                                               );
                                             }).toList(),
@@ -408,9 +416,16 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
     );
   }
 
-  void _showColorPicker(BuildContext context, WidgetRef ref, String tag, Offset position) {
+  void _showColorPicker(BuildContext context, WidgetRef ref, String tag) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colors = [
+    final colorScheme = Theme.of(context).colorScheme;
+    final userTagColors = ref.read(tagColorsProvider).valueOrNull ?? {};
+    final currentColor = userTagColors[tag] ?? '';
+    
+    final hexController = TextEditingController(text: currentColor);
+    final formKey = GlobalKey<FormState>();
+
+    final presets = [
       ('#F87171', 'Red'),
       ('#FB923C', 'Orange'),
       ('#4ADE80', 'Green'),
@@ -420,60 +435,164 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
       ('#F472B6', 'Pink'),
     ];
 
-    showMenu(
+    showModalBottomSheet(
       context: context,
-      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
-      color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      items: [
-        ...colors.map((c) {
-          return PopupMenuItem(
-            onTap: () {
-              ref.read(tagColorsProvider.notifier).setTagColor(tag, c.$1);
-            },
-            child: Row(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? PrismColors.darkSurface : PrismColors.lightSurface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _parseHexColor(c.$1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Tag Color: #$tag',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? PrismColors.darkText : PrismColors.lightText,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Color swatches row
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: presets.map((preset) {
+                      final isSelected = currentColor.toLowerCase() == preset.$1.toLowerCase();
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: GestureDetector(
+                          onTap: () {
+                            ref.read(tagColorsProvider.notifier).setTagColor(tag, preset.$1);
+                            Navigator.pop(ctx);
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _parseHexColor(preset.$1),
+                              border: Border.all(
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : (isDark ? Colors.white24 : Colors.black12),
+                                width: isSelected ? 3 : 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  c.$2,
-                  style: GoogleFonts.inter(fontSize: 12),
+                const SizedBox(height: 20),
+
+                // Custom hex input field
+                Form(
+                  key: formKey,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: hexController,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: isDark ? PrismColors.darkText : PrismColors.lightText,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'e.g. #FF6B6B',
+                            labelText: 'Custom Hex Color',
+                            labelStyle: GoogleFonts.inter(
+                              color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return null;
+                            final clean = val.trim();
+                            final hexRegex = RegExp(r'^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$');
+                            if (!hexRegex.hasMatch(clean)) {
+                              return 'Invalid hex color format';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (formKey.currentState?.validate() == true) {
+                            String hex = hexController.text.trim();
+                            if (hex.isNotEmpty && !hex.startsWith('#')) {
+                              hex = '#$hex';
+                            }
+                            ref.read(tagColorsProvider.notifier).setTagColor(tag, hex);
+                            Navigator.pop(ctx);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Apply',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Reset/Clear button
+                TextButton(
+                  onPressed: () {
+                    ref.read(tagColorsProvider.notifier).setTagColor(tag, '');
+                    Navigator.pop(ctx);
+                  },
+                  child: Text(
+                    context.l10n.graph_settings_panel_reset_hsl,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: isDark ? Colors.red[300] : Colors.red[700],
+                    ),
+                  ),
                 ),
               ],
             ),
-          );
-        }),
-        PopupMenuItem(
-          onTap: () {
-            ref.read(tagColorsProvider.notifier).setTagColor(tag, '');
-          },
-          child: Row(
-            children: [
-              Container(
-                width: 14,
-                height: 14,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                ),
-                child: const Icon(Icons.clear, size: 10, color: Colors.grey),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                context.l10n.graph_settings_panel_reset_hsl,
-                style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic),
-              ),
-            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../widgets/settings_widgets.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/services/two_way_sync_service.dart';
 import '../../../../core/database/vault_providers.dart';
@@ -76,8 +77,10 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
       _isSyncConfigured = false;
       _passphraseController.clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.settings_cloud_sync_signout_success)),
+        PrismToast.show(
+          context,
+          context.l10n.settings_cloud_sync_signout_success,
+          icon: Icons.logout_rounded,
         );
       }
     } catch (e) {
@@ -104,11 +107,10 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
           _isSyncConfigured = true;
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.l10n.settings_cloud_sync_configured_success),
-              backgroundColor: Colors.green,
-            ),
+          PrismToast.show(
+            context,
+            context.l10n.settings_cloud_sync_configured_success,
+            icon: Icons.cloud_done_outlined,
           );
         }
       },
@@ -173,8 +175,10 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
           (_) async {
             await syncedVaultsNotifier.disableSync(vaultName);
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(context.l10n.settings_cloud_sync_delete_cloud_success(vaultName))),
+              PrismToast.show(
+                context,
+                context.l10n.settings_cloud_sync_delete_cloud_success(vaultName),
+                icon: Icons.delete_outline_rounded,
               );
             }
           },
@@ -194,13 +198,10 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
       (fail) => setState(() => _errorMessage = fail.message),
       (result) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                context.l10n.settings_cloud_sync_sync_success(result.uploaded, result.downloaded),
-              ),
-              backgroundColor: Colors.green,
-            ),
+          PrismToast.show(
+            context,
+            context.l10n.settings_cloud_sync_sync_success(result.uploaded, result.downloaded),
+            icon: Icons.sync_rounded,
           );
         }
       },
@@ -254,8 +255,10 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
               if (confirmController.text == storedPassphrase) {
                 Navigator.of(context).pop(true);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(context.l10n.settings_cloud_sync_passphrase_incorrect), backgroundColor: Colors.redAccent),
+                PrismToast.show(
+                  context,
+                  context.l10n.settings_cloud_sync_passphrase_incorrect,
+                  icon: Icons.warning_amber_rounded,
                 );
               }
             },
@@ -289,11 +292,10 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
           });
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(context.l10n.settings_cloud_sync_purge_success_msg),
-                backgroundColor: Colors.green,
-              ),
+            PrismToast.show(
+              context,
+              context.l10n.settings_cloud_sync_purge_success_msg,
+              icon: Icons.cloud_off_rounded,
             );
           }
         },

@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../core/services/vault_service.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/onboarding_provider.dart';
 import '../../../../core/utils/storage_permission_helper.dart';
@@ -41,7 +42,10 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   bool _isPickingFolder = false;
   bool _isCompleting = false;
   bool _shareAnalytics = true;
-  int _currentStep = 1; // 1: Main Storage Location, 2: First Vault Name
+  int _currentStep = 1; // 1: Main Storage Location, 2: First Vault Name, 3: Privacy Preferences
+  bool _isAutoImport = false;
+  String _autoImportHubPath = '';
+  String _autoImportActiveVault = '';
 
   final TextEditingController _hubNameController = TextEditingController();
   final TextEditingController _vaultNameController = TextEditingController();
@@ -79,8 +83,10 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.onboarding_vault_setup_folder_picker_error(e.toString()))),
+      PrismToast.show(
+        context,
+        context.l10n.onboarding_vault_setup_folder_picker_error(e.toString()),
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) setState(() => _isPickingFolder = false);
@@ -102,8 +108,10 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (kDebugMode) {
         debugPrint('DEBUG: hubName is empty');
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.onboarding_vault_setup_name_required_error)),
+      PrismToast.show(
+        context,
+        context.l10n.onboarding_vault_setup_name_required_error,
+        icon: Icons.warning_amber_rounded,
       );
       return;
     }
@@ -112,12 +120,10 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (kDebugMode) {
         debugPrint('DEBUG: hubName does not match safePattern');
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.l10n.onboarding_vault_setup_invalid_chars_error,
-          ),
-        ),
+      PrismToast.show(
+        context,
+        context.l10n.onboarding_vault_setup_invalid_chars_error,
+        icon: Icons.warning_amber_rounded,
       );
       return;
     }
@@ -126,8 +132,10 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (kDebugMode) {
         debugPrint('DEBUG: _customLocationPath is empty');
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.onboarding_vault_setup_folder_required_error)),
+      PrismToast.show(
+        context,
+        context.l10n.onboarding_vault_setup_folder_required_error,
+        icon: Icons.folder_open_rounded,
       );
       return;
     }
@@ -171,13 +179,12 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
 
       if (proceed == true) {
         await StoragePermissionHelper.requestAllFilesAccess();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.l10n.onboarding_vault_setup_permission_retry_desc),
-            ),
-          );
-        }
+        if (!mounted) return;
+        PrismToast.show(
+          context,
+          context.l10n.onboarding_vault_setup_permission_retry_desc,
+          icon: Icons.info_outline_rounded,
+        );
       }
       return;
     }
@@ -239,55 +246,16 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             : p.basename(subDirs.first.path);
 
         if (kDebugMode) {
-          debugPrint('DEBUG: existing vaults found. Active vault = $activeVault. Auto-importing...');
+          debugPrint('DEBUG: existing vaults found. Active vault = $activeVault. Transitioning to step 3...');
         }
         
-        // Capture everything from ref BEFORE calling widget.onStartSetup()
-        final onboardingNotifier = ref.read(onboardingStateProvider.notifier);
-        final baseVaultsDirNotifier = ref.read(baseVaultsDirectoryProvider.notifier);
-        final activeVaultNameNotifier = ref.read(activeVaultNameProvider.notifier);
-        final prefs = ref.read(sharedPreferencesProvider);
-        final vaultService = ref.read(vaultManagementServiceProvider);
-
-        // Auto-import and bypass Step 2 entirely
-        setState(() => _isCompleting = true);
-        widget.onStartSetup();
-
-        try {
-          if (widget.onPersist != null) {
-            await widget.onPersist!(hubPath, activeVault, _selectedVaultType);
-          } else {
-            await prefs.setString('vaultType', _selectedVaultType);
-            await baseVaultsDirNotifier.setDirectory(hubPath);
-            await activeVaultNameNotifier.setVaultName(activeVault);
-
-            await vaultService.closeDatabase();
-            await onboardingNotifier.completeOnboarding();
-          }
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  context.l10n.onboarding_vault_setup_import_success(hubName, activeVault),
-                ),
-              ),
-            );
-          }
-          return;
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('Error importing existing vaults: $e');
-          }
-          if (mounted) {
-            setState(() => _isCompleting = false);
-            widget.onEndSetup();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(context.l10n.onboarding_vault_setup_import_error(e.toString()))),
-            );
-          }
-          return;
-        }
+        setState(() {
+          _isAutoImport = true;
+          _autoImportHubPath = hubPath;
+          _autoImportActiveVault = activeVault;
+          _currentStep = 3;
+        });
+        return;
       }
     }
 
@@ -299,6 +267,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (kDebugMode) {
         debugPrint('DEBUG: setState for step 2 called');
       }
+      _isAutoImport = false;
       _currentStep = 2;
     });
   }
@@ -311,21 +280,6 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (kDebugMode) {
         debugPrint('DEBUG: already completing, returning');
       }
-      return;
-    }
-
-    final vaultName = _vaultNameController.text.trim().isEmpty
-        ? 'My Vault'
-        : _vaultNameController.text.trim();
-    final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
-    if (!safePattern.hasMatch(vaultName)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.l10n.onboarding_vault_setup_invalid_chars_error,
-          ),
-        ),
-      );
       return;
     }
 
@@ -345,38 +299,70 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
     widget.onStartSetup();
 
     try {
-      final String hubPath;
-      if (_selectedVaultType == 'sandbox') {
-        final docDir = await getApplicationDocumentsDirectory();
-        hubPath = p.join(docDir.path, 'prism_vaults');
+      if (_isAutoImport) {
+        if (widget.onPersist != null) {
+          await widget.onPersist!(_autoImportHubPath, _autoImportActiveVault, _selectedVaultType);
+        } else {
+          await prefs.setString('vaultType', _selectedVaultType);
+          await analyticsEnabledNotifier.setEnabled(_shareAnalytics);
+          await baseVaultsDirNotifier.setDirectory(_autoImportHubPath);
+          await activeVaultNameNotifier.setVaultName(_autoImportActiveVault);
+
+          await vaultService.closeDatabase();
+          AnalyticsService.logEvent('onboarding_complete', parameters: {
+            'vault_type': _selectedVaultType,
+            'import': true,
+          });
+          await onboardingNotifier.completeOnboarding();
+        }
+
+        if (mounted) {
+          final hubName = p.basename(_autoImportHubPath);
+          PrismToast.show(
+            context,
+            context.l10n.onboarding_vault_setup_import_success(hubName, _autoImportActiveVault),
+            icon: Icons.check_circle_outline_rounded,
+          );
+        }
       } else {
-        final hubName = _hubNameController.text.trim();
-        hubPath = p.join(_customLocationPath, hubName);
-      }
-      final newVaultPath = p.join(hubPath, vaultName);
+        final vaultName = _vaultNameController.text.trim().isEmpty
+            ? 'My Vault'
+            : _vaultNameController.text.trim();
 
-      // Ensure the physical directories exist
-      final vaultDir = Directory(newVaultPath);
-      if (!await vaultDir.exists()) {
-        await vaultDir.create(recursive: true);
-      }
+        final String hubPath;
+        if (_selectedVaultType == 'sandbox') {
+          final docDir = await getApplicationDocumentsDirectory();
+          hubPath = p.join(docDir.path, 'prism_vaults');
+        } else {
+          final hubName = _hubNameController.text.trim();
+          hubPath = p.join(_customLocationPath, hubName);
+        }
+        final newVaultPath = p.join(hubPath, vaultName);
 
-      if (widget.onPersist != null) {
-        await widget.onPersist!(hubPath, vaultName, _selectedVaultType);
-      } else {
-        await prefs.setString('vaultType', _selectedVaultType);
-        
-        // Save analytics choice and toggle Firebase collections
-        await analyticsEnabledNotifier.setEnabled(_shareAnalytics);
+        // Ensure the physical directories exist
+        final vaultDir = Directory(newVaultPath);
+        if (!await vaultDir.exists()) {
+          await vaultDir.create(recursive: true);
+        }
 
-        await baseVaultsDirNotifier.setDirectory(hubPath);
-        await activeVaultNameNotifier.setVaultName(vaultName);
+        if (widget.onPersist != null) {
+          await widget.onPersist!(hubPath, vaultName, _selectedVaultType);
+        } else {
+          await prefs.setString('vaultType', _selectedVaultType);
+          
+          // Save analytics choice and toggle Firebase collections
+          await analyticsEnabledNotifier.setEnabled(_shareAnalytics);
 
-        await vaultService.closeDatabase();
-        AnalyticsService.logEvent('onboarding_complete', parameters: {
-          'vault_type': _selectedVaultType,
-        });
-        await onboardingNotifier.completeOnboarding();
+          await baseVaultsDirNotifier.setDirectory(hubPath);
+          await activeVaultNameNotifier.setVaultName(vaultName);
+
+          await vaultService.closeDatabase();
+          AnalyticsService.logEvent('onboarding_complete', parameters: {
+            'vault_type': _selectedVaultType,
+            'import': false,
+          });
+          await onboardingNotifier.completeOnboarding();
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -385,8 +371,10 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
       if (mounted) {
         setState(() => _isCompleting = false);
         widget.onEndSetup();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.onboarding_vault_setup_setup_error(e.toString()))),
+        PrismToast.show(
+          context,
+          context.l10n.onboarding_vault_setup_setup_error(e.toString()),
+          icon: Icons.error_outline_rounded,
         );
       }
     }
@@ -419,7 +407,11 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           ).animate().fadeIn().slideY(begin: 0.2),
           const SizedBox(height: 8),
           Text(
-            _currentStep == 1 ? context.l10n.onboarding_vault_setup_config_location_title : context.l10n.onboarding_vault_setup_name_vault_title,
+            _currentStep == 1
+                ? context.l10n.onboarding_vault_setup_config_location_title
+                : (_currentStep == 2
+                    ? context.l10n.onboarding_vault_setup_name_vault_title
+                    : context.l10n.onboarding_vault_setup_privacy_title),
             style: DesignTypography.display(
               context,
               fontSize: 26,
@@ -431,7 +423,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
           Text(
             _currentStep == 1
                 ? context.l10n.onboarding_vault_setup_choose_location_desc
-                : context.l10n.onboarding_vault_setup_first_vault_desc,
+                : (_currentStep == 2
+                    ? context.l10n.onboarding_vault_setup_first_vault_desc
+                    : context.l10n.onboarding_vault_setup_privacy_desc),
             style: DesignTypography.body(
               context,
               fontSize: 14,
@@ -480,60 +474,59 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                           width: _selectedVaultType == 'custom' ? 2 : 1,
                         ),
                       ),
-                      child: Column(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Radio<String>(
-                                value: 'custom',
-                                activeColor: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                context.l10n.onboarding_vault_setup_device_storage_label,
-                                style: DesignTypography.body(
-                                  context,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: textStyle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'RECOMMENDED',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Radio<String>(
+                            value: 'custom',
+                            groupValue: _selectedVaultType,
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedVaultType = val);
+                            },
+                            activeColor: colorScheme.primary,
+                            visualDensity: VisualDensity.compact,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 48, top: 4),
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 4,
                                   children: [
-                                    Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
-                                    Expanded(
-                                      child: Text(
-                                        context.l10n.onboarding_vault_setup_device_storage_desc,
-                                        style: DesignTypography.details(context, color: textSecStyle),
+                                    Text(
+                                      context.l10n.onboarding_vault_setup_device_storage_label,
+                                      style: DesignTypography.body(
+                                        context,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                        color: textStyle,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        'RECOMMENDED',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
                                     ),
                                   ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '• ${context.l10n.onboarding_vault_setup_device_storage_desc}',
+                                  style: DesignTypography.details(context, color: textSecStyle),
                                 ),
                               ],
                             ),
@@ -562,56 +555,41 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                           width: _selectedVaultType == 'sandbox' ? 2 : 1,
                         ),
                       ),
-                      child: Column(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Radio<String>(
-                                value: 'sandbox',
-                                activeColor: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                context.l10n.onboarding_vault_setup_app_storage_label,
-                                style: DesignTypography.body(
-                                  context,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: textStyle,
-                                ),
-                              ),
-                            ],
+                          Radio<String>(
+                            value: 'sandbox',
+                            groupValue: _selectedVaultType,
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedVaultType = val);
+                            },
+                            activeColor: colorScheme.primary,
+                            visualDensity: VisualDensity.compact,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 48, top: 4),
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
-                                    Expanded(
-                                      child: Text(
-                                        context.l10n.onboarding_vault_setup_app_storage_desc_android,
-                                        style: DesignTypography.details(context, color: textSecStyle),
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  context.l10n.onboarding_vault_setup_app_storage_label,
+                                  style: DesignTypography.body(
+                                    context,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: textStyle,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '• ${context.l10n.onboarding_vault_setup_app_storage_desc_android}',
+                                  style: DesignTypography.details(context, color: textSecStyle),
                                 ),
                                 const SizedBox(height: 4),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('• ', style: DesignTypography.body(context, color: textSecStyle)),
-                                    Expanded(
-                                      child: Text(
-                                        context.l10n.onboarding_vault_setup_app_storage_desc_warning,
-                                        style: DesignTypography.details(context, color: textSecStyle),
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  '• ${context.l10n.onboarding_vault_setup_app_storage_desc_warning}',
+                                  style: DesignTypography.details(context, color: textSecStyle),
                                 ),
                               ],
                             ),
@@ -619,7 +597,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                         ],
                       ),
                     ),
-                  ).animate().fadeIn(delay: 230.ms),
+                  ).animate().fadeIn(delay: 240.ms),
                 ],
               ),
             ),
@@ -828,7 +806,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                 ),
               ),
             ],
-          ] else ...[
+          ] else if (_currentStep == 2) ...[
             // ── Step 2: Vault Name ──────────────────────────────────────────
             Text(
               context.l10n.onboarding_vault_setup_vault_name_label,
@@ -870,9 +848,46 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                 ),
               ),
             ).animate().fadeIn(delay: 250.ms),
-            const SizedBox(height: 24),
-
-            // Telemetry opt-out disclosure card
+            const SizedBox(height: 32),
+            // Next Button
+            DesignPrimaryButton(
+              label: 'Next',
+              icon: Icons.arrow_forward_rounded,
+              onTap: !_isCompleting ? () {
+                final vaultName = _vaultNameController.text.trim().isEmpty
+                    ? 'My Vault'
+                    : _vaultNameController.text.trim();
+                final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
+                if (!safePattern.hasMatch(vaultName)) {
+                  PrismToast.show(
+                    context,
+                    context.l10n.onboarding_vault_setup_invalid_chars_error,
+                    icon: Icons.warning_amber_rounded,
+                  );
+                  return;
+                }
+                setState(() {
+                  _isAutoImport = false;
+                  _currentStep = 3;
+                });
+              } : null,
+            ).animate().fadeIn(delay: 280.ms),
+            const SizedBox(height: 12),
+            Center(
+              child: TextButton(
+                onPressed: () => setState(() => _currentStep = 1),
+                child: Text(
+                  context.l10n.onboarding_vault_setup_back_button,
+                  style: DesignTypography.details(
+                    context,
+                    color: DesignColors.textSecondary(context),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ] else if (_currentStep == 3) ...[
+            // ── Step 3: Privacy & Telemetry ─────────────────────────────────
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -918,20 +933,31 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                   ),
                 ],
               ),
-            ).animate().fadeIn(delay: 260.ms),
+            ).animate().fadeIn(delay: 200.ms),
             const SizedBox(height: 32),
             // Confirm & Begin Button
             DesignPrimaryButton(
               label: context.l10n.onboarding_vault_setup_confirm_button,
               icon: Icons.check_rounded,
               onTap: !_isCompleting ? _completeOnboarding : null,
-            ).animate().fadeIn(delay: 280.ms),
+            ).animate().fadeIn(delay: 220.ms),
             const SizedBox(height: 12),
             Center(
               child: TextButton(
-                onPressed: () => setState(() => _currentStep = 1),
+                onPressed: () {
+                  setState(() {
+                    if (_isAutoImport) {
+                      _isAutoImport = false;
+                      _currentStep = 1;
+                    } else {
+                      _currentStep = 2;
+                    }
+                  });
+                },
                 child: Text(
-                  context.l10n.onboarding_vault_setup_back_button,
+                  _isAutoImport
+                      ? context.l10n.onboarding_vault_setup_back_button
+                      : context.l10n.onboarding_vault_setup_back_button_step2,
                   style: DesignTypography.details(
                     context,
                     color: DesignColors.textSecondary(context),
