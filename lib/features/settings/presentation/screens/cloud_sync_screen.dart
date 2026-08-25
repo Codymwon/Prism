@@ -47,6 +47,7 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
         _isSyncConfigured = await ref.read(twoWaySyncServiceProvider).isSyncConfigured();
       }
     } catch (e) {
+      if (!mounted) return;
       _errorMessage = context.l10n.settings_cloud_sync_init_error(e.toString());
     }
     setState(() => _isLoading = false);

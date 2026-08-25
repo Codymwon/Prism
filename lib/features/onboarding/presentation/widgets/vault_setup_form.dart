@@ -479,7 +479,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                         children: [
                           Radio<String>(
                             value: 'custom',
+                            // ignore: deprecated_member_use
                             groupValue: _selectedVaultType,
+                            // ignore: deprecated_member_use
                             onChanged: (val) {
                               if (val != null) setState(() => _selectedVaultType = val);
                             },
@@ -560,7 +562,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                         children: [
                           Radio<String>(
                             value: 'sandbox',
+                            // ignore: deprecated_member_use
                             groupValue: _selectedVaultType,
+                            // ignore: deprecated_member_use
                             onChanged: (val) {
                               if (val != null) setState(() => _selectedVaultType = val);
                             },

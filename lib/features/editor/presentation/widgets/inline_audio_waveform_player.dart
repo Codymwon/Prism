@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 import '../../../../core/database/vault_providers.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../data/audio_bookmark_model.dart';
-import '../../../notes/presentation/providers/notes_providers.dart';
 import '../providers/audio_player_providers.dart';
 import '../providers/audio_bookmark_providers.dart';
 import '../utils/audio_waveform_peak_generator.dart';

@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../data/graph_node_repository.dart';

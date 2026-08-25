@@ -22,6 +22,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
       ref.read(selectedFolderIdProvider.notifier).state = null;
       await ref.read(vaultManagementServiceProvider).switchVault(vaultName: vaultName);
     } catch (e) {
+      if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text(context.l10n.notes_vault_selector_switch_error(e.toString()), style: const TextStyle(color: Colors.white))),
       );
@@ -52,6 +53,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
         baseDir: baseDir,
       );
     } catch (e) {
+      if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text(context.l10n.notes_vault_selector_create_error(e.toString()), style: const TextStyle(color: Colors.white))),
       );

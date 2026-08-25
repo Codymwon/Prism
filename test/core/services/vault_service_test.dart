@@ -202,12 +202,14 @@ void main() {
       await prefs.setString('vaultType', 'custom');
       await container.read(baseVaultsDirectoryProvider.notifier).setDirectory(srcDir.path);
 
-      // 2. Define an invalid destination path that will fail to write/copy
-      final invalidDestPath = p.join(tempDir.path, 'invalid|char*hub');
+      // 2. Define an invalid destination path that will fail to write/copy across all platforms
+      final fileAsDir = File(p.join(tempDir.path, 'file_not_dir'));
+      await fileAsDir.writeAsString('I am a file');
+      final invalidDestPath = p.join(fileAsDir.path, 'sub_dir');
 
       // 3. Call changeStorageLocation with migrateData: true (should throw)
       expect(
-        () => service.changeStorageLocation(
+        service.changeStorageLocation(
           newPath: invalidDestPath,
           vaultType: 'sandbox',
           migrateData: true,
