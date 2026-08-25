@@ -1,16 +1,25 @@
-# Prism
+<div align="center">
+  <img src="./assets/images/app_icon.png" alt="Prism Logo" width="88" height="88" />
+  <h1>Prism</h1>
+  <p>A connected markdown workspace and relational journal with an interactive graph view.</p>
 
-A markdown note-taking and journaling app with bidirectional links, backlink indexing, and an interactive graph view to explore connections between ideas.
+  <p>
+    <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.22+-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"></a>
+    <a href="https://dart.dev"><img src="https://img.shields.io/badge/Dart-3.4+-0175C2?style=flat-square&logo=dart&logoColor=white" alt="Dart"></a>
+    <a href="https://sqlite.org"><img src="https://img.shields.io/badge/SQLite-FTS4-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2E3440?style=flat-square" alt="License"></a>
+  </p>
+</div>
 
 ---
 
 ## Features
 
 ### Markdown Editor & Bidirectional Linking
-- **Live Markdown Formatting**: Full formatting toolbar with support for headings, bold, italics, strikethrough, blockquotes, code blocks, lists, and checklists.
+- **Live Markdown Formatting**: Formatting toolbar supporting headings, bold, italics, strikethrough, blockquotes, code blocks, lists, and checklists.
 - **Wikilinks & Backlinks**: Connect notes using `[[wikilinks]]` with auto-complete suggestions. Automatically indexes incoming and outgoing references for every note.
-- **Tagging & Collapsible Sections**: Inline `#tag` indexing and collapsible markdown headings for clean document navigation.
-- **Custom Editor Macros**: Create custom snippet shortcuts on the toolbar with dynamic placeholder expansions (e.g. timestamps, boilerplate headers).
+- **Tagging & Collapsible Headings**: Inline `#tag` indexing and collapsible markdown headings for document navigation.
+- **Custom Editor Macros**: Create custom snippet shortcuts on the toolbar with dynamic placeholder expansions (e.g., timestamps, boilerplate headers).
 - **Conflict Resolution**: Side-by-side visual diff comparison to merge external file modifications and resolve sync collisions.
 - **Bracket & Syntax Helpers**: Automatic bracket/quote pairing and smart markdown formatting utilities.
 
@@ -50,10 +59,13 @@ A markdown note-taking and journaling app with bidirectional links, backlink ind
 
 ## Tech Stack
 
-- **Framework**: [Flutter](https://flutter.dev) (Dart)
-- **State Management**: [Riverpod (v2)](https://riverpod.dev)
-- **Database**: [SQLite (`sqflite`)](https://pub.dev/packages/sqflite) with WAL mode and FTS4
-- **Navigation**: [GoRouter](https://pub.dev/packages/go_router)
+| Layer | Technology |
+| :--- | :--- |
+| **Framework** | [Flutter](https://flutter.dev) (Dart 3.4+) |
+| **State Management** | [Riverpod (v2)](https://riverpod.dev) with Code Generation |
+| **Database & Search** | [SQLite (`sqflite`)](https://pub.dev/packages/sqflite) with WAL mode and FTS4 |
+| **Routing** | [GoRouter](https://pub.dev/packages/go_router) |
+| **Design System** | Custom tactile tokens (Typography, Palette, Springs & Haptics) |
 
 ---
 
@@ -62,28 +74,28 @@ A markdown note-taking and journaling app with bidirectional links, backlink ind
 ### Prerequisites
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.22+)
-- Android Studio / VS Code with Flutter extension
+- Android Studio or VS Code with Flutter extension
 - Android/iOS emulator or connected physical device
 
 ### Installation & Run
 
-1. Clone the repository:
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/Codymwon/Meridian.git
    cd Meridian
    ```
 
-2. Install dependencies:
+2. **Install dependencies**:
    ```bash
    flutter pub get
    ```
 
-3. Run code generation (for Riverpod providers and models):
+3. **Run code generation**:
    ```bash
    dart run build_runner build --delete-conflicting-outputs
    ```
 
-4. Launch the application:
+4. **Launch the app**:
    ```bash
    flutter run
    ```
@@ -92,12 +104,12 @@ A markdown note-taking and journaling app with bidirectional links, backlink ind
 
 ## Testing & Quality
 
-Run the test suite:
+Run all automated unit and widget tests:
 ```bash
 flutter test
 ```
 
-Run static analysis:
+Run static code analysis:
 ```bash
 flutter analyze
 ```
@@ -105,6 +117,9 @@ flutter analyze
 ---
 
 ## Project Structure
+
+<details>
+<summary>Click to expand project directory layout</summary>
 
 ```text
 lib/
@@ -121,8 +136,11 @@ lib/
 └── shared/           # Design system tokens and reusable UI widgets
 ```
 
+</details>
+
 ---
 
 ## License
 
 This project is licensed under the MIT License.
+
