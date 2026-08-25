@@ -33,10 +33,14 @@ crash_log.txt
 /build/
 /coverage/
 
-# Local Environment Secrets
+# Local Environment Secrets & Keystores
 .env
 *.env
 *.env.local
+*.jks
+*.keystore
+android/key.properties
+android/local.properties
 
 # Symbolication related
 app.*.symbols
@@ -49,10 +53,12 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-CONTEXT.md
-docs/
-
+# Agent and Knowledge Graph Caches
 .agents/
+graphify-out/
+unsloth_compiled_cache/
+outputs/
+test_vault/
 
 # Client secrets & Firebase secrets
 android/app/*.json
@@ -60,5 +66,3 @@ lib/firebase_options.dart
 
 # Reserved name files
 nul
-
-
