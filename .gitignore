@@ -53,8 +53,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Agent and Knowledge Graph Caches
+# Agent, Documentation and Tool Caches
 .agents/
+docs/
+CONTEXT.md
 graphify-out/
 unsloth_compiled_cache/
 outputs/
