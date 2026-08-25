@@ -10,12 +10,15 @@ A markdown note-taking and journaling app with bidirectional links, backlink ind
 - **Live Markdown Formatting**: Full formatting toolbar with support for headings, bold, italics, strikethrough, blockquotes, code blocks, lists, and checklists.
 - **Wikilinks & Backlinks**: Connect notes using `[[wikilinks]]` with auto-complete suggestions. Automatically indexes incoming and outgoing references for every note.
 - **Tagging & Collapsible Sections**: Inline `#tag` indexing and collapsible markdown headings for clean document navigation.
+- **Custom Editor Macros**: Create custom snippet shortcuts on the toolbar with dynamic placeholder expansions (e.g. timestamps, boilerplate headers).
+- **Conflict Resolution**: Side-by-side visual diff comparison to merge external file modifications and resolve sync collisions.
 - **Bracket & Syntax Helpers**: Automatic bracket/quote pairing and smart markdown formatting utilities.
 
-### Voice Notes & Timestamped Audio Bookmarks
+### Voice Notes & Media Management
 - **Integrated Voice Recorder**: Record audio directly into notes with live waveform generation.
 - **Inline Waveform Player**: Embedded audio player with interactive waveform scrubbing and playback speed controls.
 - **Timestamped Audio Bookmarks**: Place markers at specific timestamps in voice recordings, add textual notes to individual bookmarks, and jump directly to key points during playback.
+- **Attachments Manager**: Dedicated screen to preview, filter, search, and clean up unreferenced audio and image attachments across your vault.
 
 ### Interactive Knowledge Graph
 - **Force-Directed Graph**: 2D canvas visualization showing how notes and tags connect across your notebook.
@@ -28,10 +31,15 @@ A markdown note-taking and journaling app with bidirectional links, backlink ind
 - **Streak & Activity Grid**: GitHub-style yearly contribution heatmap displaying journaling consistency, streak counts, and activity stats.
 - **Custom Templates**: Pre-fill daily notes or standard entries with reusable markdown templates and dynamic date/time macros.
 
-### Search & Vault Management
+### Android System Integration
+- **Home Screen Widgets**: Quick Capture widget to start new notes instantly, and a Streak Widget to track daily habit consistency from your home screen.
+- **Share Sheet Web Clipper**: Share text, links, and articles from any browser or external app directly into your Prism Inbox without interrupting your workflow.
+
+### Search, Sync & Vault Management
 - **Instant Full-Text Search**: Fast SQLite FTS4 search with query sanitization, matching title and body text snippets.
 - **Multi-Vault Support**: Create and switch between isolated vaults with independent databases and directories.
 - **Virtual Folders**: Organize notes into virtual folders without altering the underlying markdown file structure.
+- **Encrypted Cloud Sync**: Optional two-way sync with Google Drive featuring client-side AES encryption.
 - **Vault Export**: Export vaults to portable ZIP archives, structured JSON (with pre-resolved backlinks and tags), or formatted PDFs.
 
 ### Personalization & Themes
