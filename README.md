@@ -6,12 +6,37 @@ A markdown note-taking and journaling app with bidirectional links, backlink ind
 
 ## Features
 
-- **Markdown Editor**: Live formatting toolbar, bracket auto-pairing, `#tag` indexing, and `[[wikilink]]` note suggestions.
-- **Interactive Graph View**: Force-directed graph visualization with node physics, tag filtering, chronological replay, and neighborhood highlighting.
-- **Daily Journal**: Dedicated journal tab with daily note creation and habit streak tracking.
-- **Fast Search**: Instant full-text search powered by SQLite FTS4.
-- **Organization**: Virtual folders, tag filtering, and customizable note templates.
-- **Themes & Customization**: Multiple color themes, font scaling, and custom editor preferences.
+### Markdown Editor & Bidirectional Linking
+- **Live Markdown Formatting**: Full formatting toolbar with support for headings, bold, italics, strikethrough, blockquotes, code blocks, lists, and checklists.
+- **Wikilinks & Backlinks**: Connect notes using `[[wikilinks]]` with auto-complete suggestions. Automatically indexes incoming and outgoing references for every note.
+- **Tagging & Collapsible Sections**: Inline `#tag` indexing and collapsible markdown headings for clean document navigation.
+- **Bracket & Syntax Helpers**: Automatic bracket/quote pairing and smart markdown formatting utilities.
+
+### Voice Notes & Timestamped Audio Bookmarks
+- **Integrated Voice Recorder**: Record audio directly into notes with live waveform generation.
+- **Inline Waveform Player**: Embedded audio player with interactive waveform scrubbing and playback speed controls.
+- **Timestamped Audio Bookmarks**: Place markers at specific timestamps in voice recordings, add textual notes to individual bookmarks, and jump directly to key points during playback.
+
+### Interactive Knowledge Graph
+- **Force-Directed Graph**: 2D canvas visualization showing how notes and tags connect across your notebook.
+- **Physics & Navigation**: Adjustable repulsion and link force physics, pan/zoom canvas, node dragging, and node pinning.
+- **Neighborhood Focus & Tag Filtering**: Highlight direct connections and filter graph nodes by specific `#tags` or folders.
+- **Chronological Graph Replay**: Animate the evolution of your notebook over time in the order notes were created.
+
+### Daily Journal & Habit Tracking
+- **Dedicated Daily Journal**: Dedicated journal tab with single-tap creation for today's reflection entry.
+- **Streak & Activity Grid**: GitHub-style yearly contribution heatmap displaying journaling consistency, streak counts, and activity stats.
+- **Custom Templates**: Pre-fill daily notes or standard entries with reusable markdown templates and dynamic date/time macros.
+
+### Search & Vault Management
+- **Instant Full-Text Search**: Fast SQLite FTS4 search with query sanitization, matching title and body text snippets.
+- **Multi-Vault Support**: Create and switch between isolated vaults with independent databases and directories.
+- **Virtual Folders**: Organize notes into virtual folders without altering the underlying markdown file structure.
+- **Vault Export**: Export vaults to portable ZIP archives, structured JSON (with pre-resolved backlinks and tags), or formatted PDFs.
+
+### Personalization & Themes
+- **Color Themes**: Harmonized dark and light themes, including Midnight OLED, Clean Paper, and Warm Sepia.
+- **Typography Controls**: Choose between modern sans-serif, editorial serif, or monospace font families (Inter, Merriweather, Lora, Roboto Mono) with adjustable font size and line height.
 
 ---
 
