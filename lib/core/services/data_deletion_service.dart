@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../config/app_config.dart';
 import '../database/database_helper.dart';
 import '../database/vault_providers.dart';
 import 'google_drive_service.dart';
@@ -34,7 +35,6 @@ class DataDeletionService {
   final Ref ref;
   final DatabaseHelper _databaseHelper;
   final FlutterSecureStorage _secureStorage;
-  final http.Client _httpClient;
 
   DataDeletionService(
     this.ref, {
@@ -42,8 +42,7 @@ class DataDeletionService {
     FlutterSecureStorage? secureStorage,
     http.Client? httpClient,
   })  : _databaseHelper = databaseHelper ?? DatabaseHelper.instance,
-        _secureStorage = secureStorage ?? const FlutterSecureStorage(),
-        _httpClient = httpClient ?? http.Client();
+        _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   /// Executes a full, permanent factory reset and data purge:
   /// 1. Closes the active SQLite database to release all native locks.
@@ -110,40 +109,27 @@ class DataDeletionService {
       debugPrint('[DataDeletionService] Error deleting secure storage: $e');
     }
 
-    // 5. Revoke Google Drive OAuth access token
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      await driveService.disconnect();
-    } catch (e) {
-      debugPrint('[DataDeletionService] Error disconnecting Google Drive: $e');
+    // 5. Revoke Google Drive OAuth access token if subscriptions/cloud-sync enabled
+    if (AppConfig.enableSubscriptions) {
+      try {
+        final driveService = ref.read(googleDriveServiceProvider);
+        await driveService.disconnect();
+      } catch (e) {
+        debugPrint('[DataDeletionService] Error disconnecting Google Drive: $e');
+      }
     }
 
-    // 6. Delete RevenueCat subscriber record and log out
-    try {
-      final clientWrapper = ref.read(revenueCatClientWrapperProvider);
-      final isConfigured = await clientWrapper.isConfigured();
-      if (isConfigured) {
-        try {
-          final customerInfo = await clientWrapper.getCustomerInfo();
-          final appUserId = customerInfo.originalAppUserId;
-          const secretKey = String.fromEnvironment('REVENUECAT_SECRET_KEY');
-          if (secretKey.isNotEmpty && appUserId.isNotEmpty) {
-            final uri = Uri.parse('https://api.revenuecat.com/v1/subscribers/$appUserId');
-            await _httpClient.delete(
-              uri,
-              headers: {
-                'Authorization': 'Bearer $secretKey',
-                'Content-Type': 'application/json',
-              },
-            ).timeout(const Duration(seconds: 5));
-          }
-        } catch (apiErr) {
-          debugPrint('[DataDeletionService] RevenueCat REST delete error: $apiErr');
+    // 6. Log out from RevenueCat if subscriptions are enabled
+    if (AppConfig.enableSubscriptions) {
+      try {
+        final clientWrapper = ref.read(revenueCatClientWrapperProvider);
+        final isConfigured = await clientWrapper.isConfigured();
+        if (isConfigured) {
+          await clientWrapper.logOut();
         }
-        await clientWrapper.logOut();
+      } catch (e) {
+        debugPrint('[DataDeletionService] Error logging out of RevenueCat: $e');
       }
-    } catch (e) {
-      debugPrint('[DataDeletionService] Error logging out of RevenueCat: $e');
     }
 
     // 7. Reset in-memory notifiers

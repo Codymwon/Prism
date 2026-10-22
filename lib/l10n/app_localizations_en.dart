@@ -1845,7 +1845,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pin year/week calendar nodes when dragging them';
 
   @override
-  String get settings_widgets_analytics => 'Share Anonymous Diagnostics';
+  String get settings_widgets_analytics => 'App Diagnostics & Usage';
 
   @override
   String get settings_widgets_analytics_desc =>
@@ -2150,7 +2150,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings_security_local_status_desc =>
-      'Local SQLite metadata database (.prism.db) is encrypted at rest using AES-256.';
+      'SQLite Metadata & Search Index (.prism.db) is encrypted at rest using SQLCipher AES-256 on mobile. Markdown note files reside in your local workspace directory.';
 
   @override
   String get settings_security_master_passphrase =>

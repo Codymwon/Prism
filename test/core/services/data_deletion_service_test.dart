@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:prism/core/config/app_config.dart';
 import 'package:prism/core/services/data_deletion_service.dart';
 import 'package:prism/core/services/google_drive_service.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
@@ -77,6 +78,7 @@ void main() {
   late ProviderContainer container;
 
   setUp(() async {
+    AppConfig.enableSubscriptions = true;
     tempTestDir = await Directory.systemTemp.createTemp('prism_deletion_test_');
     SharedPreferences.setMockInitialValues({
       'hasOnboarded': true,
@@ -106,13 +108,14 @@ void main() {
   });
 
   tearDown(() async {
+    AppConfig.enableSubscriptions = false;
     container.dispose();
     if (await tempTestDir.exists()) {
       await tempTestDir.delete(recursive: true);
     }
   });
 
-  test('executeFullReset deletes vault files, clears secure storage, revokes drive and resets state', () async {
+  test('executeFullReset deletes vault files, clears secure storage, revokes drive and resets state when enableSubscriptions is true', () async {
     // 1. Create a dummy file in the temp test vault directory
     final vaultDir = Directory(p.join(tempTestDir.path, 'Personal'));
     await vaultDir.create(recursive: true);
@@ -146,6 +149,18 @@ void main() {
     expect(testPrefs.getKeys().isEmpty, isTrue);
 
     // 9. Verify onboarding state reset to false
+    expect(container.read(onboardingStateProvider), isFalse);
+  });
+
+  test('executeFullReset skips Google Drive and RevenueCat when enableSubscriptions is false', () async {
+    AppConfig.enableSubscriptions = false;
+
+    final service = container.read(dataDeletionServiceProvider);
+    await service.executeFullReset();
+
+    expect(fakeGoogleDrive.disconnectCalled, isFalse);
+    expect(mockRevenueCat.logOutCalled, isFalse);
+    expect(mockSecureStorage.deleteAllCalled, isTrue);
     expect(container.read(onboardingStateProvider), isFalse);
   });
 }

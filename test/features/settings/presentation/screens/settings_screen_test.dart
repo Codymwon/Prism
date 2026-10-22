@@ -158,7 +158,7 @@ void main() {
     expect(find.text('Replay interactive tutorial'), findsOneWidget);
     expect(find.text('Privacy policy'), findsOneWidget);
     expect(find.text('Terms of Service'), findsOneWidget);
-    expect(find.text('Share Anonymous Diagnostics'), findsOneWidget);
+    expect(find.text('App Diagnostics & Usage'), findsOneWidget);
 
     // Scroll down to verify Danger Zone
     final dangerHeader = find.text('DANGER ZONE');

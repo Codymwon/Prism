@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -145,7 +147,12 @@ void main() {
     // Verify Title & Hero
     expect(find.text('Security Trust Center'), findsNWidgets(2)); // AppBar + Hero
     expect(find.text('ON-DEVICE STORAGE LOCK'), findsOneWidget);
-    expect(find.text('AES-256-CBC Active'), findsOneWidget);
+    final isEncrypted = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    if (isEncrypted) {
+      expect(find.text('AES-256-CBC Active'), findsOneWidget);
+    } else {
+      expect(find.text('Inactive (Desktop / FFI)'), findsOneWidget);
+    }
     expect(find.text('On-Device Storage Lock (AES-256)'), findsOneWidget);
 
     // Verify Passphrase Unconfigured state

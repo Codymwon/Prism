@@ -3028,7 +3028,7 @@ abstract class AppLocalizations {
   /// No description provided for @settings_widgets_analytics.
   ///
   /// In en, this message translates to:
-  /// **'Share Anonymous Diagnostics'**
+  /// **'App Diagnostics & Usage'**
   String get settings_widgets_analytics;
 
   /// No description provided for @settings_widgets_analytics_desc.
@@ -3580,7 +3580,7 @@ abstract class AppLocalizations {
   /// No description provided for @settings_security_local_status_desc.
   ///
   /// In en, this message translates to:
-  /// **'Local SQLite metadata database (.prism.db) is encrypted at rest using AES-256.'**
+  /// **'SQLite Metadata & Search Index (.prism.db) is encrypted at rest using SQLCipher AES-256 on mobile. Markdown note files reside in your local workspace directory.'**
   String get settings_security_local_status_desc;
 
   /// No description provided for @settings_security_master_passphrase.

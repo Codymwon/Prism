@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -192,51 +194,60 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(Icons.lock_rounded, color: Colors.green, size: 18),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      l10n.settings_security_local_database_title,
-                                      style: DesignTypography.body(
-                                        context,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                          Builder(
+                            builder: (context) {
+                              final isEncrypted = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+                              return Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: (isEncrypted ? Colors.green : Colors.orange).withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        l10n.settings_security_local_status_active,
-                                        style: DesignTypography.metadata(
-                                          context,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.green,
+                                    child: Icon(
+                                      isEncrypted ? Icons.lock_rounded : Icons.lock_open_rounded,
+                                      color: isEncrypted ? Colors.green : Colors.orange,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          l10n.settings_security_local_database_title,
+                                          style: DesignTypography.body(
+                                            context,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: (isEncrypted ? Colors.green : Colors.orange).withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            isEncrypted ? l10n.settings_security_local_status_active : 'Inactive (Desktop / FFI)',
+                                            style: DesignTypography.metadata(
+                                              context,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: isEncrypted ? Colors.green : Colors.orange,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                           const SizedBox(height: 12),
                           Text(
