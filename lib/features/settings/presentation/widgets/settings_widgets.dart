@@ -367,6 +367,9 @@ class SettingsTile extends StatelessWidget {
   final String subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final Color? iconColor;
+  final Color? iconBackgroundColor;
+  final Color? textColor;
 
   const SettingsTile({
     super.key,
@@ -375,6 +378,9 @@ class SettingsTile extends StatelessWidget {
     required this.subtitle,
     this.trailing,
     this.onTap,
+    this.iconColor,
+    this.iconBackgroundColor,
+    this.textColor,
   });
 
   @override
@@ -388,13 +394,13 @@ class SettingsTile extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: DesignColors.surfaceVariant(context),
+            color: iconBackgroundColor ?? DesignColors.surfaceVariant(context),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: DesignColors.textSecondary(context),
+            color: iconColor ?? DesignColors.textSecondary(context),
           ),
         ),
         title: Text(
@@ -403,6 +409,7 @@ class SettingsTile extends StatelessWidget {
             context,
             fontSize: 14,
             fontWeight: FontWeight.w500,
+            color: textColor,
           ),
         ),
         subtitle: Text(
@@ -601,7 +608,7 @@ class AnalyticsToggleTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final analyticsEnabled = ref.watch(analyticsEnabledProvider).valueOrNull ?? true;
+    final analyticsEnabled = ref.watch(analyticsEnabledProvider).valueOrNull ?? false;
 
     return SwitchListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),

@@ -1929,8 +1929,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywall_upgrade_button => 'Upgrade Now';
 
   @override
-  String get paywall_disclaimer =>
-      'Subscription auto-renews until cancelled. Manage or cancel anytime in your Google Play account settings.';
+  String paywall_disclaimer(String price, String period) {
+    return 'Prism Pro renews automatically ($price/$period) until cancelled. Payment is charged to your account at confirmation. Cancel anytime in your account settings at least 24 hours before renewal to prevent charges.';
+  }
 
   @override
   String get paywall_restore_button => 'Restore Purchases';
@@ -2003,4 +2004,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywall_restore_empty => 'No active purchases found to restore.';
+
+  @override
+  String get settings_terms_of_service => 'Terms of Service';
+
+  @override
+  String get settings_terms_of_service_subtitle =>
+      'Liability limits & arbitration agreement';
+
+  @override
+  String get onboarding_legal_assent_pre =>
+      'By tapping Confirm & Begin, you agree to Prism\'s ';
+
+  @override
+  String get onboarding_legal_terms_link => 'Terms of Service';
+
+  @override
+  String get onboarding_legal_and => ' and ';
+
+  @override
+  String get onboarding_legal_privacy_link => 'Privacy Policy';
+
+  @override
+  String get paywall_terms_link => 'Terms of Service';
+
+  @override
+  String get paywall_privacy_link => 'Privacy Policy';
+
+  @override
+  String get paywall_manage_subscription => 'Manage Subscription';
+
+  @override
+  String get editor_audio_wiretap_notice_title =>
+      'Audio Recording & Privacy Notice';
+
+  @override
+  String get editor_audio_wiretap_notice_body =>
+      'Prism stores voice dictations locally on your device. In many jurisdictions (including California, Florida, Massachusetts, and others), it is unlawful to record a conversation without the explicit consent of all participants. You are solely responsible for obtaining all legally required consents before recording.';
+
+  @override
+  String get editor_audio_wiretap_notice_cancel => 'Cancel';
+
+  @override
+  String get editor_audio_wiretap_notice_agree => 'I Understand & Agree';
+
+  @override
+  String get settings_main_section_danger => 'Danger Zone';
+
+  @override
+  String get settings_data_deletion_title => 'Delete All Data & Reset';
+
+  @override
+  String get settings_data_deletion_desc =>
+      'Permanently erase local vaults, credentials, and settings';
+
+  @override
+  String get settings_data_deletion_dialog_title => 'Delete All Data & Reset?';
+
+  @override
+  String get settings_data_deletion_dialog_body =>
+      'This action is permanent and cannot be undone. All local markdown notes, encrypted database indexes, audio attachments, app preferences, and cloud sync credentials will be completely erased from this device.\n\nType DELETE below to confirm.';
+
+  @override
+  String get settings_data_deletion_confirm_keyword => 'DELETE';
+
+  @override
+  String get settings_data_deletion_cancel_button => 'Cancel';
+
+  @override
+  String get settings_data_deletion_confirm_button => 'Delete Everything';
+
+  @override
+  String get settings_data_deletion_progress =>
+      'Erasing all data and resetting...';
+
+  @override
+  String get settings_data_deletion_success =>
+      'All data erased. App reset to initial state.';
+
+  @override
+  String settings_data_deletion_failure(String error) {
+    return 'Failed to complete reset: $error';
+  }
 }

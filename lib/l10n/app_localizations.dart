@@ -3184,8 +3184,8 @@ abstract class AppLocalizations {
   /// No description provided for @paywall_disclaimer.
   ///
   /// In en, this message translates to:
-  /// **'Subscription auto-renews until cancelled. Manage or cancel anytime in your Google Play account settings.'**
-  String get paywall_disclaimer;
+  /// **'Prism Pro renews automatically ({price}/{period}) until cancelled. Payment is charged to your account at confirmation. Cancel anytime in your account settings at least 24 hours before renewal to prevent charges.'**
+  String paywall_disclaimer(String price, String period);
 
   /// No description provided for @paywall_restore_button.
   ///
@@ -3330,6 +3330,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No active purchases found to restore.'**
   String get paywall_restore_empty;
+
+  /// No description provided for @settings_terms_of_service.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get settings_terms_of_service;
+
+  /// No description provided for @settings_terms_of_service_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Liability limits & arbitration agreement'**
+  String get settings_terms_of_service_subtitle;
+
+  /// No description provided for @onboarding_legal_assent_pre.
+  ///
+  /// In en, this message translates to:
+  /// **'By tapping Confirm & Begin, you agree to Prism\'\'s '**
+  String get onboarding_legal_assent_pre;
+
+  /// No description provided for @onboarding_legal_terms_link.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get onboarding_legal_terms_link;
+
+  /// No description provided for @onboarding_legal_and.
+  ///
+  /// In en, this message translates to:
+  /// **' and '**
+  String get onboarding_legal_and;
+
+  /// No description provided for @onboarding_legal_privacy_link.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get onboarding_legal_privacy_link;
+
+  /// No description provided for @paywall_terms_link.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get paywall_terms_link;
+
+  /// No description provided for @paywall_privacy_link.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get paywall_privacy_link;
+
+  /// No description provided for @paywall_manage_subscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Subscription'**
+  String get paywall_manage_subscription;
+
+  /// No description provided for @editor_audio_wiretap_notice_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio Recording & Privacy Notice'**
+  String get editor_audio_wiretap_notice_title;
+
+  /// No description provided for @editor_audio_wiretap_notice_body.
+  ///
+  /// In en, this message translates to:
+  /// **'Prism stores voice dictations locally on your device. In many jurisdictions (including California, Florida, Massachusetts, and others), it is unlawful to record a conversation without the explicit consent of all participants. You are solely responsible for obtaining all legally required consents before recording.'**
+  String get editor_audio_wiretap_notice_body;
+
+  /// No description provided for @editor_audio_wiretap_notice_cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get editor_audio_wiretap_notice_cancel;
+
+  /// No description provided for @editor_audio_wiretap_notice_agree.
+  ///
+  /// In en, this message translates to:
+  /// **'I Understand & Agree'**
+  String get editor_audio_wiretap_notice_agree;
+
+  /// No description provided for @settings_main_section_danger.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get settings_main_section_danger;
+
+  /// No description provided for @settings_data_deletion_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete All Data & Reset'**
+  String get settings_data_deletion_title;
+
+  /// No description provided for @settings_data_deletion_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently erase local vaults, credentials, and settings'**
+  String get settings_data_deletion_desc;
+
+  /// No description provided for @settings_data_deletion_dialog_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete All Data & Reset?'**
+  String get settings_data_deletion_dialog_title;
+
+  /// No description provided for @settings_data_deletion_dialog_body.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is permanent and cannot be undone. All local markdown notes, encrypted database indexes, audio attachments, app preferences, and cloud sync credentials will be completely erased from this device.\n\nType DELETE below to confirm.'**
+  String get settings_data_deletion_dialog_body;
+
+  /// No description provided for @settings_data_deletion_confirm_keyword.
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE'**
+  String get settings_data_deletion_confirm_keyword;
+
+  /// No description provided for @settings_data_deletion_cancel_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get settings_data_deletion_cancel_button;
+
+  /// No description provided for @settings_data_deletion_confirm_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Everything'**
+  String get settings_data_deletion_confirm_button;
+
+  /// No description provided for @settings_data_deletion_progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Erasing all data and resetting...'**
+  String get settings_data_deletion_progress;
+
+  /// No description provided for @settings_data_deletion_success.
+  ///
+  /// In en, this message translates to:
+  /// **'All data erased. App reset to initial state.'**
+  String get settings_data_deletion_success;
+
+  /// No description provided for @settings_data_deletion_failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to complete reset: {error}'**
+  String settings_data_deletion_failure(String error);
 }
 
 class _AppLocalizationsDelegate

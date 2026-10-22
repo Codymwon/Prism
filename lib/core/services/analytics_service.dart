@@ -21,7 +21,7 @@ class AnalyticsService {
     final prefs = _prefs;
     if (prefs == null) return false;
     try {
-      return prefs.getBool('analyticsEnabled') ?? true;
+      return prefs.getBool('analyticsEnabled') ?? false;
     } catch (_) {
       return false;
     }

@@ -198,7 +198,7 @@ class AnalyticsEnabledNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
     final prefs = ref.watch(sharedPreferencesProvider);
-    return prefs.getBool('analyticsEnabled') ?? true;
+    return prefs.getBool('analyticsEnabled') ?? false;
   }
 
   Future<void> setEnabled(bool enabled) async {

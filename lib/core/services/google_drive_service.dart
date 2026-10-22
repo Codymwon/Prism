@@ -105,6 +105,17 @@ class GoogleDriveService {
     }
   }
 
+  Future<Either<GoogleDriveFailure, Unit>> disconnect() async {
+    try {
+      await _googleSignIn.disconnect();
+      _driveApi = null;
+      return const Right(unit);
+    } catch (e) {
+      _driveApi = null;
+      return Left(GoogleDriveAuthenticationFailure('Disconnect failed: $e'));
+    }
+  }
+
   Future<Either<GoogleDriveFailure, List<drive.File>>> listFiles() async {
     if (_driveApi == null) {
       return const Left(GoogleDriveAuthenticationFailure('Not authenticated.'));

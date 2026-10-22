@@ -421,4 +421,50 @@ void main() {
     // Since it resolves path_provider, it should contain a sandbox documents path
     expect(persistedHubPath, contains('prism_vaults'));
   });
+
+  // ── Test 6: Step 3 telemetry toggle defaults to false (strict opt-in) ───────
+  testWidgets('Step 3 telemetry toggle defaults to false for strict opt-in',
+      (WidgetTester tester) async {
+    _setViewport(tester);
+
+    await tester.pumpWidget(_buildForm(
+      pickerPath: tempDir.path,
+      onStartSetup: () {},
+    ));
+    await tester.pumpAndSettle();
+
+    // Select App storage and advance to Step 2
+    await tester.tap(find.text('App storage'));
+    await tester.pumpAndSettle();
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    // Advance to Step 3 (Privacy & Telemetry)
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.text('Privacy & Telemetry'), findsOneWidget);
+
+    // Verify Switch is present and its value is false (strict opt-in)
+    final switchFinder = find.byType(Switch);
+    expect(switchFinder, findsOneWidget);
+    final switchWidget = tester.widget<Switch>(switchFinder);
+    expect(switchWidget.value, isFalse);
+
+    // Toggle the switch to ON
+    await tester.tap(switchFinder);
+    await tester.pumpAndSettle();
+
+    final toggledSwitch = tester.widget<Switch>(switchFinder);
+    expect(toggledSwitch.value, isTrue);
+  });
 }

@@ -81,8 +81,8 @@
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/Codymwon/Meridian.git
-   cd Meridian
+   git clone https://github.com/Codymwon/Prism.git
+   cd Prism
    ```
 
 2. **Install dependencies**:

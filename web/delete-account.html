@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prism — Account & Data Deletion</title>
+  <meta name="description" content="Official data and account deletion instructions and request portal for Prism, developed by Small Giant Studio.">
+  <style>
+    :root {
+      --bg: #0c0d0e;
+      --card-bg: #16181a;
+      --border: #26292d;
+      --text-main: #f0f2f5;
+      --text-muted: #9aa0a6;
+      --accent: #5e9cf5;
+      --danger: #e05252;
+      --danger-bg: rgba(224, 82, 82, 0.1);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font);
+      line-height: 1.6;
+      padding: 32px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 760px;
+      width: 100%;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-author {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+
+    .policy-callout {
+      background: var(--card-bg);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 24px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .policy-callout strong {
+      color: var(--text-main);
+    }
+
+    section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(94, 156, 245, 0.15);
+      color: var(--accent);
+    }
+
+    .badge.danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    ol {
+      margin-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    li strong {
+      color: var(--text-main);
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .danger-box {
+      background: var(--danger-bg);
+      border: 1px solid rgba(224, 82, 82, 0.3);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 16px 0;
+      font-size: 13px;
+      color: #ff9b9b;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+      margin-top: 8px;
+    }
+
+    .button:hover {
+      opacity: 0.9;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text-main);
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    td {
+      color: var(--text-muted);
+    }
+
+    footer {
+      text-align: center;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo-badge">P</div>
+        <div>
+          <div class="brand-name">Prism</div>
+          <div class="brand-author">Small Giant Studio</div>
+        </div>
+      </div>
+      <h1>Account & Data Deletion</h1>
+      <p class="subtitle">Compliance with Apple App Store Review Guideline 5.1.1(v) & Google Play Data Safety Policy</p>
+    </header>
+
+    <div class="policy-callout">
+      <strong>Zero Server Note Storage:</strong> Prism is engineered as a private, local-first markdown notebook. We do not operate proprietary user accounts, centralized databases, or cloud servers storing your personal thoughts, notes, audio recordings, or metadata.
+    </div>
+
+    <!-- METHOD 1 -->
+    <section>
+      <h2>
+        <span>Method 1: In-App Instant Self-Service Reset</span>
+        <span class="badge danger">Recommended</span>
+      </h2>
+      <p>If you still have the Prism app installed on your device, you can instantly and irreversibly erase all local data and configurations:</p>
+      <ol>
+        <li>Open <strong>Prism</strong> on your iOS or Android device.</li>
+        <li>Tap the <strong>Settings</strong> tab in the bottom navigation bar.</li>
+        <li>Scroll to the bottom of the screen to the <strong>Danger Zone</strong> section.</li>
+        <li>Tap <strong>Delete All Data & Reset</strong>.</li>
+        <li>A confirmation modal will appear detailing the erasure. Type <strong>DELETE</strong> into the confirmation field and tap <strong>Delete Everything</strong>.</li>
+      </ol>
+      <div class="danger-box">
+        <strong>What happens during in-app reset:</strong> All local markdown notes, encrypted SQLite database indexes, audio attachments, application cache, and encryption keys stored in your device's Secure Storage are permanently deleted. Any active Google Drive OAuth tokens are revoked, RevenueCat anonymous subscriber identifiers are cleared, and the app resets to initial onboarding.
+      </div>
+    </section>
+
+    <!-- METHOD 2 -->
+    <section>
+      <h2>
+        <span>Method 2: Off-Device Deletion Request (DSAR)</span>
+        <span class="badge">Web / Email</span>
+      </h2>
+      <p>If you have uninstalled the Prism app, lost access to your device, or wish to request the deletion of associated non-note telemetry or support identifiers:</p>
+      <p>Under GDPR Article 17 ("Right to Erasure") and CCPA/CPRA § 1798.105, you may submit a formal Data Subject Access Request (DSAR) to our privacy team:</p>
+      <ol>
+        <li>Send an email to <strong>privacy@smallgiantstudio.com</strong> with the subject line <code>[Data Deletion Request] - Prism</code>.</li>
+        <li>Include your approximate installation dates, platform (iOS or Android), and any support ticket reference numbers or anonymous installation ID if known.</li>
+        <li>Our security and privacy team will verify the request and purge all associated server records (including Firebase crash diagnostics and RevenueCat subscriber profiles) within <strong>30 days</strong>.</li>
+      </ol>
+      <a class="button" href="mailto:privacy@smallgiantstudio.com?subject=%5BData%20Deletion%20Request%5D%20-%20Prism&body=Hello%20Small%20Giant%20Studio%20Privacy%20Team%2C%0A%0APlease%20permanently%20delete%20any%20telemetry%2C%20crash%20diagnostics%2C%20and%20support%20records%20associated%20with%20my%20use%20of%20the%20Prism%20application.%0A%0APlatform%20(iOS%2FAndroid)%3A%20%0AApproximate%20Dates%20of%20Use%3A%20%0A%0AThank%20you.">Submit Deletion Request by Email</a>
+    </section>
+
+    <!-- METHOD 3 -->
+    <section>
+      <h2>
+        <span>Method 3: Google Drive Cloud Sync Revocation</span>
+        <span class="badge">Third-Party Sync</span>
+      </h2>
+      <p>If you linked Prism to Google Drive for cloud synchronization, Prism connects directly between your device and Google APIs using restricted <code>drive.appdata</code> scope. Prism never receives or stores your Google login credentials.</p>
+      <p>To independently revoke Prism's access to your Google account at any time:</p>
+      <ol>
+        <li>Go to your Google Account permissions page: <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">myaccount.google.com/permissions</a>.</li>
+        <li>Locate <strong>Prism</strong> under "Third-party apps with account access".</li>
+        <li>Click <strong>Prism</strong> and select <strong>Remove Access</strong>.</li>
+        <li>To delete existing app data files from Google Drive, open Google Drive on the web &rarr; <strong>Settings (Gear)</strong> &rarr; <strong>Manage Apps</strong> &rarr; find Prism &rarr; <strong>Options</strong> &rarr; <strong>Delete hidden app data</strong>.</li>
+      </ol>
+    </section>
+
+    <!-- RETENTION TIMELINE -->
+    <section>
+      <h2>Data Retention & Purge Timeline</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Data Category</th>
+            <th>Storage Location</th>
+            <th>Deletion & Purge Timeline</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>User Notes & Vaults</strong></td>
+            <td>Local Device Only</td>
+            <td>Instant upon in-app "Delete All Data" action or OS app uninstall.</td>
+          </tr>
+          <tr>
+            <td><strong>Audio Dictation Files</strong></td>
+            <td>Local Device Only</td>
+            <td>Instant upon in-app "Delete All Data" action.</td>
+          </tr>
+          <tr>
+            <td><strong>Database Encryption Key</strong></td>
+            <td>Device Secure Storage (Keystore/Keychain)</td>
+            <td>Instant upon in-app "Delete All Data" action.</td>
+          </tr>
+          <tr>
+            <td><strong>Anonymous Telemetry</strong></td>
+            <td>Firebase Analytics (Opt-In)</td>
+            <td>Automatically expires after 14 months; purged within 30 days of email DSAR.</td>
+          </tr>
+          <tr>
+            <td><strong>Crash Logs</strong></td>
+            <td>Firebase Crashlytics (Opt-In)</td>
+            <td>Automatically expires after 90 days; purged within 30 days of email DSAR.</td>
+          </tr>
+          <tr>
+            <td><strong>Purchase Entitlements</strong></td>
+            <td>RevenueCat / App Store / Play Store</td>
+            <td>Anonymous subscriber record deleted via REST API or email DSAR. Subscriptions must be cancelled via native OS store settings.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      <p><strong>Small Giant Studio</strong> &bull; 548 Market St, Suite 30000, San Francisco, CA 94104, USA</p>
+      <p>Questions? Contact our Data Protection Officer at <a href="mailto:privacy@smallgiantstudio.com">privacy@smallgiantstudio.com</a></p>
+    </footer>
+  </div>
+</body>
+</html>

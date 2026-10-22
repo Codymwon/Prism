@@ -643,7 +643,17 @@
   "paywall_empty_packages": "No subscription options available currently.",
   "paywall_error_loading": "Error loading products: {error}",
   "paywall_upgrade_button": "Upgrade Now",
-  "paywall_disclaimer": "Subscription auto-renews until cancelled. Manage or cancel anytime in your Google Play account settings.",
+  "paywall_disclaimer": "Prism Pro renews automatically ({price}/{period}) until cancelled. Payment is charged to your account at confirmation. Cancel anytime in your account settings at least 24 hours before renewal to prevent charges.",
+  "@paywall_disclaimer": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "period": {
+        "type": "String"
+      }
+    }
+  },
   "paywall_restore_button": "Restore Purchases",
   "paywall_feature_sync": "E2E Google Drive Sync",
   "paywall_feature_templates_macros": "Custom Templates & Macros",
@@ -669,6 +679,37 @@
   "paywall_restore_success": "Purchases restored. Prism Pro active!",
   "paywall_restore_empty": "No active purchases found to restore.",
   "@paywall_error_loading": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settings_terms_of_service": "Terms of Service",
+  "settings_terms_of_service_subtitle": "Liability limits & arbitration agreement",
+  "onboarding_legal_assent_pre": "By tapping Confirm & Begin, you agree to Prism''s ",
+  "onboarding_legal_terms_link": "Terms of Service",
+  "onboarding_legal_and": " and ",
+  "onboarding_legal_privacy_link": "Privacy Policy",
+  "paywall_terms_link": "Terms of Service",
+  "paywall_privacy_link": "Privacy Policy",
+  "paywall_manage_subscription": "Manage Subscription",
+  "editor_audio_wiretap_notice_title": "Audio Recording & Privacy Notice",
+  "editor_audio_wiretap_notice_body": "Prism stores voice dictations locally on your device. In many jurisdictions (including California, Florida, Massachusetts, and others), it is unlawful to record a conversation without the explicit consent of all participants. You are solely responsible for obtaining all legally required consents before recording.",
+  "editor_audio_wiretap_notice_cancel": "Cancel",
+  "editor_audio_wiretap_notice_agree": "I Understand & Agree",
+  "settings_main_section_danger": "Danger Zone",
+  "settings_data_deletion_title": "Delete All Data & Reset",
+  "settings_data_deletion_desc": "Permanently erase local vaults, credentials, and settings",
+  "settings_data_deletion_dialog_title": "Delete All Data & Reset?",
+  "settings_data_deletion_dialog_body": "This action is permanent and cannot be undone. All local markdown notes, encrypted database indexes, audio attachments, app preferences, and cloud sync credentials will be completely erased from this device.\n\nType DELETE below to confirm.",
+  "settings_data_deletion_confirm_keyword": "DELETE",
+  "settings_data_deletion_cancel_button": "Cancel",
+  "settings_data_deletion_confirm_button": "Delete Everything",
+  "settings_data_deletion_progress": "Erasing all data and resetting...",
+  "settings_data_deletion_success": "All data erased. App reset to initial state.",
+  "settings_data_deletion_failure": "Failed to complete reset: {error}",
+  "@settings_data_deletion_failure": {
     "placeholders": {
       "error": {
         "type": "String"

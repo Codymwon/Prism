@@ -18,9 +18,44 @@ import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:prism/core/utils/utils.dart';
 import 'package:prism/features/editor/presentation/providers/editor_controller.dart';
 
+import 'package:prism/features/editor/domain/audio_recorder_service.dart';
+import 'package:prism/features/editor/data/audio_recorder_service_impl.dart';
+import 'package:prism/features/editor/presentation/widgets/formatting_toolbar.dart';
+
 class FakeRef implements Ref<Object?> {
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class FakeAudioRecorderService implements AudioRecorderService {
+  bool hasMicPermission = true;
+  bool startCalled = false;
+  bool stopCalled = false;
+  String? startPath;
+  bool recordingActive = false;
+
+  @override
+  Future<bool> hasPermission() async => hasMicPermission;
+
+  @override
+  Future<void> start(String path) async {
+    startCalled = true;
+    startPath = path;
+    recordingActive = true;
+  }
+
+  @override
+  Future<String?> stop() async {
+    stopCalled = true;
+    recordingActive = false;
+    return startPath;
+  }
+
+  @override
+  Future<bool> isRecording() async => recordingActive;
+
+  @override
+  void dispose() {}
 }
 
 class MockNoteRepository extends NoteRepository {
@@ -500,5 +535,93 @@ void main() {
 
     // Verify BacklinksPanel is hidden
     expect(find.byType(BacklinksPanel), findsNothing);
+  });
+
+  testWidgets('Audio recording triggers wiretap consent modal before first recording', (WidgetTester tester) async {
+    final fakeAudioRecorder = FakeAudioRecorderService();
+    final noteId = 'test-note-wiretap';
+    final note = Note(
+      id: noteId,
+      title: 'Test Note',
+      filePath: noteFile.path,
+      wordCount: 10,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final mockRepo = MockNoteRepository(note);
+
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          audioRecorderServiceProvider.overrideWithValue(fakeAudioRecorder),
+          noteRepositoryProvider.overrideWithValue(mockRepo),
+          noteByIdProvider(noteId).overrideWith((ref) => note),
+          backlinksProvider(noteId).overrideWith((ref) => []),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: EditorScreen(
+            noteId: noteId,
+            isNew: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+
+    // Find FormattingToolbar and trigger dictation
+    final toolbarFinder = find.byType(FormattingToolbar);
+    expect(toolbarFinder, findsOneWidget);
+    final toolbar = tester.widget<FormattingToolbar>(toolbarFinder);
+
+    // Initial state: not accepted
+    expect(prefs.getBool('has_accepted_audio_recording_notice'), isNull);
+
+    // Trigger audio recording
+    toolbar.onToggleDictation();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Verify wiretap dialog is shown
+    expect(find.text('Audio Recording & Privacy Notice'), findsOneWidget);
+    expect(
+      find.textContaining('unlawful to record a conversation without the explicit consent'),
+      findsOneWidget,
+    );
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('I Understand & Agree'), findsOneWidget);
+
+    // Tap Cancel
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Dialog should be dismissed, notice not accepted
+    expect(find.text('Audio Recording & Privacy Notice'), findsNothing);
+    expect(prefs.getBool('has_accepted_audio_recording_notice'), isNull);
+
+    // Trigger again, tap Agree
+    toolbar.onToggleDictation();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Audio Recording & Privacy Notice'), findsOneWidget);
+
+    await tester.tap(find.text('I Understand & Agree'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Notice should now be accepted
+    expect(prefs.getBool('has_accepted_audio_recording_notice'), isTrue);
+    expect(find.text('Audio Recording & Privacy Notice'), findsNothing);
   });
 }

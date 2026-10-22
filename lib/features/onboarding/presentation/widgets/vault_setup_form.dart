@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/services/vault_service.dart';
@@ -41,7 +42,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   String _customLocationPath = '';
   bool _isPickingFolder = false;
   bool _isCompleting = false;
-  bool _shareAnalytics = true;
+  bool _shareAnalytics = false;
   int _currentStep = 1; // 1: Main Storage Location, 2: First Vault Name, 3: Privacy Preferences
   bool _isAutoImport = false;
   String _autoImportHubPath = '';
@@ -938,7 +939,74 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                 ],
               ),
             ).animate().fadeIn(delay: 200.ms),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+            // Legal Assent Notice
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text.rich(
+                  TextSpan(
+                    text: context.l10n.onboarding_legal_assent_pre,
+                    style: DesignTypography.details(
+                      context,
+                      fontSize: 11,
+                      color: DesignColors.textSecondary(context),
+                    ).copyWith(height: 1.45),
+                    children: [
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: GestureDetector(
+                          onTap: () => context.push('/settings/terms'),
+                          child: Text(
+                            context.l10n.onboarding_legal_terms_link,
+                            style: DesignTypography.details(
+                              context,
+                              fontSize: 11,
+                              color: colorScheme.primary,
+                            ).copyWith(
+                              decoration: TextDecoration.underline,
+                              decorationColor: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      TextSpan(
+                        text: context.l10n.onboarding_legal_and,
+                        style: DesignTypography.details(
+                          context,
+                          fontSize: 11,
+                          color: DesignColors.textSecondary(context),
+                        ),
+                      ),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: GestureDetector(
+                          onTap: () => context.push('/settings/privacy-policy'),
+                          child: Text(
+                            context.l10n.onboarding_legal_privacy_link,
+                            style: DesignTypography.details(
+                              context,
+                              fontSize: 11,
+                              color: colorScheme.primary,
+                            ).copyWith(
+                              decoration: TextDecoration.underline,
+                              decorationColor: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ).animate().fadeIn(delay: 210.ms),
+            const SizedBox(height: 16),
             // Confirm & Begin Button
             DesignPrimaryButton(
               label: context.l10n.onboarding_vault_setup_confirm_button,

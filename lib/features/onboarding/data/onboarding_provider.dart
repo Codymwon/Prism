@@ -17,4 +17,10 @@ class OnboardingState extends _$OnboardingState {
     await prefs.setBool('hasOnboarded', true);
     state = true;
   }
+
+  Future<void> resetOnboarding() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.remove('hasOnboarded');
+    state = false;
+  }
 }

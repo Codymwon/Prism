@@ -12,6 +12,7 @@ import '../../features/settings/presentation/screens/custom_macros_screen.dart';
 import '../../features/settings/presentation/screens/custom_templates_screen.dart';
 import '../../features/settings/presentation/screens/attachments_screen.dart';
 import '../../features/settings/presentation/screens/privacy_policy_screen.dart';
+import '../../features/settings/presentation/screens/terms_of_service_screen.dart';
 import '../../features/settings/presentation/screens/cloud_sync_screen.dart';
 import '../../features/settings/presentation/screens/editor_preferences_screen.dart';
 import '../../features/settings/presentation/screens/journal_preferences_screen.dart';
@@ -216,6 +217,38 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           transitionDuration: const Duration(milliseconds: 280),
           reverseTransitionDuration: const Duration(milliseconds: 240),
         ),
+      ),
+      GoRoute(
+        path: '/settings/privacy',
+        redirect: (context, state) => '/settings/privacy-policy',
+      ),
+      GoRoute(
+        path: '/settings/terms',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const TermsOfServiceScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCubic).animate(animation),
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.08, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                )),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: const Duration(milliseconds: 240),
+        ),
+      ),
+      GoRoute(
+        path: '/settings/terms-of-service',
+        redirect: (context, state) => '/settings/terms',
       ),
       GoRoute(
         path: '/settings/cloud-sync',

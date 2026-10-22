@@ -978,6 +978,64 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   Future<void> _toggleAudioRecording() async {
     try {
+      final isCurrentlyRecording =
+          ref.read(audioRecordControllerProvider(widget.noteId)).isRecording;
+
+      if (!isCurrentlyRecording) {
+        final prefs = ref.read(sharedPreferencesProvider);
+        final hasAccepted =
+            prefs.getBool('has_accepted_audio_recording_notice') ?? false;
+
+        if (!hasAccepted) {
+          final agreed = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              return AlertDialog(
+                backgroundColor: DesignColors.surface(dialogContext),
+                title: Text(
+                  dialogContext.l10n.editor_audio_wiretap_notice_title,
+                  style: DesignTypography.heading(dialogContext,
+                      fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                content: Text(
+                  dialogContext.l10n.editor_audio_wiretap_notice_body,
+                  style: DesignTypography.body(dialogContext,
+                      fontSize: 14,
+                      color: DesignColors.textSecondary(dialogContext)),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: Text(
+                      dialogContext.l10n.editor_audio_wiretap_notice_cancel,
+                      style: TextStyle(
+                          color: DesignColors.textSecondary(dialogContext)),
+                    ),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: DesignColors.primary(dialogContext),
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: Text(
+                      dialogContext.l10n.editor_audio_wiretap_notice_agree,
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (!mounted) return;
+          if (agreed != true) {
+            return;
+          }
+
+          await prefs.setBool('has_accepted_audio_recording_notice', true);
+        }
+      }
+
       await ref
           .read(audioRecordControllerProvider(widget.noteId).notifier)
           .toggleRecording(

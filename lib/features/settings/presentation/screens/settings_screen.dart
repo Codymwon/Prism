@@ -10,6 +10,7 @@ import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
 import '../../../onboarding/data/tutorial_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../../core/services/data_deletion_service.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -252,6 +253,25 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/privacy-policy'),
                 ),
+                SettingsTile(
+                  icon: Icons.description_outlined,
+                  title: context.l10n.settings_terms_of_service,
+                  subtitle: context.l10n.settings_terms_of_service_subtitle,
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/terms'),
+                ),
+
+                // ── Danger Zone ─────────────────────────────────────────
+                SettingsSectionHeader(title: context.l10n.settings_main_section_danger),
+                SettingsTile(
+                  icon: Icons.delete_forever_rounded,
+                  iconColor: DesignColors.accentRose(context),
+                  iconBackgroundColor: DesignColors.accentRose(context).withValues(alpha: 0.12),
+                  title: context.l10n.settings_data_deletion_title,
+                  subtitle: context.l10n.settings_data_deletion_desc,
+                  trailing: Icon(Icons.chevron_right_rounded, color: DesignColors.accentRose(context), size: 18),
+                  onTap: () => _showDataDeletionDialog(context, ref),
+                ),
               ],
             ),
           ),
@@ -339,6 +359,191 @@ class SettingsScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _showDataDeletionDialog(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => const _DataDeletionConfirmationDialog(),
+    );
+
+    if (confirmed == true && context.mounted) {
+      // Show modal progress overlay
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: DesignColors.surface(context),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Row(
+                children: [
+                  CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: DesignColors.accentRose(context),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Text(
+                      context.l10n.settings_data_deletion_progress,
+                      style: DesignTypography.body(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      try {
+        await ref.read(dataDeletionServiceProvider).executeFullReset();
+        if (context.mounted) {
+          // Dismiss progress dialog
+          Navigator.of(context, rootNavigator: true).pop();
+
+          PrismToast.show(
+            context,
+            context.l10n.settings_data_deletion_success,
+            icon: Icons.check_circle_outline_rounded,
+          );
+
+          context.go('/onboarding');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          PrismToast.show(
+            context,
+            context.l10n.settings_data_deletion_failure(e.toString()),
+            icon: Icons.error_outline_rounded,
+          );
+        }
+      }
+    }
+  }
+}
+
+class _DataDeletionConfirmationDialog extends StatefulWidget {
+  const _DataDeletionConfirmationDialog();
+
+  @override
+  State<_DataDeletionConfirmationDialog> createState() => _DataDeletionConfirmationDialogState();
+}
+
+class _DataDeletionConfirmationDialogState extends State<_DataDeletionConfirmationDialog> {
+  late final TextEditingController _controller;
+  bool _canDelete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final text = _controller.text.trim();
+    final can = text == 'DELETE';
+    if (can != _canDelete) {
+      setState(() {
+        _canDelete = can;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final rose = DesignColors.accentRose(context);
+
+    return AlertDialog(
+      backgroundColor: DesignColors.surface(context),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: rose, size: 24),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.settings_data_deletion_dialog_title,
+              style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.settings_data_deletion_dialog_body,
+              style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                hintText: l10n.settings_data_deletion_confirm_keyword,
+                hintStyle: TextStyle(color: DesignColors.textTertiary(context), letterSpacing: 1.5),
+                filled: true,
+                fillColor: DesignColors.surfaceVariant(context),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: DesignColors.border(context)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: DesignColors.border(context)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: rose, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(
+            l10n.settings_data_deletion_cancel_button,
+            style: DesignTypography.body(context, color: DesignColors.textSecondary(context)),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: rose,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: rose.withValues(alpha: 0.3),
+            disabledForegroundColor: Colors.white.withValues(alpha: 0.5),
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onPressed: _canDelete ? () => Navigator.of(context).pop(true) : null,
+          child: Text(
+            l10n.settings_data_deletion_confirm_button,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     );
   }
 }

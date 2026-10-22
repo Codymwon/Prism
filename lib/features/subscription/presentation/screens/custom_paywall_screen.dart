@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../domain/entities/subscription_package.dart';
@@ -257,20 +258,26 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                         const SizedBox(height: 8),
 
                         // ── Subscription Terms Disclaimer ─────────────────────
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Text(
-                              context.l10n.paywall_disclaimer,
-                              textAlign: TextAlign.center,
-                              style: DesignTypography.body(
-                                context,
-                                fontSize: 11,
-                                color: DesignColors.textSecondary(context),
-                                height: 1.5,
+                        Builder(
+                          builder: (context) {
+                            final price = _selectedPackage?.priceString ?? '\$29.99';
+                            final period = (_selectedPackage?.packageType == 'monthly') ? 'month' : 'year';
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: Text(
+                                  context.l10n.paywall_disclaimer(price, period),
+                                  textAlign: TextAlign.center,
+                                  style: DesignTypography.body(
+                                    context,
+                                    fontSize: 11,
+                                    color: DesignColors.textSecondary(context),
+                                    height: 1.5,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 4),
@@ -293,6 +300,76 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
                               ),
                             ),
                           ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // ── Legal Links Footer ──────────────────────────────
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            GestureDetector(
+                              onTap: () => context.push('/settings/terms'),
+                              child: Text(
+                                context.l10n.paywall_terms_link,
+                                style: DesignTypography.details(
+                                  context,
+                                  fontSize: 11,
+                                  color: DesignColors.textTertiary(context),
+                                ).copyWith(
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: DesignColors.textTertiary(context),
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '•',
+                              style: DesignTypography.details(
+                                context,
+                                fontSize: 11,
+                                color: DesignColors.textTertiary(context),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => context.push('/settings/privacy'),
+                              child: Text(
+                                context.l10n.paywall_privacy_link,
+                                style: DesignTypography.details(
+                                  context,
+                                  fontSize: 11,
+                                  color: DesignColors.textTertiary(context),
+                                ).copyWith(
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: DesignColors.textTertiary(context),
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '•',
+                              style: DesignTypography.details(
+                                context,
+                                fontSize: 11,
+                                color: DesignColors.textTertiary(context),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: _handleManageSubscription,
+                              child: Text(
+                                context.l10n.paywall_manage_subscription,
+                                style: DesignTypography.details(
+                                  context,
+                                  fontSize: 11,
+                                  color: DesignColors.textTertiary(context),
+                                ).copyWith(
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: DesignColors.textTertiary(context),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -595,6 +672,13 @@ class _CustomPaywallScreenState extends ConsumerState<CustomPaywallScreen> {
           }
         },
       );
+    }
+  }
+
+  Future<void> _handleManageSubscription() async {
+    final uri = Uri.parse('https://play.google.com/store/account/subscriptions');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 }

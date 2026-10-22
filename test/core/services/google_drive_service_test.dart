@@ -31,6 +31,13 @@ class MockGoogleSignIn extends Fake implements GoogleSignIn {
     signOutCalled = true;
     return null;
   }
+
+  bool disconnectCalled = false;
+  @override
+  Future<GoogleSignInAccount?> disconnect() async {
+    disconnectCalled = true;
+    return null;
+  }
 }
 
 class MockGoogleSignInAccount extends Fake implements GoogleSignInAccount {
@@ -119,6 +126,21 @@ void main() {
       expect(result.isRight(), isTrue);
       expect(service.isSignedIn, isFalse);
       expect(mockSignIn.signOutCalled, isTrue);
+    });
+
+    test('disconnect revokes credentials, resets drive client, and returns Right(unit)', () async {
+      final mockSignIn = MockGoogleSignIn();
+      final mockAccount = MockGoogleSignInAccount({'Authorization': 'Bearer test-token'});
+      mockSignIn.mockAccount = mockAccount;
+
+      final service = GoogleDriveService(googleSignIn: mockSignIn);
+      await service.signIn();
+      expect(service.isSignedIn, isTrue);
+
+      final result = await service.disconnect();
+      expect(result.isRight(), isTrue);
+      expect(service.isSignedIn, isFalse);
+      expect(mockSignIn.disconnectCalled, isTrue);
     });
   });
 

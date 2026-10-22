@@ -46,15 +46,15 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       ),
                       _buildPrivacyItem(
                         context,
-                        title: 'Anonymous Usage Telemetry (opt-out)',
+                        title: 'Anonymous Usage Telemetry (opt-in)',
                         description:
-                            'If you consent during onboarding, Prism uses Firebase Analytics to collect anonymous, aggregated app usage events (e.g. feature taps, editor mode switches). No note content, search queries, file paths, or personal identifiers are ever included. You can disable this at any time in Settings → Gestures & Feedback.',
+                            'If you explicitly opt-in during onboarding, Prism uses Firebase Analytics to collect anonymous, aggregated app usage events (e.g. feature taps, editor mode switches). No note content, search queries, file paths, or personal identifiers are ever included. You can disable or enable this at any time in Settings → Gestures & Feedback.',
                       ),
                       _buildPrivacyItem(
                         context,
-                        title: 'Crash Reports (opt-out)',
+                        title: 'Crash Reports (opt-in)',
                         description:
-                            'If you consent, Firebase Crashlytics collects anonymous crash logs and error stack traces to help us fix bugs. These contain no note content or personal data. Crash reports are retained for 90 days. You can disable this alongside usage telemetry in Settings → Gestures & Feedback.',
+                            'If you explicitly opt-in, Firebase Crashlytics collects anonymous crash logs and error stack traces to help us fix bugs. These contain no note content or personal data. Crash reports are retained for 90 days. You can disable or enable this alongside usage telemetry in Settings → Gestures & Feedback.',
                       ),
                       _buildPrivacyItem(
                         context,
@@ -98,8 +98,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         context,
                         title: 'Google Drive Sync',
                         description:
-                            'If you choose to configure the Google Drive integration, connection is established directly between your device and Google servers. We never intercept, store, or have access to your Google credentials or synced notes.\n\nPrism\'s use and transfer of information received from Google APIs to any other app will adhere to Google API Services User Data Policy, including the Limited Use requirements.',
+                            'If you choose to configure the Google Drive integration, connection is established directly between your device and Google servers. We never intercept, store, or have access to your Google credentials or synced notes.',
                       ),
+                      _buildLimitedUseCallout(context),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: GestureDetector(
@@ -130,7 +131,26 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         context,
                         title: 'GDPR, CCPA & Privacy Rights',
                         description:
-                            'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), you have the right to access and delete your data. Because your notes are standard markdown files stored locally, you hold complete access and deletion capability at all times — simply delete your vault folders to purge your data.\n\nFor anonymous telemetry data held by Firebase, you may request deletion by contacting us. We will process requests within 30 days.',
+                            'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), you have the right to access and delete your data. Because your notes are standard markdown files stored locally, you hold complete access and deletion capability at all times.\n\nYou can perform a full, irreversible data purge and factory reset at any time in the app via Settings → Danger Zone → "Delete All Data & Reset".\n\nIf you have uninstalled the app or wish to submit an off-device deletion request for any associated identifiers, visit our online Data Deletion Portal or contact us at privacy@smallgiantstudio.com. We process all requests within 30 days.',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: GestureDetector(
+                          onTap: () async {
+                            final url = Uri.parse('https://smallgiantstudio.com/prism/delete-account');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
+                          },
+                          child: Text(
+                            'Online Data & Account Deletion Request Portal',
+                            style: TextStyle(
+                              color: DesignColors.primary(context),
+                              decoration: TextDecoration.underline,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                       ),
                       _buildPrivacyItem(
                         context,
@@ -143,13 +163,32 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   _buildSection(
                     context,
-                    title: '5. CONTACT & UPDATES',
+                    title: '5. CHILDREN\'S PRIVACY (COPPA & GDPR ART. 8)',
                     items: [
                       _buildPrivacyItem(
                         context,
-                        title: 'Privacy Queries',
+                        title: 'Age Limitations & Child Data Protection',
                         description:
-                            'We may update this policy occasionally as new features roll out. For privacy concerns, data deletion requests, or feedback, email us at Prismprivacy@smallgiantstudio.com.',
+                            'Prism is an offline-first personal workspace utility not directed to or intended for children under thirteen (13) years of age (or under sixteen (16) years of age in the European Economic Area and California). We do not knowingly solicit, collect, or process personal data from children under these age thresholds.\n\nIf we discover that personal data of a minor has been collected without verified parental consent, we will take immediate measures to permanently delete such information from our records and anonymous telemetry logs. If you are a parent or legal guardian and believe that your child has provided us with personal information, please contact our Data Controller at privacy@smallgiantstudio.com for immediate resolution.',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSection(
+                    context,
+                    title: '6. DATA CONTROLLER & CONTACT',
+                    items: [
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Data Controller Identity & Address',
+                        description:
+                            'Small Giant Studio\n548 Market St, Suite 30000\nSan Francisco, CA 94104, USA\n\nContact Email: privacy@smallgiantstudio.com (or legal@smallgiantstudio.com)',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Privacy Inquiries & Deletion Requests',
+                        description:
+                            'For questions regarding this Privacy Policy, CCPA/GDPR data subject access requests (DSAR), deletion inquiries, or our Google Limited Use commitments, email us at privacy@smallgiantstudio.com.',
                       ),
                     ],
                   ),
@@ -282,6 +321,70 @@ class PrivacyPolicyScreen extends StatelessWidget {
               height: 1.5,
               color: DesignColors.textSecondary(context),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLimitedUseCallout(BuildContext context) {
+    final primaryColor = DesignColors.primary(context);
+    final borderColor = DesignColors.border(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: DesignColors.surface(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'GOOGLE API SERVICES LIMITED USE COMPLIANCE',
+              style: DesignTypography.metadata(
+                context,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: primaryColor,
+              ).copyWith(letterSpacing: 0.6),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Google Drive Data Safeguards',
+            style: DesignTypography.body(
+              context,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: DesignColors.text(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Divider(color: borderColor, height: 1),
+          const SizedBox(height: 10),
+          Text(
+            'Prism\'s use and transfer of information received from Google APIs to any other app will adhere to Google API Services User Data Policy, including the Limited Use requirements:\n\n'
+            '• Sole Purpose of Synchronization: Access to Google Drive is requested and utilized exclusively to read, write, and synchronize your personal markdown vaults and associated media attachments across your authorized devices.\n\n'
+            '• No Advertising, Retargeting, or Profiling: Data accessed from Google Drive is never used, transferred, or disclosed for serving advertisements, retargeting, personalized marketing, or building commercial user profiles.\n\n'
+            '• No AI/ML Model Training: Your note content, file metadata, and Google Drive data are never used or transferred to train, retrain, fine-tune, or improve generalized artificial intelligence or machine learning (AI/ML) models.\n\n'
+            '• No Human Inspection: No human employees, contractors, or agents of Small Giant Studio will read your note content or Google Drive files without first obtaining your explicit affirmative permission (e.g., during troubleshooting at your direct request), or unless necessary for security or legal compliance.',
+            style: DesignTypography.details(
+              context,
+              fontSize: 12,
+              color: DesignColors.text(context),
+            ).copyWith(height: 1.55),
           ),
         ],
       ),
