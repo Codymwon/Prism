@@ -30,14 +30,16 @@ void main() {
     expect(find.text('1. ACCEPTANCE OF TERMS & ELIGIBILITY'), findsOneWidget);
     expect(find.text('2. DISCLAIMER OF WARRANTIES ("AS IS")'), findsOneWidget);
     expect(find.text('3. LIMITATION OF LIABILITY & USER BACKUP DUTY'), findsOneWidget);
-    expect(find.text('UCC § 2-316 STATUTORY DISCLAIMER'), findsOneWidget);
+    expect(find.text('STATUTORY WARRANTY DISCLAIMER'), findsOneWidget);
     expect(find.text('CRITICAL LIABILITY LIMITATION & BACKUP OBLIGATION'), findsOneWidget);
 
-    // Verify Inactive/Hidden Features are absent
+    // Verify Inactive/Hidden Features and US-specific clauses are absent
     expect(find.textContaining('SUBSCRIPTION SERVICES'), findsNothing);
     expect(find.textContaining('TOTAL FEES ACTUALLY PAID'), findsNothing);
     expect(find.textContaining('SYNCHRONIZATION VIA GOOGLE DRIVE'), findsNothing);
     expect(find.textContaining('LOCAL-FIRST FILE SYSTEM UTILITY'), findsNothing);
+    expect(find.textContaining('Santa Clara County, California'), findsNothing);
+    expect(find.textContaining('American Arbitration Association'), findsNothing);
 
     // Scroll to see downstream sections
     await tester.scrollUntilVisible(

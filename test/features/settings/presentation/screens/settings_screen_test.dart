@@ -138,9 +138,9 @@ void main() {
     expect(find.text('Vault Export'), findsOneWidget);
     expect(find.text('Manage Attachments'), findsOneWidget);
 
-    // Verify Pillar 2: Security & Sync
+    // Verify Pillar 2: Security & Sync (subscriptions enabled in setUp)
     expect(find.text('SECURITY & SYNC'), findsOneWidget);
-    expect(find.text('Security Trust Center'), findsOneWidget);
+    expect(find.text('Security Trust Center'), findsNothing);
     expect(find.text('Cloud Sync'), findsOneWidget);
 
     // Verify Pillar 3: Writing & Appearance
@@ -158,9 +158,17 @@ void main() {
     expect(find.text('Replay interactive tutorial'), findsOneWidget);
     expect(find.text('Privacy policy'), findsOneWidget);
     expect(find.text('Terms of Service'), findsOneWidget);
+    expect(find.text('Share Anonymous Diagnostics'), findsOneWidget);
+
+    // Scroll down to verify Danger Zone
+    final dangerHeader = find.text('DANGER ZONE');
+    await tester.scrollUntilVisible(dangerHeader, 500);
+    await tester.pumpAndSettle();
+    expect(dangerHeader, findsOneWidget);
+    expect(find.text('Delete All Data & Reset'), findsOneWidget);
   });
 
-  testWidgets('tapping Security Trust Center tile navigates to /settings/security', (WidgetTester tester) async {
+  testWidgets('tapping Delete All Data opens confirmation dialog requiring DELETE', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -168,43 +176,45 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final router = GoRouter(
-      initialLocation: '/settings',
-      routes: [
-        GoRoute(
-          path: '/settings',
-          builder: (context, state) => const SettingsScreen(),
-        ),
-        GoRoute(
-          path: '/settings/security',
-          builder: (context, state) => const Scaffold(body: Text('Security Trust Center Page')),
-        ),
-      ],
-    );
+    final mockDeletionService = MockDataDeletionService();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          isProProvider.overrideWith((ref) => false),
-        ],
-        child: MaterialApp.router(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          routerConfig: router,
-        ),
-      ),
-    );
+    await tester.pumpWidget(buildTestableWidget(
+      isPro: false,
+      dataDeletionService: mockDeletionService,
+    ));
     await tester.pumpAndSettle();
 
-    final securityTile = find.text('Security Trust Center');
-    expect(securityTile, findsOneWidget);
-    await tester.tap(securityTile, warnIfMissed: false);
+    final deleteTile = find.text('Delete All Data & Reset');
+    await tester.scrollUntilVisible(deleteTile, 500);
     await tester.pumpAndSettle();
 
-    expect(find.text('Security Trust Center Page'), findsOneWidget);
+    expect(deleteTile, findsOneWidget);
+    await tester.tap(deleteTile, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete All Data & Reset?'), findsOneWidget);
+    final deleteButton = find.widgetWithText(ElevatedButton, 'Delete Everything');
+    expect(tester.widget<ElevatedButton>(deleteButton).enabled, isFalse);
+
+    // Enter wrong text
+    await tester.enterText(find.byType(TextField), 'del');
+    await tester.pumpAndSettle();
+    expect(tester.widget<ElevatedButton>(deleteButton).enabled, isFalse);
+
+    // Enter DELETE
+    await tester.enterText(find.byType(TextField), 'DELETE');
+    await tester.pumpAndSettle();
+    expect(tester.widget<ElevatedButton>(deleteButton).enabled, isTrue);
+
+    await tester.tap(deleteButton);
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(mockDeletionService.executeFullResetCalled, isTrue);
+    expect(find.text('Onboarding Screen'), findsOneWidget);
   });
 
-  testWidgets('v1.0 release: hides pro banner, cloud sync, and pro gates when enableSubscriptions is false',
+  testWidgets('v1.0 release: hides pro banner, cloud sync, security section, and pro gates when enableSubscriptions is false',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
@@ -220,6 +230,8 @@ void main() {
 
     expect(find.text('Upgrade to Pro'), findsNothing);
     expect(find.text('Prism Pro Active'), findsNothing);
+    expect(find.text('SECURITY & SYNC'), findsNothing);
+    expect(find.text('Security Trust Center'), findsNothing);
     expect(find.text('Cloud Sync'), findsNothing);
     expect(find.text('Custom Macros'), findsNothing);
     expect(find.text('Custom Templates'), findsNothing);

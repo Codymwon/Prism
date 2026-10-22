@@ -231,7 +231,7 @@ class QuickCaptureNotifier extends Notifier<QuickCaptureState> {
     final dateStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     final title = 'Voice Memo — $dateStr';
-    final content = '\n\n[Audio Note](attachments/$fileName)\n';
+    final content = '---\ntitle: "$title"\n---\n\n[Audio Note](attachments/$fileName)\n';
 
     final repo = ref.read(noteRepositoryProvider);
     // Uncategorized inbox note (CARD-18): no folder associated

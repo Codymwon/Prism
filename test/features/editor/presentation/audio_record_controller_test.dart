@@ -25,10 +25,13 @@ class FakeAudioRecorderService implements AudioRecorderService {
     recordingActive = true;
   }
 
+  String? Function()? onStop;
+
   @override
   Future<String?> stop() async {
     stopCalled = true;
     recordingActive = false;
+    if (onStop != null) return onStop!();
     return startPath;
   }
 
@@ -177,6 +180,37 @@ void main() {
       final state = container.read(audioRecordControllerProvider('test-note'));
       expect(state.isRecording, isFalse);
       expect(saveCalled, isTrue);
+    });
+
+    test('stopRecording with commit: true still inserts markdown link and preserves file even when recorder.stop() returns null', () async {
+      fakeAudioRecorder.onStop = () => null;
+      final controller = container.read(audioRecordControllerProvider('test-note').notifier);
+
+      await controller.toggleRecording(
+        textController: textController,
+        focusNode: focusNode,
+        onSave: () => saveCalled = true,
+        vaultPath: 'test_vault',
+      );
+
+      final audioPath = fakeAudioRecorder.startPath!;
+      final file = File(audioPath);
+      await file.create(recursive: true);
+
+      await controller.stopRecording(
+        commit: true,
+        textController: textController,
+        focusNode: focusNode,
+        onSave: () => saveCalled = true,
+      );
+
+      expect(textController.text, contains('[Audio Note](attachments/audio_'));
+      expect(file.existsSync(), isTrue);
+      expect(saveCalled, isTrue);
+
+      try {
+        file.deleteSync();
+      } catch (_) {}
     });
   });
 

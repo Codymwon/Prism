@@ -121,22 +121,16 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => context.push('/settings/attachments'),
                 ),
 
-                // ── 2. Security & Sync ──────────────────────────────────
-                SettingsSectionHeader(title: context.l10n.settings_section_security_sync),
-                SettingsTile(
-                  icon: Icons.shield_outlined,
-                  title: context.l10n.settings_security_title,
-                  subtitle: context.l10n.settings_security_trust_center_desc,
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push('/settings/security'),
-                ),
-                if (AppConfig.enableSubscriptions)
+                // ── 2. Security & Sync (Subscriptions only) ─────────────
+                if (AppConfig.enableSubscriptions) ...[
+                  SettingsSectionHeader(title: context.l10n.settings_section_security_sync),
                   ProGateTile(
                     icon: Icons.sync_rounded,
                     title: context.l10n.settings_main_sync_title,
                     subtitle: context.l10n.settings_main_sync_desc,
                     onTap: () => context.push('/settings/cloud-sync'),
                   ),
+                ],
 
                 // ── 3. Writing & Appearance ─────────────────────────────
                 SettingsSectionHeader(title: context.l10n.settings_section_writing_appearance),
@@ -248,6 +242,7 @@ class SettingsScreen extends ConsumerWidget {
                     );
                   },
                 ),
+                const AnalyticsToggleTile(),
                 SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: 'Privacy policy',
@@ -262,6 +257,10 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/terms'),
                 ),
+
+                // ── 5. Danger Zone ───────────────────────────────────────
+                SettingsSectionHeader(title: context.l10n.settings_main_section_danger),
+                const DangerZoneDeletionTile(),
               ],
             ),
           ),

@@ -118,9 +118,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     items: [
                       _buildPrivacyItem(
                         context,
-                        title: 'GDPR, CCPA & Privacy Rights',
+                        title: 'GDPR, CCPA & Global Privacy Rights (including DPDPA India)',
                         description:
-                            'Under global privacy frameworks like GDPR (EU) and CCPA/CPRA (California), you have the right to access and delete your data. Because your notes are standard markdown files stored locally, you hold complete access and deletion capability at all times.\n\nYou can perform a full, irreversible data purge and factory reset at any time in the app via Settings → Danger Zone → "Delete All Data & Reset".\n\nIf you have uninstalled the app or wish to submit an off-device deletion request for any associated identifiers, visit our online Data Deletion Portal or contact us at privacy@smallgiantstudio.com. We process all requests within 30 days.',
+                            'Under global privacy frameworks like GDPR (EU), CCPA/CPRA (California), and the Digital Personal Data Protection Act (India), you have the right to access and delete your data. Because your notes are standard markdown files stored locally, you hold complete access and deletion capability at all times.\n\nYou can perform a full, irreversible data purge and factory reset at any time in the app via Settings → Danger Zone → "Delete All Data & Reset".\n\nIf you have uninstalled the app or wish to submit an off-device deletion request for any associated identifiers, visit our online Data Deletion Portal or contact us at privacy@smallgiantstudio.com. We process all requests within 30 days.',
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -171,13 +171,19 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         context,
                         title: 'Data Controller Identity & Address',
                         description:
-                            'Small Giant Studio\n548 Market St, Suite 30000\nSan Francisco, CA 94104, USA\n\nContact Email: privacy@smallgiantstudio.com (or legal@smallgiantstudio.com)',
+                            'Small Giant Studio (an independent software project operated by its developer)\nCountry of Operation: India\n\nContact Email: privacy@smallgiantstudio.com (or legal@smallgiantstudio.com)',
+                      ),
+                      _buildPrivacyItem(
+                        context,
+                        title: 'Grievance Officer (India IT Rules 2021)',
+                        description:
+                            'In accordance with the Information Technology Act, 2000 and the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, the designated Grievance Officer for Prism is:\n\nDesignation: Grievance Officer, Small Giant Studio\nEmail: privacy@smallgiantstudio.com\n\nWe acknowledge grievances within 48 hours and resolve all issues within fifteen (15) days of receipt.',
                       ),
                       _buildPrivacyItem(
                         context,
                         title: 'Privacy Inquiries & Deletion Requests',
                         description:
-                            'For questions regarding this Privacy Policy, CCPA/GDPR data subject access requests (DSAR), deletion inquiries, or our Google Limited Use commitments, email us at privacy@smallgiantstudio.com.',
+                            'For questions regarding this Privacy Policy, CCPA/GDPR/DPDPA data subject access requests (DSAR), deletion inquiries, or our Google Limited Use commitments, email us at privacy@smallgiantstudio.com.',
                       ),
                     ],
                   ),

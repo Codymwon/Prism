@@ -54,7 +54,9 @@ void main() {
     expect(find.text('Age Limitations & Child Data Protection'), findsOneWidget);
     expect(find.text('6. DATA CONTROLLER & CONTACT'), findsOneWidget);
     expect(find.text('Data Controller Identity & Address'), findsOneWidget);
-    expect(find.textContaining('548 Market St, Suite 30000'), findsOneWidget);
+    expect(find.textContaining('Country of Operation: India'), findsOneWidget);
+    expect(find.textContaining('548 Market St'), findsNothing);
+    expect(find.text('Grievance Officer (India IT Rules 2021)'), findsOneWidget);
     expect(find.textContaining('privacy@smallgiantstudio.com'), findsWidgets);
 
     // Verify Copy Privacy Link button

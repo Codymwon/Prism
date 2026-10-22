@@ -55,7 +55,7 @@ class TermsOfServiceScreen extends StatelessWidget {
                         context,
                         title: 'Contractual Agreement',
                         description:
-                            'These Terms of Service ("Terms") constitute a legally binding agreement between you and Small Giant Studio ("Company", "we", "us", or "our") concerning your access to and use of the Prism mobile application and associated software utilities (collectively, "Prism"). By downloading, installing, accessing, or using Prism, you agree to be bound by these Terms and our Privacy Policy. If you do not agree, do not install or use Prism.',
+                            'These Terms of Service ("Terms") constitute a legally binding agreement between you and Small Giant Studio (an independent software project operated by its developer; referred to as "we", "us", or "our") concerning your access to and use of the Prism mobile application and associated software utilities (collectively, "Prism"). By downloading, installing, accessing, or using Prism, you agree to be bound by these Terms and our Privacy Policy. If you do not agree, do not install or use Prism.',
                       ),
                       _buildTermsItem(
                         context,
@@ -67,10 +67,10 @@ class TermsOfServiceScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // ── Section 2: Conspicuous UCC Disclaimer ───────────────────
+                  // ── Section 2: Conspicuous Statutory Disclaimer ─────────────
                   _buildConspicuousCard(
                     context,
-                    badgeText: 'UCC § 2-316 STATUTORY DISCLAIMER',
+                    badgeText: 'STATUTORY WARRANTY DISCLAIMER',
                     title: '2. DISCLAIMER OF WARRANTIES ("AS IS")',
                     content:
                         'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, PRISM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, QUIET ENJOYMENT, ACCURACY, SYSTEM INTEGRATION, OR NON-INFRINGEMENT.\n\n'
@@ -100,7 +100,7 @@ class TermsOfServiceScreen extends StatelessWidget {
                         context,
                         title: 'Recording Consent Compliance',
                         description:
-                            'Prism includes optional microphone-based audio recording and attachment capabilities. State, federal, and international wiretap and eavesdropping laws (including the laws of California, Florida, Massachusetts, Pennsylvania, Illinois, and other two-party or all-party consent jurisdictions) strictly prohibit recording conversations without the express consent of all participating parties.',
+                            'Prism includes optional microphone-based audio recording and attachment capabilities. State, national, and international privacy, wiretap, and eavesdropping laws (including multi-party consent jurisdictions globally and under applicable statutory frameworks) strictly prohibit recording conversations without the express consent of all participating parties.',
                       ),
                       _buildTermsItem(
                         context,
@@ -148,25 +148,25 @@ class TermsOfServiceScreen extends StatelessWidget {
                         context,
                         title: 'Mandatory Binding Arbitration',
                         description:
-                            'Except as provided below (including the Small Claims Court Exception), any dispute, controversy, or claim arising out of or relating to these Terms, Prism, or any alleged data loss shall be resolved exclusively by final and binding individual arbitration administered by the American Arbitration Association ("AAA") under its Consumer Arbitration Rules. The Federal Arbitration Act (FAA) governs the interpretation and enforcement of this section.',
+                            'Except as provided below, any dispute, controversy, or claim arising out of or relating to these Terms, Prism, or any alleged data loss shall be resolved exclusively through final and binding individual arbitration in accordance with the Arbitration and Conciliation Act, 1996 (India). The arbitration shall be conducted on an individual basis by a sole arbitrator appointed mutually or pursuant to statutory provisions, and proceedings shall be held in the English language.',
                       ),
                       _buildTermsItem(
                         context,
                         title: 'Class Action & Collective Relief Waiver',
                         description:
-                            'YOU AND SMALL GIANT STUDIO AGREE THAT ALL DISPUTES MUST BE ARBITRATED ON AN INDIVIDUAL BASIS ONLY. NEITHER YOU NOR SMALL GIANT STUDIO SHALL BE ENTITLED TO JOIN OR CONSOLIDATE CLAIMS, ACT AS A REPRESENTATIVE OR PRIVATE ATTORNEY GENERAL, OR PROCEED IN ANY CLASS OR COLLECTIVE ARBITRATION.',
+                            'YOU AND SMALL GIANT STUDIO AGREE THAT ALL DISPUTES MUST BE RESOLVED ON AN INDIVIDUAL BASIS ONLY. NEITHER YOU NOR SMALL GIANT STUDIO SHALL BE ENTITLED TO JOIN OR CONSOLIDATE CLAIMS, ACT AS A REPRESENTATIVE OR PRIVATE ATTORNEY GENERAL, OR PROCEED IN ANY CLASS OR COLLECTIVE PROCEEDING.',
                       ),
                       _buildTermsItem(
                         context,
                         title: 'Small Claims Court Mutual Exception',
                         description:
-                            'Notwithstanding the agreement to arbitrate, either you or Small Giant Studio may bring an individual action in a small claims court of competent jurisdiction located in Santa Clara County, California (or in the county of your residence if local rules permit), provided the action remains within the monetary limits of such small claims court and proceeds strictly on an individual basis.',
+                            'Notwithstanding the agreement to arbitrate, either you or Small Giant Studio may bring an individual action in a small claims court, consumer disputes forum, or court of competent jurisdiction in India, provided the action remains within the monetary jurisdictional limits of such forum and proceeds strictly on an individual basis.',
                       ),
                       _buildTermsItem(
                         context,
                         title: 'Mandatory 30-Day Informal Negotiation',
                         description:
-                            'Before initiating arbitration or small claims proceedings, the claimant must first send a written Notice of Dispute describing the claim and desired relief to $contactEmail. Both parties agree to negotiate in good faith for at least thirty (30) days following receipt before commencing formal dispute resolution.',
+                            'Before initiating arbitration or formal legal proceedings, the claimant must first send a written Notice of Dispute describing the claim and desired relief to $contactEmail. Both parties agree to negotiate in good faith for at least thirty (30) days following receipt before commencing formal dispute resolution.',
                       ),
                       _buildTermsItem(
                         context,
@@ -176,15 +176,9 @@ class TermsOfServiceScreen extends StatelessWidget {
                       ),
                       _buildTermsItem(
                         context,
-                        title: 'California Public Injunction Carve-Out (McGill Rule)',
+                        title: 'Governing Law & Exclusive Venue',
                         description:
-                            'Pursuant to California Supreme Court precedent (McGill v. Citibank, N.A.), if you seek public injunctive relief under California consumer protection statutes, that specific request for public injunctive relief shall be severed and litigated in state or federal court in Santa Clara County, California, staying such court proceedings until all individual arbitrable claims have been concluded.',
-                      ),
-                      _buildTermsItem(
-                        context,
-                        title: 'Governing Law & Venue',
-                        description:
-                            'These Terms are governed by the laws of the State of California and applicable U.S. federal law, without regard to conflict of laws rules. Any judicial proceeding not subject to arbitration shall be brought exclusively in the state or federal courts located in Santa Clara County, California.',
+                            'These Terms and any dispute or claim arising out of or relating to them shall be governed by and construed in accordance with the laws of the Republic of India, without regard to conflict of laws rules. Subject to the arbitration provisions above, the courts of competent jurisdiction in India shall have exclusive jurisdiction to settle any dispute or legal proceeding arising out of or in connection with Prism.',
                       ),
                     ],
                   ),

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prism/l10n/l10n.dart';
 import 'package:prism/core/services/data_deletion_service.dart' hide secureStorageProvider;
 import 'package:prism/core/services/two_way_sync_service.dart';
+import 'package:prism/core/config/app_config.dart';
 import 'package:prism/features/settings/presentation/screens/security_settings_screen.dart';
 
 class InMemorySecureStorage extends Fake implements FlutterSecureStorage {
@@ -83,9 +84,14 @@ class MockDataDeletionService extends Fake implements DataDeletionService {
 
 void main() {
   setUp(() {
+    AppConfig.enableSubscriptions = true;
     SharedPreferences.setMockInitialValues({
       'analyticsEnabled': false,
     });
+  });
+
+  tearDown(() {
+    AppConfig.enableSubscriptions = false;
   });
 
   Widget buildTestableWidget({
@@ -253,7 +259,8 @@ void main() {
     expect(find.text('Cloud Sync Screen'), findsOneWidget);
   });
 
-  testWidgets('displays Danger Zone and requires typing DELETE to wipe all data', (WidgetTester tester) async {
+  testWidgets('v1.0 release: hides master passphrase and cloud sync when enableSubscriptions is false',
+      (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -261,44 +268,15 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
+    AppConfig.enableSubscriptions = false;
+
     final storage = InMemorySecureStorage();
-    final mockDeletionService = MockDataDeletionService();
-
-    await tester.pumpWidget(buildTestableWidget(
-      secureStorage: storage,
-      dataDeletionService: mockDeletionService,
-    ));
+    await tester.pumpWidget(buildTestableWidget(secureStorage: storage));
     await tester.pumpAndSettle();
 
-    final deleteTile = find.text('Delete All Data & Reset');
-    await tester.scrollUntilVisible(deleteTile, 500);
-    await tester.pumpAndSettle();
-
-    expect(find.text('DANGER ZONE'), findsOneWidget);
-    expect(deleteTile, findsOneWidget);
-
-    await tester.tap(deleteTile, warnIfMissed: false);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Delete All Data & Reset?'), findsOneWidget);
-    final deleteButton = find.widgetWithText(ElevatedButton, 'Delete Everything');
-    expect(tester.widget<ElevatedButton>(deleteButton).enabled, isFalse);
-
-    // Enter wrong text
-    await tester.enterText(find.byType(TextField), 'del');
-    await tester.pumpAndSettle();
-    expect(tester.widget<ElevatedButton>(deleteButton).enabled, isFalse);
-
-    // Enter DELETE
-    await tester.enterText(find.byType(TextField), 'DELETE');
-    await tester.pumpAndSettle();
-    expect(tester.widget<ElevatedButton>(deleteButton).enabled, isTrue);
-
-    await tester.tap(deleteButton);
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(mockDeletionService.executeFullResetCalled, isTrue);
-    expect(find.text('Onboarding Screen'), findsOneWidget);
+    expect(find.text('ON-DEVICE STORAGE LOCK'), findsOneWidget);
+    expect(find.text('MASTER ENCRYPTION PASSPHRASE'), findsNothing);
+    expect(find.text('Google Drive Cloud Sync'), findsNothing);
+    expect(find.text('DANGER ZONE'), findsNothing);
   });
 }

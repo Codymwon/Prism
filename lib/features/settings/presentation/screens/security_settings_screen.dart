@@ -6,7 +6,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/prism_toast.dart';
 import '../widgets/settings_widgets.dart';
 import '../../../../core/services/two_way_sync_service.dart';
-import '../../../../core/services/data_deletion_service.dart' hide secureStorageProvider;
+import '../../../../core/config/app_config.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class SecuritySettingsScreen extends ConsumerStatefulWidget {
@@ -101,69 +101,6 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
           context.l10n.settings_security_passphrase_verify_failure,
           icon: Icons.warning_amber_rounded,
         );
-      }
-    }
-  }
-
-  Future<void> _showDataDeletionDialog(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) => const DataDeletionConfirmationDialog(),
-    );
-
-    if (confirmed == true && context.mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => PopScope(
-          canPop: false,
-          child: Dialog(
-            backgroundColor: DesignColors.surface(context),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Row(
-                children: [
-                  CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: DesignColors.accentRose(context),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Text(
-                      context.l10n.settings_data_deletion_progress,
-                      style: DesignTypography.body(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-
-      try {
-        await ref.read(dataDeletionServiceProvider).executeFullReset();
-        if (context.mounted) {
-          Navigator.of(context, rootNavigator: true).pop();
-
-          PrismToast.show(
-            context,
-            context.l10n.settings_data_deletion_success,
-            icon: Icons.check_circle_outline_rounded,
-          );
-
-          context.go('/onboarding');
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context, rootNavigator: true).pop();
-          PrismToast.show(
-            context,
-            context.l10n.settings_data_deletion_failure(e.toString()),
-            icon: Icons.error_outline_rounded,
-          );
-        }
       }
     }
   }
@@ -311,199 +248,181 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  if (AppConfig.enableSubscriptions) ...[
+                    const SizedBox(height: 24),
 
-                  // ── 2. Master Passphrase Management ──────────────────────
-                  SettingsSectionHeader(title: l10n.settings_security_master_passphrase),
-                  Card(
-                    color: DesignColors.surface(context),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: DesignColors.text(context).withValues(alpha: 0.05)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: _isPassphraseConfigured
-                                      ? primaryColor.withValues(alpha: 0.12)
-                                      : Colors.amber.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  _isPassphraseConfigured ? Icons.key_rounded : Icons.lock_outline_rounded,
-                                  color: _isPassphraseConfigured ? primaryColor : Colors.amber,
-                                  size: 18,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _isPassphraseConfigured
-                                          ? l10n.settings_security_passphrase_configured
-                                          : l10n.settings_security_passphrase_not_configured,
-                                      style: DesignTypography.body(
-                                        context,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    Text(
-                                      _isPassphraseConfigured
-                                          ? 'Zero-knowledge cryptographic root active'
-                                          : 'Passphrase not yet established',
-                                      style: DesignTypography.details(context, color: DesignColors.textSecondary(context)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: primaryColor,
-                                    side: BorderSide(color: primaryColor.withValues(alpha: 0.4)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    // ── 2. Master Passphrase Management ──────────────────────
+                    SettingsSectionHeader(title: l10n.settings_security_master_passphrase),
+                    Card(
+                      color: DesignColors.surface(context),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: DesignColors.text(context).withValues(alpha: 0.05)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: _isPassphraseConfigured
+                                        ? primaryColor.withValues(alpha: 0.12)
+                                        : Colors.amber.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  icon: Icon(
-                                    _isPassphraseConfigured ? Icons.edit_rounded : Icons.add_rounded,
-                                    size: 16,
+                                  child: Icon(
+                                    _isPassphraseConfigured ? Icons.key_rounded : Icons.lock_outline_rounded,
+                                    color: _isPassphraseConfigured ? primaryColor : Colors.amber,
+                                    size: 18,
                                   ),
-                                  label: Text(
-                                    _isPassphraseConfigured
-                                        ? l10n.settings_security_passphrase_change
-                                        : l10n.settings_security_passphrase_set,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                  ),
-                                  onPressed: _showSetOrChangePassphraseDialog,
                                 ),
-                              ),
-                              if (_isPassphraseConfigured) ...[
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 12),
                                 Expanded(
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryColor,
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      padding: const EdgeInsets.symmetric(vertical: 10),
-                                    ),
-                                    icon: const Icon(Icons.fact_check_outlined, size: 16),
-                                    label: Text(
-                                      l10n.settings_security_passphrase_verify,
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                    ),
-                                    onPressed: _showVerifyPassphraseDialog,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _isPassphraseConfigured
+                                            ? l10n.settings_security_passphrase_configured
+                                            : l10n.settings_security_passphrase_not_configured,
+                                        style: DesignTypography.body(
+                                          context,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        _isPassphraseConfigured
+                                            ? 'Zero-knowledge cryptographic root active'
+                                            : 'Passphrase not yet established',
+                                        style: DesignTypography.details(context, color: DesignColors.textSecondary(context)),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // PBKDF2 Cryptographic Standards Explainer Card
-                  Card(
-                    color: DesignColors.surfaceVariant(context),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: DesignColors.border(context)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.shield_outlined, size: 16, color: primaryColor),
-                              const SizedBox(width: 6),
-                              Text(
-                                l10n.settings_security_pbkdf2_title,
-                                style: DesignTypography.body(
-                                  context,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.settings_security_pbkdf2_subtitle,
-                            style: DesignTypography.metadata(
-                              context,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: primaryColor,
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            l10n.settings_security_pbkdf2_desc,
-                            style: DesignTypography.details(context, color: DesignColors.textSecondary(context)),
-                          ),
-                        ],
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: primaryColor,
+                                      side: BorderSide(color: primaryColor.withValues(alpha: 0.4)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                    ),
+                                    icon: Icon(
+                                      _isPassphraseConfigured ? Icons.edit_rounded : Icons.add_rounded,
+                                      size: 16,
+                                    ),
+                                    label: Text(
+                                      _isPassphraseConfigured
+                                          ? l10n.settings_security_passphrase_change
+                                          : l10n.settings_security_passphrase_set,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                    onPressed: _showSetOrChangePassphraseDialog,
+                                  ),
+                                ),
+                                if (_isPassphraseConfigured) ...[
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryColor,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                      ),
+                                      icon: const Icon(Icons.fact_check_outlined, size: 16),
+                                      label: Text(
+                                        l10n.settings_security_passphrase_verify,
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                      ),
+                                      onPressed: _showVerifyPassphraseDialog,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 12),
 
-                  // ── 3. Cloud Sync Linkage ────────────────────────────────
-                  SettingsSectionHeader(title: l10n.settings_cloud_sync_title),
-                  SettingsTile(
-                    icon: Icons.cloud_sync_rounded,
-                    title: l10n.settings_security_cloud_sync_title,
-                    subtitle: l10n.settings_security_cloud_sync_desc,
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () async {
-                      await context.push('/settings/cloud-sync');
-                      _loadStatus();
-                    },
-                  ),
+                    // PBKDF2 Cryptographic Standards Explainer Card
+                    Card(
+                      color: DesignColors.surfaceVariant(context),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: DesignColors.border(context)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.shield_outlined, size: 16, color: primaryColor),
+                                const SizedBox(width: 6),
+                                Text(
+                                  l10n.settings_security_pbkdf2_title,
+                                  style: DesignTypography.body(
+                                    context,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.settings_security_pbkdf2_subtitle,
+                              style: DesignTypography.metadata(
+                                context,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: primaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              l10n.settings_security_pbkdf2_desc,
+                              style: DesignTypography.details(context, color: DesignColors.textSecondary(context)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // ── 4. Telemetry & Privacy ───────────────────────────────
-                  SettingsSectionHeader(title: l10n.settings_security_telemetry_header),
-                  const AnalyticsToggleTile(),
-
-                  const SizedBox(height: 24),
-
-                  // ── 5. Danger Zone ───────────────────────────────────────
-                  SettingsSectionHeader(title: l10n.settings_main_section_danger),
-                  SettingsTile(
-                    icon: Icons.delete_forever_rounded,
-                    iconColor: DesignColors.accentRose(context),
-                    iconBackgroundColor: DesignColors.accentRose(context).withValues(alpha: 0.12),
-                    title: l10n.settings_data_deletion_title,
-                    subtitle: l10n.settings_data_deletion_desc,
-                    trailing: Icon(Icons.chevron_right_rounded, color: DesignColors.accentRose(context), size: 18),
-                    onTap: () => _showDataDeletionDialog(context, ref),
-                  ),
+                    // ── 3. Cloud Sync Linkage ────────────────────────────────
+                    SettingsSectionHeader(title: l10n.settings_cloud_sync_title),
+                    SettingsTile(
+                      icon: Icons.cloud_sync_rounded,
+                      title: l10n.settings_security_cloud_sync_title,
+                      subtitle: l10n.settings_security_cloud_sync_desc,
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () async {
+                        await context.push('/settings/cloud-sync');
+                        _loadStatus();
+                      },
+                    ),
+                  ],
                 ],
               ),
       ),
@@ -756,126 +675,6 @@ class _VerifyPassphraseDialogState extends State<_VerifyPassphraseDialog> {
             Navigator.of(context).pop(matches);
           },
           child: Text(l10n.settings_security_verify_button),
-        ),
-      ],
-    );
-  }
-}
-
-class DataDeletionConfirmationDialog extends StatefulWidget {
-  const DataDeletionConfirmationDialog({super.key});
-
-  @override
-  State<DataDeletionConfirmationDialog> createState() => _DataDeletionConfirmationDialogState();
-}
-
-class _DataDeletionConfirmationDialogState extends State<DataDeletionConfirmationDialog> {
-  late final TextEditingController _controller;
-  bool _canDelete = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-    _controller.addListener(_onTextChanged);
-  }
-
-  void _onTextChanged() {
-    final text = _controller.text.trim();
-    final can = text == 'DELETE';
-    if (can != _canDelete) {
-      setState(() {
-        _canDelete = can;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final rose = DesignColors.accentRose(context);
-
-    return AlertDialog(
-      backgroundColor: DesignColors.surface(context),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, color: rose, size: 24),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              l10n.settings_data_deletion_dialog_title,
-              style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.settings_data_deletion_dialog_body,
-              style: DesignTypography.body(context, fontSize: 13, color: DesignColors.textSecondary(context)),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _controller,
-              autocorrect: false,
-              enableSuggestions: false,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                hintText: l10n.settings_data_deletion_confirm_keyword,
-                hintStyle: TextStyle(color: DesignColors.textTertiary(context), letterSpacing: 1.5),
-                filled: true,
-                fillColor: DesignColors.surfaceVariant(context),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: DesignColors.border(context)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: DesignColors.border(context)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: rose, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(
-            l10n.settings_data_deletion_cancel_button,
-            style: DesignTypography.body(context, color: DesignColors.textSecondary(context)),
-          ),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: rose,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: rose.withValues(alpha: 0.3),
-            disabledForegroundColor: Colors.white.withValues(alpha: 0.5),
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          onPressed: _canDelete ? () => Navigator.of(context).pop(true) : null,
-          child: Text(
-            l10n.settings_data_deletion_confirm_button,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
         ),
       ],
     );

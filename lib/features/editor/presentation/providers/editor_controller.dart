@@ -427,9 +427,10 @@ class AudioRecordController extends _$AudioRecordController {
     state = state.copyWith(isRecording: false, durationSeconds: 0);
 
     final audioPath = await _audioRecorder.stop();
+    final recordedPath = (audioPath != null && audioPath.isNotEmpty) ? audioPath : _audioPath;
 
-    if (commit && audioPath != null && _audioPath.isNotEmpty) {
-      final filename = p.basename(_audioPath);
+    if (commit && recordedPath.isNotEmpty) {
+      final filename = p.basename(recordedPath);
 
       final text = textController.text;
       final cursor = textController.selection.baseOffset;
@@ -443,10 +444,11 @@ class AudioRecordController extends _$AudioRecordController {
           offset: (cursor >= 0 ? cursor : text.length) + audioLink.length,
         ),
       );
-    } else {
-      if (_audioPath.isNotEmpty) {
+    } else if (!commit) {
+      final pathToDelete = recordedPath.isNotEmpty ? recordedPath : _audioPath;
+      if (pathToDelete.isNotEmpty) {
         try {
-          final file = File(_audioPath);
+          final file = File(pathToDelete);
           if (file.existsSync()) {
             file.deleteSync();
           }

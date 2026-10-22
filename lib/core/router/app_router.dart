@@ -282,6 +282,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings/security',
+        redirect: (context, state) => AppConfig.enableSubscriptions ? null : '/settings',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const SecuritySettingsScreen(),

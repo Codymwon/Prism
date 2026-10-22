@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../../../../core/database/vault_providers.dart';
 import '../../../../shared/design_system/design_system.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../data/audio_bookmark_model.dart';
 import '../providers/audio_player_providers.dart';
 import '../providers/audio_bookmark_providers.dart';
@@ -57,17 +57,54 @@ class _InlineAudioWaveformPlayerState
   Future<void> _resolvePath() async {
     try {
       final vaultPath = await ref.read(activeVaultPathProvider.future);
-      final absPath = p.join(vaultPath, widget.filePath);
-      final file = File(absPath);
-      if (await file.exists()) {
-        final peaks = await Isolate.run(() async {
-          final f = File(absPath);
+      String effectiveVaultPath = vaultPath;
+
+      final noteId = widget.noteId;
+      if (noteId != null) {
+        final note = await ref.read(noteByIdProvider(noteId).future);
+        if (note != null && note.filePath.isNotEmpty) {
+          effectiveVaultPath = p.dirname(note.filePath);
+        }
+      }
+
+      final rawPath = Uri.decodeComponent(widget.filePath);
+
+      // Candidate paths in priority order:
+      final candidates = <String>[
+        if (p.isAbsolute(rawPath)) rawPath,
+        if (p.isAbsolute(widget.filePath)) widget.filePath,
+        p.join(effectiveVaultPath, rawPath),
+        p.join(effectiveVaultPath, widget.filePath),
+        p.join(effectiveVaultPath, 'attachments', p.basename(rawPath)),
+        if (vaultPath.isNotEmpty && vaultPath != effectiveVaultPath) ...[
+          p.join(vaultPath, rawPath),
+          p.join(vaultPath, widget.filePath),
+          p.join(vaultPath, 'attachments', p.basename(rawPath)),
+        ],
+      ];
+
+      String? foundPath;
+      for (final candidate in candidates) {
+        if (await File(candidate).exists()) {
+          foundPath = candidate;
+          break;
+        }
+      }
+
+      if (foundPath != null) {
+        List<double> peaks;
+        try {
+          final f = File(foundPath);
           final seed = await AudioWaveformPeakGenerator.generateSeedFromFile(f);
-          return AudioWaveformPeakGenerator.generatePeaks(seed: seed, count: 45);
-        });
+          peaks = AudioWaveformPeakGenerator.generatePeaks(seed: seed, count: 45);
+        } catch (e) {
+          debugPrint('Error generating peaks: $e');
+          peaks = AudioWaveformPeakGenerator.generatePeaks(seed: 0, count: 45);
+        }
+
         if (mounted) {
           setState(() {
-            _absolutePath = absPath;
+            _absolutePath = foundPath;
             _peaks = peaks;
             _loading = false;
           });
@@ -83,7 +120,10 @@ class _InlineAudioWaveformPlayerState
     } catch (e) {
       debugPrint('Error resolving audio path: $e');
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() {
+          _absolutePath = null;
+          _loading = false;
+        });
       }
     }
   }
