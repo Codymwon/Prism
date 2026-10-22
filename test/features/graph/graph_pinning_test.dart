@@ -321,16 +321,24 @@ void main() {
 
       // Add links between A->B and B->C
       final time = DateTime.now().millisecondsSinceEpoch;
-      await db.insert('note_links', {
-        'source_id': noteA.id,
-        'target_id': noteB.id,
-        'created_at': time,
-      });
-      await db.insert('note_links', {
-        'source_id': noteB.id,
-        'target_id': noteC.id,
-        'created_at': time,
-      });
+      await db.insert(
+        'note_links',
+        {
+          'source_id': noteA.id,
+          'target_id': noteB.id,
+          'created_at': time,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      await db.insert(
+        'note_links',
+        {
+          'source_id': noteB.id,
+          'target_id': noteC.id,
+          'created_at': time,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
       // Get graph data
       final data = await graphNodeRepository.getGraphData();

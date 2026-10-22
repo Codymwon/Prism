@@ -248,5 +248,84 @@ void main() {
       final res3 = await service.syncVault('/vault');
       expect(res3, isTrue);
     });
+
+    test('syncVault updates file_path on path mismatch when frontmatter id matches, preserving note ID', () async {
+      // Create initial note
+      final originalNote = await service.createNote(
+        title: 'Original Note',
+        initialContent: 'Body content',
+      );
+      final originalId = originalNote.id;
+
+      // Simulate a vault rename or file move:
+      // Remove file from old path and place at new path with frontmatter id preserved
+      await storage.deleteContent(originalNote.filePath);
+      final newFilePath = '/vault/renamed-folder/Original Note-$originalId.md';
+      final fileContent = '---\nid: "$originalId"\ntitle: "Original Note"\ndate: 2026-10-23\n---\nBody content';
+      await storage.writeContent(newFilePath, fileContent);
+
+      // Run syncVault
+      final changed = await service.syncVault('/vault');
+      expect(changed, isTrue);
+
+      // Check SQLite: originalId must still exist, file_path must be updated, no duplicate notes
+      final notes = await db.query('notes', where: 'id = ?', whereArgs: [originalId]);
+      expect(notes.length, equals(1));
+      expect(notes.first['file_path'], equals(newFilePath));
+      expect(notes.first['title'], equals('Original Note'));
+
+      final allNotes = await db.query('notes');
+      expect(allNotes.length, equals(1));
+    });
+
+    test('syncVault updates file_path when filename trailing UUID matches existing note', () async {
+      final originalNote = await service.createNote(
+        title: 'Slug Note',
+        initialContent: 'Some slug content',
+      );
+      final originalId = originalNote.id;
+
+      await storage.deleteContent(originalNote.filePath);
+      final newFilePath = '/vault/subfolder/New Title-$originalId.md';
+      await storage.writeContent(newFilePath, 'No frontmatter content');
+
+      final changed = await service.syncVault('/vault');
+      expect(changed, isTrue);
+
+      final notes = await db.query('notes', where: 'id = ?', whereArgs: [originalId]);
+      expect(notes.length, equals(1));
+      expect(notes.first['file_path'], equals(newFilePath));
+    });
+
+    test('syncVault promotes existing ghost note when disk file matches title', () async {
+      // 1. Manually insert a ghost note
+      final ghostId = 'ghost-uuid-123';
+      await db.insert('notes', {
+        'id': ghostId,
+        'title': 'Ghost Topic',
+        'file_path': '/vault/ghost-topic-$ghostId.md',
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'is_ghost': 1,
+        'word_count': 0,
+      });
+
+      // 2. Add an actual file on disk with that title
+      final diskFilePath = '/vault/Ghost Topic.md';
+      await storage.writeContent(diskFilePath, '# Ghost Topic\n\nNow materialized content');
+
+      // 3. Run syncVault
+      final changed = await service.syncVault('/vault');
+      expect(changed, isTrue);
+
+      // 4. Verify ghost note was promoted to non-ghost with updated file_path and no duplicate row
+      final notes = await db.query('notes', where: 'id = ?', whereArgs: [ghostId]);
+      expect(notes.length, equals(1));
+      expect(notes.first['is_ghost'], equals(0));
+      expect(notes.first['file_path'], equals(diskFilePath));
+
+      final allNotes = await db.query('notes', where: 'LOWER(title) = ?', whereArgs: ['ghost topic']);
+      expect(allNotes.length, equals(1));
+    });
   });
 }

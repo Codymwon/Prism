@@ -68,20 +68,16 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
     final filePath = existingFilePath ?? p.join(currentVaultPath, '$slug-$id.md');
     final now = DateTime.now();
 
-    final String content;
-    if (initialContent.isNotEmpty) {
-      content = initialContent;
-    } else {
-      final buffer = StringBuffer();
-      buffer.writeln('---');
-      buffer.writeln('title: "$noteTitle"');
-      if (isDaily && dailyDate != null) {
-        buffer.writeln('date: $dailyDate');
-      }
-      buffer.writeln('---');
-      buffer.writeln();
-      content = buffer.toString();
-    }
+    final cleanNoteTitle = noteTitle.trim().isEmpty ? 'Untitled' : noteTitle.trim();
+    final String? existingFm = initialContent.isNotEmpty ? utils.extractFrontmatterBlock(initialContent) : null;
+    final String body = initialContent.isNotEmpty ? utils.stripFrontmatter(initialContent) : '';
+    final String content = utils.updateOrInjectFrontmatter(
+      existingFrontmatterBlock: existingFm,
+      body: body,
+      id: id,
+      title: cleanNoteTitle,
+      date: isDaily && dailyDate != null ? dailyDate : null,
+    );
 
     // Write physical file
     await storage.writeContent(filePath, content);
@@ -260,8 +256,8 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
       if (!database.isOpen) return false;
 
-      // Query existing notes along with their updated_at time and ghost flag
-      final existingNotes = await database.query('notes', columns: ['id', 'file_path', 'updated_at', 'is_ghost']);
+      // Query existing notes along with their updated_at time, ghost flag, and title
+      final existingNotes = await database.query('notes', columns: ['id', 'title', 'file_path', 'updated_at', 'is_ghost']);
       // Ghost notes have no physical file by design — exclude them from the path map
       final Map<String, ({String id, int updatedAt})> existingPathsMap = {
         for (final n in existingNotes)
@@ -271,6 +267,27 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
               updatedAt: n['updated_at'] as int,
             )
       };
+
+      final Map<String, ({String id, String filePath, int updatedAt, int isGhost})> existingNotesById = {
+        for (final n in existingNotes)
+          n['id'] as String: (
+            id: n['id'] as String,
+            filePath: n['file_path'] as String,
+            updatedAt: n['updated_at'] as int,
+            isGhost: n['is_ghost'] as int? ?? 0,
+          )
+      };
+
+      final Map<String, ({String id, int updatedAt})> ghostNotesByLowerTitle = {
+        for (final n in existingNotes)
+          if ((n['is_ghost'] as int? ?? 0) == 1 && n['title'] != null)
+            (n['title'] as String).toLowerCase().trim(): (
+              id: n['id'] as String,
+              updatedAt: n['updated_at'] as int,
+            )
+      };
+
+      final Set<String> claimedNoteIds = {};
 
       if (!database.isOpen) return false;
 
@@ -289,26 +306,84 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
         final lastMod = await storage.getLastModified(filePath);
         final lastModMs = lastMod.millisecondsSinceEpoch;
 
-        final exists = existingPathsMap.containsKey(filePath);
-        final existing = existingPathsMap[filePath];
+        if (existingPathsMap.containsKey(filePath)) {
+          final existing = existingPathsMap[filePath]!;
+          claimedNoteIds.add(existing.id);
 
-        // Determine if we need to insert or update (allow 1 second discrepancy)
-        final shouldInsert = !exists;
-        final shouldUpdate = exists && (lastModMs > (existing!.updatedAt + 1000));
-
-        if (shouldInsert || shouldUpdate) {
+          // Determine if we need to update (discrepancy > 1 second)
+          if (lastModMs > (existing.updatedAt + 1000)) {
+            final content = await storage.readContent(filePath);
+            final metadata = parser.parse(content);
+            notesToSync.add((
+              id: existing.id,
+              title: metadata.title,
+              filePath: filePath,
+              wordCount: metadata.wordCount,
+              updatedAt: lastMod,
+              metadata: metadata,
+            ));
+          }
+        } else {
+          // Exact file_path match not found
           final content = await storage.readContent(filePath);
           final metadata = parser.parse(content);
-          final noteId = shouldInsert ? utils.generateId() : existing!.id;
 
-          notesToSync.add((
-            id: noteId,
-            title: metadata.title,
-            filePath: filePath,
-            wordCount: metadata.wordCount,
-            updatedAt: lastMod,
-            metadata: metadata,
-          ));
+          // 1. Check if parsed frontmatter contains an id matching existing note
+          final frontmatterId = utils.extractFrontmatterValue(content, 'id');
+          String? matchedId;
+          if (frontmatterId != null && existingNotesById.containsKey(frontmatterId)) {
+            matchedId = frontmatterId;
+          } else {
+            // 2. Check if trailing filename matches UUID format
+            final basename = p.basenameWithoutExtension(filePath);
+            final uuidMatch = RegExp(r'([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$').firstMatch(basename);
+            if (uuidMatch != null) {
+              final filenameUuid = uuidMatch.group(1);
+              if (filenameUuid != null && existingNotesById.containsKey(filenameUuid)) {
+                matchedId = filenameUuid;
+              }
+            }
+          }
+
+          if (matchedId != null) {
+            // Note's file_path changed (e.g. vault rename or file move). Update existing note!
+            claimedNoteIds.add(matchedId);
+            notesToSync.add((
+              id: matchedId,
+              title: metadata.title,
+              filePath: filePath,
+              wordCount: metadata.wordCount,
+              updatedAt: lastMod,
+              metadata: metadata,
+            ));
+          } else {
+            // 3. Check Ghost Notes (promote matching title)
+            final lowerTitle = metadata.title.toLowerCase().trim();
+            if (ghostNotesByLowerTitle.containsKey(lowerTitle)) {
+              final ghost = ghostNotesByLowerTitle[lowerTitle]!;
+              claimedNoteIds.add(ghost.id);
+              notesToSync.add((
+                id: ghost.id,
+                title: metadata.title,
+                filePath: filePath,
+                wordCount: metadata.wordCount,
+                updatedAt: lastMod,
+                metadata: metadata,
+              ));
+            } else {
+              // Brand-new note
+              final noteId = utils.generateId();
+              claimedNoteIds.add(noteId);
+              notesToSync.add((
+                id: noteId,
+                title: metadata.title,
+                filePath: filePath,
+                wordCount: metadata.wordCount,
+                updatedAt: lastMod,
+                metadata: metadata,
+              ));
+            }
+          }
         }
       }
 
@@ -318,7 +393,15 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
 
       // 2. Perform all database modifications inside a single fast transaction
       await database.transaction((txn) async {
-        if (notesToSync.isNotEmpty || existingNotes.where((n) => (n['is_ghost'] as int? ?? 0) == 0 && !files.contains(n['file_path'] as String)).isNotEmpty) {
+        // ── Orphan pruning ─────────────────────────────────────────────────
+        // Remove non-ghost notes whose physical .md file no longer exists and wasn't claimed.
+        final orphanedNotes = existingNotes
+            .where((n) =>
+                (n['is_ghost'] as int? ?? 0) == 0 &&
+                !claimedNoteIds.contains(n['id'] as String))
+            .toList();
+
+        if (notesToSync.isNotEmpty || orphanedNotes.isNotEmpty) {
           hasChanges = true;
         }
 
@@ -343,15 +426,6 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
             await onNoteSynced!(item.id, item.filePath, txn);
           }
         }
-
-        // ── Orphan pruning ─────────────────────────────────────────────────
-        // Remove non-ghost notes whose physical .md file no longer exists.
-        final filesSet = files.toSet();
-        final orphanedNotes = existingNotes
-            .where((n) =>
-                (n['is_ghost'] as int? ?? 0) == 0 &&
-                !filesSet.contains(n['file_path'] as String))
-            .toList();
 
         for (final orphan in orphanedNotes) {
           await indexer.removeNoteIndex(SqfliteExecutorWrapper(txn), orphan['id'] as String);
