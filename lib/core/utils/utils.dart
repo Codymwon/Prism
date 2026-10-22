@@ -71,14 +71,19 @@ Future<void> seedWelcomeNotes(String vaultPath, {SharedPreferences? prefs}) asyn
 }
 
 
-/// Converts a note title to a safe filename slug.
+/// Converts a note title to a safe filename slug supporting Unicode letters and numbers.
 String titleToSlug(String title) {
-  return title
+  var slug = title
       .toLowerCase()
-      .replaceAll(RegExp(r'[^\w\s-]'), '')
+      .replaceAll(RegExp(r'[^\p{L}\p{N}\s_-]', unicode: true), '')
       .replaceAll(RegExp(r'\s+'), '-')
       .replaceAll(RegExp(r'-+'), '-')
       .trim();
+  slug = slug.replaceAll(RegExp(r'^-+|-+$'), '');
+  if (slug.isEmpty) {
+    return 'untitled';
+  }
+  return slug;
 }
 
 /// Extracts the title from a markdown string.
@@ -125,6 +130,27 @@ String stripFrontmatter(String content) {
   return content;
 }
 
+/// Extracts the raw YAML frontmatter block (lines between '---' delimiters) if present.
+String? extractFrontmatterBlock(String content) {
+  final cleanContent = content.trimLeft();
+  final hasFrontmatter = cleanContent.startsWith('---\n') || cleanContent.startsWith('---\r\n');
+  if (!hasFrontmatter) return null;
+
+  final lines = cleanContent.split('\n');
+  int closingIndex = -1;
+  for (int i = 1; i < lines.length; i++) {
+    if (lines[i].trim() == '---') {
+      closingIndex = i;
+      break;
+    }
+  }
+
+  if (closingIndex != -1) {
+    return lines.sublist(1, closingIndex).join('\n');
+  }
+  return null;
+}
+
 /// Extracts a value for a specific key from YAML frontmatter if present.
 String? extractFrontmatterValue(String content, String key) {
   final cleanContent = content.trimLeft();
@@ -150,12 +176,94 @@ String? extractFrontmatterValue(String content, String key) {
         if ((value.startsWith('"') && value.endsWith('"')) ||
             (value.startsWith("'") && value.endsWith("'"))) {
           value = value.substring(1, value.length - 1);
+          value = value.replaceAll(r'\"', '"').replaceAll(r'\\', r'\');
         }
         return value;
       }
     }
   }
   return null;
+}
+
+/// Updates or injects frontmatter (with [id], [title], and optional [date]) into [body],
+/// preserving all existing user-defined frontmatter keys, comments, and structure.
+String updateOrInjectFrontmatter({
+  String? existingFrontmatterBlock,
+  required String body,
+  String? id,
+  required String title,
+  String? date,
+}) {
+  final cleanTitle = title.trim().isEmpty ? 'Untitled' : title.trim();
+  final escapedTitle = cleanTitle.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
+
+  final lines = existingFrontmatterBlock != null
+      ? existingFrontmatterBlock.split('\n')
+      : <String>[];
+
+  bool hasId = false;
+  bool hasTitle = false;
+  bool hasDate = false;
+
+  final updatedLines = <String>[];
+  final keyRegex = RegExp(r'^([a-zA-Z0-9_-]+)\s*:(.*)$');
+
+  for (int i = 0; i < lines.length; i++) {
+    final line = lines[i];
+    final match = keyRegex.firstMatch(line);
+    if (match != null) {
+      final key = match.group(1)!.trim();
+      if (key == 'id' && id != null) {
+        updatedLines.add('id: "$id"');
+        hasId = true;
+        continue;
+      } else if (key == 'title') {
+        updatedLines.add('title: "$escapedTitle"');
+        hasTitle = true;
+        continue;
+      } else if (key == 'date') {
+        if (date != null) {
+          updatedLines.add('date: $date');
+          hasDate = true;
+        } else {
+          updatedLines.add(line);
+        }
+        continue;
+      }
+    }
+    updatedLines.add(line);
+  }
+
+  final injected = <String>[];
+  if (id != null && !hasId) {
+    injected.add('id: "$id"');
+  }
+  if (!hasTitle) {
+    injected.add('title: "$escapedTitle"');
+  }
+  if (date != null && !hasDate) {
+    injected.add('date: $date');
+  }
+
+  final finalFrontmatterLines = [...injected, ...updatedLines];
+
+  while (finalFrontmatterLines.isNotEmpty && finalFrontmatterLines.first.trim().isEmpty) {
+    finalFrontmatterLines.removeAt(0);
+  }
+  while (finalFrontmatterLines.isNotEmpty && finalFrontmatterLines.last.trim().isEmpty) {
+    finalFrontmatterLines.removeLast();
+  }
+
+  final buffer = StringBuffer();
+  buffer.writeln('---');
+  for (final l in finalFrontmatterLines) {
+    buffer.writeln(l);
+  }
+  buffer.writeln('---');
+  buffer.writeln();
+  buffer.write(body);
+
+  return buffer.toString();
 }
 
 /// Counts words in a string.

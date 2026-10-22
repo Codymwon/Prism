@@ -61,8 +61,13 @@ class TemplateService {
     return dir.path;
   }
 
-  Future<String> _pathFor(String name) async =>
-      p.join(await _templatesDir, '${utils.titleToSlug(name)}.md');
+  Future<String> _pathFor(String name) async {
+    var slug = utils.titleToSlug(name);
+    if (slug.isEmpty || slug == 'untitled') {
+      slug = 'template-${DateTime.now().millisecondsSinceEpoch}';
+    }
+    return p.join(await _templatesDir, '$slug.md');
+  }
 
   /// Extracts the template name from a virtual ID
   /// (`template:Gratitude` -> `Gratitude`).

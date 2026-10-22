@@ -21,11 +21,23 @@ void main() {
       });
 
       test('should trim leading and trailing spaces or hyphens', () {
-        expect(titleToSlug(' - Note Title - '), equals('-note-title-'));
+        expect(titleToSlug(' - Note Title - '), equals('note-title'));
       });
 
       test('should keep hyphens and underscores', () {
         expect(titleToSlug('note_with-hyphens_and_underscores'), equals('note_with-hyphens_and_underscores'));
+      });
+
+      test('should support non-Latin Unicode scripts without stripping them', () {
+        expect(titleToSlug('日本語ノート'), equals('日本語ノート'));
+        expect(titleToSlug('Привет мир'), equals('привет-мир'));
+        expect(titleToSlug('हिंदी'), isNotEmpty);
+        expect(titleToSlug('हिंदी'), isNot(equals('untitled')));
+      });
+
+      test('should fallback to untitled when slug is empty from emojis or symbols', () {
+        expect(titleToSlug('🎉 🚀 !!!'), equals('untitled'));
+        expect(titleToSlug('---'), equals('untitled'));
       });
     });
 
@@ -62,6 +74,48 @@ void main() {
         expect(extractFrontmatterValue(content, 'title'), equals('My Cool Title'));
         expect(extractFrontmatterValue(content, 'date'), equals('2026-06-04'));
         expect(extractFrontmatterValue(content, 'nonexistent'), isNull);
+      });
+
+      test('should extract and unescape quotes in frontmatter values', () {
+        final content = '---\ntitle: "Meeting with \\"Bob\\""\n---';
+        expect(extractFrontmatterValue(content, 'title'), equals('Meeting with "Bob"'));
+      });
+
+      test('should extract raw frontmatter block', () {
+        final content = '---\ntitle: "Test"\ntags: [a, b]\n---\n\nBody text';
+        expect(extractFrontmatterBlock(content), equals('title: "Test"\ntags: [a, b]'));
+        expect(extractFrontmatterBlock('No frontmatter'), isNull);
+      });
+
+      test('updateOrInjectFrontmatter preserves existing user keys and injects id, title, date', () {
+        const existingFm = '''
+tags:
+  - work
+  - project
+aliases: [daily, log]
+author: "Alice"
+custom_field: 42''';
+
+        final result = updateOrInjectFrontmatter(
+          existingFrontmatterBlock: existingFm,
+          body: 'Note body content',
+          id: 'note-uuid-1234',
+          title: 'Meeting with "Important" Client',
+          date: '2026-10-23',
+        );
+
+        expect(result, contains('id: "note-uuid-1234"'));
+        expect(result, contains('title: "Meeting with \\"Important\\" Client"'));
+        expect(result, contains('date: 2026-10-23'));
+        expect(result, contains('tags:\n  - work\n  - project'));
+        expect(result, contains('aliases: [daily, log]'));
+        expect(result, contains('author: "Alice"'));
+        expect(result, contains('custom_field: 42'));
+        expect(result, contains('Note body content'));
+
+        // Verify round-tripping title extraction
+        expect(extractFrontmatterValue(result, 'title'), equals('Meeting with "Important" Client'));
+        expect(extractFrontmatterValue(result, 'id'), equals('note-uuid-1234'));
       });
     });
 
