@@ -15,6 +15,7 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/onboarding_provider.dart';
 import '../../../../core/utils/storage_permission_helper.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/config/app_config.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class VaultSetupForm extends ConsumerStatefulWidget {
@@ -38,12 +39,12 @@ class VaultSetupForm extends ConsumerStatefulWidget {
 }
 
 class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
-  String _selectedVaultType = 'custom';
+  late String _selectedVaultType;
   String _customLocationPath = '';
   bool _isPickingFolder = false;
   bool _isCompleting = false;
   bool _shareAnalytics = false;
-  int _currentStep = 1; // 1: Main Storage Location, 2: First Vault Name, 3: Privacy Preferences
+  late int _currentStep; // 1: Main Storage Location, 2: First Vault Name, 3: Privacy Preferences
   bool _isAutoImport = false;
   String _autoImportHubPath = '';
   String _autoImportActiveVault = '';
@@ -51,6 +52,13 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
   final TextEditingController _hubNameController = TextEditingController();
   final TextEditingController _vaultNameController = TextEditingController();
   bool _didInitControllers = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedVaultType = AppConfig.enableExternalStorage ? 'custom' : 'sandbox';
+    _currentStep = AppConfig.enableExternalStorage ? 1 : 2;
+  }
 
   @override
   void didChangeDependencies() {
@@ -331,7 +339,8 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
             : _vaultNameController.text.trim();
 
         final String hubPath;
-        if (_selectedVaultType == 'sandbox') {
+        final String effectiveVaultType = AppConfig.enableExternalStorage ? _selectedVaultType : 'sandbox';
+        if (effectiveVaultType == 'sandbox') {
           final docDir = await getApplicationDocumentsDirectory();
           hubPath = p.join(docDir.path, 'prism_vaults');
         } else {
@@ -347,9 +356,9 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
         }
 
         if (widget.onPersist != null) {
-          await widget.onPersist!(hubPath, vaultName, _selectedVaultType);
+          await widget.onPersist!(hubPath, vaultName, effectiveVaultType);
         } else {
-          await prefs.setString('vaultType', _selectedVaultType);
+          await prefs.setString('vaultType', effectiveVaultType);
           
           // Save analytics choice and toggle Firebase collections
           await analyticsEnabledNotifier.setEnabled(_shareAnalytics);
@@ -359,7 +368,7 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
 
           await vaultService.closeDatabase();
           AnalyticsService.logEvent('onboarding_complete', parameters: {
-            'vault_type': _selectedVaultType,
+            'vault_type': effectiveVaultType,
             'import': false,
           });
           await onboardingNotifier.completeOnboarding();
@@ -877,20 +886,22 @@ class _VaultSetupFormState extends ConsumerState<VaultSetupForm> {
                 });
               } : null,
             ).animate().fadeIn(delay: 280.ms),
-            const SizedBox(height: 12),
-            Center(
-              child: TextButton(
-                onPressed: () => setState(() => _currentStep = 1),
-                child: Text(
-                  context.l10n.onboarding_vault_setup_back_button,
-                  style: DesignTypography.details(
-                    context,
-                    color: DesignColors.textSecondary(context),
-                    fontWeight: FontWeight.w500,
+            if (AppConfig.enableExternalStorage) ...[
+              const SizedBox(height: 12),
+              Center(
+                child: TextButton(
+                  onPressed: () => setState(() => _currentStep = 1),
+                  child: Text(
+                    context.l10n.onboarding_vault_setup_back_button,
+                    style: DesignTypography.details(
+                      context,
+                      color: DesignColors.textSecondary(context),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ] else if (_currentStep == 3) ...[
             // ── Step 3: Privacy & Telemetry ─────────────────────────────────
             Container(

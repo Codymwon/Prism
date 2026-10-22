@@ -8,6 +8,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../../core/config/app_config.dart';
 import '../providers/settings_provider.dart';
 import 'package:prism/l10n/l10n.dart';
 
@@ -81,20 +82,20 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
     final previewThemeData = AppTheme.resolve(currentPreviewTheme, fontFamily).themeData;
 
     // List of Light Editorial Themes: (type, name, primaryColor, backgroundColor, textColor)
-    final lightEditorials = [
+    final lightEditorials = AppConfig.enableSubscriptions ? [
       (AppThemeType.sepia, 'Sepia Warmth', const Color(0xFF5C3D2E), const Color(0xFFFAF6EE), const Color(0xFF2A1F19)),
       (AppThemeType.arctic, 'Arctic Clean', const Color(0xFF3A8FA8), const Color(0xFFF4F8FB), const Color(0xFF152632)),
       (AppThemeType.blush, 'Blush', const Color(0xFFB0637A), const Color(0xFFFDF8F8), const Color(0xFF2E1F24)),
       (AppThemeType.matcha, 'Matcha', const Color(0xFF3D6146), const Color(0xFFF4F7F4), const Color(0xFF1D2E22)),
-    ];
+    ] : <(AppThemeType, String, Color, Color, Color)>[];
 
     // List of Dark Editorial Themes: (type, name, primaryColor, backgroundColor, textColor)
-    final darkEditorials = [
+    final darkEditorials = AppConfig.enableSubscriptions ? [
       (AppThemeType.forest, 'Forest Moss', const Color(0xFF81B29A), const Color(0xFF141C18), const Color(0xFFDEEDE5)),
       (AppThemeType.slate, 'Slate Navy', const Color(0xFF7DAFE8), const Color(0xFF0F1117), const Color(0xFFE4EAF5)),
       (AppThemeType.noir, 'Noir Gold', const Color(0xFFC9A84C), const Color(0xFF111110), const Color(0xFFF0EDE6)),
       (AppThemeType.midnight, 'Midnight', const Color(0xFF6E7681), const Color(0xFF000000), const Color(0xFFE5E7EB)),
-    ];
+    ] : <(AppThemeType, String, Color, Color, Color)>[];
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
@@ -212,141 +213,143 @@ class _ThemeGalleryScreenState extends ConsumerState<ThemeGalleryScreen> {
                       ),
                     ),
                   
-                  // Live Preview Mode Toggle Switch
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              context.l10n.settings_theme_gallery_try_premium_label,
-                              style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
-                            ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                context.l10n.settings_theme_gallery_live_preview_toggle,
-                                style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.w600),
+                  if (AppConfig.enableSubscriptions) ...[
+                    // Live Preview Mode Toggle Switch
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                context.l10n.settings_theme_gallery_try_premium_label,
+                                style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                               ),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                height: 20,
-                                width: 36,
-                                child: Transform.scale(
-                                  scale: 0.8,
-                                  child: Switch(
-                                    value: _livePreviewMode,
-                                    activeThumbColor: DesignColors.primary(context),
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _livePreviewMode = val;
-                                        if (!val) {
-                                          _selectedPreviewThemeType = null;
-                                        }
-                                      });
-                                    },
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  context.l10n.settings_theme_gallery_live_preview_toggle,
+                                  style: DesignTypography.body(context, fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  height: 20,
+                                  width: 36,
+                                  child: Transform.scale(
+                                    scale: 0.8,
+                                    child: Switch(
+                                      value: _livePreviewMode,
+                                      activeThumbColor: DesignColors.primary(context),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _livePreviewMode = val;
+                                          if (!val) {
+                                            _selectedPreviewThemeType = null;
+                                          }
+                                        });
+                                      },
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+                    // ── Editorial Light Themes Section ─────────────────────────
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                        child: Text(
+                          context.l10n.settings_theme_gallery_light_editorial_header,
+                          style: DesignTypography.metadata(
+                            context,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: DesignColors.textTertiary(context),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-                  // ── Editorial Light Themes Section ─────────────────────────
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                      child: Text(
-                        context.l10n.settings_theme_gallery_light_editorial_header,
-                        style: DesignTypography.metadata(
-                          context,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: DesignColors.textTertiary(context),
                         ),
                       ),
                     ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverGrid.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1.25,
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverGrid.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1.25,
+                        ),
+                        itemCount: lightEditorials.length,
+                        itemBuilder: (context, index) {
+                          final theme = lightEditorials[index];
+                          final isSelected = currentPreviewTheme == theme.$1;
+                          final isLocked = _isThemeLocked(theme.$1) && !isPro;
+                          return _GalleryThemeCard(
+                            type: theme.$1,
+                            name: theme.$2,
+                            primaryColor: theme.$3,
+                            backgroundColor: theme.$4,
+                            textColor: theme.$5,
+                            isSelected: isSelected,
+                            isLocked: isLocked,
+                            onTap: () => _handleThemeTap(theme.$1, isPro),
+                          );
+                        },
                       ),
-                      itemCount: lightEditorials.length,
-                      itemBuilder: (context, index) {
-                        final theme = lightEditorials[index];
-                        final isSelected = currentPreviewTheme == theme.$1;
-                        final isLocked = _isThemeLocked(theme.$1) && !isPro;
-                        return _GalleryThemeCard(
-                          type: theme.$1,
-                          name: theme.$2,
-                          primaryColor: theme.$3,
-                          backgroundColor: theme.$4,
-                          textColor: theme.$5,
-                          isSelected: isSelected,
-                          isLocked: isLocked,
-                          onTap: () => _handleThemeTap(theme.$1, isPro),
-                        );
-                      },
                     ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                  // ── Editorial Dark Themes Section ──────────────────────────
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                      child: Text(
-                        'DARK EDITORIAL PALETTES',
-                        style: DesignTypography.metadata(
-                          context,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: DesignColors.textTertiary(context),
+                    // ── Editorial Dark Themes Section ──────────────────────────
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                        child: Text(
+                          'DARK EDITORIAL PALETTES',
+                          style: DesignTypography.metadata(
+                            context,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: DesignColors.textTertiary(context),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverGrid.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1.25,
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverGrid.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1.25,
+                        ),
+                        itemCount: darkEditorials.length,
+                        itemBuilder: (context, index) {
+                          final theme = darkEditorials[index];
+                          final isSelected = currentPreviewTheme == theme.$1;
+                          final isLocked = _isThemeLocked(theme.$1) && !isPro;
+                          return _GalleryThemeCard(
+                            type: theme.$1,
+                            name: theme.$2,
+                            primaryColor: theme.$3,
+                            backgroundColor: theme.$4,
+                            textColor: theme.$5,
+                            isSelected: isSelected,
+                            isLocked: isLocked,
+                            onTap: () => _handleThemeTap(theme.$1, isPro),
+                          );
+                        },
                       ),
-                      itemCount: darkEditorials.length,
-                      itemBuilder: (context, index) {
-                        final theme = darkEditorials[index];
-                        final isSelected = currentPreviewTheme == theme.$1;
-                        final isLocked = _isThemeLocked(theme.$1) && !isPro;
-                        return _GalleryThemeCard(
-                          type: theme.$1,
-                          name: theme.$2,
-                          primaryColor: theme.$3,
-                          backgroundColor: theme.$4,
-                          textColor: theme.$5,
-                          isSelected: isSelected,
-                          isLocked: isLocked,
-                          onTap: () => _handleThemeTap(theme.$1, isPro),
-                        );
-                      },
                     ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                  ],
                 ],
               ),
             ),

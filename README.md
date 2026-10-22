@@ -13,6 +13,8 @@
 
 ---
 
+> **Note on v1.0 Release:** Prism is configured for initial Google Play Store launch as a **100% free, offline-first application** requiring zero runtime storage permissions. Data resides strictly inside the app sandbox (`getApplicationDocumentsDirectory()`), and all in-app subscription screens and Pro paywalls are dormant. Advanced features (external filesystem access, editorial palettes, custom macros/templates, and encrypted sync) remain architecturally intact and are toggled via `AppConfig`.
+
 ## Features
 
 ### Markdown Editor & Bidirectional Linking
@@ -63,7 +65,9 @@
 | :--- | :--- |
 | **Framework** | [Flutter](https://flutter.dev) (Dart 3.4+) |
 | **State Management** | [Riverpod (v2)](https://riverpod.dev) with Code Generation |
-| **Database & Search** | [SQLite (`sqflite`)](https://pub.dev/packages/sqflite) with WAL mode and FTS4 |
+| **Database & Search** | [SQLite (`sqflite`)](https://pub.dev/packages/sqflite) with WAL mode, FTS4, and SQLCipher |
+| **Storage & I/O** | App-private sandbox storage (`getApplicationDocumentsDirectory()`) |
+| **Release Gating** | Centralized configuration via `AppConfig` (`lib/core/config/app_config.dart`) |
 | **Routing** | [GoRouter](https://pub.dev/packages/go_router) |
 | **Design System** | Custom tactile tokens (Typography, Palette, Springs & Haptics) |
 

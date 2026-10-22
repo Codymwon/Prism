@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/services/vault_export_service.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -30,7 +31,7 @@ class ExportSheetController extends AutoDisposeAsyncNotifier<VaultExportResult?>
     // 🔒 Pro-gate: ZIP and PDF exports require an active Pro subscription.
     // Enforcement lives here in the controller, NOT in the widget layer.
     final isPro = ref.read(isProProvider);
-    if (!isPro && format != ExportFormat.json) {
+    if (AppConfig.enableSubscriptions && !isPro && format != ExportFormat.json) {
       // Navigate to paywall and abort — the widget reacts to state, not navigate.
       // ignore: use_build_context_synchronously
       GoRouter.of(context as dynamic).push('/settings/paywall');

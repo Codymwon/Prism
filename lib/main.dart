@@ -22,6 +22,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'core/config/app_config.dart';
 import 'firebase_options.dart';
 import 'package:flutter/foundation.dart';
 
@@ -78,7 +79,7 @@ void main() async {
     ],
   );
 
-  if (vaultType == 'custom') {
+  if (AppConfig.enableExternalStorage && vaultType == 'custom') {
     // Check if we have Android Scoped Storage (All Files Access) permission
     final hasAccess = await StoragePermissionHelper.hasAllFilesAccess();
 
@@ -110,25 +111,27 @@ void main() async {
     });
   }
 
-  // Initialize RevenueCat SDK in the background
-  container.read(subscriptionRepositoryProvider).initialize().then((_) {
-    debugPrint('Subscription repository initialized.');
-  }).catchError((e) {
-    debugPrint('Failed to initialize subscription repository at startup: $e');
-  });
-
-  // Silent restore on first launch after a fresh install.
-  // This recovers purchases for anonymous users who reinstalled or switched devices.
-  // We use a flag so this only fires once per install, not on every launch
-  // (Apple guidelines prohibit automatic restore on every launch for iOS).
-  final hasRestoredOnInstall = prefs.getBool('hasRestoredOnInstall') ?? false;
-  if (!hasRestoredOnInstall && (Platform.isAndroid || Platform.isIOS)) {
-    prefs.setBool('hasRestoredOnInstall', true);
-    container.read(subscriptionRepositoryProvider).restorePurchases().then((_) {
-      debugPrint('Silent restore on fresh install completed.');
+  if (AppConfig.enableSubscriptions) {
+    // Initialize RevenueCat SDK in the background
+    container.read(subscriptionRepositoryProvider).initialize().then((_) {
+      debugPrint('Subscription repository initialized.');
     }).catchError((e) {
-      debugPrint('Silent restore on fresh install failed (non-critical): $e');
+      debugPrint('Failed to initialize subscription repository at startup: $e');
     });
+
+    // Silent restore on first launch after a fresh install.
+    // This recovers purchases for anonymous users who reinstalled or switched devices.
+    // We use a flag so this only fires once per install, not on every launch
+    // (Apple guidelines prohibit automatic restore on every launch for iOS).
+    final hasRestoredOnInstall = prefs.getBool('hasRestoredOnInstall') ?? false;
+    if (!hasRestoredOnInstall && (Platform.isAndroid || Platform.isIOS)) {
+      prefs.setBool('hasRestoredOnInstall', true);
+      container.read(subscriptionRepositoryProvider).restorePurchases().then((_) {
+        debugPrint('Silent restore on fresh install completed.');
+      }).catchError((e) {
+        debugPrint('Silent restore on fresh install failed (non-critical): $e');
+      });
+    }
   }
 
   runApp(UncontrolledProviderScope(container: container, child: const PrismApp()));

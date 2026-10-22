@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:prism/features/settings/presentation/screens/manage_vaults_screen.dart';
+import 'package:prism/core/config/app_config.dart';
 import 'package:prism/core/services/vault_service.dart';
 import 'package:prism/core/database/vault_providers.dart';
 
@@ -79,6 +80,7 @@ void main() {
   late FakeVaultManagementService mockService;
 
   setUp(() {
+    AppConfig.enableExternalStorage = true;
     tempDir = Directory.systemTemp.createTempSync('prism_test_manage_vaults_');
     mockService = FakeVaultManagementService();
 
@@ -96,6 +98,7 @@ void main() {
   });
 
   tearDown(() {
+    AppConfig.enableExternalStorage = false;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
       const MethodChannel('plugins.flutter.io/path_provider'),
@@ -161,5 +164,15 @@ void main() {
     // Verify service was called with sandbox and migrateData
     expect(mockService.lastVaultType, equals('sandbox'));
     expect(mockService.lastNewPath, contains('prism_vaults'));
+  });
+
+  testWidgets('v1.0 release: hides Relocate Prism Hub button when enableExternalStorage is false', (WidgetTester tester) async {
+    AppConfig.enableExternalStorage = false;
+    setViewport(tester);
+
+    await tester.pumpWidget(buildScreen());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Relocate Prism Hub'), findsNothing);
   });
 }

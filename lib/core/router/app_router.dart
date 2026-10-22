@@ -26,6 +26,7 @@ import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../features/folders/presentation/screens/add_folder_screen.dart';
 import '../../features/folders/presentation/screens/edit_folder_screen.dart';
+import '../config/app_config.dart';
 
 // ── Router Notifier ──────────────────────────────────────────────────────────
 // A ChangeNotifier that bridges Riverpod state → GoRouter's refreshListenable.
@@ -101,6 +102,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings/theme-gallery',
+        redirect: (context, state) => AppConfig.enableSubscriptions ? null : '/settings',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const ThemeGalleryScreen(),
@@ -125,6 +127,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings/custom-macros',
+        redirect: (context, state) => AppConfig.enableSubscriptions ? null : '/settings',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const CustomMacrosScreen(),
@@ -149,6 +152,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings/custom-templates',
+        redirect: (context, state) => AppConfig.enableSubscriptions ? null : '/settings',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const CustomTemplatesScreen(),
@@ -253,6 +257,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings/cloud-sync',
+        redirect: (context, state) => AppConfig.enableSubscriptions ? null : '/settings',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const CloudSyncScreen(),
@@ -421,6 +426,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings/paywall',
+        redirect: (context, state) => AppConfig.enableSubscriptions ? null : '/settings',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const CustomPaywallScreen(),

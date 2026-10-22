@@ -6,6 +6,7 @@ import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../../core/config/app_config.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class SettingsSectionHeader extends StatelessWidget {
@@ -86,95 +87,96 @@ class ThemeSelector extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // ── Theme Gallery Teaser Card ────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: TactileWrapper(
-              style: TactileFeedbackStyle.standard,
-              onTap: () => context.push('/settings/theme-gallery'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: DesignColors.surfaceVariant(context),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: DesignColors.border(context),
-                    width: 1.0,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+          // ── Theme Gallery Teaser Card (Subscriptions only) ──────────────
+          if (AppConfig.enableSubscriptions)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: TactileWrapper(
+                style: TactileFeedbackStyle.standard,
+                onTap: () => context.push('/settings/theme-gallery'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: DesignColors.surfaceVariant(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: DesignColors.border(context),
+                      width: 1.0,
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // Interlocking colorful circles represent theme gallery
-                    SizedBox(
-                      width: 32,
-                      height: 24,
-                      child: Stack(
-                        children: List.generate(editorialTeaserColors.length, (idx) {
-                          return Positioned(
-                            left: idx * 5.0,
-                            child: Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: editorialTeaserColors[idx],
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: DesignColors.background(context),
-                                  width: 1.5,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Interlocking colorful circles represent theme gallery
+                      SizedBox(
+                        width: 32,
+                        height: 24,
+                        child: Stack(
+                          children: List.generate(editorialTeaserColors.length, (idx) {
+                            return Positioned(
+                              left: idx * 5.0,
+                              child: Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: editorialTeaserColors[idx],
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: DesignColors.background(context),
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          }),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.l10n.settings_widgets_theme_explore_teaser,
-                            style: DesignTypography.body(
-                              context,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.l10n.settings_widgets_theme_explore_teaser,
+                              style: DesignTypography.body(
+                                context,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            context.l10n.settings_widgets_theme_teaser_list,
-                            style: DesignTypography.details(context),
-                          ),
-                        ],
+                            const SizedBox(height: 2),
+                            Text(
+                              context.l10n.settings_widgets_theme_teaser_list,
+                              style: DesignTypography.details(context),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (!isPro) ...[
+                      const SizedBox(width: 8),
+                      if (!isPro) ...[
+                        Icon(
+                          Icons.lock_rounded,
+                          size: 14,
+                          color: DesignColors.primary(context),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Icon(
-                        Icons.lock_rounded,
-                        size: 14,
-                        color: DesignColors.primary(context),
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: DesignColors.textSecondary(context),
                       ),
-                      const SizedBox(width: 4),
                     ],
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: DesignColors.textSecondary(context),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
           const SizedBox(height: 4),
         ],
       ),

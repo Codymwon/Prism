@@ -5,6 +5,7 @@ import '../../data/repositories/revenuecat_subscription_repository.dart';
 import '../../domain/entities/subscription_package.dart';
 import '../../domain/entities/subscription_status.dart';
 import '../../domain/repositories/subscription_repository.dart';
+import '../../../../core/config/app_config.dart';
 
 import '../../data/datasources/revenuecat_client_wrapper.dart';
 
@@ -26,6 +27,9 @@ final subscriptionStatusProvider = StreamProvider<SubscriptionStatus>((ref) {
 });
 
 final isProProvider = Provider<bool>((ref) {
+  if (!AppConfig.enableSubscriptions) {
+    return false;
+  }
   final statusAsync = ref.watch(subscriptionStatusProvider);
   return statusAsync.valueOrNull?.isPro ?? false;
 });

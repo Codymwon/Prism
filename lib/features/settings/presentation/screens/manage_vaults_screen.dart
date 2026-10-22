@@ -10,6 +10,7 @@ import '../../../../core/database/vault_providers.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import '../widgets/settings_widgets.dart';
 import '../../../../shared/widgets/prism_toast.dart';
+import '../../../../core/config/app_config.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class ManageVaultsScreen extends ConsumerStatefulWidget {
@@ -394,17 +395,19 @@ class _ManageVaultsScreenState extends ConsumerState<ManageVaultsScreen> {
                             baseVaultsDir.isEmpty ? 'Loading...' : baseVaultsDir,
                             style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: DesignColors.primary(context),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          if (AppConfig.enableExternalStorage) ...[
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: DesignColors.primary(context),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              icon: const Icon(Icons.folder_open_rounded, size: 18),
+                              label: const Text('Relocate Prism Hub'),
+                              onPressed: _changeHubLocation,
                             ),
-                            icon: const Icon(Icons.folder_open_rounded, size: 18),
-                            label: const Text('Relocate Prism Hub'),
-                            onPressed: _changeHubLocation,
-                          ),
+                          ],
                         ],
                       ),
                     ),

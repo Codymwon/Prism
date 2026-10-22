@@ -10,6 +10,7 @@ import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
 import '../../../onboarding/data/tutorial_provider.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../../core/config/app_config.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -47,8 +48,8 @@ class SettingsScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 100),
               children: [
-                // ── Prism Pro Banner (Free users only) ─────────────────────────
-                if (!isPro)
+                // ── Prism Pro Banner (Free users only, if subscriptions enabled) ─────────
+                if (AppConfig.enableSubscriptions && !isPro)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Container(
@@ -129,12 +130,13 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/security'),
                 ),
-                ProGateTile(
-                  icon: Icons.sync_rounded,
-                  title: context.l10n.settings_main_sync_title,
-                  subtitle: context.l10n.settings_main_sync_desc,
-                  onTap: () => context.push('/settings/cloud-sync'),
-                ),
+                if (AppConfig.enableSubscriptions)
+                  ProGateTile(
+                    icon: Icons.sync_rounded,
+                    title: context.l10n.settings_main_sync_title,
+                    subtitle: context.l10n.settings_main_sync_desc,
+                    onTap: () => context.push('/settings/cloud-sync'),
+                  ),
 
                 // ── 3. Writing & Appearance ─────────────────────────────
                 SettingsSectionHeader(title: context.l10n.settings_section_writing_appearance),
@@ -148,7 +150,9 @@ class SettingsScreen extends ConsumerWidget {
                     context: context,
                     ref: ref,
                     title: context.l10n.settings_main_appearance_select_font_family,
-                    options: ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)'],
+                    options: AppConfig.enableSubscriptions
+                        ? ['Inter (Sans)', 'Roboto Mono (Mono)', 'Lora (Serif)', 'Merriweather (Serif)']
+                        : ['Inter (Sans)'],
                     optionLabels: {
                       'Inter (Sans)': context.l10n.settings_main_appearance_font_family_default('Inter (Sans)'),
                     },
@@ -170,24 +174,26 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings/journal-preferences'),
                 ),
-                ProGateTile(
-                  icon: Icons.keyboard_command_key_rounded,
-                  title: context.l10n.settings_main_macros_title,
-                  subtitle: context.l10n.settings_main_macros_desc,
-                  onTap: () => context.push('/settings/custom-macros'),
-                ),
-                ProGateTile(
-                  icon: Icons.note_add_rounded,
-                  title: context.l10n.settings_main_templates_title,
-                  subtitle: context.l10n.settings_main_templates_desc,
-                  onTap: () => context.push('/settings/custom-templates'),
-                ),
+                if (AppConfig.enableSubscriptions) ...[
+                  ProGateTile(
+                    icon: Icons.keyboard_command_key_rounded,
+                    title: context.l10n.settings_main_macros_title,
+                    subtitle: context.l10n.settings_main_macros_desc,
+                    onTap: () => context.push('/settings/custom-macros'),
+                  ),
+                  ProGateTile(
+                    icon: Icons.note_add_rounded,
+                    title: context.l10n.settings_main_templates_title,
+                    subtitle: context.l10n.settings_main_templates_desc,
+                    onTap: () => context.push('/settings/custom-templates'),
+                  ),
+                ],
                 const HapticToggleTile(),
                 const DragToPinToggleTile(),
 
                 // ── 4. About & Support ──────────────────────────────────
                 SettingsSectionHeader(title: context.l10n.settings_section_about_support),
-                if (isPro) ...[
+                if (AppConfig.enableSubscriptions && isPro) ...[
                   SettingsTile(
                     icon: Icons.diamond_rounded,
                     title: context.l10n.settings_main_pro_status_active,
@@ -307,7 +313,7 @@ class SettingsScreen extends ConsumerWidget {
                       final val = options[idx];
                       final displayLabel = optionLabels?[val] ?? val;
                       final isSelected = val == currentValue;
-                      final isLocked = val != 'Inter (Sans)' && !isPro;
+                      final isLocked = AppConfig.enableSubscriptions && val != 'Inter (Sans)' && !isPro;
 
                       return TactileWrapper(
                         style: TactileFeedbackStyle.standard,

@@ -5,6 +5,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/services/vault_export_service.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../../core/config/app_config.dart';
 import '../providers/export_provider.dart';
 import 'package:prism/l10n/l10n.dart';
 
@@ -165,9 +166,13 @@ class ExportBottomSheet extends ConsumerWidget {
     bool isPro,
     Color primaryColor,
   ) {
+    final formats = AppConfig.enableSubscriptions
+        ? _formats
+        : _formats.where((f) => !f.requiresPro).toList();
+
     return Column(
-      children: _formats.map((f) {
-        final locked = f.requiresPro && !isPro;
+      children: formats.map((f) {
+        final locked = AppConfig.enableSubscriptions && f.requiresPro && !isPro;
         return _FormatRow(
           icon: f.icon,
           label: f.label,

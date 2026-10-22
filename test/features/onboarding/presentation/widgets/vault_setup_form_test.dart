@@ -12,6 +12,7 @@ import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 import 'package:prism/features/onboarding/presentation/widgets/vault_setup_form.dart';
 import 'package:prism/core/database/vault_providers.dart';
 import 'package:prism/shared/design_system/buttons.dart';
+import 'package:prism/core/config/app_config.dart';
 
 // ---------------------------------------------------------------------------
 // Stub Riverpod notifiers – no SharedPreferences, no DB, no platform channels
@@ -118,6 +119,7 @@ void main() {
   late Directory tempDir;
 
   setUp(() {
+    AppConfig.enableExternalStorage = true;
     // Only mock the storage-permission channel – it is called unconditionally
     // before any other logic, and is the only remaining platform channel.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -466,5 +468,57 @@ void main() {
 
     final toggledSwitch = tester.widget<Switch>(switchFinder);
     expect(toggledSwitch.value, isTrue);
+  });
+
+  testWidgets('v1.0 release: skips storage selection step when enableExternalStorage is false', (tester) async {
+    _setViewport(tester);
+    AppConfig.enableExternalStorage = false;
+
+    String? persistedHub;
+    String? persistedVault;
+    String? persistedType;
+
+    await tester.pumpWidget(_buildForm(
+      pickerPath: '/not/used',
+      onStartSetup: () {},
+      onPersist: (hub, vault, type) async {
+        persistedHub = hub;
+        persistedVault = vault;
+        persistedType = type;
+      },
+    ));
+    await tester.pumpAndSettle();
+
+    // Step 1 storage options should NOT be shown
+    expect(find.text('Device storage'), findsNothing);
+    expect(find.text('App storage'), findsNothing);
+
+    // Should immediately render Step 2: Workspace/Vault Name
+    expect(find.text('Name your first workspace'), findsOneWidget);
+    // Back button to Step 1 should NOT be visible
+    expect(find.text('Back'), findsNothing);
+
+    // Advance to Step 3 (Privacy)
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.text('Privacy & Diagnostics'), findsOneWidget);
+
+    // Complete onboarding
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(DesignPrimaryButton));
+      await tester.pump();
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+
+    // Verify sandbox persistence
+    expect(persistedType, equals('sandbox'));
+    expect(persistedVault, isNotEmpty);
+    expect(persistedHub, contains('prism_vaults'));
   });
 }

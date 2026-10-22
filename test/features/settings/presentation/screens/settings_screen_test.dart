@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prism/features/settings/presentation/screens/settings_screen.dart';
 import 'package:prism/features/subscription/presentation/providers/subscription_providers.dart';
+import 'package:prism/core/config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:prism/core/services/data_deletion_service.dart';
@@ -20,9 +21,16 @@ class MockDataDeletionService extends Fake implements DataDeletionService {
 
 void main() {
   setUp(() {
+    AppConfig.enableSubscriptions = true;
+    AppConfig.enableExternalStorage = true;
     SharedPreferences.setMockInitialValues({
       'baseVaultsDirectory': '/mock/vaults',
     });
+  });
+
+  tearDown(() {
+    AppConfig.enableSubscriptions = false;
+    AppConfig.enableExternalStorage = false;
   });
 
   Widget buildTestableWidget({
@@ -194,6 +202,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Security Trust Center Page'), findsOneWidget);
+  });
+
+  testWidgets('v1.0 release: hides pro banner, cloud sync, and pro gates when enableSubscriptions is false',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    AppConfig.enableSubscriptions = false;
+
+    await tester.pumpWidget(buildTestableWidget(isPro: false));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Upgrade to Pro'), findsNothing);
+    expect(find.text('Prism Pro Active'), findsNothing);
+    expect(find.text('Cloud Sync'), findsNothing);
+    expect(find.text('Custom Macros'), findsNothing);
+    expect(find.text('Custom Templates'), findsNothing);
+    expect(find.text('Editorial Palettes'), findsNothing);
   });
 }
 

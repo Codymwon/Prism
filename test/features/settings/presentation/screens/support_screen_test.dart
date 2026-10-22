@@ -12,6 +12,7 @@ import 'package:prism/features/subscription/data/datasources/revenuecat_client_w
 import 'package:prism/features/subscription/presentation/providers/subscription_providers.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
+import 'package:prism/core/config/app_config.dart';
 
 class FakeCustomerInfo extends Fake implements CustomerInfo {
   final Map<String, EntitlementInfo> _mockActiveEntitlements;
@@ -68,6 +69,7 @@ void main() {
   late SharedPreferences prefs;
 
   setUp(() async {
+    AppConfig.enableSubscriptions = true;
     tempDir = Directory.systemTemp.createTempSync('prism_test_support_screen_');
     SharedPreferences.setMockInitialValues({
       'vaultType': 'sandbox',
@@ -92,6 +94,7 @@ void main() {
   });
 
   tearDown(() {
+    AppConfig.enableSubscriptions = false;
     if (tempDir.existsSync()) {
       tempDir.deleteSync(recursive: true);
     }
@@ -195,5 +198,23 @@ void main() {
     // Verify validation error text
     expect(find.text('Please enter a subject.'), findsOneWidget);
     expect(find.text('Please enter details for your request.'), findsOneWidget);
+  });
+
+  testWidgets('v1.0 release: does not invoke RevenueCat when enableSubscriptions is false', (WidgetTester tester) async {
+    setViewport(tester);
+    AppConfig.enableSubscriptions = false;
+
+    await tester.pumpWidget(buildScreen(isPro: false));
+    await tester.pump();
+
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 350));
+    });
+    await tester.pump();
+
+    // Verify Diagnostics Preview shows Anonymous userId and does NOT query RevenueCat
+    expect(find.text('Diagnostics Preview'), findsOneWidget);
+    expect(find.textContaining('User ID: Anonymous'), findsOneWidget);
+    expect(find.textContaining('RC-Anon-123'), findsNothing);
   });
 }

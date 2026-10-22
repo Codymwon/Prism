@@ -7,6 +7,7 @@ import 'package:prism/features/settings/presentation/screens/vault_export_screen
 import 'package:prism/features/settings/presentation/providers/export_provider.dart';
 import 'package:prism/features/subscription/presentation/providers/subscription_providers.dart';
 import 'package:prism/core/services/vault_export_service.dart';
+import 'package:prism/core/config/app_config.dart';
 
 // Fake ExportSheetController to simulate different export states
 class _FakeExportSheetController extends ExportSheetController {
@@ -31,6 +32,14 @@ class _FakeExportSheetController extends ExportSheetController {
 }
 
 void main() {
+  setUp(() {
+    AppConfig.enableSubscriptions = true;
+  });
+
+  tearDown(() {
+    AppConfig.enableSubscriptions = false;
+  });
+
   Widget buildTestableWidget({
     required bool isPro,
     required AsyncValue<VaultExportResult?> exportState,
@@ -114,5 +123,26 @@ void main() {
     expect(find.text('42 notes · 50.0 KB'), findsOneWidget);
     expect(find.text('/mock/path/backup.zip'), findsOneWidget);
     expect(find.text('Done'), findsOneWidget);
+  });
+
+  testWidgets('v1.0 release: only renders JSON export and hides pro formats when enableSubscriptions is false',
+      (WidgetTester tester) async {
+    AppConfig.enableSubscriptions = false;
+
+    await tester.pumpWidget(buildTestableWidget(
+      isPro: false,
+      exportState: const AsyncValue.data(null),
+    ));
+    await tester.pumpAndSettle();
+
+    // Verify Title
+    expect(find.text('Export Vault'), findsWidgets);
+
+    // Only JSON format should be shown
+    expect(find.text('JSON export'), findsOneWidget);
+    expect(find.text('ZIP archive'), findsNothing);
+    expect(find.text('Single PDF'), findsNothing);
+    expect(find.text('PDFs in ZIP'), findsNothing);
+    expect(find.text('PRO'), findsNothing);
   });
 }

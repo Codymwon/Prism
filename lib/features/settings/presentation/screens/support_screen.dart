@@ -10,6 +10,7 @@ import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../../../../core/providers/shared_preferences_provider.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/prism_toast.dart';
 import 'package:prism/l10n/l10n.dart';
 
@@ -68,11 +69,13 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
       final (notes, attachments, bytes) = await _calculateVaultStats(activePath);
 
       String userId = 'Anonymous';
-      try {
-        final customerInfo = await ref.read(revenueCatClientWrapperProvider).getCustomerInfo();
-        userId = customerInfo.originalAppUserId;
-      } catch (_) {
-        userId = 'Unknown (Offline)';
+      if (AppConfig.enableSubscriptions) {
+        try {
+          final customerInfo = await ref.read(revenueCatClientWrapperProvider).getCustomerInfo();
+          userId = customerInfo.originalAppUserId;
+        } catch (_) {
+          userId = 'Unknown (Offline)';
+        }
       }
 
       if (mounted) {
