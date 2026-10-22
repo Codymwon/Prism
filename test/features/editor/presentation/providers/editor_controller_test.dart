@@ -8,6 +8,12 @@ import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 // We can create a simple mock/fake for NoteRepository
 class FakeNoteRepository extends Fake implements NoteRepository {
+  String contentToReturn = 'Content';
+  String? lastSavedId;
+  String? lastSavedContent;
+  int saveCallCount = 0;
+  Duration? saveDelay;
+
   @override
   Future<Note?> getNoteById(String id) async {
     return Note(
@@ -22,12 +28,17 @@ class FakeNoteRepository extends Fake implements NoteRepository {
 
   @override
   Future<String> readNoteContent(String id) async {
-    return 'Content';
+    return contentToReturn;
   }
 
   @override
   Future<void> saveNote(String id, String content) async {
-    // No-op
+    saveCallCount++;
+    if (saveDelay != null) {
+      await Future.delayed(saveDelay!);
+    }
+    lastSavedId = id;
+    lastSavedContent = content;
   }
 }
 
@@ -134,6 +145,61 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('showBacklinks'), isTrue);
+    });
+  });
+
+  group('EditorController Frontmatter & Concurrency Tests', () {
+    test('preserves user frontmatter keys and injects id/title/date on save', () async {
+      fakeNoteRepository.contentToReturn = '''---
+date: 2026-10-23
+tags:
+  - obsidian
+  - sprint1
+aliases: [my-alias]
+author: John Doe
+custom_key: 12345
+---
+# Test Note
+
+This is user note body.''';
+
+      final controller = container.read(editorControllerProvider('note-1').notifier);
+      await controller.loadNote(isNew: false);
+
+      // Verify controller loaded clean content without frontmatter
+      final state = container.read(editorControllerProvider('note-1'));
+      expect(state.loadedBody, contains('This is user note body.'));
+      expect(state.loadedBody, isNot(contains('custom_key')));
+
+      // Save note with updated body text
+      await controller.save('Test Note', 'Updated body text');
+
+      // Check saved content sent to repository
+      final saved = fakeNoteRepository.lastSavedContent!;
+      expect(saved, contains('id: "note-1"'));
+      expect(saved, contains('title: "Test Note"'));
+      expect(saved, contains('date:'));
+      expect(saved, contains('tags:'));
+      expect(saved, contains('aliases: [my-alias]'));
+      expect(saved, contains('author: John Doe'));
+      expect(saved, contains('custom_key: 12345'));
+      expect(saved, contains('Updated body text'));
+    });
+
+    test('concurrent save() and saveIfNeeded() calls do not execute overlapping saves', () async {
+      fakeNoteRepository.saveDelay = const Duration(milliseconds: 50);
+      final controller = container.read(editorControllerProvider('note-1').notifier);
+      await controller.loadNote(isNew: false);
+
+      // Trigger multiple concurrent saves
+      final saveFuture1 = controller.save('Test Note', 'Content 1');
+      final saveFuture2 = controller.saveIfNeeded('Test Note', 'Content 1');
+      final saveFuture3 = controller.save('Test Note', 'Content 2');
+
+      await Future.wait([saveFuture1, saveFuture2, saveFuture3]);
+
+      // Both should have coordinated via _activeSaveFuture rather than overlapping chaos
+      expect(fakeNoteRepository.saveCallCount, lessThanOrEqualTo(2));
     });
   });
 }

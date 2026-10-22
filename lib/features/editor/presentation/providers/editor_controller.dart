@@ -40,6 +40,7 @@ class EditorState with _$EditorState {
     @Default('') String lastSaved,
     @Default(EditorMode.livePreview) EditorMode editorMode,
     @Default(false) bool showBacklinks,
+    String? rawFrontmatterBlock,
   }) = _EditorState;
 
   factory EditorState.initial() => const EditorState(
@@ -53,6 +54,7 @@ class EditorState with _$EditorState {
         lastSaved: '',
         editorMode: EditorMode.livePreview,
         showBacklinks: false,
+        rawFrontmatterBlock: null,
       );
 }
 
@@ -62,10 +64,14 @@ class EditorState with _$EditorState {
 @riverpod
 class EditorController extends _$EditorController {
   Timer? _saveTimer;
+  Future<void>? _activeSaveFuture;
+  bool _mounted = true;
 
   @override
   EditorState build(String noteId) {
+    _mounted = true;
     ref.onDispose(() {
+      _mounted = false;
       _saveTimer?.cancel();
     });
     return EditorState.initial();
@@ -82,10 +88,14 @@ class EditorController extends _$EditorController {
         content = '---\ntitle: "${note.title}"\n---\n\n';
       }
 
+      if (!_mounted) return null;
+
+      final rawFm = extractFrontmatterBlock(content);
       state = state.copyWith(
         isLoaded: true,
         loadedTitle: note.title,
         loadedBody: stripFrontmatter(content),
+        rawFrontmatterBlock: rawFm,
         lastSaved: content,
         dailyDate: null,
         editorMode: EditorMode.livePreview,
@@ -108,8 +118,11 @@ class EditorController extends _$EditorController {
       content = '---\ntitle: "${note.title}"\n---\n\n';
     }
 
+    if (!_mounted) return null;
+
     final parsedTitle = extractFrontmatterValue(content, 'title') ?? note.title;
     var parsedBody = stripFrontmatter(content);
+    final rawFm = extractFrontmatterBlock(content);
 
     // Strip the H1 header from the body if the note doesn't have frontmatter (legacy migration)
     final hasFrontmatter = content.trimLeft().startsWith('---\n') || content.trimLeft().startsWith('---\r\n');
@@ -155,10 +168,13 @@ class EditorController extends _$EditorController {
       debugPrint('Error loading editor settings: $e');
     }
 
+    if (!_mounted) return null;
+
     state = state.copyWith(
       isLoaded: true,
       loadedTitle: parsedTitle,
       loadedBody: parsedBody,
+      rawFrontmatterBlock: rawFm,
       lastSaved: content,
       dailyDate: dateStr,
       editorMode: loadedMode,
@@ -238,25 +254,41 @@ class EditorController extends _$EditorController {
   }
 
   Future<void> save(String title, String body) async {
+    while (_activeSaveFuture != null) {
+      await _activeSaveFuture;
+    }
+
+    final future = _performSave(title, body);
+    _activeSaveFuture = future;
+    try {
+      await future;
+    } finally {
+      if (_activeSaveFuture == future) {
+        _activeSaveFuture = null;
+      }
+    }
+  }
+
+  Future<void> _performSave(String title, String body) async {
+    if (!_mounted) return;
     if (title == state.loadedTitle && body == state.loadedBody) return;
 
     final cleanTitle = title.trim().isEmpty ? 'Untitled' : title.trim();
     final dateStr = state.dailyDate;
 
-    final buffer = StringBuffer();
-    buffer.writeln('---');
-    buffer.writeln('title: "$cleanTitle"');
-    if (dateStr != null) {
-      buffer.writeln('date: $dateStr');
-    }
-    buffer.writeln('---');
-    buffer.writeln();
-    buffer.write(body);
+    final content = updateOrInjectFrontmatter(
+      existingFrontmatterBlock: state.rawFrontmatterBlock,
+      body: body,
+      id: isTemplateId(noteId) ? null : noteId,
+      title: cleanTitle,
+      date: dateStr,
+    );
 
-    final content = buffer.toString();
     if (content == state.lastSaved) return;
 
-    state = state.copyWith(isSaving: true);
+    if (_mounted) {
+      state = state.copyWith(isSaving: true);
+    }
     if (isTemplateId(noteId)) {
       final repo = ref.read(templateRepositoryProvider);
       await repo.saveTemplate(noteId, content);
@@ -265,11 +297,14 @@ class EditorController extends _$EditorController {
       await repo.saveNote(noteId, content);
     }
 
+    if (!_mounted) return;
+
     state = state.copyWith(
       isSaving: false,
       lastSaved: content,
       loadedTitle: title,
       loadedBody: body,
+      rawFrontmatterBlock: extractFrontmatterBlock(content),
     );
   }
 

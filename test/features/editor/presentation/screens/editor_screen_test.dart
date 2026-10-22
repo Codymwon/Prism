@@ -21,6 +21,7 @@ import 'package:prism/features/editor/presentation/providers/editor_controller.d
 import 'package:prism/features/editor/domain/audio_recorder_service.dart';
 import 'package:prism/features/editor/data/audio_recorder_service_impl.dart';
 import 'package:prism/features/editor/presentation/widgets/formatting_toolbar.dart';
+import 'package:go_router/go_router.dart';
 
 class FakeRef implements Ref<Object?> {
   @override
@@ -59,7 +60,7 @@ class FakeAudioRecorderService implements AudioRecorderService {
 }
 
 class MockNoteRepository extends NoteRepository {
-  final Note note;
+  final Note? note;
   final void Function(String id, String content)? onSaveNote;
   MockNoteRepository(this.note, {this.onSaveNote}) : super(FakeRef());
 
@@ -71,7 +72,8 @@ class MockNoteRepository extends NoteRepository {
 
   @override
   Future<String> readNoteContent(String noteId) async {
-    final file = File(note.filePath);
+    if (note == null) throw ArgumentError('Note not found for ID: $noteId');
+    final file = File(note!.filePath);
     if (file.existsSync()) {
       return file.readAsStringSync();
     }
@@ -283,7 +285,7 @@ void main() {
     await tester.pump();
 
     // Verify saveNote was called with the updated content
-    expect(savedContent, equals('---\ntitle: "Test Note"\n---\n\n- [x] Task A\n- [x] Task B\n'));
+    expect(savedContent, equals('---\nid: "test-note-2"\ntitle: "Test Note"\n---\n\n- [x] Task A\n- [x] Task B\n'));
   });
 
   testWidgets('EditorScreen renders and toggles spaced-out checklist items without rendering them as list dots', (WidgetTester tester) async {
@@ -348,7 +350,7 @@ void main() {
     await tester.pump();
 
     // Verify that the second checklist item is toggled, and the raw formatting (spacing) is preserved
-    final expectedContent = '---\ntitle: "Test Note"\n---\n\n- [ ] Task A\n\n- [x] Task B\n\n- [ ] Task C\n- Normal bullet\n';
+    final expectedContent = '---\nid: "test-note-spaced-checklists"\ntitle: "Test Note"\n---\n\n- [ ] Task A\n\n- [x] Task B\n\n- [ ] Task C\n- Normal bullet\n';
     expect(savedContent, equals(expectedContent));
   });
 
@@ -623,5 +625,47 @@ void main() {
     // Notice should now be accepted
     expect(prefs.getBool('has_accepted_audio_recording_notice'), isTrue);
     expect(find.text('Audio Recording & Privacy Notice'), findsNothing);
+  });
+
+  testWidgets('Navigating to missing note triggers Note not found toast and navigates to /notes', (WidgetTester tester) async {
+    final mockRepo = MockNoteRepository(null);
+    final router = GoRouter(
+      initialLocation: '/editor/missing-note-id',
+      routes: [
+        GoRoute(
+          path: '/notes',
+          builder: (context, state) => const Scaffold(body: Text('Notes Screen')),
+        ),
+        GoRoute(
+          path: '/editor/:id',
+          builder: (context, state) => EditorScreen(
+            noteId: state.pathParameters['id']!,
+            isNew: false,
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Note not found'), findsOneWidget);
+    expect(find.text('Notes Screen'), findsOneWidget);
   });
 }

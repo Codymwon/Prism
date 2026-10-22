@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../core/utils/utils.dart';
@@ -162,7 +163,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final stateResult = await ref
         .read(editorControllerProvider(widget.noteId).notifier)
         .loadNote(isNew: widget.isNew, defaultDailyDate: widget.dailyDate);
-    if (stateResult == null) return;
+    if (stateResult == null) {
+      if (!mounted) return;
+      PrismToast.show(context, 'Note not found');
+      context.go('/notes');
+      return;
+    }
 
     if (mounted) {
       _titleController.text = stateResult.loadedTitle;

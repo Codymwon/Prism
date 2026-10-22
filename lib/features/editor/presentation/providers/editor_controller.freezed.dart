@@ -27,6 +27,7 @@ mixin _$EditorState {
   String get lastSaved => throw _privateConstructorUsedError;
   EditorMode get editorMode => throw _privateConstructorUsedError;
   bool get showBacklinks => throw _privateConstructorUsedError;
+  String? get rawFrontmatterBlock => throw _privateConstructorUsedError;
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.
@@ -53,6 +54,7 @@ abstract class $EditorStateCopyWith<$Res> {
     String lastSaved,
     EditorMode editorMode,
     bool showBacklinks,
+    String? rawFrontmatterBlock,
   });
 }
 
@@ -81,6 +83,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? lastSaved = null,
     Object? editorMode = null,
     Object? showBacklinks = null,
+    Object? rawFrontmatterBlock = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -124,6 +127,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
                 ? _value.showBacklinks
                 : showBacklinks // ignore: cast_nullable_to_non_nullable
                       as bool,
+            rawFrontmatterBlock: freezed == rawFrontmatterBlock
+                ? _value.rawFrontmatterBlock
+                : rawFrontmatterBlock // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -150,6 +157,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
     String lastSaved,
     EditorMode editorMode,
     bool showBacklinks,
+    String? rawFrontmatterBlock,
   });
 }
 
@@ -177,6 +185,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? lastSaved = null,
     Object? editorMode = null,
     Object? showBacklinks = null,
+    Object? rawFrontmatterBlock = freezed,
   }) {
     return _then(
       _$EditorStateImpl(
@@ -220,6 +229,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
             ? _value.showBacklinks
             : showBacklinks // ignore: cast_nullable_to_non_nullable
                   as bool,
+        rawFrontmatterBlock: freezed == rawFrontmatterBlock
+            ? _value.rawFrontmatterBlock
+            : rawFrontmatterBlock // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -239,6 +252,7 @@ class _$EditorStateImpl implements _EditorState {
     this.lastSaved = '',
     this.editorMode = EditorMode.livePreview,
     this.showBacklinks = false,
+    this.rawFrontmatterBlock,
   });
 
   @override
@@ -270,10 +284,12 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final bool showBacklinks;
+  @override
+  final String? rawFrontmatterBlock;
 
   @override
   String toString() {
-    return 'EditorState(isLoaded: $isLoaded, isSaving: $isSaving, showWikilinkPopup: $showWikilinkPopup, wikilinkQuery: $wikilinkQuery, loadedTitle: $loadedTitle, loadedBody: $loadedBody, dailyDate: $dailyDate, lastSaved: $lastSaved, editorMode: $editorMode, showBacklinks: $showBacklinks)';
+    return 'EditorState(isLoaded: $isLoaded, isSaving: $isSaving, showWikilinkPopup: $showWikilinkPopup, wikilinkQuery: $wikilinkQuery, loadedTitle: $loadedTitle, loadedBody: $loadedBody, dailyDate: $dailyDate, lastSaved: $lastSaved, editorMode: $editorMode, showBacklinks: $showBacklinks, rawFrontmatterBlock: $rawFrontmatterBlock)';
   }
 
   @override
@@ -300,7 +316,9 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.editorMode, editorMode) ||
                 other.editorMode == editorMode) &&
             (identical(other.showBacklinks, showBacklinks) ||
-                other.showBacklinks == showBacklinks));
+                other.showBacklinks == showBacklinks) &&
+            (identical(other.rawFrontmatterBlock, rawFrontmatterBlock) ||
+                other.rawFrontmatterBlock == rawFrontmatterBlock));
   }
 
   @override
@@ -316,6 +334,7 @@ class _$EditorStateImpl implements _EditorState {
     lastSaved,
     editorMode,
     showBacklinks,
+    rawFrontmatterBlock,
   );
 
   /// Create a copy of EditorState
@@ -339,6 +358,7 @@ abstract class _EditorState implements EditorState {
     final String lastSaved,
     final EditorMode editorMode,
     final bool showBacklinks,
+    final String? rawFrontmatterBlock,
   }) = _$EditorStateImpl;
 
   @override
@@ -361,6 +381,8 @@ abstract class _EditorState implements EditorState {
   EditorMode get editorMode;
   @override
   bool get showBacklinks;
+  @override
+  String? get rawFrontmatterBlock;
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.

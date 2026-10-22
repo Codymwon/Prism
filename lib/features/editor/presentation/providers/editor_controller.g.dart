@@ -6,7 +6,7 @@ part of 'editor_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$editorControllerHash() => r'cb7b45116ba0e019ca6735f6bd0672e8600675e4';
+String _$editorControllerHash() => r'5ab0de48830ed6e2cd450850b0f53d6c5dfd9398';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -172,7 +172,7 @@ class _EditorControllerProviderElement
 }
 
 String _$audioRecordControllerHash() =>
-    r'e8b0495e712917d08d4035229eac484d8c428d2b';
+    r'79bf51d3a93d9903657e5eae2775611687142bec';
 
 abstract class _$AudioRecordController
     extends BuildlessAutoDisposeNotifier<AudioRecordState> {
