@@ -59,12 +59,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       ),
                       _buildPrivacyItem(
                         context,
-                        title: 'Subscription Status',
-                        description:
-                            'Prism uses RevenueCat to verify your Prism Pro subscription status. RevenueCat receives a pseudonymous user identifier and purchase receipts from the app store. No personal information is shared. RevenueCat\'s privacy policy is available at revenuecat.com/privacy.',
-                      ),
-                      _buildPrivacyItem(
-                        context,
                         title: 'Font Downloads',
                         description:
                             'On first launch, Prism downloads font files from Google Fonts (fonts.googleapis.com). These are cached locally on your device after the initial download — no personal data is transmitted, and the app functions fully offline thereafter.',
@@ -81,12 +75,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         title: 'Microphone Access',
                         description:
                             'Used exclusively when you activate the voice dictation toolbar button to record audio attachments or perform speech-to-text. Audio files are saved inside your vault and processed locally.',
-                      ),
-                      _buildPrivacyItem(
-                        context,
-                        title: 'Storage / Filesystem Access',
-                        description:
-                            'Required to let you select a local folder directory for your vaults, enabling Prism to read, write, and manage your standard markdown files.',
                       ),
                     ],
                   ),

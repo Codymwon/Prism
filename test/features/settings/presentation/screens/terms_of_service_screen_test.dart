@@ -33,6 +33,12 @@ void main() {
     expect(find.text('UCC § 2-316 STATUTORY DISCLAIMER'), findsOneWidget);
     expect(find.text('CRITICAL LIABILITY LIMITATION & BACKUP OBLIGATION'), findsOneWidget);
 
+    // Verify Inactive/Hidden Features are absent
+    expect(find.textContaining('SUBSCRIPTION SERVICES'), findsNothing);
+    expect(find.textContaining('TOTAL FEES ACTUALLY PAID'), findsNothing);
+    expect(find.textContaining('SYNCHRONIZATION VIA GOOGLE DRIVE'), findsNothing);
+    expect(find.textContaining('LOCAL-FIRST FILE SYSTEM UTILITY'), findsNothing);
+
     // Scroll to see downstream sections
     await tester.scrollUntilVisible(
       find.text('6. BINDING ARBITRATION & CLASS ACTION WAIVER'),

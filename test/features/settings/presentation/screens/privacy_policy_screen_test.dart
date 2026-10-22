@@ -30,7 +30,9 @@ void main() {
     expect(find.text('1. WHAT WE COLLECT'), findsOneWidget);
     expect(find.text('Anonymous Usage Telemetry (opt-in)'), findsOneWidget);
     expect(find.text('Crash Reports (opt-in)'), findsOneWidget);
+    expect(find.text('Subscription Status'), findsNothing);
     expect(find.text('2. DEVICE PERMISSIONS'), findsOneWidget);
+    expect(find.text('Storage / Filesystem Access'), findsNothing);
     expect(find.text('3. OPTIONAL CLOUD INTEGRATION'), findsOneWidget);
 
     // Verify Limited Use Callout

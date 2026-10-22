@@ -74,7 +74,8 @@ class TermsOfServiceScreen extends StatelessWidget {
                     title: '2. DISCLAIMER OF WARRANTIES ("AS IS")',
                     content:
                         'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, PRISM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, QUIET ENJOYMENT, ACCURACY, SYSTEM INTEGRATION, OR NON-INFRINGEMENT.\n\n'
-                        'SMALL GIANT STUDIO DOES NOT WARRANT THAT PRISM WILL BE UNINTERRUPTED, TIMELY, SECURE, ERROR-FREE, OR FREE OF BUGS, MALWARE, OR SYSTEM DEFECTS. WE MAKE NO WARRANTY THAT FILE SYSTEM READ OR WRITE OPERATIONS, LOCAL SQLITE INDEXING, METADATA COMPILATION, AUTOMATED BACKLINK RESOLUTION, SEARCH INDEXING, OR SYNCHRONIZATION VIA GOOGLE DRIVE OR ANY THIRD-PARTY CLOUD PROVIDER WILL FUNCTION WITHOUT CONFLICTS, FILE CORRUPTION, DATA OVERWRITE, LOSS OF NOTES, OR PERMANENT VAULT DELETION. YOU ASSUME ALL RISK ARISING OUT OF THE SELECTION, INSTALLATION, AND OPERATION OF PRISM.',
+                        'SMALL GIANT STUDIO DOES NOT WARRANT THAT PRISM WILL BE UNINTERRUPTED, TIMELY, SECURE, ERROR-FREE, OR FREE OF BUGS, MALWARE, OR SYSTEM DEFECTS. WE MAKE NO WARRANTY THAT ON-DEVICE STORAGE OPERATIONS, DATA EXPORTS, BACKUP FILE GENERATION, LOCAL SQLITE INDEXING, METADATA COMPILATION, AUTOMATED BACKLINK RESOLUTION, OR SEARCH INDEXING WILL FUNCTION WITHOUT CONFLICTS, FILE CORRUPTION, DATA OVERWRITE, LOSS OF NOTES, OR PERMANENT VAULT DELETION. YOU ASSUME ALL RISK ARISING OUT OF THE SELECTION, INSTALLATION, AND OPERATION OF PRISM.\n\n'
+                        'THIRD-PARTY SERVICES DISCLAIMER: PRISM MAY INTEGRATE WITH OR INTERFACE WITH OPTIONAL THIRD-PARTY SERVICES (SUCH AS GOOGLE FONTS). SMALL GIANT STUDIO HAS NO CONTROL OVER, DOES NOT ENDORSE, AND ASSUMES NO LIABILITY OR RESPONSIBILITY FOR THE AVAILABILITY, UPTIME, DATA INTEGRITY, SECURITY PRACTICES, API MODIFICATIONS, SERVICE INTERRUPTIONS, OR DATA HANDLING OF ANY THIRD-PARTY SERVICES. YOUR USE OF THIRD-PARTY PLATFORMS IS AT YOUR OWN RISK AND GOVERNED BY THEIR INDEPENDENT TERMS.',
                   ),
                   const SizedBox(height: 24),
 
@@ -85,8 +86,8 @@ class TermsOfServiceScreen extends StatelessWidget {
                     title: '3. LIMITATION OF LIABILITY & USER BACKUP DUTY',
                     content:
                         'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL SMALL GIANT STUDIO, ITS DEVELOPERS, AFFILIATES, CONTRACTORS, OR AGENTS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY INDIRECT, CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, SPECIAL, OR PUNITIVE DAMAGES WHATSOEVER, INCLUDING BUT NOT LIMITED TO DAMAGES FOR LOSS OF PROFITS, LOSS OF REVENUE, LOSS OF GOODWILL, BUSINESS INTERRUPTION, LOSS OF DATA, CORRUPTION OR ALTERATION OF MARKDOWN NOTES, ACCIDENTAL VAULT DELETION, OR THE COST OF RECOVERING OR RECONSTRUCTING LOST FILES, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OR INABILITY TO USE PRISM, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.\n\n'
-                        'AGGREGATE LIABILITY CAP: IN NO EVENT SHALL THE TOTAL AGGREGATE LIABILITY OF SMALL GIANT STUDIO ARISING OUT OF OR RELATING TO THESE TERMS OR YOUR USE OF PRISM EXCEED THE GREATER OF FIFTY UNITED STATES DOLLARS (\$50.00 USD) OR THE TOTAL FEES ACTUALLY PAID BY YOU TO PRISM FOR SUBSCRIPTION SERVICES IN THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING THE OCCURRENCE GIVING RISE TO LIABILITY.\n\n'
-                        'MANDATORY USER BACKUP OBLIGATION: PRISM OPERATES AS A LOCAL-FIRST FILE SYSTEM UTILITY. YOU EXPRESSLY ACKNOWLEDGE AND AGREE THAT YOU ARE SOLELY AND EXCLUSIVELY RESPONSIBLE FOR MAINTAINING INDEPENDENT, REDUNDANT, AND VERIFIED EXTERNAL BACKUPS OF ALL YOUR VAULTS, NOTES, AND MEDIA ATTACHMENTS. YOU ARE STRONGLY ADVISED TO ROUTINELY EXPORT YOUR DATA USING PRISM\'S BUILT-IN "VAULT EXPORT" FEATURE (GENERATING OFFLINE ZIP ARCHIVES) AND TO MAINTAIN SEPARATE MANUAL COPIES ON EXTERNAL PHYSICAL STORAGE OR INDEPENDENT CLOUD BACKUP REPOSITORIES.',
+                        'AGGREGATE LIABILITY CAP: IN NO EVENT SHALL THE TOTAL AGGREGATE LIABILITY OF SMALL GIANT STUDIO ARISING OUT OF OR RELATING TO THESE TERMS OR YOUR USE OF PRISM EXCEED FIFTY UNITED STATES DOLLARS (\$50.00 USD).\n\n'
+                        'MANDATORY USER BACKUP OBLIGATION & EXPORT DISCLAIMER: PRISM OPERATES AS AN ON-DEVICE, LOCAL-FIRST APPLICATION. YOU EXPRESSLY ACKNOWLEDGE AND AGREE THAT YOU ARE SOLELY AND EXCLUSIVELY RESPONSIBLE FOR MAINTAINING INDEPENDENT, REDUNDANT, AND VERIFIED EXTERNAL BACKUPS OF ALL YOUR VAULTS, NOTES, AND MEDIA ATTACHMENTS. YOU ARE STRONGLY ADVISED TO ROUTINELY EXPORT YOUR DATA USING PRISM\'S BUILT-IN "VAULT EXPORT" FEATURE (GENERATING OFFLINE BACKUP FILES) AND TO MAINTAIN SEPARATE MANUAL COPIES ON EXTERNAL PHYSICAL STORAGE OR INDEPENDENT CLOUD BACKUP REPOSITORIES. ANY BACKUP FILES, DATA EXPORTS, OR ARCHIVES GENERATED BY PRISM ARE PROVIDED STRICTLY "AS IS" WITH NO WARRANTY OF COMPLETENESS, SUITABILITY, OR RESTORABILITY. IN NO EVENT SHALL SMALL GIANT STUDIO BE LIABLE FOR FAILED, INCOMPLETE, OR CORRUPTED EXPORTS.',
                   ),
                   const SizedBox(height: 24),
 
@@ -120,13 +121,19 @@ class TermsOfServiceScreen extends StatelessWidget {
                         context,
                         title: 'Your Content Ownership',
                         description:
-                            'You retain 100% full legal ownership, copyright, and intellectual property rights in all Markdown files, notes, audio attachments, templates, and text stored within your vaults. Prism does not claim any ownership over your writing or personal files.',
+                            'You retain 100% full legal ownership, copyright, and intellectual property rights in all Markdown files, notes, audio attachments, and text stored within your vaults. Prism does not claim any ownership over your writing or personal files.',
                       ),
                       _buildTermsItem(
                         context,
                         title: 'Prism Intellectual Property',
                         description:
                             'Small Giant Studio retains all rights, title, and interest in and to Prism, including its application source code, interface designs, visual themes, typography styling, algorithms, and trademarks. You are granted a personal, revocable, non-exclusive, non-transferable license to use Prism on your personal devices.',
+                      ),
+                      _buildTermsItem(
+                        context,
+                        title: 'Modifications, Discontinuation & No Support Duty',
+                        description:
+                            'Small Giant Studio has no obligation to provide maintenance, technical support, bug fixes, updates, or feature enhancements for Prism. We reserve the absolute right to modify, suspend, deprecate, or discontinue Prism (or any part or feature thereof) at any time, temporarily or permanently, with or without notice, and without any liability to you.',
                       ),
                     ],
                   ),
@@ -141,7 +148,7 @@ class TermsOfServiceScreen extends StatelessWidget {
                         context,
                         title: 'Mandatory Binding Arbitration',
                         description:
-                            'Except as provided below, any dispute, controversy, or claim arising out of or relating to these Terms, Prism, or any alleged data loss shall be resolved exclusively by final and binding individual arbitration administered by the American Arbitration Association ("AAA") under its Consumer Arbitration Rules. The Federal Arbitration Act (FAA) governs the interpretation and enforcement of this section.',
+                            'Except as provided below (including the Small Claims Court Exception), any dispute, controversy, or claim arising out of or relating to these Terms, Prism, or any alleged data loss shall be resolved exclusively by final and binding individual arbitration administered by the American Arbitration Association ("AAA") under its Consumer Arbitration Rules. The Federal Arbitration Act (FAA) governs the interpretation and enforcement of this section.',
                       ),
                       _buildTermsItem(
                         context,
@@ -151,9 +158,15 @@ class TermsOfServiceScreen extends StatelessWidget {
                       ),
                       _buildTermsItem(
                         context,
+                        title: 'Small Claims Court Mutual Exception',
+                        description:
+                            'Notwithstanding the agreement to arbitrate, either you or Small Giant Studio may bring an individual action in a small claims court of competent jurisdiction located in Santa Clara County, California (or in the county of your residence if local rules permit), provided the action remains within the monetary limits of such small claims court and proceeds strictly on an individual basis.',
+                      ),
+                      _buildTermsItem(
+                        context,
                         title: 'Mandatory 30-Day Informal Negotiation',
                         description:
-                            'Before initiating arbitration, the claimant must first send a written Notice of Dispute describing the claim and desired relief to $contactEmail. Both parties agree to negotiate in good faith for at least thirty (30) days following receipt before commencing arbitration.',
+                            'Before initiating arbitration or small claims proceedings, the claimant must first send a written Notice of Dispute describing the claim and desired relief to $contactEmail. Both parties agree to negotiate in good faith for at least thirty (30) days following receipt before commencing formal dispute resolution.',
                       ),
                       _buildTermsItem(
                         context,
