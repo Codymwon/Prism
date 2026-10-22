@@ -68,17 +68,30 @@ class DatabaseHelper {
 
     const secureStorage = FlutterSecureStorage();
     const key = 'prism_db_encryption_key';
-    try {
-      String? password = await secureStorage.read(key: key);
-      if (password == null) {
-        password = const Uuid().v4();
-        await secureStorage.write(key: key, value: password);
+    const delays = [
+      Duration(milliseconds: 100),
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 500),
+    ];
+
+    Object? lastError;
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        String? password = await secureStorage.read(key: key);
+        if (password == null) {
+          password = const Uuid().v4();
+          await secureStorage.write(key: key, value: password);
+        }
+        return password;
+      } catch (e) {
+        lastError = e;
+        debugPrint('[DB] Error accessing secure storage for database key (attempt ${attempt + 1}/3): $e');
+        if (attempt < 2) {
+          await Future<void>.delayed(delays[attempt]);
+        }
       }
-      return password;
-    } catch (e) {
-      debugPrint('[DB] Error loading/generating secure storage database password: $e');
-      return 'prism_db_fallback_key_2026';
     }
+    throw StateError('Failed to access secure storage for database encryption key: $lastError');
   }
 
   Future<Database> openDatabaseForPath(String vaultPath) {
@@ -122,6 +135,7 @@ class DatabaseHelper {
                 await db.rawQuery('PRAGMA cache_size = -2000;');
                 await db.rawQuery('PRAGMA mmap_size = 268435456;');
                 await db.rawQuery('PRAGMA synchronous = NORMAL;');
+                await db.rawQuery('PRAGMA busy_timeout = 5000;');
               },
             ),
           );
@@ -139,6 +153,7 @@ class DatabaseHelper {
               await db.rawQuery('PRAGMA cache_size = -2000;');
               await db.rawQuery('PRAGMA mmap_size = 268435456;');
               await db.rawQuery('PRAGMA synchronous = NORMAL;');
+              await db.rawQuery('PRAGMA busy_timeout = 5000;');
             },
           );
         }
@@ -150,8 +165,26 @@ class DatabaseHelper {
             await corruptFile.rename('$path.corrupt');
             debugPrint('[DB] Corrupt file renamed to $path.corrupt');
           }
+          final walFile = File('$path-wal');
+          if (await walFile.exists()) {
+            try {
+              await walFile.rename('$path-wal.corrupt');
+            } catch (_) {
+              await walFile.delete();
+            }
+            debugPrint('[DB] Corrupt WAL file renamed/deleted');
+          }
+          final shmFile = File('$path-shm');
+          if (await shmFile.exists()) {
+            try {
+              await shmFile.rename('$path-shm.corrupt');
+            } catch (_) {
+              await shmFile.delete();
+            }
+            debugPrint('[DB] Corrupt SHM file renamed/deleted');
+          }
         } catch (renameErr) {
-          debugPrint('[DB] Could not rename corrupt file: $renameErr');
+          debugPrint('[DB] Could not clean up corrupt files: $renameErr');
         }
         // Open a fresh empty database; background syncVault will rebuild
         // the notes index from the .md files on disk.
@@ -169,6 +202,7 @@ class DatabaseHelper {
                 await db.rawQuery('PRAGMA cache_size = -2000;');
                 await db.rawQuery('PRAGMA mmap_size = 268435456;');
                 await db.rawQuery('PRAGMA synchronous = NORMAL;');
+                await db.rawQuery('PRAGMA busy_timeout = 5000;');
               },
             ),
           );
@@ -186,6 +220,7 @@ class DatabaseHelper {
               await db.rawQuery('PRAGMA cache_size = -2000;');
               await db.rawQuery('PRAGMA mmap_size = 268435456;');
               await db.rawQuery('PRAGMA synchronous = NORMAL;');
+              await db.rawQuery('PRAGMA busy_timeout = 5000;');
             },
           );
         }

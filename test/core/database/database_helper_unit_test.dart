@@ -179,5 +179,11 @@ void main() {
       final corruptFile = File('$dbPath.corrupt');
       expect(await corruptFile.exists(), isTrue);
     });
+
+    test('verifies busy_timeout is configured to 5000ms', () async {
+      final db = await DatabaseHelper.instance.openDatabaseForPath(tempDir1.path);
+      final res = await db.rawQuery('PRAGMA busy_timeout;');
+      expect(res.first.values.first, equals(5000));
+    });
   });
 }
