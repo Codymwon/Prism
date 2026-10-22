@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/services/template_service.dart';
 import '../../../../core/utils/utils.dart' as utils;
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import 'package:prism/l10n/l10n.dart';
 
@@ -332,8 +333,10 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
               result.fold(
                 (failure) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.l10n.settings_custom_templates_create_error(failure.message))),
+                    PrismToast.show(
+                      context,
+                      context.l10n.settings_custom_templates_create_error(failure.message),
+                      icon: Icons.error_outline_rounded,
                     );
                   }
                 },
@@ -380,16 +383,20 @@ class _CustomTemplatesScreenState extends ConsumerState<CustomTemplatesScreen> {
               result.fold(
                 (failure) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.l10n.settings_custom_templates_delete_error(failure.message))),
+                    PrismToast.show(
+                      context,
+                      context.l10n.settings_custom_templates_delete_error(failure.message),
+                      icon: Icons.error_outline_rounded,
                     );
                   }
                 },
                 (_) {
                   ref.invalidate(templatesListProvider);
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.l10n.settings_custom_templates_delete_success)),
+                    PrismToast.show(
+                      context,
+                      context.l10n.settings_custom_templates_delete_success,
+                      icon: Icons.delete_outline_rounded,
                     );
                   }
                 },

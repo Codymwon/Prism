@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 import '../providers/journal_providers.dart';
 import 'package:prism/l10n/l10n.dart';
 
@@ -23,6 +24,7 @@ class JournalHeader extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isToday_ = isToday(formatDailyDate(selectedDay));
     final streakAsync = ref.watch(journalStreakProvider);
+    final showStreaks = ref.watch(showJournalStreaksProvider).valueOrNull ?? true;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -58,7 +60,8 @@ class JournalHeader extends ConsumerWidget {
                         color: DesignColors.textSecondary(context),
                       ),
                     ),
-                    streakAsync.maybeWhen(
+                    if (showStreaks)
+                      streakAsync.maybeWhen(
                       data: (stats) {
                         if (stats.totalCount == 0) return const SizedBox.shrink();
                         return Wrap(

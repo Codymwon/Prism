@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/design_system/design_system.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -237,11 +238,10 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       style: TactileFeedbackStyle.highImpact,
                       onTap: () {
                         Clipboard.setData(const ClipboardData(text: 'https://smallgiantstudio.com/prism/privacy'));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Privacy Policy link copied to clipboard!'),
-                            duration: Duration(seconds: 2),
-                          ),
+                        PrismToast.show(
+                          context,
+                          'Privacy Policy link copied to clipboard!',
+                          icon: Icons.copy_rounded,
                         );
                       },
                       child: Container(

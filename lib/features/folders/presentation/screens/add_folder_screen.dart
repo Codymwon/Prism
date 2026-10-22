@@ -339,7 +339,7 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
                         colorHex: _colorHex,
                         icon: _selectedIconKey,
                       );
-                  if (context.mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context, name);
                 }
               },
             ),

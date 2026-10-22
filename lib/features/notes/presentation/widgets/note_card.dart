@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/design_system.dart';
+import '../../../../shared/widgets/island_menu.dart';
 import '../../data/note_model.dart';
 import '../../../folders/presentation/widgets/folder_assign_dialog.dart';
 
@@ -28,48 +29,28 @@ class NoteCard extends StatelessWidget {
   }
 
   void _showContextMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: DesignColors.surface(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignSpacing.borderRadiusLarge)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const DesignSheetDragHandle(),
-            ListTile(
-              leading: const Icon(Icons.open_in_new_rounded),
-              title: Text('Open', style: DesignTypography.body(context)),
-              onTap: () {
-                Navigator.pop(ctx);
-                onTap();
-              },
-            ),
-            ListTile(
-              leading: const Icon(DesignIcons.folderOpen),
-              title: Text('Organize', style: DesignTypography.body(context)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showFolderAssignDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(DesignIcons.delete, color: Colors.redAccent),
-              title: Text(
-                'Delete',
-                style: DesignTypography.body(context, color: Colors.redAccent),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                onDelete();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+    IslandMenu.show(
+      context,
+      title: note.title.isEmpty ? 'Untitled' : note.title,
+      icon: Icons.article_outlined,
+      items: [
+        IslandMenuItem(
+          label: 'Open',
+          icon: Icons.open_in_new_rounded,
+          onTap: onTap,
         ),
-      ),
+        IslandMenuItem(
+          label: 'Organize',
+          icon: DesignIcons.folderOpen,
+          onTap: () => _showFolderAssignDialog(context),
+        ),
+        IslandMenuItem(
+          label: 'Delete',
+          icon: DesignIcons.delete,
+          isDestructive: true,
+          onTap: onDelete,
+        ),
+      ],
     );
   }
 

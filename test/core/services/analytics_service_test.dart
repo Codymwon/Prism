@@ -15,8 +15,16 @@ void main() {
   }
 
   group('AnalyticsService Consent and Event Logging Tests', () {
-    test('Logs events when analytics is enabled (default)', () async {
-      await setupPrefs({}); // Defaults to enabled (true)
+    test('Does not log events by default when not opted in (GDPR strict opt-in)', () async {
+      await setupPrefs({}); // Defaults to disabled (false) under GDPR opt-in
+
+      await AnalyticsService.logEvent('test_event');
+
+      expect(AnalyticsService.loggedEvents, isEmpty);
+    });
+
+    test('Logs events when analytics is enabled', () async {
+      await setupPrefs({'analyticsEnabled': true});
 
       await AnalyticsService.logEvent(
         'test_event',
@@ -36,8 +44,16 @@ void main() {
       expect(AnalyticsService.loggedEvents, isEmpty);
     });
 
-    test('Logs errors when analytics is enabled (default)', () async {
-      await setupPrefs({}); // Defaults to enabled (true)
+    test('Does not log errors by default when not opted in (GDPR strict opt-in)', () async {
+      await setupPrefs({}); // Defaults to disabled (false) under GDPR opt-in
+
+      await AnalyticsService.logError(Exception('Test exception'), null);
+
+      expect(AnalyticsService.loggedErrors, isEmpty);
+    });
+
+    test('Logs errors when analytics is enabled', () async {
+      await setupPrefs({'analyticsEnabled': true});
 
       final exception = Exception('Test exception');
       final stackTrace = StackTrace.current;
@@ -58,7 +74,7 @@ void main() {
     });
 
     test('Correctly captures change_theme event with theme name parameter', () async {
-      await setupPrefs({});
+      await setupPrefs({'analyticsEnabled': true});
 
       await AnalyticsService.logEvent('change_theme', parameters: {'theme': 'midnight'});
 
@@ -68,7 +84,7 @@ void main() {
     });
 
     test('Correctly captures change_editor_mode event with view mode parameter', () async {
-      await setupPrefs({});
+      await setupPrefs({'analyticsEnabled': true});
 
       await AnalyticsService.logEvent('change_editor_mode', parameters: {'mode': 'livePreview'});
 
@@ -78,7 +94,7 @@ void main() {
     });
 
     test('Correctly captures insert_macro event with macro label parameter', () async {
-      await setupPrefs({});
+      await setupPrefs({'analyticsEnabled': true});
 
       await AnalyticsService.logEvent('insert_macro', parameters: {'macro_label': 'Todo List'});
 
@@ -88,7 +104,7 @@ void main() {
     });
 
     test('Correctly captures sync_run event with status and details parameters', () async {
-      await setupPrefs({});
+      await setupPrefs({'analyticsEnabled': true});
 
       await AnalyticsService.logEvent('sync_run', parameters: {
         'status': 'success',
@@ -106,7 +122,7 @@ void main() {
     });
 
     test('Correctly captures perform_search event', () async {
-      await setupPrefs({});
+      await setupPrefs({'analyticsEnabled': true});
 
       await AnalyticsService.logEvent('perform_search');
 

@@ -5,6 +5,7 @@ import '../../../../core/services/vault_service.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
 import 'package:prism/l10n/l10n.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 
 class VaultSelectorBottomSheet extends ConsumerStatefulWidget {
   const VaultSelectorBottomSheet({super.key});
@@ -15,17 +16,28 @@ class VaultSelectorBottomSheet extends ConsumerStatefulWidget {
 
 class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSheet> {
   Future<void> _switchVault(String vaultName) async {
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context); // Dismiss bottom sheet immediately
+    final nav = Navigator.of(context);
+    final targetContext = nav.context;
+    nav.pop(); // Dismiss bottom sheet immediately
 
     try {
       ref.read(selectedFolderIdProvider.notifier).state = null;
       await ref.read(vaultManagementServiceProvider).switchVault(vaultName: vaultName);
+      if (targetContext.mounted) {
+        PrismToast.show(
+          targetContext,
+          'Switched to workspace: $vaultName',
+          icon: Icons.check_circle_outline_rounded,
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(context.l10n.notes_vault_selector_switch_error(e.toString()), style: const TextStyle(color: Colors.white))),
-      );
+      if (targetContext.mounted) {
+        PrismToast.show(
+          targetContext,
+          targetContext.l10n.notes_vault_selector_switch_error(e.toString()),
+          icon: Icons.error_outline_rounded,
+        );
+      }
     }
   }
 
@@ -41,8 +53,9 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
   }
 
   Future<void> _createNewVault(String vaultName) async {
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context); // Dismiss bottom sheet immediately
+    final nav = Navigator.of(context);
+    final targetContext = nav.context;
+    nav.pop(); // Dismiss bottom sheet immediately
 
     try {
       // Await async provider to get the real loaded value
@@ -52,11 +65,21 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
         vaultName: vaultName,
         baseDir: baseDir,
       );
+      if (targetContext.mounted) {
+        PrismToast.show(
+          targetContext,
+          'Workspace "$vaultName" created',
+          icon: Icons.check_circle_outline_rounded,
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(context.l10n.notes_vault_selector_create_error(e.toString()), style: const TextStyle(color: Colors.white))),
-      );
+      if (targetContext.mounted) {
+        PrismToast.show(
+          targetContext,
+          targetContext.l10n.notes_vault_selector_create_error(e.toString()),
+          icon: Icons.error_outline_rounded,
+        );
+      }
     }
   }
 
@@ -112,6 +135,14 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
                           fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                         ),
                       ),
+                      subtitle: Text(
+                        '(Local Vault)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: DesignColors.textTertiary(context),
+                        ),
+                      ),
                       trailing: isActive ? Icon(DesignIcons.check, color: colorScheme.primary) : null,
                       onTap: () async {
                         if (!isActive) {
@@ -142,7 +173,7 @@ class _VaultSelectorBottomSheetState extends ConsumerState<VaultSelectorBottomSh
           ListTile(
             leading: Icon(DesignIcons.add, color: colorScheme.primary),
             title: Text(
-              'Create New Vault',
+              'Create New Workspace',
               style: DesignTypography.heading(
                 context,
                 fontWeight: FontWeight.w600,
@@ -189,7 +220,7 @@ class _CreateVaultDialogState extends State<_CreateVaultDialog> {
     return AlertDialog(
       backgroundColor: DesignColors.surface(context),
       title: Text(
-        'Create New Vault',
+        'Create New Workspace',
         style: DesignTypography.heading(context, fontWeight: FontWeight.w700),
       ),
       content: TextField(
@@ -218,8 +249,10 @@ class _CreateVaultDialogState extends State<_CreateVaultDialog> {
             if (name.isEmpty) return;
             final safePattern = RegExp(r'^[a-zA-Z0-9 _\-]+$');
             if (!safePattern.hasMatch(name)) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(context.l10n.notes_vault_selector_validation_error)),
+              PrismToast.show(
+                context,
+                context.l10n.notes_vault_selector_validation_error,
+                icon: Icons.warning_amber_rounded,
               );
               return;
             }

@@ -29,7 +29,7 @@ class VaultSelectorTitle extends ConsumerWidget {
       style: TactileFeedbackStyle.standard,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        constraints: const BoxConstraints(maxWidth: 140),
+        constraints: const BoxConstraints(maxWidth: 150),
         decoration: BoxDecoration(
           color: DesignColors.surfaceVariant(context),
           borderRadius: BorderRadius.circular(10),
@@ -38,28 +38,42 @@ class VaultSelectorTitle extends ConsumerWidget {
             width: 0.5,
           ),
         ),
-        child: Row(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(DesignIcons.folderOpen, size: 12, color: DesignColors.textSecondary(context)),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                activeVaultName,
-                style: DesignTypography.heading(
-                  context,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(DesignIcons.folderOpen, size: 12, color: DesignColors.textSecondary(context)),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    activeVaultName,
+                    style: DesignTypography.heading(
+                      context,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
+                const SizedBox(width: 4),
+                Icon(
+                  DesignIcons.arrowDown,
+                  size: 14,
+                  color: DesignColors.textSecondary(context),
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            Icon(
-              DesignIcons.arrowDown,
-              size: 14,
-              color: DesignColors.textSecondary(context),
+            Text(
+              '(Local Vault)',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+                color: DesignColors.textTertiary(context),
+              ),
             ),
           ],
         ),

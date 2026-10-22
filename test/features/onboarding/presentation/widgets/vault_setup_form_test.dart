@@ -211,10 +211,10 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Configure Vault Location'), findsOneWidget);
+    expect(find.text('Workspace Storage Location'), findsOneWidget);
     expect(find.text('Prism Hub Name'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
-    expect(find.text('Vault Name'), findsNothing);
+    expect(find.text('Workspace Name'), findsNothing);
     expect(find.text('Confirm & Begin'), findsNothing);
   });
 
@@ -246,7 +246,7 @@ void main() {
     });
     await tester.pumpAndSettle();
 
-    expect(find.text('Name your first vault'), findsOneWidget);
+    expect(find.text('Name your first workspace'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
 
     // Step 2 -> Step 3
@@ -257,7 +257,7 @@ void main() {
     });
     await tester.pumpAndSettle();
 
-    expect(find.text('Privacy & Telemetry'), findsOneWidget);
+    expect(find.text('Privacy & Diagnostics'), findsOneWidget);
     expect(find.text('Confirm & Begin'), findsOneWidget);
 
     // Confirm -> creates vault dir + calls onPersist
@@ -271,7 +271,7 @@ void main() {
     expect(startCalled, isTrue);
     expect(persistCalled, isTrue);
     expect(
-      Directory(p.join(tempDir.path, 'Prism Hub', 'My Vault')).existsSync(),
+      Directory(p.join(tempDir.path, 'Prism Hub', 'My Workspace')).existsSync(),
       isTrue,
     );
   });
@@ -316,8 +316,8 @@ void main() {
     });
     await tester.pumpAndSettle();
 
-    expect(find.text('Name your first vault'), findsNothing); // Step 2 skipped
-    expect(find.text('Privacy & Telemetry'), findsOneWidget); // Shows privacy preferences
+    expect(find.text('Name your first workspace'), findsNothing); // Step 2 skipped
+    expect(find.text('Privacy & Diagnostics'), findsOneWidget); // Shows privacy preferences
     expect(find.text('Confirm & Begin'), findsOneWidget);
 
     // Confirm & Begin -> completes auto-import
@@ -393,7 +393,7 @@ void main() {
     });
     await tester.pumpAndSettle();
 
-    expect(find.text('Name your first vault'), findsOneWidget);
+    expect(find.text('Name your first workspace'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
 
     // Tap Next (Step 2 -> Step 3)
@@ -404,7 +404,7 @@ void main() {
     });
     await tester.pumpAndSettle();
 
-    expect(find.text('Privacy & Telemetry'), findsOneWidget);
+    expect(find.text('Privacy & Diagnostics'), findsOneWidget);
     expect(find.text('Confirm & Begin'), findsOneWidget);
 
     // Tap Confirm & Begin
@@ -417,7 +417,7 @@ void main() {
 
     expect(startCalled, isTrue);
     expect(persistedVaultType, equals('sandbox'));
-    expect(persistedVaultName, equals('My Vault'));
+    expect(persistedVaultName, equals('My Workspace'));
     // Since it resolves path_provider, it should contain a sandbox documents path
     expect(persistedHubPath, contains('prism_vaults'));
   });
@@ -444,7 +444,7 @@ void main() {
     });
     await tester.pumpAndSettle();
 
-    // Advance to Step 3 (Privacy & Telemetry)
+    // Advance to Step 3 (Privacy & Diagnostics)
     await tester.runAsync(() async {
       await tester.tap(find.byType(DesignPrimaryButton));
       await tester.pump();
@@ -452,7 +452,7 @@ void main() {
     });
     await tester.pumpAndSettle();
 
-    expect(find.text('Privacy & Telemetry'), findsOneWidget);
+    expect(find.text('Privacy & Diagnostics'), findsOneWidget);
 
     // Verify Switch is present and its value is false (strict opt-in)
     final switchFinder = find.byType(Switch);

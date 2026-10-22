@@ -21,6 +21,10 @@ import '../widgets/conflict_banner.dart';
 import '../widgets/editor_write_mode.dart';
 import '../../../../core/providers/shared_preferences_provider.dart';
 import '../controllers/live_preview_controller.dart';
+import '../providers/audio_player_providers.dart';
+import '../providers/docked_audio_provider.dart';
+import '../widgets/audio_evidence_panel.dart';
+import '../widgets/audio_player_bottom_sheet.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {
@@ -143,6 +147,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         );
       },
+      onTimestampTap: (pos) {
+        ref.read(audioPlayerStateProvider.notifier).seek(pos);
+      },
     );
 
     _loadNote();
@@ -210,6 +217,29 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (newValue != null) {
       _controller.value = newValue;
     }
+  }
+
+  void _insertBookmarkTag(int timestampMs) {
+    final d = Duration(milliseconds: timestampMs);
+    final minutes = (d.inMinutes.remainder(60)).toString().padLeft(2, '0');
+    final seconds = (d.inSeconds.remainder(60)).toString().padLeft(2, '0');
+    final tag = '[$minutes:$seconds - Bookmark]';
+
+    final text = _controller.text;
+    final cursor = _controller.selection.baseOffset;
+    final before = cursor >= 0 ? text.substring(0, cursor) : text;
+    final after = cursor >= 0 ? text.substring(cursor) : '';
+
+    _controller.value = TextEditingValue(
+      text: '$before$tag$after',
+      selection: TextSelection.collapsed(
+        offset: (cursor >= 0 ? cursor : text.length) + tag.length,
+      ),
+    );
+    _editorController.save(
+      _titleController.text,
+      _controller.text,
+    );
   }
 
   @override
@@ -282,6 +312,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     return ConflictBanner(noteId: widget.noteId);
                   },
                 ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final docked = ref.watch(dockedAudioProvider);
+                    if (docked == null) return const SizedBox.shrink();
+                    return AudioEvidencePanel(
+                      dockedAudio: docked,
+                      onUndock: () => ref.read(dockedAudioProvider.notifier).undock(),
+                      onAddBookmark: (timestampMs) {
+                        _insertBookmarkTag(timestampMs);
+                      },
+                    );
+                  },
+                ),
                 Expanded(
                   child: mode != EditorMode.reading
                       ? Column(
@@ -297,18 +340,53 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                 paddingHorizontal: paddingVal,
                               ),
                             ),
-                            audioRecordState.isRecording
-                                ? AudioRecordOverlay(
-                                    durationSeconds: audioRecordState.durationSeconds,
-                                    onCancel: () => _stopAudioRecording(commit: false),
-                                    onCommit: () => _stopAudioRecording(commit: true),
-                                  )
-                                : FormattingToolbar(
-                                    controller: _controller,
-                                    focusNode: _focusNode,
-                                    onToggleDictation: _toggleAudioRecording,
-                                    onAttachImage: _attachImage,
-                                  ),
+                            if (audioRecordState.isRecording)
+                              Container(
+                                margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: DesignColors.surfaceVariant(context),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: DesignColors.border(context)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SubtlePulseIcon(),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Dictating (${audioRecordState.durationSeconds}s)...',
+                                      style: DesignTypography.body(context,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () =>
+                                          _stopAudioRecording(commit: true),
+                                      child: const Icon(
+                                          Icons.check_circle_outline_rounded,
+                                          size: 18,
+                                          color: Colors.green),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: () =>
+                                          _stopAudioRecording(commit: false),
+                                      child: const Icon(Icons.cancel_outlined,
+                                          size: 18, color: Colors.redAccent),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            FormattingToolbar(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              onToggleDictation: _toggleAudioRecording,
+                              onAttachImage: _attachImage,
+                            ),
                           ],
                         )
                       : _buildReadingView(

@@ -14,6 +14,7 @@ class AudioPlayerState {
   final Duration duration;
   final Duration position;
   final bool isPlaying;
+  final double playbackRate;
 
   const AudioPlayerState({
     this.filePath,
@@ -21,6 +22,7 @@ class AudioPlayerState {
     this.duration = Duration.zero,
     this.position = Duration.zero,
     this.isPlaying = false,
+    this.playbackRate = 1.0,
   });
 
   double get progress {
@@ -35,6 +37,7 @@ class AudioPlayerState {
     Duration? duration,
     Duration? position,
     bool? isPlaying,
+    double? playbackRate,
   }) {
     return AudioPlayerState(
       filePath: filePath ?? this.filePath,
@@ -42,6 +45,7 @@ class AudioPlayerState {
       duration: duration ?? this.duration,
       position: position ?? this.position,
       isPlaying: isPlaying ?? this.isPlaying,
+      playbackRate: playbackRate ?? this.playbackRate,
     );
   }
 }
@@ -135,6 +139,11 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
         ? Duration.zero
         : (target > state.duration ? state.duration : target);
     await seek(clamped);
+  }
+
+  Future<void> setPlaybackRate(double rate) async {
+    await _service.setPlaybackRate(rate);
+    if (mounted) state = state.copyWith(playbackRate: rate);
   }
 
   Future<void> stop() async {

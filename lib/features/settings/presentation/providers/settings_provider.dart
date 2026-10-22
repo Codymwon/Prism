@@ -213,3 +213,23 @@ class AnalyticsEnabledNotifier extends AsyncNotifier<bool> {
     }
   }
 }
+
+// ─── Show Journal Streaks Provider ─────────────────────────────────────────
+final showJournalStreaksProvider =
+    AsyncNotifierProvider<ShowJournalStreaksNotifier, bool>(
+        ShowJournalStreaksNotifier.new);
+
+class ShowJournalStreaksNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('prism_pref_show_journal_streaks') ?? true;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setBool('prism_pref_show_journal_streaks', enabled);
+  }
+}
+

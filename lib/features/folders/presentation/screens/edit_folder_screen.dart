@@ -396,7 +396,7 @@ class _EditFolderScreenState extends ConsumerState<EditFolderScreen> {
                             _colorHex,
                             _selectedIconKey,
                           );
-                      if (context.mounted) Navigator.pop(context);
+                      if (context.mounted) Navigator.pop(context, name);
                     }
                   },
                 ),

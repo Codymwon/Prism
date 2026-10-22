@@ -17,6 +17,9 @@ import '../widgets/skeleton_note_list.dart';
 import '../widgets/tag_filter_banner.dart';
 import '../widgets/notes_list_search_bar.dart';
 import '../../../../core/services/vault_service.dart';
+import '../../../../shared/widgets/prism_toast.dart';
+import '../../../../shared/widgets/quick_capture_bottom_sheet.dart';
+import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../settings/presentation/providers/startup_actions.dart';
 import 'package:prism/l10n/l10n.dart';
 
@@ -366,6 +369,46 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               ),
               textAlign: TextAlign.center,
             ),
+            if (!isSearching) ...[
+              const SizedBox(height: 16),
+              TactileWrapper(
+                style: TactileFeedbackStyle.standard,
+                onTap: () => QuickCapture.show(context),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color:
+                        DesignColors.primary(context).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color:
+                          DesignColors.primary(context).withValues(alpha: 0.25),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline_rounded,
+                        size: 16,
+                        color: DesignColors.primary(context),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Quick Capture',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: DesignColors.primary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -375,22 +418,33 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
 
   Future<void> _deleteNote(BuildContext context, WidgetRef ref, String id) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete note?', style: DesignTypography.heading(context, fontWeight: FontWeight.bold)),
-        content: Text(context.l10n.notes_list_screen_delete_warning, style: DesignTypography.body(context)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: DesignTypography.details(context))),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: DesignTypography.details(context, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.error)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await ref.read(noteRepositoryProvider).deleteNote(id);
+    final repo = ref.read(noteRepositoryProvider);
+    final note = await repo.getNoteById(id);
+    if (note == null) return;
+    String content = '';
+    try {
+      content = await repo.readNoteContent(id);
+    } catch (_) {}
+
+    await repo.deleteNote(id);
+
+    if (context.mounted) {
+      PrismToast.show(
+        context,
+        'Note "${note.title}" deleted',
+        icon: Icons.delete_outline_rounded,
+        actionText: 'Undo',
+        onAction: () async {
+          await repo.restoreNote(note, content);
+          if (context.mounted) {
+            PrismToast.show(
+              context,
+              'Note restored',
+              icon: Icons.restore_rounded,
+            );
+          }
+        },
+      );
     }
   }
 

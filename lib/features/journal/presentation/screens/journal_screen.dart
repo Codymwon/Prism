@@ -5,6 +5,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../notes/data/note_repository.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 import '../providers/journal_providers.dart';
 import '../widgets/journal_calendar.dart';
 import '../widgets/journal_entry_card.dart';
@@ -176,6 +177,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   }
 
   Widget _buildJournalLayout(ColorScheme colorScheme, ({Note note, String content})? data, String dateStr) {
+    final showStreaks = ref.watch(showJournalStreaksProvider).valueOrNull ?? true;
+
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         DesignSpacing.screenPadding,
@@ -187,8 +190,10 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Consistency Streak Grid ──────────────────────────────────
-          const JournalStreakGrid(),
-          const SizedBox(height: 12),
+          if (showStreaks) ...[
+            const JournalStreakGrid(),
+            const SizedBox(height: 12),
+          ],
           // ── Switcher for dynamic content below the grid ───────────────
           _buildDynamicContentSwitcher(colorScheme, data, dateStr),
         ],

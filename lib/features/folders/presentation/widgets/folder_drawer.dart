@@ -13,6 +13,8 @@ import '../../../notes/presentation/widgets/vault_selector_title.dart';
 import 'tag_cloud_index.dart';
 import 'vault_stats_board.dart';
 import 'package:prism/l10n/l10n.dart';
+import '../../../../shared/widgets/prism_toast.dart';
+import '../../../../shared/widgets/island_menu.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 
 class FolderDrawer extends ConsumerWidget {
@@ -26,8 +28,10 @@ class FolderDrawer extends ConsumerWidget {
       
       if (eligibleNotes.isEmpty) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.l10n.folders_drawer_no_notes)),
+          PrismToast.show(
+            context,
+            context.l10n.folders_drawer_no_notes,
+            icon: Icons.explore_off_outlined,
           );
         }
         return;
@@ -41,8 +45,10 @@ class FolderDrawer extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.folders_drawer_random_note_error(e.toString()))),
+        PrismToast.show(
+          context,
+          context.l10n.folders_drawer_random_note_error(e.toString()),
+          icon: Icons.error_outline_rounded,
         );
       }
     }
@@ -207,73 +213,69 @@ class FolderDrawer extends ConsumerWidget {
     );
   }
 
-  static void navigateToAddFolderScreen(BuildContext context) {
-    context.push('/folders/create');
+  static Future<void> navigateToAddFolderScreen(BuildContext context) async {
+    final result = await context.push<String>('/folders/create');
+    if (result != null && context.mounted) {
+      PrismToast.show(
+        context,
+        'Folder "$result" created',
+        icon: Icons.create_new_folder_outlined,
+      );
+    }
   }
 
   static void showFolderOptions(BuildContext context, WidgetRef ref, VirtualFolder folder) {
-    showModalBottomSheet(
-      context: context,
-      useSafeArea: true,
-      backgroundColor: DesignColors.background(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            const DesignSheetDragHandle(),
-            
-            // Header
-            ListTile(
-              title: Text(
-                context.l10n.folders_drawer_folder_menu_title(folder.name),
-                style: DesignTypography.heading(context, fontSize: 16, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            
-            // Edit
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(context.l10n.folders_drawer_edit_details, style: DesignTypography.body(context)),
-              onTap: () {
-                Navigator.pop(ctx);
-                navigateToEditFolderScreen(context, folder.id);
-              },
-            ),
-
-            // Delete
-            ListTile(
-              leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
-              title: Text('Delete folder', style: DesignTypography.body(context, color: Theme.of(context).colorScheme.error)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                DesignDialogs.showSimpleConfirmDialog(
-                  context: context,
-                  title: 'Delete Folder?',
-                  content: context.l10n.folders_drawer_delete_warning(folder.name),
-                  confirmText: 'Delete',
-                  onConfirm: () async {
-                    // If deleted folder was active, clear filter
-                    if (ref.read(selectedFolderIdProvider) == folder.id) {
-                      ref.read(selectedFolderIdProvider.notifier).state = null;
-                    }
-                    await ref.read(folderRepositoryProvider).deleteFolder(folder.id);
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+    IslandMenu.show(
+      context,
+      title: folder.name,
+      icon: Icons.folder_outlined,
+      items: [
+        IslandMenuItem(
+          label: context.l10n.folders_drawer_edit_details,
+          icon: Icons.edit_outlined,
+          onTap: () {
+            navigateToEditFolderScreen(context, folder.id);
+          },
         ),
-      ),
+        IslandMenuItem(
+          label: 'Delete Folder',
+          icon: Icons.delete_outline_rounded,
+          isDestructive: true,
+          onTap: () {
+            DesignDialogs.showSimpleConfirmDialog(
+              context: context,
+              title: 'Delete Folder?',
+              content: context.l10n.folders_drawer_delete_warning(folder.name),
+              confirmText: 'Delete',
+              onConfirm: () async {
+                // If deleted folder was active, clear filter
+                if (ref.read(selectedFolderIdProvider) == folder.id) {
+                  ref.read(selectedFolderIdProvider.notifier).state = null;
+                }
+                await ref.read(folderRepositoryProvider).deleteFolder(folder.id);
+                if (context.mounted) {
+                  PrismToast.show(
+                    context,
+                    'Folder "${folder.name}" deleted',
+                    icon: Icons.delete_outline_rounded,
+                  );
+                }
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 
-  static void navigateToEditFolderScreen(BuildContext context, String folderId) {
-    context.push('/folders/edit/$folderId');
+  static Future<void> navigateToEditFolderScreen(BuildContext context, String folderId) async {
+    final result = await context.push<String>('/folders/edit/$folderId');
+    if (result != null && context.mounted) {
+      PrismToast.show(
+        context,
+        'Folder "$result" updated',
+        icon: Icons.folder_outlined,
+      );
+    }
   }
 }

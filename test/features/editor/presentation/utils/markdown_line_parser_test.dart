@@ -126,5 +126,18 @@ void main() {
       expect(link.text, 'Google');
       expect(link.url, 'https://google.com');
     });
+
+    test('should parse timestamp tags [04:12 - Bookmark] and [00:05]', () {
+      final text = 'Note bookmark at [04:12 - Bookmark] and also [00:05] intro';
+      final result = MarkdownLineParser.parse(text);
+
+      expect(result.length, 1);
+      final line = result[0];
+      final timestamps = line.inlineSpans.where((s) => s.type == InlineType.timestamp).toList();
+
+      expect(timestamps.length, 2);
+      expect(timestamps[0].text, '[04:12 - Bookmark]');
+      expect(timestamps[1].text, '[00:05]');
+    });
   });
 }

@@ -232,12 +232,24 @@ class NoteRepository {
     _ref.read(notesVersionProvider.notifier).state++;
   }
 
-  // ── DELETE ────────────────────────────────────────────────────────────────
+  // ── DELETE & RESTORE ──────────────────────────────────────────────────────
 
   Future<void> deleteNote(String id) async {
     await _vaultService.deleteNote(id);
     AnalyticsService.logEvent('delete_note');
     _ref.read(notesVersionProvider.notifier).state++;
+  }
+
+  Future<Note> restoreNote(Note note, String content) async {
+    final restored = await _vaultService.createNote(
+      title: note.title,
+      initialContent: content,
+      isDaily: note.isDaily,
+      dailyDate: note.dailyDate,
+    );
+    AnalyticsService.logEvent('restore_note');
+    _ref.read(notesVersionProvider.notifier).state++;
+    return restored;
   }
 
   Future<List<String>> getTagsForNote(String noteId) async {

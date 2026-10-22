@@ -138,7 +138,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editor_screen_live_preview => 'Live Preview';
 
   @override
-  String get editor_screen_source_mode => 'Source Mode';
+  String get editor_screen_source_mode => 'Plain Text';
 
   @override
   String get editor_screen_reading_view => 'Reading View';
@@ -379,7 +379,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'No virtual folders created yet. Add them from the sidebar drawer first!';
 
   @override
-  String get folders_drawer_no_notes => 'No notes found in this vault';
+  String get folders_drawer_no_notes => 'No notes found in this workspace';
 
   @override
   String folders_drawer_random_note_error(Object error) {
@@ -439,7 +439,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'No tags parsed yet. Add #tags to your notes to auto-index them.';
 
   @override
-  String get folders_stats_board_title => 'VAULT STATISTICS';
+  String get folders_stats_board_title => 'WORKSPACE OVERVIEW';
 
   @override
   String folders_stats_board_error(Object error) {
@@ -492,17 +492,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get graph_settings_panel_title => 'Graph Settings';
 
   @override
-  String get graph_settings_panel_repulsion_force => 'Repulsion Force';
+  String get graph_settings_panel_repulsion_force => 'Node Spacing';
 
   @override
-  String get graph_settings_panel_link_spring_distance =>
-      'Link Spring Distance';
+  String get graph_settings_panel_link_spring_distance => 'Connection Length';
 
   @override
-  String get graph_settings_panel_spring_stiffness => 'Spring Stiffness';
+  String get graph_settings_panel_spring_stiffness => 'Connection Tension';
 
   @override
-  String get graph_settings_panel_simulation_damping => 'Simulation Damping';
+  String get graph_settings_panel_simulation_damping => 'Motion Smoothness';
+
+  @override
+  String get graph_settings_panel_repulsion_tooltip =>
+      'Adjust how far unconnected notes sit from each other';
+
+  @override
+  String get graph_settings_panel_link_spring_tooltip =>
+      'Adjust the length of links between related notes';
+
+  @override
+  String get graph_settings_panel_spring_stiffness_tooltip =>
+      'Adjust the tension of links between related notes';
+
+  @override
+  String get graph_settings_panel_simulation_damping_tooltip =>
+      'Control how quickly nodes settle into place';
 
   @override
   String get graph_settings_panel_drag_to_pin => 'Drag to Pin';
@@ -744,34 +759,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String notes_vault_selector_switch_error(Object error) {
-    return 'Error switching vault: $error';
+    return 'Error switching workspace: $error';
   }
 
   @override
   String notes_vault_selector_create_error(Object error) {
-    return 'Error creating vault: $error';
+    return 'Error creating workspace: $error';
   }
 
   @override
-  String get notes_vault_selector_title => 'Switch Vault';
+  String get notes_vault_selector_title => 'Switch Workspace';
 
   @override
-  String get notes_vault_selector_empty => 'No vaults found';
+  String get notes_vault_selector_empty => 'No workspaces found';
 
   @override
   String notes_vault_selector_error_loading(Object error) {
-    return 'Error loading vaults: $error';
+    return 'Error loading workspaces: $error';
   }
 
   @override
-  String get notes_vault_selector_hint => 'Vault Name';
+  String get notes_vault_selector_hint => 'Workspace Name';
 
   @override
   String get notes_vault_selector_validation_error =>
-      'Vault name can only contain letters, numbers, spaces, underscores, and hyphens.';
+      'Workspace name can only contain letters, numbers, spaces, underscores, and hyphens.';
 
   @override
-  String get notes_vault_selector_title_default => 'My Vault';
+  String get notes_vault_selector_title_default => 'My Workspace';
 
   @override
   String get onboarding_screen_slide1_title => 'Absolute Privacy';
@@ -860,7 +875,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboarding_vault_setup_invalid_chars_error =>
-      'Vault name can only contain letters, numbers, spaces, underscores, and hyphens.';
+      'Workspace name can only contain letters, numbers, spaces, underscores, and hyphens.';
 
   @override
   String get onboarding_vault_setup_folder_required_error =>
@@ -883,7 +898,7 @@ class AppLocalizationsEn extends AppLocalizations {
     Object activeVault,
     Object hubName,
   ) {
-    return 'Found existing vaults in \"$hubName\". Imported and opened \"$activeVault\".';
+    return 'Found existing workspaces in \"$hubName\". Imported and opened \"$activeVault\".';
   }
 
   @override
@@ -898,21 +913,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboarding_vault_setup_config_location_title =>
-      'Configure Vault Location';
+      'Workspace Storage Location';
 
   @override
-  String get onboarding_vault_setup_name_vault_title => 'Name your first vault';
+  String get onboarding_vault_setup_name_vault_title =>
+      'Name your first workspace';
 
   @override
   String get onboarding_vault_setup_choose_location_desc =>
-      'Prism stores all your notes directly on your device. Choose where your main storage folder (Prism Hub) lives. You can switch between multiple vaults later.';
+      'Prism stores all your notes directly on your device. Choose where your main storage folder (Prism Hub) lives. You can switch between multiple workspaces later.';
 
   @override
   String get onboarding_vault_setup_first_vault_desc =>
-      'This will be your first workspace folder created inside the main directory.';
+      'This will be your private notebook folder created on this device.';
 
   @override
-  String get onboarding_vault_setup_vault_location_label => 'Vault Location';
+  String get onboarding_vault_setup_vault_location_label =>
+      'Workspace Location';
 
   @override
   String get onboarding_vault_setup_device_storage_label => 'Device storage';
@@ -955,19 +972,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose a storage folder above to continue';
 
   @override
-  String get onboarding_vault_setup_vault_name_label => 'Vault Name';
+  String get onboarding_vault_setup_vault_name_label => 'Workspace Name';
 
   @override
   String get onboarding_vault_setup_vault_name_hint =>
-      'e.g. My Vault, Personal, Research';
+      'e.g. My Workspace, Personal, Research';
 
   @override
   String get onboarding_vault_setup_telemetry_title =>
-      'Share anonymous telemetry';
+      'Help improve Prism with anonymous diagnostics';
 
   @override
   String get onboarding_vault_setup_telemetry_desc =>
-      'Help us improve Prism by sharing anonymous feature usage data and crash logs. No personal data, notes, or search queries are ever collected.';
+      'Share anonymous crash reports and feature usage to help us improve Prism. Your notes, titles, and search queries are strictly private and never collected.';
 
   @override
   String get onboarding_vault_setup_confirm_button => 'Confirm & Begin';
@@ -979,7 +996,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboarding_vault_setup_back_button_step2 => 'Back to step 2';
 
   @override
-  String get onboarding_vault_setup_privacy_title => 'Privacy & Telemetry';
+  String get onboarding_vault_setup_privacy_title => 'Privacy & Diagnostics';
 
   @override
   String get onboarding_vault_setup_privacy_desc =>
@@ -989,7 +1006,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboarding_vault_setup_default_hub_name => 'Prism Hub';
 
   @override
-  String get onboarding_vault_setup_default_vault_name => 'My Vault';
+  String get onboarding_vault_setup_default_vault_name => 'My Workspace';
 
   @override
   String get onboarding_visual_journal_todays_entry => 'Today\'s Entry';
@@ -1395,6 +1412,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings_journal_pref_week_start_monday => 'Monday';
+
+  @override
+  String get settings_journal_pref_section_habits => 'Habits & Consistency';
+
+  @override
+  String get settings_journal_pref_show_streaks =>
+      'Show Streaks & Consistency Grid';
+
+  @override
+  String get settings_journal_pref_show_streaks_desc =>
+      'Display consecutive days counter and activity matrix in the daily journal.';
 
   @override
   String get settings_custom_macros_reset_tooltip => 'Reset to Defaults';
@@ -1817,11 +1845,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pin year/week calendar nodes when dragging them';
 
   @override
-  String get settings_widgets_analytics => 'Share Usage Analytics';
+  String get settings_widgets_analytics => 'Share Anonymous Diagnostics';
 
   @override
   String get settings_widgets_analytics_desc =>
-      'Help us improve Prism by sharing anonymous app usage stats and crash reports';
+      'Help us improve Prism by sending anonymous performance reports and crash logs.';
 
   @override
   String get settings_support_title => 'Contact Support';
@@ -2086,4 +2114,161 @@ class AppLocalizationsEn extends AppLocalizations {
   String settings_data_deletion_failure(String error) {
     return 'Failed to complete reset: $error';
   }
+
+  @override
+  String get settings_section_vaults_storage => 'Vaults & Storage';
+
+  @override
+  String get settings_section_security_sync => 'Security & Sync';
+
+  @override
+  String get settings_section_writing_appearance => 'Writing & Appearance';
+
+  @override
+  String get settings_section_about_support => 'About & Support';
+
+  @override
+  String get settings_security_title => 'Security Trust Center';
+
+  @override
+  String get settings_security_desc =>
+      'Zero-knowledge cryptography, on-device encryption, and privacy controls';
+
+  @override
+  String get settings_security_trust_center_desc =>
+      'Master passphrase, database lock & shredder';
+
+  @override
+  String get settings_security_local_encryption => 'On-Device Storage Lock';
+
+  @override
+  String get settings_security_local_database_title =>
+      'On-Device Storage Lock (AES-256)';
+
+  @override
+  String get settings_security_local_status_active => 'AES-256-CBC Active';
+
+  @override
+  String get settings_security_local_status_desc =>
+      'Local SQLite metadata database (.prism.db) is encrypted at rest using AES-256.';
+
+  @override
+  String get settings_security_master_passphrase =>
+      'Master Encryption Passphrase';
+
+  @override
+  String get settings_security_passphrase_configured => 'Passphrase Configured';
+
+  @override
+  String get settings_security_passphrase_not_configured => 'Not Configured';
+
+  @override
+  String get settings_security_passphrase_set => 'Set Master Passphrase';
+
+  @override
+  String get settings_security_passphrase_change => 'Change Master Passphrase';
+
+  @override
+  String get settings_security_passphrase_verify => 'Test Passphrase Integrity';
+
+  @override
+  String get settings_security_passphrase_verify_desc =>
+      'Verify your passphrase against stored secure keys';
+
+  @override
+  String get settings_security_passphrase_verify_success =>
+      'Passphrase verified! Cryptographic key root is valid.';
+
+  @override
+  String get settings_security_passphrase_verify_failure =>
+      'Passphrase incorrect. Cryptographic key root does not match.';
+
+  @override
+  String get settings_security_passphrase_set_success =>
+      'Master encryption passphrase configured successfully.';
+
+  @override
+  String get settings_security_passphrase_change_success =>
+      'Master encryption passphrase updated successfully.';
+
+  @override
+  String get settings_security_passphrase_current_label => 'Current Passphrase';
+
+  @override
+  String get settings_security_passphrase_new_label => 'New Passphrase';
+
+  @override
+  String get settings_security_passphrase_confirm_label =>
+      'Confirm New Passphrase';
+
+  @override
+  String get settings_security_passphrase_mismatch =>
+      'Passphrases do not match.';
+
+  @override
+  String get settings_security_pbkdf2_title => 'PBKDF2 Key Derivation';
+
+  @override
+  String get settings_security_pbkdf2_subtitle =>
+      'HMAC-SHA256 • 100,000 iterations • 256-bit key';
+
+  @override
+  String get settings_security_pbkdf2_desc =>
+      'Prism operates strictly zero-knowledge. Your passphrase derives the AES-256 encryption key using 100,000 PBKDF2 iterations with a secure random salt, and never leaves this device unhashed.';
+
+  @override
+  String get settings_security_cloud_sync_title => 'Google Drive Cloud Sync';
+
+  @override
+  String get settings_security_cloud_sync_desc =>
+      'End-to-end encrypted backup and multi-device sync';
+
+  @override
+  String get settings_security_telemetry_header => 'Privacy & Diagnostics';
+
+  @override
+  String get settings_cloud_sync_manage_security_button =>
+      'Manage in Security Trust Center';
+
+  @override
+  String get settings_security_change_passphrase_dialog_title =>
+      'Change Master Passphrase';
+
+  @override
+  String get settings_security_set_passphrase_dialog_title =>
+      'Set Master Passphrase';
+
+  @override
+  String get settings_security_verify_passphrase_dialog_title =>
+      'Verify Passphrase';
+
+  @override
+  String get settings_security_verify_button => 'Verify';
+
+  @override
+  String get settings_security_save_button => 'Save Passphrase';
+
+  @override
+  String get quick_capture_title => 'Quick Capture';
+
+  @override
+  String get quick_capture_record_voice_memo => 'Record Voice Memo';
+
+  @override
+  String get quick_capture_blank_document => 'Blank Document';
+
+  @override
+  String get quick_capture_recording_status => 'Recording Voice Memo...';
+
+  @override
+  String get quick_capture_saved_toast => 'Voice memo saved to inbox';
+
+  @override
+  String get audio_evidence_docked_title => 'Docked Audio';
+
+  @override
+  String get audio_evidence_add_bookmark => 'Bookmark';
+
+  @override
+  String get audio_evidence_undock_tooltip => 'Undock audio';
 }

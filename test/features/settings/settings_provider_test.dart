@@ -135,5 +135,27 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('lineWidth'), equals('Narrow'));
     });
+
+    test('showJournalStreaksProvider defaults to true and sets correctly', () async {
+      // 1. Check default is true
+      final defaultVal = await container.read(showJournalStreaksProvider.future);
+      expect(defaultVal, isTrue);
+
+      // 2. Set value to false
+      await container.read(showJournalStreaksProvider.notifier).setEnabled(false);
+
+      // 3. Verify state and SharedPreferences
+      final newVal = await container.read(showJournalStreaksProvider.future);
+      expect(newVal, isFalse);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('prism_pref_show_journal_streaks'), isFalse);
+
+      // 4. Toggle back to true
+      await container.read(showJournalStreaksProvider.notifier).setEnabled(true);
+      final restoredVal = await container.read(showJournalStreaksProvider.future);
+      expect(restoredVal, isTrue);
+      expect(prefs.getBool('prism_pref_show_journal_streaks'), isTrue);
+    });
   });
 }

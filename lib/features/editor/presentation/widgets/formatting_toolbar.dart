@@ -5,7 +5,6 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../settings/presentation/providers/custom_macro_provider.dart';
 import '../utils/editor_helpers.dart';
-import 'audio_player_bottom_sheet.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class FormattingToolbar extends ConsumerStatefulWidget {
@@ -429,106 +428,5 @@ class _FormattingToolbarState extends ConsumerState<FormattingToolbar> {
         ),
       ),
     );
-  }
-}
-
-class AudioRecordOverlay extends StatelessWidget {
-  final int durationSeconds;
-  final VoidCallback onCancel;
-  final VoidCallback onCommit;
-
-  const AudioRecordOverlay({
-    super.key,
-    required this.durationSeconds,
-    required this.onCancel,
-    required this.onCommit,
-  });
-
-  String _formatDuration(BuildContext context, int seconds) {
-    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
-    final secs = (seconds % 60).toString().padLeft(2, '0');
-    return context.l10n.editor_formatting_toolbar_recording_status('$minutes:$secs');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final mediaQuery = MediaQuery.of(context);
-    final clampedTextScaler = mediaQuery.textScaler.clamp(
-      minScaleFactor: 0.8,
-      maxScaleFactor: 1.25,
-    );
-
-    return MediaQuery(
-      data: mediaQuery.copyWith(textScaler: clampedTextScaler),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-        height: 54,
-      decoration: BoxDecoration(
-        color: DesignColors.surfaceVariant(context).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(27),
-        border: Border.all(color: DesignColors.border(context), width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            TactileWrapper(
-              style: TactileFeedbackStyle.standard,
-              onTap: onCancel,
-              semanticLabel: context.l10n.editor_formatting_toolbar_cancel_discard_semantics,
-              child: Tooltip(
-                message: context.l10n.editor_formatting_toolbar_cancel_discard_tooltip,
-                child: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: Colors.redAccent,
-                  size: 20,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const SubtlePulseIcon(),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _formatDuration(context, durationSeconds),
-                style: DesignTypography.body(
-                  context,
-                  fontSize: 13,
-                  color: DesignColors.text(context),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 12),
-            TactileWrapper(
-              style: TactileFeedbackStyle.standard,
-              onTap: onCommit,
-              semanticLabel: context.l10n.editor_formatting_toolbar_save_insert_semantics,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  color: colorScheme.primary,
-                  size: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),);
   }
 }

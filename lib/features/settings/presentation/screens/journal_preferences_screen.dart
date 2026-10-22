@@ -13,6 +13,7 @@ class JournalPreferencesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final startOfWeek = ref.watch(startOfWeekProvider).valueOrNull ?? context.l10n.settings_journal_pref_week_start_sunday;
     final autoCreate = ref.watch(autoCreateDailyNoteOnLaunchProvider).valueOrNull ?? false;
+    final showStreaks = ref.watch(showJournalStreaksProvider).valueOrNull ?? true;
 
     return Scaffold(
       backgroundColor: DesignColors.background(context),
@@ -58,6 +59,34 @@ class JournalPreferencesScreen extends ConsumerWidget {
                       currentValue: startOfWeek,
                       onSelected: (val) => ref.read(startOfWeekProvider.notifier).setStartOfWeek(val),
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            SettingsSectionHeader(title: context.l10n.settings_journal_pref_section_habits),
+            Card(
+              color: DesignColors.surface(context),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: DesignColors.text(context).withValues(alpha: 0.05)),
+              ),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    activeThumbColor: DesignColors.primary(context),
+                    title: Text(
+                      context.l10n.settings_journal_pref_show_streaks,
+                      style: DesignTypography.body(context, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      context.l10n.settings_journal_pref_show_streaks_desc,
+                      style: DesignTypography.body(context, fontSize: 12, color: DesignColors.textSecondary(context)),
+                    ),
+                    value: showStreaks,
+                    onChanged: (val) => ref.read(showJournalStreaksProvider.notifier).setEnabled(val),
                   ),
                 ],
               ),

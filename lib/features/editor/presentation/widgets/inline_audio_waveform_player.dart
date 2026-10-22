@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../../../../core/database/vault_providers.dart';
@@ -9,6 +10,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../data/audio_bookmark_model.dart';
 import '../providers/audio_player_providers.dart';
 import '../providers/audio_bookmark_providers.dart';
+import '../providers/docked_audio_provider.dart';
 import '../utils/audio_waveform_peak_generator.dart';
 import 'waveform_painter.dart';
 import 'package:prism/l10n/l10n.dart';
@@ -316,75 +318,121 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
             .toList()
         : const [];
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: DesignColors.surface(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isCurrent
-              ? colorScheme.primary.withValues(alpha: 0.3)
-              : DesignColors.border(context),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header row: play/pause + title + time + bookmark button ──
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(isPlaying
-                    ? Icons.pause_rounded
-                    : Icons.play_arrow_rounded),
-                onPressed: () {
-                  ref
-                      .read(audioPlayerStateProvider.notifier)
-                      .playOrToggle(widget.filePath, widget.fileName);
-                },
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.fileName,
-                      style: DesignTypography.body(context,
-                          fontWeight: FontWeight.w600, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      isCurrent && playerState.duration > Duration.zero
-                          ? '${_formatDuration(playerState.position)} / ${_formatDuration(playerState.duration)}'
-                          : 'Voice Recording',
-                      style: DesignTypography.metadata(context, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              // Bookmark add button
-              if (key != null)
-                IconButton(
-                  icon: Icon(
-                    Icons.bookmark_add_outlined,
-                    size: 20,
-                    color: colorScheme.primary,
-                  ),
-                  tooltip: context.l10n.editor_inline_audio_add_bookmark_tooltip,
-                  onPressed: isCurrent
-                      ? () => _showAddBookmarkDialog(
-                            context,
-                            playerState.position.inMilliseconds,
-                            key,
-                          )
-                      : null,
-                ),
-            ],
+    final docked = ref.watch(dockedAudioProvider);
+    final isDocked = docked != null &&
+        (docked.filePath == widget.filePath ||
+            (widget.relativeFilePath != null &&
+                docked.relativeFilePath == widget.relativeFilePath));
+
+    return GestureDetector(
+      onLongPress: () {
+        HapticFeedback.mediumImpact();
+        if (isDocked) {
+          ref.read(dockedAudioProvider.notifier).undock();
+        } else {
+          ref.read(dockedAudioProvider.notifier).dock(
+                filePath: widget.filePath,
+                fileName: widget.fileName,
+                noteId: widget.noteId,
+                relativeFilePath: widget.relativeFilePath,
+              );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: DesignColors.surface(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isCurrent
+                ? colorScheme.primary.withValues(alpha: 0.3)
+                : DesignColors.border(context),
+            width: 1,
           ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header row: play/pause + title + time + pin + bookmark button ──
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(isPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded),
+                  onPressed: () {
+                    ref
+                        .read(audioPlayerStateProvider.notifier)
+                        .playOrToggle(widget.filePath, widget.fileName);
+                  },
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.fileName,
+                        style: DesignTypography.body(context,
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        isCurrent && playerState.duration > Duration.zero
+                            ? '${_formatDuration(playerState.position)} / ${_formatDuration(playerState.duration)}'
+                            : 'Voice Recording',
+                        style: DesignTypography.metadata(context, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                // Pin to top / undock button
+                IconButton(
+                  key: const ValueKey('inline_audio_pin_button'),
+                  icon: Icon(
+                    isDocked ? Icons.push_pin : Icons.push_pin_outlined,
+                    size: 20,
+                    color: isDocked
+                        ? colorScheme.primary
+                        : DesignColors.textSecondary(context),
+                  ),
+                  tooltip: isDocked ? 'Undock from top' : 'Pin to top',
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    if (isDocked) {
+                      ref.read(dockedAudioProvider.notifier).undock();
+                    } else {
+                      ref.read(dockedAudioProvider.notifier).dock(
+                            filePath: widget.filePath,
+                            fileName: widget.fileName,
+                            noteId: widget.noteId,
+                            relativeFilePath: widget.relativeFilePath,
+                          );
+                    }
+                  },
+                ),
+                // Bookmark add button
+                if (key != null)
+                  IconButton(
+                    icon: Icon(
+                      Icons.bookmark_add_outlined,
+                      size: 20,
+                      color: colorScheme.primary,
+                    ),
+                    tooltip:
+                        context.l10n.editor_inline_audio_add_bookmark_tooltip,
+                    onPressed: isCurrent
+                        ? () => _showAddBookmarkDialog(
+                              context,
+                              playerState.position.inMilliseconds,
+                              key,
+                            )
+                        : null,
+                  ),
+              ],
+            ),
           const SizedBox(height: 10),
           // ── Waveform with bookmark markers ──
           LayoutBuilder(
@@ -488,8 +536,9 @@ class _InlineWaveformWidgetState extends ConsumerState<InlineWaveformWidget> {
           ],
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 /// A single row in the bookmark list.

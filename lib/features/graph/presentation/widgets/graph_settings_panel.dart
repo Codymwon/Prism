@@ -146,9 +146,10 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Repulsion Force Slider
+                            // Repulsion Force Slider (Node Spacing)
                             _buildSlider(
                               title: context.l10n.graph_settings_panel_repulsion_force,
+                              tooltip: context.l10n.graph_settings_panel_repulsion_tooltip,
                               value: _localRepulsionRate,
                               min: 0.05,
                               max: 1.5,
@@ -161,9 +162,10 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                               onChangeEnd: (val) => widget.onReLayout(),
                             ),
 
-                            // Spring rest length (via Repulsion Percentage)
+                            // Spring rest length (Connection Length)
                             _buildSlider(
                               title: context.l10n.graph_settings_panel_link_spring_distance,
+                              tooltip: context.l10n.graph_settings_panel_link_spring_tooltip,
                               value: _localRepulsionPercentage,
                               min: 0.3,
                               max: 2.0,
@@ -176,9 +178,10 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                               onChangeEnd: (val) => widget.onReLayout(),
                             ),
 
-                            // Attraction Rate Slider
+                            // Attraction Rate Slider (Connection Tension)
                             _buildSlider(
                               title: context.l10n.graph_settings_panel_spring_stiffness,
+                              tooltip: context.l10n.graph_settings_panel_spring_stiffness_tooltip,
                               value: _localAttractionRate,
                               min: 0.05,
                               max: 0.9,
@@ -191,9 +194,10 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
                               onChangeEnd: (val) => widget.onReLayout(),
                             ),
 
-                            // Friction Damping Slider
+                            // Friction Damping Slider (Motion Smoothness)
                             _buildSlider(
                               title: context.l10n.graph_settings_panel_simulation_damping,
+                              tooltip: context.l10n.graph_settings_panel_simulation_damping_tooltip,
                               value: _localDamping,
                               min: 0.7,
                               max: 0.98,
@@ -608,6 +612,7 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
 
   Widget _buildSlider({
     required String title,
+    String? tooltip,
     required double value,
     required double min,
     required double max,
@@ -627,13 +632,32 @@ class _GraphSettingsPanelState extends ConsumerState<GraphSettingsPanel> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? PrismColors.darkTextSecondary : PrismColors.lightTextSecondary,
+                    ),
+                  ),
+                  if (tooltip != null) ...[
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: tooltip,
+                      triggerMode: TooltipTriggerMode.tap,
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        size: 13,
+                        color: isDark
+                            ? PrismColors.darkTextSecondary.withValues(alpha: 0.6)
+                            : PrismColors.lightTextSecondary.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               Text(
                 label,

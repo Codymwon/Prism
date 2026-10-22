@@ -313,7 +313,7 @@ abstract class AppLocalizations {
   /// No description provided for @editor_screen_source_mode.
   ///
   /// In en, this message translates to:
-  /// **'Source Mode'**
+  /// **'Plain Text'**
   String get editor_screen_source_mode;
 
   /// No description provided for @editor_screen_reading_view.
@@ -685,7 +685,7 @@ abstract class AppLocalizations {
   /// No description provided for @folders_drawer_no_notes.
   ///
   /// In en, this message translates to:
-  /// **'No notes found in this vault'**
+  /// **'No notes found in this workspace'**
   String get folders_drawer_no_notes;
 
   /// No description provided for @folders_drawer_random_note_error.
@@ -775,7 +775,7 @@ abstract class AppLocalizations {
   /// No description provided for @folders_stats_board_title.
   ///
   /// In en, this message translates to:
-  /// **'VAULT STATISTICS'**
+  /// **'WORKSPACE OVERVIEW'**
   String get folders_stats_board_title;
 
   /// No description provided for @folders_stats_board_error.
@@ -871,26 +871,50 @@ abstract class AppLocalizations {
   /// No description provided for @graph_settings_panel_repulsion_force.
   ///
   /// In en, this message translates to:
-  /// **'Repulsion Force'**
+  /// **'Node Spacing'**
   String get graph_settings_panel_repulsion_force;
 
   /// No description provided for @graph_settings_panel_link_spring_distance.
   ///
   /// In en, this message translates to:
-  /// **'Link Spring Distance'**
+  /// **'Connection Length'**
   String get graph_settings_panel_link_spring_distance;
 
   /// No description provided for @graph_settings_panel_spring_stiffness.
   ///
   /// In en, this message translates to:
-  /// **'Spring Stiffness'**
+  /// **'Connection Tension'**
   String get graph_settings_panel_spring_stiffness;
 
   /// No description provided for @graph_settings_panel_simulation_damping.
   ///
   /// In en, this message translates to:
-  /// **'Simulation Damping'**
+  /// **'Motion Smoothness'**
   String get graph_settings_panel_simulation_damping;
+
+  /// No description provided for @graph_settings_panel_repulsion_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust how far unconnected notes sit from each other'**
+  String get graph_settings_panel_repulsion_tooltip;
+
+  /// No description provided for @graph_settings_panel_link_spring_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the length of links between related notes'**
+  String get graph_settings_panel_link_spring_tooltip;
+
+  /// No description provided for @graph_settings_panel_spring_stiffness_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the tension of links between related notes'**
+  String get graph_settings_panel_spring_stiffness_tooltip;
+
+  /// No description provided for @graph_settings_panel_simulation_damping_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Control how quickly nodes settle into place'**
+  String get graph_settings_panel_simulation_damping_tooltip;
 
   /// No description provided for @graph_settings_panel_drag_to_pin.
   ///
@@ -1225,49 +1249,49 @@ abstract class AppLocalizations {
   /// No description provided for @notes_vault_selector_switch_error.
   ///
   /// In en, this message translates to:
-  /// **'Error switching vault: {error}'**
+  /// **'Error switching workspace: {error}'**
   String notes_vault_selector_switch_error(Object error);
 
   /// No description provided for @notes_vault_selector_create_error.
   ///
   /// In en, this message translates to:
-  /// **'Error creating vault: {error}'**
+  /// **'Error creating workspace: {error}'**
   String notes_vault_selector_create_error(Object error);
 
   /// No description provided for @notes_vault_selector_title.
   ///
   /// In en, this message translates to:
-  /// **'Switch Vault'**
+  /// **'Switch Workspace'**
   String get notes_vault_selector_title;
 
   /// No description provided for @notes_vault_selector_empty.
   ///
   /// In en, this message translates to:
-  /// **'No vaults found'**
+  /// **'No workspaces found'**
   String get notes_vault_selector_empty;
 
   /// No description provided for @notes_vault_selector_error_loading.
   ///
   /// In en, this message translates to:
-  /// **'Error loading vaults: {error}'**
+  /// **'Error loading workspaces: {error}'**
   String notes_vault_selector_error_loading(Object error);
 
   /// No description provided for @notes_vault_selector_hint.
   ///
   /// In en, this message translates to:
-  /// **'Vault Name'**
+  /// **'Workspace Name'**
   String get notes_vault_selector_hint;
 
   /// No description provided for @notes_vault_selector_validation_error.
   ///
   /// In en, this message translates to:
-  /// **'Vault name can only contain letters, numbers, spaces, underscores, and hyphens.'**
+  /// **'Workspace name can only contain letters, numbers, spaces, underscores, and hyphens.'**
   String get notes_vault_selector_validation_error;
 
   /// No description provided for @notes_vault_selector_title_default.
   ///
   /// In en, this message translates to:
-  /// **'My Vault'**
+  /// **'My Workspace'**
   String get notes_vault_selector_title_default;
 
   /// No description provided for @onboarding_screen_slide1_title.
@@ -1423,7 +1447,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboarding_vault_setup_invalid_chars_error.
   ///
   /// In en, this message translates to:
-  /// **'Vault name can only contain letters, numbers, spaces, underscores, and hyphens.'**
+  /// **'Workspace name can only contain letters, numbers, spaces, underscores, and hyphens.'**
   String get onboarding_vault_setup_invalid_chars_error;
 
   /// No description provided for @onboarding_vault_setup_folder_required_error.
@@ -1453,7 +1477,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboarding_vault_setup_import_success.
   ///
   /// In en, this message translates to:
-  /// **'Found existing vaults in \"{hubName}\". Imported and opened \"{activeVault}\".'**
+  /// **'Found existing workspaces in \"{hubName}\". Imported and opened \"{activeVault}\".'**
   String onboarding_vault_setup_import_success(
     Object activeVault,
     Object hubName,
@@ -1474,31 +1498,31 @@ abstract class AppLocalizations {
   /// No description provided for @onboarding_vault_setup_config_location_title.
   ///
   /// In en, this message translates to:
-  /// **'Configure Vault Location'**
+  /// **'Workspace Storage Location'**
   String get onboarding_vault_setup_config_location_title;
 
   /// No description provided for @onboarding_vault_setup_name_vault_title.
   ///
   /// In en, this message translates to:
-  /// **'Name your first vault'**
+  /// **'Name your first workspace'**
   String get onboarding_vault_setup_name_vault_title;
 
   /// No description provided for @onboarding_vault_setup_choose_location_desc.
   ///
   /// In en, this message translates to:
-  /// **'Prism stores all your notes directly on your device. Choose where your main storage folder (Prism Hub) lives. You can switch between multiple vaults later.'**
+  /// **'Prism stores all your notes directly on your device. Choose where your main storage folder (Prism Hub) lives. You can switch between multiple workspaces later.'**
   String get onboarding_vault_setup_choose_location_desc;
 
   /// No description provided for @onboarding_vault_setup_first_vault_desc.
   ///
   /// In en, this message translates to:
-  /// **'This will be your first workspace folder created inside the main directory.'**
+  /// **'This will be your private notebook folder created on this device.'**
   String get onboarding_vault_setup_first_vault_desc;
 
   /// No description provided for @onboarding_vault_setup_vault_location_label.
   ///
   /// In en, this message translates to:
-  /// **'Vault Location'**
+  /// **'Workspace Location'**
   String get onboarding_vault_setup_vault_location_label;
 
   /// No description provided for @onboarding_vault_setup_device_storage_label.
@@ -1570,25 +1594,25 @@ abstract class AppLocalizations {
   /// No description provided for @onboarding_vault_setup_vault_name_label.
   ///
   /// In en, this message translates to:
-  /// **'Vault Name'**
+  /// **'Workspace Name'**
   String get onboarding_vault_setup_vault_name_label;
 
   /// No description provided for @onboarding_vault_setup_vault_name_hint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. My Vault, Personal, Research'**
+  /// **'e.g. My Workspace, Personal, Research'**
   String get onboarding_vault_setup_vault_name_hint;
 
   /// No description provided for @onboarding_vault_setup_telemetry_title.
   ///
   /// In en, this message translates to:
-  /// **'Share anonymous telemetry'**
+  /// **'Help improve Prism with anonymous diagnostics'**
   String get onboarding_vault_setup_telemetry_title;
 
   /// No description provided for @onboarding_vault_setup_telemetry_desc.
   ///
   /// In en, this message translates to:
-  /// **'Help us improve Prism by sharing anonymous feature usage data and crash logs. No personal data, notes, or search queries are ever collected.'**
+  /// **'Share anonymous crash reports and feature usage to help us improve Prism. Your notes, titles, and search queries are strictly private and never collected.'**
   String get onboarding_vault_setup_telemetry_desc;
 
   /// No description provided for @onboarding_vault_setup_confirm_button.
@@ -1612,7 +1636,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboarding_vault_setup_privacy_title.
   ///
   /// In en, this message translates to:
-  /// **'Privacy & Telemetry'**
+  /// **'Privacy & Diagnostics'**
   String get onboarding_vault_setup_privacy_title;
 
   /// No description provided for @onboarding_vault_setup_privacy_desc.
@@ -1630,7 +1654,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboarding_vault_setup_default_vault_name.
   ///
   /// In en, this message translates to:
-  /// **'My Vault'**
+  /// **'My Workspace'**
   String get onboarding_vault_setup_default_vault_name;
 
   /// No description provided for @onboarding_visual_journal_todays_entry.
@@ -2268,6 +2292,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Monday'**
   String get settings_journal_pref_week_start_monday;
+
+  /// No description provided for @settings_journal_pref_section_habits.
+  ///
+  /// In en, this message translates to:
+  /// **'Habits & Consistency'**
+  String get settings_journal_pref_section_habits;
+
+  /// No description provided for @settings_journal_pref_show_streaks.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Streaks & Consistency Grid'**
+  String get settings_journal_pref_show_streaks;
+
+  /// No description provided for @settings_journal_pref_show_streaks_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Display consecutive days counter and activity matrix in the daily journal.'**
+  String get settings_journal_pref_show_streaks_desc;
 
   /// No description provided for @settings_custom_macros_reset_tooltip.
   ///
@@ -2986,13 +3028,13 @@ abstract class AppLocalizations {
   /// No description provided for @settings_widgets_analytics.
   ///
   /// In en, this message translates to:
-  /// **'Share Usage Analytics'**
+  /// **'Share Anonymous Diagnostics'**
   String get settings_widgets_analytics;
 
   /// No description provided for @settings_widgets_analytics_desc.
   ///
   /// In en, this message translates to:
-  /// **'Help us improve Prism by sharing anonymous app usage stats and crash reports'**
+  /// **'Help us improve Prism by sending anonymous performance reports and crash logs.'**
   String get settings_widgets_analytics_desc;
 
   /// No description provided for @settings_support_title.
@@ -3474,6 +3516,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to complete reset: {error}'**
   String settings_data_deletion_failure(String error);
+
+  /// No description provided for @settings_section_vaults_storage.
+  ///
+  /// In en, this message translates to:
+  /// **'Vaults & Storage'**
+  String get settings_section_vaults_storage;
+
+  /// No description provided for @settings_section_security_sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Security & Sync'**
+  String get settings_section_security_sync;
+
+  /// No description provided for @settings_section_writing_appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing & Appearance'**
+  String get settings_section_writing_appearance;
+
+  /// No description provided for @settings_section_about_support.
+  ///
+  /// In en, this message translates to:
+  /// **'About & Support'**
+  String get settings_section_about_support;
+
+  /// No description provided for @settings_security_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Trust Center'**
+  String get settings_security_title;
+
+  /// No description provided for @settings_security_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Zero-knowledge cryptography, on-device encryption, and privacy controls'**
+  String get settings_security_desc;
+
+  /// No description provided for @settings_security_trust_center_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Master passphrase, database lock & shredder'**
+  String get settings_security_trust_center_desc;
+
+  /// No description provided for @settings_security_local_encryption.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Device Storage Lock'**
+  String get settings_security_local_encryption;
+
+  /// No description provided for @settings_security_local_database_title.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Device Storage Lock (AES-256)'**
+  String get settings_security_local_database_title;
+
+  /// No description provided for @settings_security_local_status_active.
+  ///
+  /// In en, this message translates to:
+  /// **'AES-256-CBC Active'**
+  String get settings_security_local_status_active;
+
+  /// No description provided for @settings_security_local_status_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Local SQLite metadata database (.prism.db) is encrypted at rest using AES-256.'**
+  String get settings_security_local_status_desc;
+
+  /// No description provided for @settings_security_master_passphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Master Encryption Passphrase'**
+  String get settings_security_master_passphrase;
+
+  /// No description provided for @settings_security_passphrase_configured.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase Configured'**
+  String get settings_security_passphrase_configured;
+
+  /// No description provided for @settings_security_passphrase_not_configured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Configured'**
+  String get settings_security_passphrase_not_configured;
+
+  /// No description provided for @settings_security_passphrase_set.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Master Passphrase'**
+  String get settings_security_passphrase_set;
+
+  /// No description provided for @settings_security_passphrase_change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Master Passphrase'**
+  String get settings_security_passphrase_change;
+
+  /// No description provided for @settings_security_passphrase_verify.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Passphrase Integrity'**
+  String get settings_security_passphrase_verify;
+
+  /// No description provided for @settings_security_passphrase_verify_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your passphrase against stored secure keys'**
+  String get settings_security_passphrase_verify_desc;
+
+  /// No description provided for @settings_security_passphrase_verify_success.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase verified! Cryptographic key root is valid.'**
+  String get settings_security_passphrase_verify_success;
+
+  /// No description provided for @settings_security_passphrase_verify_failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase incorrect. Cryptographic key root does not match.'**
+  String get settings_security_passphrase_verify_failure;
+
+  /// No description provided for @settings_security_passphrase_set_success.
+  ///
+  /// In en, this message translates to:
+  /// **'Master encryption passphrase configured successfully.'**
+  String get settings_security_passphrase_set_success;
+
+  /// No description provided for @settings_security_passphrase_change_success.
+  ///
+  /// In en, this message translates to:
+  /// **'Master encryption passphrase updated successfully.'**
+  String get settings_security_passphrase_change_success;
+
+  /// No description provided for @settings_security_passphrase_current_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Passphrase'**
+  String get settings_security_passphrase_current_label;
+
+  /// No description provided for @settings_security_passphrase_new_label.
+  ///
+  /// In en, this message translates to:
+  /// **'New Passphrase'**
+  String get settings_security_passphrase_new_label;
+
+  /// No description provided for @settings_security_passphrase_confirm_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm New Passphrase'**
+  String get settings_security_passphrase_confirm_label;
+
+  /// No description provided for @settings_security_passphrase_mismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrases do not match.'**
+  String get settings_security_passphrase_mismatch;
+
+  /// No description provided for @settings_security_pbkdf2_title.
+  ///
+  /// In en, this message translates to:
+  /// **'PBKDF2 Key Derivation'**
+  String get settings_security_pbkdf2_title;
+
+  /// No description provided for @settings_security_pbkdf2_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'HMAC-SHA256 • 100,000 iterations • 256-bit key'**
+  String get settings_security_pbkdf2_subtitle;
+
+  /// No description provided for @settings_security_pbkdf2_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Prism operates strictly zero-knowledge. Your passphrase derives the AES-256 encryption key using 100,000 PBKDF2 iterations with a secure random salt, and never leaves this device unhashed.'**
+  String get settings_security_pbkdf2_desc;
+
+  /// No description provided for @settings_security_cloud_sync_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Drive Cloud Sync'**
+  String get settings_security_cloud_sync_title;
+
+  /// No description provided for @settings_security_cloud_sync_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'End-to-end encrypted backup and multi-device sync'**
+  String get settings_security_cloud_sync_desc;
+
+  /// No description provided for @settings_security_telemetry_header.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & Diagnostics'**
+  String get settings_security_telemetry_header;
+
+  /// No description provided for @settings_cloud_sync_manage_security_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage in Security Trust Center'**
+  String get settings_cloud_sync_manage_security_button;
+
+  /// No description provided for @settings_security_change_passphrase_dialog_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Master Passphrase'**
+  String get settings_security_change_passphrase_dialog_title;
+
+  /// No description provided for @settings_security_set_passphrase_dialog_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Master Passphrase'**
+  String get settings_security_set_passphrase_dialog_title;
+
+  /// No description provided for @settings_security_verify_passphrase_dialog_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Passphrase'**
+  String get settings_security_verify_passphrase_dialog_title;
+
+  /// No description provided for @settings_security_verify_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get settings_security_verify_button;
+
+  /// No description provided for @settings_security_save_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Passphrase'**
+  String get settings_security_save_button;
+
+  /// No description provided for @quick_capture_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Capture'**
+  String get quick_capture_title;
+
+  /// No description provided for @quick_capture_record_voice_memo.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Voice Memo'**
+  String get quick_capture_record_voice_memo;
+
+  /// No description provided for @quick_capture_blank_document.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank Document'**
+  String get quick_capture_blank_document;
+
+  /// No description provided for @quick_capture_recording_status.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording Voice Memo...'**
+  String get quick_capture_recording_status;
+
+  /// No description provided for @quick_capture_saved_toast.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice memo saved to inbox'**
+  String get quick_capture_saved_toast;
+
+  /// No description provided for @audio_evidence_docked_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Docked Audio'**
+  String get audio_evidence_docked_title;
+
+  /// No description provided for @audio_evidence_add_bookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark'**
+  String get audio_evidence_add_bookmark;
+
+  /// No description provided for @audio_evidence_undock_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Undock audio'**
+  String get audio_evidence_undock_tooltip;
 }
 
 class _AppLocalizationsDelegate

@@ -49,6 +49,9 @@ class AudioplayersService implements AudioPlayerService {
   Future<Duration?> getDuration() => _player.getDuration();
 
   @override
+  Future<void> setPlaybackRate(double rate) => _player.setPlaybackRate(rate);
+
+  @override
   void dispose() {
     _stateSub?.cancel();
     _isPlayingController.close();

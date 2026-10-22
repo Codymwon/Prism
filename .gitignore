@@ -61,6 +61,9 @@ graphify-out/
 unsloth_compiled_cache/
 outputs/
 test_vault/
+.scratch/
+android/build/
+scripts/build/
 
 # Client secrets & Firebase secrets
 android/app/*.json

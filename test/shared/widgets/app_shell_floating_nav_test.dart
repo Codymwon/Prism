@@ -175,7 +175,8 @@ void main() {
     testWidgets('tapping "+" on Notes tab creates a standard note', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
@@ -187,6 +188,13 @@ void main() {
       expect(fabFinder, findsOneWidget);
 
       await tester.tap(fabFinder, warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      // Quick Capture blooms; tap "Blank Document" to create standard note
+      final blankDocFinder = find.byKey(const ValueKey('quick_capture_blank_document'));
+      expect(blankDocFinder, findsOneWidget);
+      await tester.tap(blankDocFinder);
       await tester.pumpAndSettle();
 
       expect(fakeNoteRepository.createNoteCalled, isTrue);

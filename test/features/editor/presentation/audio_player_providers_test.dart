@@ -68,6 +68,11 @@ class FakeAudioPlayerService implements AudioPlayerService {
   }
 
   @override
+  Future<void> setPlaybackRate(double rate) async {
+    calls.add('setPlaybackRate:$rate');
+  }
+
+  @override
   void dispose() {
     _durationController.close();
     _positionController.close();
@@ -160,6 +165,23 @@ void main() {
       await notifier2.play('/test.m4a', 'test.m4a');
 
       expect(fakeService2.calls, contains('play:/test.m4a'));
+    });
+
+    test('setPlaybackRate updates state and delegates to service', () async {
+      final fakeService3 = FakeAudioPlayerService();
+      final container = ProviderContainer(
+        overrides: [
+          audioPlayerServiceProvider.overrideWith((ref) => fakeService3),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier3 = container.read(audioPlayerStateProvider.notifier);
+      expect(container.read(audioPlayerStateProvider).playbackRate, 1.0);
+
+      await notifier3.setPlaybackRate(1.5);
+      expect(container.read(audioPlayerStateProvider).playbackRate, 1.5);
+      expect(fakeService3.calls, contains('setPlaybackRate:1.5'));
     });
   });
 }

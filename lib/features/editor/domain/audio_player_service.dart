@@ -29,6 +29,9 @@ abstract class AudioPlayerService {
   /// Returns the total duration of the current track, if available.
   Future<Duration?> getDuration();
 
+  /// Sets the playback rate (e.g. 0.8, 1.0, 1.5, 2.0).
+  Future<void> setPlaybackRate(double rate);
+
   /// Releases native resources.
   void dispose();
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/design_system/design_system.dart';
@@ -13,6 +14,7 @@ class LivePreviewController extends TextEditingController {
   final Widget Function(String path, String? alt)? imageBuilder;
   final Widget Function(List<String> tableLines)? tableBuilder;
   final Widget Function(int lineIndex, bool checked)? checkboxBuilder;
+  final void Function(Duration position)? onTimestampTap;
 
   LivePreviewController({
     required this.noteId,
@@ -21,6 +23,7 @@ class LivePreviewController extends TextEditingController {
     this.imageBuilder,
     this.tableBuilder,
     this.checkboxBuilder,
+    this.onTimestampTap,
     super.text,
   });
 
@@ -262,9 +265,21 @@ class LivePreviewController extends TextEditingController {
           );
         }
 
+        GestureRecognizer? recognizer;
+        if (spanInfo.type == InlineType.timestamp && onTimestampTap != null && !isRawLine) {
+          final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(spanInfo.text);
+          if (timeMatch != null) {
+            final mins = int.parse(timeMatch.group(1)!);
+            final secs = int.parse(timeMatch.group(2)!);
+            final pos = Duration(minutes: mins, seconds: secs);
+            recognizer = TapGestureRecognizer()..onTap = () => onTimestampTap!(pos);
+          }
+        }
+
         spansOnLine.add(TextSpan(
           text: spanInfo.text,
           style: spanStyle,
+          recognizer: recognizer,
         ));
       }
 
@@ -354,6 +369,13 @@ class LivePreviewController extends TextEditingController {
         return defaultStyle.copyWith(
           color: DesignColors.primary(context),
           decoration: TextDecoration.underline,
+        );
+      case InlineType.timestamp:
+        return defaultStyle.copyWith(
+          color: DesignColors.primary(context),
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
+          backgroundColor: DesignColors.primary(context).withValues(alpha: 0.10),
         );
       case InlineType.plain:
         return defaultStyle;

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../../../shared/design_system/design_system.dart';
@@ -9,6 +8,7 @@ import '../../../../core/utils/utils.dart';
 import '../utils/editor_helpers.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../../notes/data/note_model.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import 'package:prism/l10n/l10n.dart';
 
@@ -114,15 +114,12 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       await repo.deleteNote(_conflictNote!.id);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.l10n.editor_merge_comparison_discarded_success,
-              style: GoogleFonts.inter(),
-            ),
-          ),
-        );
         context.go('/notes');
+        PrismToast.show(
+          context,
+          context.l10n.editor_merge_comparison_discarded_success,
+          icon: Icons.delete_outline_rounded,
+        );
       }
     } catch (e) {
       setState(() {
@@ -147,15 +144,12 @@ class _MergeComparisonScreenState extends ConsumerState<MergeComparisonScreen> w
       await repo.deleteNote(_conflictNote!.id);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.l10n.editor_merge_comparison_replaced_success,
-              style: GoogleFonts.inter(),
-            ),
-          ),
-        );
         context.go('/editor/${_originalNote!.id}');
+        PrismToast.show(
+          context,
+          context.l10n.editor_merge_comparison_replaced_success,
+          icon: Icons.check_circle_outline_rounded,
+        );
       }
     } catch (e) {
       setState(() {
@@ -189,16 +183,13 @@ $_conflictContent
       await repo.deleteNote(_conflictNote!.id);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.l10n.editor_merge_comparison_merged_markers,
-              style: GoogleFonts.inter(),
-            ),
-            duration: const Duration(seconds: 4),
-          ),
-        );
         context.go('/editor/${_originalNote!.id}?new=true'); // auto-focuses
+        PrismToast.show(
+          context,
+          context.l10n.editor_merge_comparison_merged_markers,
+          icon: Icons.merge_type_rounded,
+          duration: const Duration(seconds: 4),
+        );
       }
     } catch (e) {
       setState(() {

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+# Auto-detect script location and repository root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # Auto-detect Flutter PATH on Linux if not set
 if ! command -v flutter &> /dev/null; then
   if [ -d "$HOME/development/flutter/bin" ]; then
@@ -8,14 +13,19 @@ if ! command -v flutter &> /dev/null; then
   fi
 fi
 
-# Load REVENUECAT_API_KEY from .env if present
-if [ -f ".env" ]; then
-  export $(grep -v '^#' .env | xargs)
+# Load REVENUECAT_API_KEY from .env if present and not already set
+if [ -z "${REVENUECAT_API_KEY:-}" ] && [ -f "$PROJECT_ROOT/.env" ]; then
+  ENV_KEY=$(grep -E '^REVENUECAT_API_KEY=' "$PROJECT_ROOT/.env" | cut -d '=' -f2- | tr -d '\r"' )
+  if [ -n "$ENV_KEY" ]; then
+    export REVENUECAT_API_KEY="$ENV_KEY"
+  fi
 fi
 
 KEY="${REVENUECAT_API_KEY:-}"
 if [ -z "$KEY" ]; then
   echo -e "\033[0;33mWarning: REVENUECAT_API_KEY is not set. Building without RevenueCat key.\033[0m"
+else
+  echo -e "\033[0;32mRevenueCat API key detected.\033[0m"
 fi
 
 echo -e "\033[0;36mCleaning build directory...\033[0m"

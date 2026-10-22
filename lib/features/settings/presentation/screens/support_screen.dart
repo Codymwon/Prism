@@ -10,6 +10,7 @@ import '../../../../core/database/vault_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../../../../core/providers/shared_preferences_provider.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class SupportScreen extends ConsumerStatefulWidget {
@@ -232,10 +233,10 @@ User ID: $_appUserId
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: fullBody));
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(context.l10n.settings_support_copy_success),
-                  ),
+                PrismToast.show(
+                  context,
+                  context.l10n.settings_support_copy_success,
+                  icon: Icons.copy_rounded,
                 );
               },
               child: Text(context.l10n.settings_support_copy_button),

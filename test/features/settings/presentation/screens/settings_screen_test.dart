@@ -113,7 +113,7 @@ void main() {
     expect(padding!.resolve(TextDirection.ltr).bottom, greaterThanOrEqualTo(80.0));
   });
 
-  testWidgets('displays Danger Zone and Delete All Data & Reset tile', (WidgetTester tester) async {
+  testWidgets('displays the 4 consolidated pillars with consistent headers', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -124,18 +124,35 @@ void main() {
     await tester.pumpWidget(buildTestableWidget(isPro: false));
     await tester.pumpAndSettle();
 
-    // Scroll to the bottom to find the Danger Zone
-    final deleteTile = find.text('Delete All Data & Reset');
-    await tester.scrollUntilVisible(deleteTile, 300);
+    // Verify Pillar 1: Vaults & Storage
+    expect(find.text('VAULTS & STORAGE'), findsOneWidget);
+    expect(find.text('Manage Vaults'), findsOneWidget);
+    expect(find.text('Vault Export'), findsOneWidget);
+    expect(find.text('Manage Attachments'), findsOneWidget);
+
+    // Verify Pillar 2: Security & Sync
+    expect(find.text('SECURITY & SYNC'), findsOneWidget);
+    expect(find.text('Security Trust Center'), findsOneWidget);
+    expect(find.text('Cloud Sync'), findsOneWidget);
+
+    // Verify Pillar 3: Writing & Appearance
+    expect(find.text('WRITING & APPEARANCE'), findsOneWidget);
+    expect(find.text('Font family'), findsOneWidget);
+    expect(find.text('Editor Preferences'), findsOneWidget);
+
+    // Scroll down to verify Pillar 4: About & Support
+    final aboutHeader = find.text('ABOUT & SUPPORT');
+    await tester.scrollUntilVisible(aboutHeader, 500);
     await tester.pumpAndSettle();
 
-    expect(find.text('DANGER ZONE'), findsOneWidget);
-    expect(deleteTile, findsOneWidget);
-    expect(find.text('Permanently erase local vaults, credentials, and settings'), findsOneWidget);
+    expect(aboutHeader, findsOneWidget);
+    expect(find.text('Contact Support & Feedback'), findsOneWidget);
+    expect(find.text('Replay interactive tutorial'), findsOneWidget);
+    expect(find.text('Privacy policy'), findsOneWidget);
+    expect(find.text('Terms of Service'), findsOneWidget);
   });
 
-  testWidgets('tapping Delete All Data & Reset shows confirmation dialog and requires typing DELETE',
-      (WidgetTester tester) async {
+  testWidgets('tapping Security Trust Center tile navigates to /settings/security', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -143,48 +160,40 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final mockDeletionService = MockDataDeletionService();
+    final router = GoRouter(
+      initialLocation: '/settings',
+      routes: [
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: '/settings/security',
+          builder: (context, state) => const Scaffold(body: Text('Security Trust Center Page')),
+        ),
+      ],
+    );
 
-    await tester.pumpWidget(buildTestableWidget(
-      isPro: false,
-      dataDeletionService: mockDeletionService,
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          isProProvider.overrideWith((ref) => false),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    // Scroll to and tap Delete All Data & Reset
-    final deleteTile = find.text('Delete All Data & Reset');
-    await tester.scrollUntilVisible(deleteTile, 500);
-    await tester.pumpAndSettle();
-    await tester.tap(deleteTile, warnIfMissed: false);
+    final securityTile = find.text('Security Trust Center');
+    expect(securityTile, findsOneWidget);
+    await tester.tap(securityTile, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    // Verify dialog appears
-    expect(find.text('Delete All Data & Reset?'), findsOneWidget);
-    expect(find.text('Delete Everything'), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
-
-    // Confirm button should be disabled initially
-    final deleteButtonFinder = find.widgetWithText(ElevatedButton, 'Delete Everything');
-    expect(tester.widget<ElevatedButton>(deleteButtonFinder).enabled, isFalse);
-
-    // Type something other than DELETE
-    final textFieldFinder = find.byType(TextField);
-    await tester.enterText(textFieldFinder, 'NO');
-    await tester.pumpAndSettle();
-    expect(tester.widget<ElevatedButton>(deleteButtonFinder).enabled, isFalse);
-
-    // Type DELETE
-    await tester.enterText(textFieldFinder, 'DELETE');
-    await tester.pumpAndSettle();
-    expect(tester.widget<ElevatedButton>(deleteButtonFinder).enabled, isTrue);
-
-    // Tap Delete Everything
-    await tester.tap(deleteButtonFinder);
-    await tester.pump(); // Start progress
-    await tester.pumpAndSettle(); // Finish reset
-
-    // Verify executeFullReset was called and routed to onboarding
-    expect(mockDeletionService.executeFullResetCalled, isTrue);
-    expect(find.text('Onboarding Screen'), findsOneWidget);
+    expect(find.text('Security Trust Center Page'), findsOneWidget);
   });
 }
+

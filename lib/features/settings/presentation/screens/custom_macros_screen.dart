@@ -6,6 +6,7 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../providers/custom_macro_provider.dart';
+import '../../../../shared/widgets/prism_toast.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class CustomMacrosScreen extends ConsumerStatefulWidget {
@@ -192,11 +193,10 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
                   onPressed: totalCount > 3
                       ? () => ref.read(customMacrosProvider.notifier).removeMacro(index)
                       : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('You must keep at least 3 custom macros.'),
-                              duration: Duration(seconds: 2),
-                            ),
+                          PrismToast.show(
+                            context,
+                            'You must keep at least 3 custom macros.',
+                            icon: Icons.warning_amber_rounded,
                           );
                         },
                   tooltip: totalCount > 3 ? context.l10n.settings_custom_macros_delete_tooltip : context.l10n.settings_custom_macros_cannot_delete_desc,
@@ -292,8 +292,10 @@ class _CustomMacrosScreenState extends ConsumerState<CustomMacrosScreen> {
             onPressed: () {
               ref.read(customMacrosProvider.notifier).resetToDefaults();
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(context.l10n.settings_custom_macros_reset_success)),
+              PrismToast.show(
+                context,
+                context.l10n.settings_custom_macros_reset_success,
+                icon: Icons.restore_rounded,
               );
             },
             child: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../widgets/settings_widgets.dart';
 import '../../../../shared/widgets/prism_toast.dart';
@@ -511,6 +512,24 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: DesignColors.primary(context),
+                                  side: BorderSide(color: DesignColors.primary(context).withValues(alpha: 0.3)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                                icon: const Icon(Icons.shield_outlined, size: 16),
+                                label: Text(
+                                  context.l10n.settings_cloud_sync_manage_security_button,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                                onPressed: () async {
+                                  await context.push('/settings/security');
+                                  _checkInitialState();
+                                },
+                              ),
                             ] else ...[
                               Text(
                                 'Set a Global Passphrase to Enable Encryption',
@@ -546,6 +565,20 @@ class _CloudSyncScreenState extends ConsumerState<CloudSyncScreen> {
                                 ),
                                 onPressed: _handleConfigureSync,
                                 child: const Text('Enable Sync & Encryption'),
+                              ),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: TextButton.icon(
+                                  icon: const Icon(Icons.shield_outlined, size: 15),
+                                  label: Text(
+                                    context.l10n.settings_cloud_sync_manage_security_button,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  onPressed: () async {
+                                    await context.push('/settings/security');
+                                    _checkInitialState();
+                                  },
+                                ),
                               ),
                             ],
                           ],

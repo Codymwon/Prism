@@ -24,7 +24,8 @@ enum InlineType {
   highlight,
   hashtag,
   wikilink,
-  link
+  link,
+  timestamp,
 }
 
 class InlineSpanInfo {
@@ -85,6 +86,7 @@ class MarkdownLineParser {
     r'|(\[\[[^\]]+\]\])' // 8. Wikilink
     r'|(\[[^\]]+\]\([^)]+\))' // 9. Link
     r'|((?<!\w)#[a-zA-Z][a-zA-Z0-9_]*)' // 10. Hashtag
+    r'|(\[\d{1,2}:\d{2}(?:\s*-[^\]]+)?\])' // 11. Timestamp tag
   );
 
   static List<ParsedLine> parse(String text) {
@@ -372,6 +374,13 @@ class MarkdownLineParser {
       } else if (match.group(10) != null) {
         // Hashtag: #tag
         spans.add(InlineSpanInfo(text: matchText, type: InlineType.hashtag));
+      } else if (match.group(11) != null) {
+        // Timestamp tag: [04:12 - Bookmark] or [00:05]
+        spans.add(InlineSpanInfo(
+          text: matchText,
+          type: InlineType.timestamp,
+          url: matchText,
+        ));
       }
 
       lastIndex = match.end;
