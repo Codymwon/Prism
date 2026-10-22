@@ -6,6 +6,7 @@ import '../../../folders/presentation/providers/folders_providers.dart';
 import 'search_bar_widget.dart';
 import 'notes_sort_bottom_sheet.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../shared/widgets/vault_hub.dart';
 import 'package:prism/l10n/l10n.dart';
 
 class NotesListSearchBar extends ConsumerStatefulWidget {
@@ -74,7 +75,7 @@ class _NotesListSearchBarState extends ConsumerState<NotesListSearchBar> {
                 const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(DesignIcons.menu),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  onPressed: () => ref.read(vaultHubNotifierProvider.notifier).open(),
                   tooltip: context.l10n.notes_search_bar_open_drawer_tooltip,
                   color: DesignColors.text(context),
                 ),

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -358,7 +359,7 @@ void main() {
       expect(capsuleBox.size.height, closeTo(172.0, 4.0));
     });
 
-    testWidgets('tapping close button dismisses active action deck',
+    testWidgets('tapping rotating FAB dismisses active action deck',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
@@ -389,9 +390,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       expect(find.text('Dismiss Me'), findsOneWidget);
 
-      final closeButtonFinder = find.byKey(const ValueKey('island_menu_close'));
-      expect(closeButtonFinder, findsOneWidget);
-      await tester.tap(closeButtonFinder);
+      final fabFinder = find.byKey(const ValueKey('app_shell_fab'));
+      expect(fabFinder, findsOneWidget);
+      await tester.tap(fabFinder);
       await tester.pump();
 
       expect(container.read(islandMenuNotifierProvider), isNull);
@@ -475,13 +476,15 @@ void main() {
       expect(container.read(islandMenuNotifierProvider), isNull);
     });
 
-    testWidgets('FAB scales down to 0.88x and opacity 0.4 when deck is open',
+    testWidgets(
+        'action deck fuses into full-width container with integrated rotating FAB (screenWidth - 32dp, 16dp symmetrical margins, 45° rotation, tap dismisses)',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
           noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
           tutorialStateProvider.overrideWith(() => FakeTutorialState(true)),
-          journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState(true)),
+          journalTutorialStateProvider
+              .overrideWith(() => FakeJournalTutorialState(true)),
         ],
       );
       addTearDown(container.dispose);
@@ -491,38 +494,99 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final screenWidth =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
+
+      final capsuleFinder = find.byKey(const ValueKey('monolithic_capsule'));
+      final fabFinder = find.byKey(const ValueKey('app_shell_fab'));
+      expect(capsuleFinder, findsOneWidget);
+      expect(fabFinder, findsOneWidget);
+
+      // Measure resting state bounds
+      final RenderBox initialCapsuleBox = tester.renderObject(capsuleFinder);
+      final RenderBox initialFabBox = tester.renderObject(fabFinder);
+      final initialCapsuleLeft =
+          initialCapsuleBox.localToGlobal(Offset.zero).dx;
+      final initialCapsuleRight =
+          initialCapsuleLeft + initialCapsuleBox.size.width;
+      final initialFabLeft = initialFabBox.localToGlobal(Offset.zero).dx;
+
+      // Resting state assertions:
+      // Capsule left margin = 16dp, right margin = 84dp (16 + 56 + 12)
+      expect(initialCapsuleLeft, closeTo(16.0, 0.5));
+      expect(screenWidth - initialCapsuleRight, closeTo(84.0, 0.5));
+      // FAB width = 56dp, air gap = 12dp
+      expect(initialFabBox.size.width, closeTo(56.0, 0.5));
+      expect(initialFabLeft - initialCapsuleRight, closeTo(12.0, 0.5));
+
+      // Trigger Island Menu
       container.read(islandMenuNotifierProvider.notifier).show(
-            title: 'FAB test',
+            title: 'Fused Island Action Deck Test',
             items: [
               IslandMenuItem(
-                label: 'Test',
-                icon: Icons.star,
+                label: 'Open',
+                icon: Icons.open_in_new,
+                onTap: () {},
+              ),
+              IslandMenuItem(
+                label: 'Delete',
+                icon: Icons.delete_outline,
+                isDestructive: true,
                 onTap: () {},
               ),
             ],
           );
 
+      // Pump through the 280ms spring forward animation
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
 
-      final addIconFinder = find.byIcon(Icons.add);
-      expect(addIconFinder, findsOneWidget);
+      // Expanded state assertions:
+      // Container width = screenWidth - 32dp, left margin = 16dp, right margin = 16dp (100% centered, zero off-centering)
+      final RenderBox expandedCapsuleBox = tester.renderObject(capsuleFinder);
+      final expandedCapsuleLeft =
+          expandedCapsuleBox.localToGlobal(Offset.zero).dx;
+      final expandedCapsuleRight =
+          expandedCapsuleLeft + expandedCapsuleBox.size.width;
+      expect(expandedCapsuleBox.size.width, closeTo(screenWidth - 32.0, 0.5));
+      expect(expandedCapsuleLeft, closeTo(16.0, 0.5));
+      expect(screenWidth - expandedCapsuleRight, closeTo(16.0, 0.5));
 
-      final opacityFinder = find.ancestor(
-        of: addIconFinder,
-        matching: find.byType(Opacity),
-      );
-      expect(opacityFinder, findsOneWidget);
-      final Opacity opacityWidget = tester.widget(opacityFinder);
-      expect(opacityWidget.opacity, closeTo(0.40, 0.05));
-
-      final transformFinder = find.ancestor(
-        of: find.byType(AnimatedContainer),
+      // Assert bottom-right FAB remains 56dp and its icon is rotated 45°
+      final RenderBox expandedFabBox = tester.renderObject(fabFinder);
+      expect(expandedFabBox.size.width, closeTo(56.0, 0.5));
+      final rotateTransformFinder = find.ancestor(
+        of: find.byIcon(Icons.add),
         matching: find.byType(Transform),
       );
-      expect(transformFinder, findsOneWidget);
-      final Transform transformWidget = tester.widget(transformFinder);
-      expect(transformWidget.transform.storage[0], closeTo(0.88, 0.05));
+      expect(rotateTransformFinder, findsWidgets);
+      final Transform rotateTransform =
+          tester.widget(rotateTransformFinder.first);
+      final matrix = rotateTransform.transform;
+      expect(matrix.entry(0, 0), closeTo(math.cos(math.pi / 4), 0.05));
+      expect(matrix.entry(1, 0), closeTo(math.sin(math.pi / 4), 0.05));
+
+      // Tapping bottom-right FAB dismisses action deck
+      await tester.tap(fabFinder);
+      await tester.pump();
+      expect(container.read(islandMenuNotifierProvider), isNull);
+
+      // Pump through 200ms reverse animation
+      await tester.pump(const Duration(milliseconds: 350));
+
+      // Reverse separation assertions: gap returns to 12dp, FAB restores to 56dp, capsule margins restore
+      final RenderBox restoredCapsuleBox = tester.renderObject(capsuleFinder);
+      final RenderBox restoredFabBox = tester.renderObject(fabFinder);
+      final restoredCapsuleLeft =
+          restoredCapsuleBox.localToGlobal(Offset.zero).dx;
+      final restoredCapsuleRight =
+          restoredCapsuleLeft + restoredCapsuleBox.size.width;
+      final restoredFabLeft = restoredFabBox.localToGlobal(Offset.zero).dx;
+
+      expect(restoredCapsuleLeft, closeTo(16.0, 0.5));
+      expect(screenWidth - restoredCapsuleRight, closeTo(84.0, 0.5));
+      expect(restoredFabLeft - restoredCapsuleRight, closeTo(12.0, 0.5));
+      expect(restoredFabBox.size.width, closeTo(56.0, 0.5));
     });
 
     testWidgets('mutual exclusivity: toast and menu dismiss each other',

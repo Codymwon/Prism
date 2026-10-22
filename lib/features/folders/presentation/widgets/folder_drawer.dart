@@ -16,6 +16,7 @@ import 'package:prism/l10n/l10n.dart';
 import '../../../../shared/widgets/prism_toast.dart';
 import '../../../../shared/widgets/island_menu.dart';
 import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../../core/config/app_config.dart';
 
 class FolderDrawer extends ConsumerWidget {
   const FolderDrawer({super.key});
@@ -107,39 +108,41 @@ class FolderDrawer extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
 
-              // Manage Templates Shortcut
-              _buildToolTile(
-                context,
-                icon: Icons.description_outlined,
-                title: context.l10n.folders_drawer_manage_templates,
-                isLocked: !isPro,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  if (!isPro) {
-                    context.push('/settings/paywall');
-                  } else {
-                    context.push('/settings/custom-templates');
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
+              // Manage Templates & Macros Shortcuts
+              if (AppConfig.enableSubscriptions) ...[
+                _buildToolTile(
+                  context,
+                  icon: Icons.description_outlined,
+                  title: context.l10n.folders_drawer_manage_templates,
+                  isLocked: !isPro,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (!isPro) {
+                      context.push('/settings/paywall');
+                    } else {
+                      context.push('/settings/custom-templates');
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
 
-              // Manage Macros Shortcut
-              _buildToolTile(
-                context,
-                icon: Icons.bolt_outlined,
-                title: context.l10n.folders_drawer_manage_macros,
-                isLocked: !isPro,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  if (!isPro) {
-                    context.push('/settings/paywall');
-                  } else {
-                    context.push('/settings/custom-macros');
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
+                // Manage Macros Shortcut
+                _buildToolTile(
+                  context,
+                  icon: Icons.bolt_outlined,
+                  title: context.l10n.folders_drawer_manage_macros,
+                  isLocked: !isPro,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (!isPro) {
+                      context.push('/settings/paywall');
+                    } else {
+                      context.push('/settings/custom-macros');
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
 
               // Serendipity (Random Note) Tool
               _buildToolTile(

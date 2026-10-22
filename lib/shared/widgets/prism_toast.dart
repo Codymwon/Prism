@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../design_system/design_system.dart';
 import 'app_shell.dart';
 import 'island_menu.dart';
+import 'dynamic_island_state.dart';
 
 /// Active data model for the Dynamic Island toast.
 class IslandToastData {
@@ -49,7 +50,13 @@ class IslandToastNotifier extends Notifier<IslandToastData?> {
   int _idCounter = 0;
 
   @override
-  IslandToastData? build() => null;
+  IslandToastData? build() {
+    final state = ref.watch(dynamicIslandControllerProvider);
+    if (state is DynamicIslandToast) {
+      return state.toast;
+    }
+    return null;
+  }
 
   void show({
     required String message,
@@ -59,7 +66,7 @@ class IslandToastNotifier extends Notifier<IslandToastData?> {
     Duration duration = const Duration(seconds: 3),
   }) {
     final nextId = ++_idCounter;
-    state = IslandToastData(
+    final toast = IslandToastData(
       id: nextId,
       message: message,
       icon: icon,
@@ -67,10 +74,14 @@ class IslandToastNotifier extends Notifier<IslandToastData?> {
       onAction: onAction,
       duration: duration,
     );
+    ref.read(dynamicIslandControllerProvider.notifier).showToast(toast);
   }
 
   void dismiss() {
-    state = null;
+    final s = ref.read(dynamicIslandControllerProvider);
+    if (s is DynamicIslandToast) {
+      ref.read(dynamicIslandControllerProvider.notifier).dismiss();
+    }
   }
 }
 

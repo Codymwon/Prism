@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:prism/core/services/vault_service.dart';
 import 'package:prism/features/subscription/presentation/providers/subscription_providers.dart';
+import 'package:prism/core/config/app_config.dart';
 
 class FakeDatabase extends Fake implements Database {
   @override
@@ -66,11 +67,16 @@ class FakeOnboardingState extends OnboardingState {
 
 void main() {
   setUp(() {
+    AppConfig.enableSubscriptions = true;
     SharedPreferences.setMockInitialValues({
       'hasOnboarded': true,
       'hasCompletedTutorial': true,
       'hasCompletedJournalTutorial': true,
     });
+  });
+
+  tearDown(() {
+    AppConfig.enableSubscriptions = false;
   });
 
   Widget buildTestApp(WidgetRef ref) {
@@ -296,5 +302,58 @@ void main() {
     // Verify no lock icons are shown
     expect(find.byIcon(Icons.lock_outline_rounded), findsNothing);
     expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(3)); // 2 shortcuts + 1 serendipity
+  });
+
+  testWidgets('v1.0 release: hides Manage Templates and Manage Macros when enableSubscriptions is false', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    AppConfig.enableSubscriptions = false;
+
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        databaseProvider.overrideWith((ref) async => FakeDatabase()),
+        noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),
+        folderRepositoryProvider.overrideWithValue(FakeFolderRepository()),
+        tutorialStateProvider.overrideWith(() => FakeTutorialState()),
+        journalTutorialStateProvider.overrideWith(() => FakeJournalTutorialState()),
+        onboardingStateProvider.overrideWith(() => FakeOnboardingState()),
+        availableVaultsProvider.overrideWith((ref) async => ['Default']),
+        homeScreenDataProvider.overrideWith((ref) => AsyncData(HomeScreenData(
+          notes: [],
+          folders: [],
+          mappings: {},
+        ))),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            drawer: const FolderDrawer(),
+            body: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+    scaffoldState.openDrawer();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage Templates'), findsNothing);
+    expect(find.text('Manage Macros'), findsNothing);
   });
 }

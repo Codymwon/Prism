@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../design_system/design_system.dart';
 import 'app_shell.dart';
 import 'prism_toast.dart';
+import 'dynamic_island_state.dart';
 
 /// Single action item inside an Island Context Action Deck.
 class IslandMenuItem {
@@ -39,7 +40,13 @@ class IslandMenuNotifier extends Notifier<IslandMenuData?> {
   int _idCounter = 0;
 
   @override
-  IslandMenuData? build() => null;
+  IslandMenuData? build() {
+    final state = ref.watch(dynamicIslandControllerProvider);
+    if (state is DynamicIslandMenu) {
+      return state.menu;
+    }
+    return null;
+  }
 
   void show({
     required String title,
@@ -47,16 +54,20 @@ class IslandMenuNotifier extends Notifier<IslandMenuData?> {
     required List<IslandMenuItem> items,
   }) {
     final nextId = ++_idCounter;
-    state = IslandMenuData(
+    final menu = IslandMenuData(
       id: nextId,
       title: title,
       icon: icon,
       items: items,
     );
+    ref.read(dynamicIslandControllerProvider.notifier).showMenu(menu);
   }
 
   void dismiss() {
-    state = null;
+    final s = ref.read(dynamicIslandControllerProvider);
+    if (s is DynamicIslandMenu) {
+      ref.read(dynamicIslandControllerProvider.notifier).dismiss();
+    }
   }
 }
 
@@ -86,7 +97,6 @@ class IslandMenu {
         context.widget is AppShell;
 
     if (container != null && hasAppShell) {
-      // Mutual exclusivity: dismiss any active toast before showing context menu
       container.read(islandToastNotifierProvider.notifier).dismiss();
       container.read(islandMenuNotifierProvider.notifier).show(
             title: title,

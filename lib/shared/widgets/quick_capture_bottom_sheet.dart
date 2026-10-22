@@ -19,6 +19,7 @@ import 'app_shell.dart';
 import 'island_menu.dart';
 import 'prism_toast.dart';
 import 'tactile_wrapper.dart';
+import 'dynamic_island_state.dart';
 import 'package:prism/l10n/l10n.dart';
 
 /// Active presentation mode inside the Quick Capture Deck.
@@ -67,6 +68,14 @@ class QuickCaptureNotifier extends Notifier<QuickCaptureState> {
       _timer?.cancel();
     });
     return const QuickCaptureState();
+  }
+
+  @override
+  set state(QuickCaptureState value) {
+    super.state = value;
+    ref
+        .read(dynamicIslandControllerProvider.notifier)
+        .updateQuickCapture(value);
   }
 
   void open() {
@@ -349,6 +358,7 @@ class QuickCaptureModalFallback extends ConsumerWidget {
                         .createBlankNote(context);
                   },
                   onClose: () => Navigator.pop(context),
+                  showCloseButton: true,
                 ),
             ],
           ),
@@ -362,13 +372,15 @@ class QuickCaptureModalFallback extends ConsumerWidget {
 class QuickCaptureActionsDeck extends StatelessWidget {
   final VoidCallback onRecordVoiceMemo;
   final VoidCallback onBlankDocument;
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
+  final bool showCloseButton;
 
   const QuickCaptureActionsDeck({
     super.key,
     required this.onRecordVoiceMemo,
     required this.onBlankDocument,
-    required this.onClose,
+    this.onClose,
+    this.showCloseButton = false,
   });
 
   @override
@@ -381,7 +393,7 @@ class QuickCaptureActionsDeck extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header Row: Icon + Title + Close Button
+          // Header Row: Icon + Title
           Row(
             children: [
               Container(
@@ -411,28 +423,29 @@ class QuickCaptureActionsDeck extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              GestureDetector(
-                key: const ValueKey('quick_capture_close'),
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onClose();
-                },
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: DesignColors.border(context).withValues(alpha: 0.35),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: 13,
-                    color: DesignColors.textSecondary(context),
+              if (showCloseButton && onClose != null)
+                GestureDetector(
+                  key: const ValueKey('quick_capture_close'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    onClose!();
+                  },
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: DesignColors.border(context).withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 13,
+                      color: DesignColors.textSecondary(context),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 10),

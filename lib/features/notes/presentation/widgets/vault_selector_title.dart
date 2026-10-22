@@ -6,6 +6,9 @@ import 'vault_selector_bottom_sheet.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import 'package:prism/l10n/l10n.dart';
 
+import '../../../../shared/widgets/app_shell.dart';
+import '../../../../shared/widgets/dynamic_island_state.dart';
+
 class VaultSelectorTitle extends ConsumerWidget {
   const VaultSelectorTitle({super.key});
 
@@ -25,7 +28,24 @@ class VaultSelectorTitle extends ConsumerWidget {
     final activeVaultName = ref.watch(activeVaultNameProvider).valueOrNull ?? context.l10n.notes_vault_selector_title_default;
 
     return TactileWrapper(
-      onTap: () => _showVaultSelectorBottomSheet(context),
+      onTap: () {
+        final hasAppShell =
+            context.findAncestorWidgetOfExactType<AppShell>() != null;
+        if (hasAppShell) {
+          final islandState = ref.read(dynamicIslandControllerProvider);
+          if (islandState is DynamicIslandVaultHub) {
+            ref
+                .read(dynamicIslandControllerProvider.notifier)
+                .switchVaultHubSubDeck(VaultHubSubDeck.workspaceSelector);
+          } else {
+            ref
+                .read(dynamicIslandControllerProvider.notifier)
+                .openVaultHub(VaultHubSubDeck.workspaceSelector);
+          }
+        } else {
+          _showVaultSelectorBottomSheet(context);
+        }
+      },
       style: TactileFeedbackStyle.standard,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

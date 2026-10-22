@@ -66,7 +66,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       child: Scaffold(
         backgroundColor: DesignColors.background(context),
         appBar: _buildAppBar(context, ref, colorScheme, activeFolder),
-        drawer: const FolderDrawer(),
         body: BackButtonListener(
           onBackButtonPressed: () async {
             if (selectedFolderId != null) {
