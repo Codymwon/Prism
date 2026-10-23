@@ -246,7 +246,7 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
     });
   }
   @override
-  Future<bool> syncVault(String vaultPath, {Database? db}) async {
+  Future<bool> syncVault(String vaultPath, {Database? db, bool force = false}) async {
     try {
       final database = db ?? await getDb();
       if (!database.isOpen) return false;
@@ -310,8 +310,8 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
           final existing = existingPathsMap[filePath]!;
           claimedNoteIds.add(existing.id);
 
-          // Determine if we need to update (discrepancy > 1 second)
-          if (lastModMs > (existing.updatedAt + 1000)) {
+          // Determine if we need to update (discrepancy > 1 second, or forced reindex)
+          if (force || lastModMs > (existing.updatedAt + 1000)) {
             final content = await storage.readContent(filePath);
             final metadata = parser.parse(content);
             notesToSync.add((

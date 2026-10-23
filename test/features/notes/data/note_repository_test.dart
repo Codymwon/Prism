@@ -7,6 +7,7 @@ import 'package:prism/core/services/note_ingestion_service.dart';
 import 'package:prism/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
 import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
+import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/features/notes/data/vault_storage.dart';
 import 'package:prism/features/graph/data/graph_node_repository.dart';
 
@@ -114,6 +115,19 @@ void main() {
               PRIMARY KEY (note_id, folder_id)
             )
           ''');
+
+          await db.execute('''
+            CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+              id UNINDEXED,
+              title,
+              body,
+              tokenize = 'porter'
+            )
+          ''');
+
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_title ON notes(title COLLATE NOCASE)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_non_daily_updated ON notes(is_ghost, is_daily, updated_at DESC)');
         },
       ),
     );
@@ -349,6 +363,237 @@ void main() {
       final uncategorizedNotes = await repository.getUncategorizedNotes();
       expect(uncategorizedNotes.length, equals(1));
       expect(uncategorizedNotes.first.id, equals(nonDaily.id));
+    });
+  });
+
+  group('FTS5 Query Sanitizer (buildSafeFts5Query)', () {
+    test('splits whitespace-separated tokens and formats each with double quotes and prefix wildcard', () {
+      expect(buildSafeFts5Query('to be or not'), equals('"to"* AND "be"* AND "or"* AND "not"*'));
+      expect(buildSafeFts5Query('flutter dart'), equals('"flutter"* AND "dart"*'));
+    });
+
+    test('strips embedded double quotes safely', () {
+      expect(buildSafeFts5Query('"hello" "world"'), equals('"hello"* AND "world"*'));
+      expect(buildSafeFts5Query('apple "banana" cherry'), equals('"apple"* AND "banana"* AND "cherry"*'));
+    });
+
+    test('safely handles reserved FTS5 boolean keywords and operators without syntax error', () {
+      expect(buildSafeFts5Query('AND'), equals('"AND"*'));
+      expect(buildSafeFts5Query('OR'), equals('"OR"*'));
+      expect(buildSafeFts5Query('NOT'), equals('"NOT"*'));
+      expect(buildSafeFts5Query('NEAR'), equals('"NEAR"*'));
+      expect(buildSafeFts5Query('to and or not near'), equals('"to"* AND "and"* AND "or"* AND "not"* AND "near"*'));
+    });
+
+    test('returns empty string for empty, whitespace, or punctuation-only queries', () {
+      expect(buildSafeFts5Query(''), equals(''));
+      expect(buildSafeFts5Query('   '), equals(''));
+      expect(buildSafeFts5Query('"""'), equals(''));
+      expect(buildSafeFts5Query('***'), equals(''));
+      expect(buildSafeFts5Query('()'), equals(''));
+    });
+
+    test('preserves non-Latin Unicode scripts (Devanagari, Japanese, accented characters)', () {
+      expect(buildSafeFts5Query('नमस्ते भारत'), equals('"नमस्ते"* AND "भारत"*'));
+      expect(buildSafeFts5Query('ノート メモ'), equals('"ノート"* AND "メモ"*'));
+      expect(buildSafeFts5Query('café résumé'), equals('"café"* AND "résumé"*'));
+    });
+  });
+
+  group('True Full-Text Search (Body Indexing & Search)', () {
+    test('searches and finds notes when keyword exists strictly inside the markdown body', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      await repository.createNote(
+        title: 'Physics Lab',
+        initialContent: '# Physics Lab\n\nToday we investigated quantum superposition in subatomic particles.',
+      );
+
+      await repository.createNote(
+        title: 'Biology Field Work',
+        initialContent: '# Biology Field Work\n\nObserved photosynthesis in local flora.',
+      );
+
+      // Search for "superposition" which ONLY appears in the body of Physics Lab
+      final results = await repository.searchNotes('superposition');
+      expect(results.length, equals(1));
+      expect(results.first.title, equals('Physics Lab'));
+
+      // Search for "photosynthesis" which ONLY appears in the body of Biology Field Work
+      final bioResults = await repository.searchNotes('photosynthesis');
+      expect(bioResults.length, equals(1));
+      expect(bioResults.first.title, equals('Biology Field Work'));
+    });
+
+    test('searches and finds notes when keyword is in the title or both title and body', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      await repository.createNote(
+        title: 'Quantum Computing Fundamentals',
+        initialContent: '# Quantum Computing Fundamentals\n\nIntroduction to qubits and entanglement.',
+      );
+
+      // Search matching title
+      final titleMatches = await repository.searchNotes('Fundamentals');
+      expect(titleMatches.length, equals(1));
+      expect(titleMatches.first.title, equals('Quantum Computing Fundamentals'));
+
+      // Search matching both
+      final bothMatches = await repository.searchNotes('Quantum');
+      expect(bothMatches.isNotEmpty, isTrue);
+      expect(bothMatches.any((n) => n.title == 'Quantum Computing Fundamentals'), isTrue);
+    });
+
+    test('executes FTS queries containing reserved operators without SQLite syntax error crashes', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      await repository.createNote(
+        title: 'Literature Review',
+        initialContent: '# Literature Review\n\nTo be or not to be, that is the question.',
+      );
+
+      // Searching for boolean operators "to be or not" must NOT crash SQLite with syntax error
+      final results = await repository.searchNotes('to be or not');
+      expect(results.length, equals(1));
+      expect(results.first.title, equals('Literature Review'));
+
+      // Searching for "NOT" alone
+      final notResults = await repository.searchNotes('NOT');
+      expect(notResults.length, equals(1));
+    });
+
+    test('searchNotes excludes ghost notes from results', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      await repository.createGhostNote('Ghostly Apparition');
+
+      final results = await repository.searchNotes('Ghostly');
+      expect(results, isEmpty);
+    });
+  });
+
+  group('Wikilink Autocomplete Optimization (getTitleSuggestions)', () {
+    test('returns title suggestions using FTS prefix matching with fallback to indexed LIKE', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      await repository.createNote(
+        title: 'Artificial Intelligence Overview',
+        initialContent: 'Overview content.',
+      );
+      await repository.createNote(
+        title: 'Art History',
+        initialContent: 'Renaissance era.',
+      );
+      await repository.createNote(
+        title: 'Machine Learning',
+        initialContent: 'Supervised learning.',
+      );
+
+      final suggestions = await repository.getTitleSuggestions('Art');
+      expect(suggestions.length, equals(2));
+      expect(suggestions.any((n) => n.title == 'Artificial Intelligence Overview'), isTrue);
+      expect(suggestions.any((n) => n.title == 'Art History'), isTrue);
+
+      final mlSuggestions = await repository.getTitleSuggestions('Machine');
+      expect(mlSuggestions.length, equals(1));
+      expect(mlSuggestions.first.title, equals('Machine Learning'));
+    });
+
+    test('returns empty list for whitespace or non-matching query', () async {
+      final repository = container.read(noteRepositoryProvider);
+      expect(await repository.getTitleSuggestions(''), isEmpty);
+      expect(await repository.getTitleSuggestions('   '), isEmpty);
+      expect(await repository.getTitleSuggestions('NonExistentTitle'), isEmpty);
+    });
+  });
+
+  group('Pagination Support (limit & offset)', () {
+    test('getAllNotes supports limit and offset parameters', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      // Insert 5 notes
+      for (int i = 1; i <= 5; i++) {
+        await repository.createNote(
+          title: 'Note $i',
+          initialContent: 'Content $i',
+        );
+      }
+
+      // Query with limit 2, offset 0
+      final page1 = await repository.getAllNotes(sort: NoteSort.title, limit: 2, offset: 0);
+      expect(page1.length, equals(2));
+      expect(page1[0].title, equals('Note 1'));
+      expect(page1[1].title, equals('Note 2'));
+
+      // Query with limit 2, offset 2
+      final page2 = await repository.getAllNotes(sort: NoteSort.title, limit: 2, offset: 2);
+      expect(page2.length, equals(2));
+      expect(page2[0].title, equals('Note 3'));
+      expect(page2[1].title, equals('Note 4'));
+
+      // Query with limit 2, offset 4
+      final page3 = await repository.getAllNotes(sort: NoteSort.title, limit: 2, offset: 4);
+      expect(page3.length, equals(1));
+      expect(page3[0].title, equals('Note 5'));
+    });
+
+    test('getAllNonDailyNotes and getDailyNotes support limit and offset', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      // 2 daily notes
+      await repository.createNote(
+        title: 'Daily 1',
+        isDaily: true,
+        dailyDate: '2026-06-01',
+      );
+      await repository.createNote(
+        title: 'Daily 2',
+        isDaily: true,
+        dailyDate: '2026-06-02',
+      );
+
+      // 2 non-daily notes
+      await repository.createNote(
+        title: 'Standard 1',
+        isDaily: false,
+      );
+      await repository.createNote(
+        title: 'Standard 2',
+        isDaily: false,
+      );
+
+      final dailyPaged = await repository.getDailyNotes(sort: NoteSort.title, limit: 1, offset: 1);
+      expect(dailyPaged.length, equals(1));
+      expect(dailyPaged.first.title, equals('Daily 2'));
+
+      final nonDailyPaged = await repository.getAllNonDailyNotes(sort: NoteSort.title, limit: 1, offset: 0);
+      expect(nonDailyPaged.length, equals(1));
+      expect(nonDailyPaged.first.title, equals('Standard 1'));
+    });
+  });
+
+  group('Batched Tag Loading (batchGetTagsForAllNotes)', () {
+    test('returns all tags grouped by note ID in a single query', () async {
+      final repository = container.read(noteRepositoryProvider);
+
+      final noteA = await repository.createNote(
+        title: 'Note A',
+        initialContent: 'Content with #flutter and #dart tags.',
+      );
+      final noteB = await repository.createNote(
+        title: 'Note B',
+        initialContent: 'Content with #architecture and #flutter tags.',
+      );
+      final noteC = await repository.createNote(
+        title: 'Note C',
+        initialContent: 'Content without tags.',
+      );
+
+      final tagsMap = await repository.batchGetTagsForAllNotes();
+
+      expect(tagsMap[noteA.id], containsAll(['flutter', 'dart']));
+      expect(tagsMap[noteB.id], containsAll(['architecture', 'flutter']));
+      expect(tagsMap[noteC.id], isNull);
     });
   });
 }

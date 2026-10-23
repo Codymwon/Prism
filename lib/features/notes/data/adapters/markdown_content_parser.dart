@@ -51,6 +51,7 @@ class MarkdownContentParser implements NoteContentParser {
 
     return NoteMetadata(
       title: title,
+      body: cleanContent.trim(),
       wordCount: wordCount,
       tags: tags,
       wikilinks: wikilinks,

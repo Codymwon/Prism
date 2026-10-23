@@ -12,6 +12,29 @@ final noteRepositoryProvider = Provider<NoteRepository>((ref) {
   return NoteRepository(ref);
 });
 
+/// Splits sanitized user input into whitespace-separated tokens, strips any
+/// embedded `"` characters, and wraps each token in double quotes with a prefix
+/// wildcard outside the quotes (e.g. `rawQuery = "to be or not"` -> `"to"* AND "be"* AND "or"* AND "not"*`).
+/// This completely prevents FTS5 syntax errors from reserved boolean operators
+/// ("AND", "OR", "NOT", "NEAR") or unbalanced punctuation.
+String buildSafeFts5Query(String rawQuery) {
+  final sanitized = rawQuery
+      .replaceAll('"', '')
+      .replaceAll(RegExp(r'[^\p{L}\p{M}\p{N}\s\-]', unicode: true), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  if (sanitized.isEmpty) return '';
+
+  final tokens = sanitized
+      .split(' ')
+      .map((t) => t.replaceAll('"', '').replaceAll('*', '').trim())
+      .where((t) => t.isNotEmpty)
+      .toList();
+
+  if (tokens.isEmpty) return '';
+  return tokens.map((t) => '"$t"*').join(' AND ');
+}
+
 // ─── Repository ───────────────────────────────────────────────────────────────
 
 class NoteRepository {
@@ -57,7 +80,11 @@ class NoteRepository {
 
   // ── READ ──────────────────────────────────────────────────────────────────
 
-  Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) async {
+  Future<List<Note>> getAllNotes({
+    NoteSort sort = NoteSort.updated,
+    int? limit,
+    int? offset,
+  }) async {
     final db = await _db;
     final orderBy = switch (sort) {
       NoteSort.updated => 'updated_at DESC',
@@ -68,11 +95,17 @@ class NoteRepository {
       'notes',
       where: 'is_ghost = 0',
       orderBy: orderBy,
+      limit: limit,
+      offset: offset,
     );
     return maps.map(Note.fromMap).toList();
   }
 
-  Future<List<Note>> getAllNonDailyNotes({NoteSort sort = NoteSort.updated}) async {
+  Future<List<Note>> getAllNonDailyNotes({
+    NoteSort sort = NoteSort.updated,
+    int? limit,
+    int? offset,
+  }) async {
     final db = await _db;
     final orderBy = switch (sort) {
       NoteSort.updated => 'updated_at DESC',
@@ -83,11 +116,17 @@ class NoteRepository {
       'notes',
       where: 'is_ghost = 0 AND is_daily = 0',
       orderBy: orderBy,
+      limit: limit,
+      offset: offset,
     );
     return maps.map(Note.fromMap).toList();
   }
 
-  Future<List<Note>> getDailyNotes({NoteSort sort = NoteSort.updated}) async {
+  Future<List<Note>> getDailyNotes({
+    NoteSort sort = NoteSort.updated,
+    int? limit,
+    int? offset,
+  }) async {
     final db = await _db;
     final orderBy = switch (sort) {
       NoteSort.updated => 'updated_at DESC',
@@ -98,11 +137,17 @@ class NoteRepository {
       'notes',
       where: 'is_ghost = 0 AND is_daily = 1',
       orderBy: orderBy,
+      limit: limit,
+      offset: offset,
     );
     return maps.map(Note.fromMap).toList();
   }
 
-  Future<List<Note>> getUncategorizedNotes({NoteSort sort = NoteSort.updated}) async {
+  Future<List<Note>> getUncategorizedNotes({
+    NoteSort sort = NoteSort.updated,
+    int? limit,
+    int? offset,
+  }) async {
     final db = await _db;
     final orderBy = switch (sort) {
       NoteSort.updated => 'updated_at DESC',
@@ -113,6 +158,8 @@ class NoteRepository {
       'notes',
       where: 'is_ghost = 0 AND is_daily = 0 AND id NOT IN (SELECT note_id FROM note_folders)',
       orderBy: orderBy,
+      limit: limit,
+      offset: offset,
     );
     return maps.map(Note.fromMap).toList();
   }
@@ -156,21 +203,19 @@ class NoteRepository {
   }
 
   Future<List<Note>> searchNotes(String query) async {
-    // Strip FTS special control characters to avoid syntax error crashes
-    final sanitizedQuery = query.replaceAll(RegExp(r'[^\w\s\-]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (sanitizedQuery.isEmpty) return [];
+    final safeQuery = buildSafeFts5Query(query);
+    if (safeQuery.isEmpty) return [];
 
     final db = await _db;
-    // Use FTS4 for full-text search
     final maps = await db.rawQuery(
       '''
       SELECT n.* FROM notes n
       JOIN notes_fts f ON f.id = n.id
-      WHERE f.title MATCH ? AND n.is_ghost = 0
-      ORDER BY n.updated_at DESC
+      WHERE notes_fts MATCH ? AND n.is_ghost = 0
+      ORDER BY bm25(notes_fts)
       LIMIT 50
       ''',
-      ['$sanitizedQuery*'],
+      [safeQuery],
     );
     return maps.map(Note.fromMap).toList();
   }
@@ -190,11 +235,39 @@ class NoteRepository {
   }
 
   Future<List<Note>> getTitleSuggestions(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
+
     final db = await _db;
+    final safeQuery = buildSafeFts5Query(trimmed);
+    if (safeQuery.isNotEmpty) {
+      try {
+        final ftsTitleQuery = safeQuery
+            .split(' AND ')
+            .map((t) => 'title : $t')
+            .join(' AND ');
+        final maps = await db.rawQuery(
+          '''
+          SELECT n.* FROM notes n
+          JOIN notes_fts f ON f.id = n.id
+          WHERE notes_fts MATCH ? AND n.is_ghost = 0
+          ORDER BY bm25(notes_fts)
+          LIMIT 8
+          ''',
+          [ftsTitleQuery],
+        );
+        if (maps.isNotEmpty) {
+          return maps.map(Note.fromMap).toList();
+        }
+      } catch (_) {
+        // Fall back to indexed LIKE query if FTS prefix match encounters any error
+      }
+    }
+
     final maps = await db.query(
       'notes',
       where: 'title LIKE ? COLLATE NOCASE',
-      whereArgs: ['%$query%'],
+      whereArgs: ['%$trimmed%'],
       orderBy: 'updated_at DESC',
       limit: 8,
     );

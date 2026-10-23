@@ -195,4 +195,95 @@ void main() {
     // Close database connection
     await helper.closeDatabaseConnection(upgradedDb);
   });
+
+  test('Database migration from v7 to v8 creates notes_fts with body, covering indexes, and populates existing notes', () async {
+    final dbPath = p.join(tempDir.path, '.prism.db');
+
+    // 1. Initialize a Version 7 Database manually
+    final v7Db = await databaseFactory.openDatabase(
+      dbPath,
+      options: OpenDatabaseOptions(
+        version: 7,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS notes (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              file_path TEXT NOT NULL UNIQUE,
+              word_count INTEGER DEFAULT 0,
+              created_at INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL,
+              is_ghost INTEGER DEFAULT 0,
+              is_daily INTEGER DEFAULT 0,
+              daily_date TEXT,
+              is_conflicted INTEGER DEFAULT 0,
+              original_note_id TEXT,
+              snippet TEXT DEFAULT ''
+            )
+          ''');
+
+          await db.execute('''
+            CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+              id,
+              title,
+              tokenize = 'porter'
+            )
+          ''');
+
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS audio_bookmarks (
+              id TEXT PRIMARY KEY,
+              note_id TEXT NOT NULL,
+              attachment_path TEXT NOT NULL,
+              timestamp_ms INTEGER NOT NULL,
+              annotation_text TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
+            )
+          ''');
+        },
+      ),
+    );
+
+    // Insert note in v7 database
+    await v7Db.insert('notes', {
+      'id': 'note-v7-1',
+      'title': 'V7 Saved Note',
+      'file_path': 'note-v7-1.md',
+      'word_count': 25,
+      'created_at': 100000,
+      'updated_at': 200000,
+      'is_ghost': 0,
+      'is_daily': 0,
+      'is_conflicted': 0,
+      'snippet': 'Snippet of v7 note',
+    });
+
+    await v7Db.close();
+
+    // 2. Open via DatabaseHelper (which upgrades to v8)
+    final helper = DatabaseHelper.instance;
+    final upgradedDb = await helper.openDatabaseForPath(tempDir.path);
+
+    // 3. Verify notes_fts has body column and was populated from notes snippet
+    final ftsMatches = await upgradedDb.rawQuery(
+      'SELECT id, title, body FROM notes_fts WHERE notes_fts MATCH ?',
+      ['"Snippet"*'],
+    );
+    expect(ftsMatches, isNotEmpty);
+    expect(ftsMatches.first['id'], equals('note-v7-1'));
+
+    // 4. Verify v8 covering indexes exist
+    final indexList = await upgradedDb.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_notes_created_at', 'idx_notes_non_daily_updated', 'idx_audio_bookmarks_note_attachment')",
+    );
+    final indexNames = indexList.map((row) => row['name'] as String).toSet();
+    expect(indexNames, containsAll([
+      'idx_notes_created_at',
+      'idx_notes_non_daily_updated',
+      'idx_audio_bookmarks_note_attachment',
+    ]));
+
+    await helper.closeDatabaseConnection(upgradedDb);
+  });
 }

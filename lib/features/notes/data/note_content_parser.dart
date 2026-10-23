@@ -1,5 +1,6 @@
 class NoteMetadata {
   final String title;
+  final String body;
   final int wordCount;
   final List<String> tags;
   final List<String> wikilinks;
@@ -8,6 +9,7 @@ class NoteMetadata {
 
   NoteMetadata({
     required this.title,
+    this.body = '',
     required this.wordCount,
     required this.tags,
     required this.wikilinks,

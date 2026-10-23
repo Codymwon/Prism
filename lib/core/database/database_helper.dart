@@ -10,7 +10,7 @@ import '../utils/utils.dart';
 
 class DatabaseHelper {
   static const _dbName = '.prism.db';
-  static const _dbVersion = 7; // Upgraded to v7 to add composite indexes
+  static const _dbVersion = 8; // Upgraded to v8: FTS5 body indexing, covering indexes, query optimizations
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -269,29 +269,17 @@ class DatabaseHelper {
       )
     ''');
 
-    // Full-text search virtual table (FTS5)
+    // Full-text search virtual table (FTS5) with note body
     await db.execute('''
       CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
-        id,
+        id UNINDEXED,
         title,
+        body,
         tokenize = 'porter'
       )
     ''');
 
-    // FTS triggers to keep the index in sync (ghost notes excluded)
-    await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes
-      WHEN new.is_ghost = 0 BEGIN
-        INSERT INTO notes_fts(id, title) VALUES (new.id, new.title);
-      END
-    ''');
-    await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
-        DELETE FROM notes_fts WHERE id = old.id;
-        INSERT OR IGNORE INTO notes_fts(id, title)
-          SELECT new.id, new.title WHERE new.is_ghost = 0;
-      END
-    ''');
+    // FTS delete trigger to keep the index clean when notes are removed
     await db.execute('''
       CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
         DELETE FROM notes_fts WHERE id = old.id;
@@ -382,6 +370,11 @@ class DatabaseHelper {
 
     // Version 4 Indexes
     await db.execute('CREATE INDEX IF NOT EXISTS idx_audio_bookmarks_note ON audio_bookmarks(note_id)');
+
+    // Version 8 Indexes
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_non_daily_updated ON notes(is_ghost, is_daily, updated_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_audio_bookmarks_note_attachment ON audio_bookmarks(note_id, attachment_path, timestamp_ms ASC)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -494,6 +487,54 @@ class DatabaseHelper {
     if (oldVersion < 7) {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_ghost_updated ON notes(is_ghost, updated_at DESC)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_ghost_daily ON notes(is_ghost, is_daily, daily_date)');
+    }
+
+    if (oldVersion < 8) {
+      // Drop old FTS triggers and table
+      await db.execute('DROP TRIGGER IF EXISTS notes_ai');
+      await db.execute('DROP TRIGGER IF EXISTS notes_au');
+      await db.execute('DROP TRIGGER IF EXISTS notes_ad');
+      await db.execute('DROP TABLE IF EXISTS notes_fts');
+
+      // Recreate FTS5 table with body
+      await db.execute('''
+        CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+          id UNINDEXED,
+          title,
+          body,
+          tokenize = 'porter'
+        )
+      ''');
+
+      // Populate FTS5 table with existing note data (body initialized from snippet)
+      await db.execute('''
+        INSERT INTO notes_fts(id, title, body)
+        SELECT id, title, COALESCE(snippet, '') FROM notes WHERE is_ghost = 0
+      ''');
+
+      // FTS delete trigger
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+          DELETE FROM notes_fts WHERE id = old.id;
+        END
+      ''');
+
+      // Add covering indexes for v8
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_non_daily_updated ON notes(is_ghost, is_daily, updated_at DESC)');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS audio_bookmarks (
+          id TEXT PRIMARY KEY,
+          note_id TEXT NOT NULL,
+          attachment_path TEXT NOT NULL,
+          timestamp_ms INTEGER NOT NULL,
+          annotation_text TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_audio_bookmarks_note_attachment ON audio_bookmarks(note_id, attachment_path, timestamp_ms ASC)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_title ON notes(title COLLATE NOCASE)');
     }
   }
 

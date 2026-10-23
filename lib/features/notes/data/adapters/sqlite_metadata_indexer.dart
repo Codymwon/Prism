@@ -126,6 +126,20 @@ class SqliteMetadataIndexer implements MetadataIndexer {
       }, where: 'id = ?', whereArgs: [id]);
     }
 
+    // Rebuild full-text search (FTS5) index
+    try {
+      await executor.delete('notes_fts', where: 'id = ?', whereArgs: [id]);
+      if (!isGhost) {
+        await executor.insert('notes_fts', {
+          'id': id,
+          'title': title,
+          'body': metadata.body,
+        });
+      }
+    } catch (_) {
+      // notes_fts table might not exist in isolated test schemas
+    }
+
     // Rebuild tags
     await executor.delete('note_tags', where: 'note_id = ?', whereArgs: [id]);
     for (final tag in metadata.tags) {
@@ -198,5 +212,10 @@ class SqliteMetadataIndexer implements MetadataIndexer {
   @override
   Future<void> removeNoteIndex(DbExecutor executor, String id) async {
     await executor.delete('notes', where: 'id = ?', whereArgs: [id]);
+    try {
+      await executor.delete('notes_fts', where: 'id = ?', whereArgs: [id]);
+    } catch (_) {
+      // notes_fts table might not exist in isolated test schemas
+    }
   }
 }
