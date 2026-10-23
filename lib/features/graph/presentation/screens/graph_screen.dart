@@ -226,6 +226,15 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   Float64List? _flatVelocities;
   Float64List? _flatForces;
 
+  // Spatial hash grid structures for O(N) Coulomb repulsion
+  static const double _spatialCellSize = 500.0;
+  final List<int> _spatialActiveCellKeys = [];
+  final Map<int, List<int>> _spatialGridBuckets = {};
+
+  static int _packCell(int cx, int cy) => ((cx & 0xFFFF) << 16) | (cy & 0xFFFF);
+  static int _unpackCx(int key) => (key >> 16).toSigned(16);
+  static int _unpackCy(int key) => key.toSigned(16);
+
   // Cache to store pre-built static subtrees of node widgets
   final Map<String, Widget> _nodeContentCache = {};
 
@@ -309,6 +318,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   @visibleForTesting
   void setNodePositionForTesting(String id, Offset offset) {
     _positions[id] = offset;
+    _velocities[id] = Offset.zero;
     _repaintNotifier.notify();
   }
 
@@ -540,44 +550,105 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
     // 1. Initialize forces to zero
     _flatForces!.fillRange(0, 2 * n, 0.0);
 
-    // 2. Coulomb Repulsion: push all nodes apart (n^2 complexity but fast for small sets)
+    // 2. Coulomb Repulsion via O(N) Spatial Hash Grid (500.0 cutoff radius)
     final double repulsionRateVal = widget.repulsionRate;
+
+    // Clear previous tick's grid buckets (reuses internal List arrays)
+    for (int k = 0; k < _spatialActiveCellKeys.length; k++) {
+      _spatialGridBuckets[_spatialActiveCellKeys[k]]?.clear();
+    }
+    _spatialActiveCellKeys.clear();
+
+    // Insert all active nodes into spatial cells
     for (int i = 0; i < n; i++) {
-      final idA = widget.nodes[i].id;
-      final double opacityA = _isReplaying ? (_nodeOpacities[idA] ?? 0.0) : 1.0;
-      if (opacityA <= 0.0) continue; // Inactive node feels/exerts no repulsion
+      final id = widget.nodes[i].id;
+      final double opacity = _isReplaying ? (_nodeOpacities[id] ?? 0.0) : 1.0;
+      if (opacity <= 0.0) continue; // Inactive node feels/exerts no repulsion
 
-      final double pxA = _flatPositions![2 * i];
-      final double pyA = _flatPositions![2 * i + 1];
-      for (int j = i + 1; j < n; j++) {
-        final idB = widget.nodes[j].id;
-        final double opacityB = _isReplaying ? (_nodeOpacities[idB] ?? 0.0) : 1.0;
-        if (opacityB <= 0.0) continue;
+      final double px = _flatPositions![2 * i];
+      final double py = _flatPositions![2 * i + 1];
+      final int cx = (px / _spatialCellSize).floor();
+      final int cy = (py / _spatialCellSize).floor();
+      final int cellKey = _packCell(cx, cy);
 
-        final double pxB = _flatPositions![2 * j];
-        final double pyB = _flatPositions![2 * j + 1];
+      var bucket = _spatialGridBuckets[cellKey];
+      if (bucket == null) {
+        bucket = <int>[];
+        _spatialGridBuckets[cellKey] = bucket;
+      }
+      if (bucket.isEmpty) {
+        _spatialActiveCellKeys.add(cellKey);
+      }
+      bucket.add(i);
+    }
 
-        double dx = pxA - pxB;
-        double dy = pyA - pyB;
-        double distSq = dx * dx + dy * dy;
-        if (distSq == 0.0) {
-          final angle = _rand.nextDouble() * 2 * pi;
-          dx = cos(angle) * 0.1;
-          dy = sin(angle) * 0.1;
-          distSq = 0.01;
+    void applyRepulsion(int i, int j, double pxA, double pyA) {
+      final double pxB = _flatPositions![2 * j];
+      final double pyB = _flatPositions![2 * j + 1];
+
+      double dx = pxA - pxB;
+      double dy = pyA - pyB;
+      double distSq = dx * dx + dy * dy;
+      if (distSq == 0.0) {
+        final angle = _rand.nextDouble() * 2 * pi;
+        dx = cos(angle) * 0.1;
+        dy = sin(angle) * 0.1;
+        distSq = 0.01;
+      }
+      final double distance = sqrt(distSq);
+
+      if (distance < 500.0) { // Repelling cutoff range
+        // Coulomb Force = (ChargeStrength) / dist^2
+        final double forceMagnitude = (repulsionRateVal * 12000.0) / (distSq + 0.1);
+        final double fX = (dx / distance) * forceMagnitude;
+        final double fY = (dy / distance) * forceMagnitude;
+
+        _flatForces![2 * i] += fX;
+        _flatForces![2 * i + 1] += fY;
+        _flatForces![2 * j] -= fX;
+        _flatForces![2 * j + 1] -= fY;
+      }
+    }
+
+    // Forward neighbor offsets: evaluates each adjacent cell pair exactly once
+    const neighborDx = [1, -1, 0, 1];
+    const neighborDy = [0, 1, 1, 1];
+
+    for (int c = 0; c < _spatialActiveCellKeys.length; c++) {
+      final int cellKey = _spatialActiveCellKeys[c];
+      final int cx = _unpackCx(cellKey);
+      final int cy = _unpackCy(cellKey);
+      final bucket = _spatialGridBuckets[cellKey]!;
+      final int bucketLen = bucket.length;
+
+      // Intra-cell pairs (j > i)
+      for (int a = 0; a < bucketLen; a++) {
+        final int i = bucket[a];
+        final double pxA = _flatPositions![2 * i];
+        final double pyA = _flatPositions![2 * i + 1];
+
+        for (int b = a + 1; b < bucketLen; b++) {
+          final int j = bucket[b];
+          applyRepulsion(i, j, pxA, pyA);
         }
-        final double distance = sqrt(distSq);
+      }
 
-        if (distance < 500.0) { // Repelling cutoff range
-          // Coulomb Force = (ChargeStrength) / dist^2
-          final double forceMagnitude = (repulsionRateVal * 12000.0) / (distSq + 0.1);
-          final double fX = (dx / distance) * forceMagnitude;
-          final double fY = (dy / distance) * forceMagnitude;
+      // Inter-cell pairs against the 4 forward neighbors
+      for (int k = 0; k < 4; k++) {
+        final int nKey = _packCell(cx + neighborDx[k], cy + neighborDy[k]);
+        final nBucket = _spatialGridBuckets[nKey];
+        if (nBucket == null || nBucket.isEmpty) continue;
+        final int nBucketLen = nBucket.length;
 
-          _flatForces![2 * i] += fX;
-          _flatForces![2 * i + 1] += fY;
-          _flatForces![2 * j] -= fX;
-          _flatForces![2 * j + 1] -= fY;
+        for (int a = 0; a < bucketLen; a++) {
+          final int i = bucket[a];
+          final double pxA = _flatPositions![2 * i];
+          final double pyA = _flatPositions![2 * i + 1];
+
+          for (int b = 0; b < nBucketLen; b++) {
+            final int j = nBucket[b];
+            applyRepulsion(i, j, pxA, pyA);
+          }
         }
       }
     }
@@ -840,7 +911,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                       ghostNodeIds: widget.nodes.where((n) => n.isGhost).map((n) => n.id).toSet(),
                       nodeOpacities: _nodeOpacities,
                       isReplaying: _isReplaying,
-                      repaint: _repaintNotifier,
+                      transformationController: widget.transformationController,
+                      viewportSize: Size(_canvasViewWidth, _canvasViewHeight),
+                      repaint: Listenable.merge([_repaintNotifier, widget.transformationController]),
                     ),
                   ),
                 ),
@@ -851,7 +924,9 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                     delegate: GraphFlowDelegate(
                       positions: _positions,
                       nodes: widget.nodes,
-                      repaint: _repaintNotifier,
+                      transformationController: widget.transformationController,
+                      viewportSize: Size(_canvasViewWidth, _canvasViewHeight),
+                      repaint: Listenable.merge([_repaintNotifier, widget.transformationController]),
                     ),
                     children: widget.nodes.map((gn) {
                       return GestureDetector(
@@ -871,6 +946,7 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
                         },
                         onPanEnd: (details) {
                           _draggedNodeId = null;
+                          _wakeSimulation();
                           if (!mounted) return;
                           final finalPos = _positions[gn.id];
                           if (finalPos != null && !gn.isGhost && !gn.isTemporal) {
@@ -920,6 +996,28 @@ class GraphSimulationCanvasState extends ConsumerState<GraphSimulationCanvas> wi
   }
 }
 
+// ─── Viewport frustum culling helper ─────────────────────────────────────────
+Rect getGraphVisibleWorldRect(Matrix4 transform, Size viewportSize, {double margin = 150.0}) {
+  if (viewportSize.isEmpty) {
+    return const Rect.fromLTRB(-1000.0, -1000.0, 6000.0, 6000.0);
+  }
+  final inverse = Matrix4.tryInvert(transform);
+  if (inverse == null) {
+    return const Rect.fromLTRB(-1000.0, -1000.0, 6000.0, 6000.0);
+  }
+  final p0 = MatrixUtils.transformPoint(inverse, Offset.zero);
+  final p1 = MatrixUtils.transformPoint(inverse, Offset(viewportSize.width, 0));
+  final p2 = MatrixUtils.transformPoint(inverse, Offset(0, viewportSize.height));
+  final p3 = MatrixUtils.transformPoint(inverse, Offset(viewportSize.width, viewportSize.height));
+
+  final minX = min(min(p0.dx, p1.dx), min(p2.dx, p3.dx)) - margin;
+  final maxX = max(max(p0.dx, p1.dx), max(p2.dx, p3.dx)) + margin;
+  final minY = min(min(p0.dy, p1.dy), min(p2.dy, p3.dy)) - margin;
+  final maxY = max(max(p0.dy, p1.dy), max(p2.dy, p3.dy)) + margin;
+
+  return Rect.fromLTRB(minX, minY, maxX, maxY);
+}
+
 // ─── Custom Repaint Notifier class ──────────────────────────────────────────
 class _RepaintNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
@@ -929,12 +1027,15 @@ class _RepaintNotifier extends ChangeNotifier {
 class GraphFlowDelegate extends FlowDelegate {
   final Map<String, Offset> positions;
   final List<GraphNode> nodes;
-  final Listenable repaint;
+  final TransformationController? transformationController;
+  final Size? viewportSize;
 
   GraphFlowDelegate({
     required this.positions,
     required this.nodes,
-    required this.repaint,
+    this.transformationController,
+    this.viewportSize,
+    required Listenable repaint,
   }) : super(repaint: repaint);
 
   @override
@@ -944,10 +1045,19 @@ class GraphFlowDelegate extends FlowDelegate {
 
   @override
   void paintChildren(FlowPaintingContext context) {
+    final visibleRect = (transformationController != null && viewportSize != null)
+        ? getGraphVisibleWorldRect(transformationController!.value, viewportSize!)
+        : const Rect.fromLTRB(-1000.0, -1000.0, 6000.0, 6000.0);
+
     for (int i = 0; i < nodes.length; i++) {
       final node = nodes[i];
       final pos = positions[node.id];
       if (pos != null && pos.dx.isFinite && pos.dy.isFinite) {
+        // Frustum culling: skip painting node if outside camera frustum
+        if (!visibleRect.contains(pos)) {
+          continue;
+        }
+
         final double dotSize;
         if (node.isTemporal) {
           dotSize = node.temporalType == 'year' ? 20.0 : 10.0;
@@ -968,7 +1078,10 @@ class GraphFlowDelegate extends FlowDelegate {
 
   @override
   bool shouldRepaint(covariant GraphFlowDelegate oldDelegate) {
-    return oldDelegate.positions != positions || oldDelegate.nodes != nodes;
+    return oldDelegate.positions != positions ||
+           oldDelegate.nodes != nodes ||
+           oldDelegate.transformationController != transformationController ||
+           oldDelegate.viewportSize != viewportSize;
   }
 
   @override
@@ -985,6 +1098,8 @@ class GraphLinksPainter extends CustomPainter {
   final Set<String> ghostNodeIds;
   final Map<String, double> nodeOpacities;
   final bool isReplaying;
+  final TransformationController? transformationController;
+  final Size? viewportSize;
 
   GraphLinksPainter({
     required this.positions,
@@ -993,17 +1108,28 @@ class GraphLinksPainter extends CustomPainter {
     required this.ghostNodeIds,
     required this.nodeOpacities,
     required this.isReplaying,
+    this.transformationController,
+    this.viewportSize,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
+    final visibleRect = (transformationController != null && viewportSize != null)
+        ? getGraphVisibleWorldRect(transformationController!.value, viewportSize!)
+        : const Rect.fromLTRB(-1000.0, -1000.0, 6000.0, 6000.0);
+
     for (final edge in edges) {
       final src = positions[edge.sourceId];
       final tgt = positions[edge.targetId];
       if (src != null && src.dx.isFinite && src.dy.isFinite &&
           tgt != null && tgt.dx.isFinite && tgt.dy.isFinite) {
         
+        // Frustum culling: skip edge if both endpoints lie outside visible bounding box
+        if (!visibleRect.contains(src) && !visibleRect.contains(tgt)) {
+          continue;
+        }
+
         double edgeOpacity = 1.0;
         if (isReplaying) {
           final opacityA = nodeOpacities[edge.sourceId] ?? 0.0;
@@ -1040,6 +1166,8 @@ class GraphLinksPainter extends CustomPainter {
            oldDelegate.color != color ||
            oldDelegate.ghostNodeIds != ghostNodeIds ||
            oldDelegate.nodeOpacities != nodeOpacities ||
-           oldDelegate.isReplaying != isReplaying;
+           oldDelegate.isReplaying != isReplaying ||
+           oldDelegate.transformationController != transformationController ||
+           oldDelegate.viewportSize != viewportSize;
   }
 }
