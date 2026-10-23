@@ -229,7 +229,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+          graphAutoFitPerformedProvider.overrideWith(() => GraphAutoFitPerformed(true)),
         ],
         child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -306,7 +306,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+          graphAutoFitPerformedProvider.overrideWith(() => GraphAutoFitPerformed(true)),
         ],
         child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -431,7 +431,7 @@ void main() {
       ProviderScope(
         overrides: [
           graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
-          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+          graphAutoFitPerformedProvider.overrideWith(() => GraphAutoFitPerformed(true)),
         ],
         child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -482,7 +482,7 @@ void main() {
       ProviderScope(
         overrides: [
           graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
-          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+          graphAutoFitPerformedProvider.overrideWith(() => GraphAutoFitPerformed(true)),
         ],
         child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -517,7 +517,7 @@ void main() {
       ProviderScope(
         overrides: [
           graphDataProvider.overrideWith((ref) => (nodes: nodes, edges: edges)),
-          graphAutoFitPerformedProvider.overrideWith((ref) => true),
+          graphAutoFitPerformedProvider.overrideWith(() => GraphAutoFitPerformed(true)),
         ],
         child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

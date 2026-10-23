@@ -1,9 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_repository.dart';
 import 'settings_provider.dart';
 
-final startupActionsEvaluatedProvider = StateProvider<bool>((ref) => false);
+part 'startup_actions.g.dart';
+
+@Riverpod(keepAlive: true)
+class StartupActionsEvaluated extends _$StartupActionsEvaluated {
+  @override
+  bool build() => false;
+
+  @override
+  bool get state => super.state;
+
+  @override
+  set state(bool value) => super.state = value;
+}
 
 Future<String?> checkAndRunStartupActions(T Function<T>(ProviderListenable<T>) read) async {
   final evaluated = read(startupActionsEvaluatedProvider);

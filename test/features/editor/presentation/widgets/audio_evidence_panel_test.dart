@@ -95,7 +95,7 @@ void main() {
       overrides: [
         audioPlayerServiceProvider.overrideWithValue(fakePlayerService),
         audioPlayerStateProvider.overrideWith(
-          (ref) => AudioPlayerNotifier.withService(fakePlayerService),
+          () => AudioPlayerNotifier.withService(fakePlayerService),
         ),
       ],
       child: MaterialApp(

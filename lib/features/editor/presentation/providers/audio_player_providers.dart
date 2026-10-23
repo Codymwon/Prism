@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/audio_player_service.dart';
 import '../../data/audio_player_service_impl.dart';
 
-
+part 'audio_player_providers.g.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -52,37 +52,82 @@ class AudioPlayerState {
 
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
-class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
-  final AudioPlayerService _service;
+@riverpod
+class AudioPlayerNotifier extends _$AudioPlayerNotifier {
+  final AudioPlayerService? _customService;
   StreamSubscription? _durationSub;
   StreamSubscription? _positionSub;
   StreamSubscription? _stateSub;
+  AudioPlayerState _unmanagedState = const AudioPlayerState();
+  bool _isDisposed = false;
 
-  /// Default constructor used by the Riverpod provider — injects the
-  /// concrete [AudioPlayerService] from the provider tree.
-  AudioPlayerNotifier(AudioPlayerService service)
-      : _service = service,
-        super(const AudioPlayerState()) {
-    _initListeners();
+  AudioPlayerNotifier([AudioPlayerService? service]) : _customService = service;
+
+  AudioPlayerNotifier.withService(AudioPlayerService service) : _customService = service {
+    _initListeners(service);
   }
 
-  /// Named constructor for unit tests — accepts any [AudioPlayerService] directly.
-  AudioPlayerNotifier.withService(AudioPlayerService service)
-      : _service = service,
-        super(const AudioPlayerState()) {
-    _initListeners();
+  bool get _isManaged {
+    try {
+      // ignore: unnecessary_null_comparison
+      return ref != null;
+    } catch (_) {
+      return false;
+    }
   }
 
-  void _initListeners() {
-    _durationSub = _service.onDurationChanged.listen((d) {
+  @override
+  AudioPlayerState get state {
+    if (!_isManaged) return _unmanagedState;
+    return super.state;
+  }
+
+  @override
+  set state(AudioPlayerState value) {
+    if (!_isManaged) {
+      _unmanagedState = value;
+      return;
+    }
+    super.state = value;
+  }
+
+  bool get mounted => !_isDisposed;
+
+  @override
+  AudioPlayerState build() {
+    _isDisposed = false;
+    final service = _customService ?? ref.watch(audioPlayerServiceProvider);
+    _initListeners(service);
+    ref.onDispose(() {
+      _isDisposed = true;
+      _durationSub?.cancel();
+      _positionSub?.cancel();
+      _stateSub?.cancel();
+    });
+    return const AudioPlayerState();
+  }
+
+  void _initListeners(AudioPlayerService? service) {
+    _durationSub?.cancel();
+    _positionSub?.cancel();
+    _stateSub?.cancel();
+    if (service == null) return;
+
+    _durationSub = service.onDurationChanged.listen((d) {
       if (mounted) state = state.copyWith(duration: d);
     });
-    _positionSub = _service.onPositionChanged.listen((p) {
+    _positionSub = service.onPositionChanged.listen((p) {
       if (mounted) state = state.copyWith(position: p);
     });
-    _stateSub = _service.onIsPlayingChanged.listen((playing) {
+    _stateSub = service.onIsPlayingChanged.listen((playing) {
       if (mounted) state = state.copyWith(isPlaying: playing);
     });
+  }
+
+  AudioPlayerService get _service {
+    if (_customService != null) return _customService;
+    if (_isManaged) return ref.read(audioPlayerServiceProvider);
+    throw StateError('No AudioPlayerService available');
   }
 
   Future<void> play(String filePath, String fileName) async {
@@ -151,21 +196,13 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     if (mounted) state = const AudioPlayerState();
   }
 
-  @override
   void dispose() {
+    _isDisposed = true;
     _durationSub?.cancel();
     _positionSub?.cancel();
     _stateSub?.cancel();
-    // Note: _service.dispose() is NOT called here because the service
-    // lifecycle is managed by audioPlayerServiceProvider.  When used with
-    // AudioPlayerNotifier.withService() in tests the caller is responsible
-    // for disposing the fake service.
-    super.dispose();
   }
 }
 
-final audioPlayerStateProvider =
-    StateNotifierProvider<AudioPlayerNotifier, AudioPlayerState>((ref) {
-  final service = ref.watch(audioPlayerServiceProvider);
-  return AudioPlayerNotifier(service);
-});
+/// Backwards compatibility alias for the legacy provider name.
+final audioPlayerStateProvider = audioPlayerNotifierProvider;

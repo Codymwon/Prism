@@ -151,7 +151,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          selectedDayProvider.overrideWith((ref) => futureDate),
+          selectedDayProvider.overrideWith(() => SelectedDay(futureDate)),
           allDailyDatesProvider.overrideWith((ref) => <String>{}),
           journalStreakProvider.overrideWith((ref) => (streak: 2, totalCount: 2)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
@@ -199,7 +199,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          selectedDayProvider.overrideWith((ref) => yesterday),
+          selectedDayProvider.overrideWith(() => SelectedDay(yesterday)),
           allDailyDatesProvider.overrideWith((ref) => <String>{}),
           journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
@@ -230,7 +230,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          selectedDayProvider.overrideWith((ref) => tomorrow),
+          selectedDayProvider.overrideWith(() => SelectedDay(tomorrow)),
           allDailyDatesProvider.overrideWith((ref) => <String>{}),
           journalStreakProvider.overrideWith((ref) => (streak: 0, totalCount: 0)),
           dailyNoteProvider.overrideWith((ref, dateStr) => null),
@@ -271,7 +271,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          selectedDayProvider.overrideWith((ref) => yesterday),
+          selectedDayProvider.overrideWith(() => SelectedDay(yesterday)),
           allDailyDatesProvider.overrideWith((ref) => <String>{formatDailyDate(yesterday)}),
           journalStreakProvider.overrideWith((ref) => (streak: 1, totalCount: 1)),
           dailyNoteProvider.overrideWith((ref, dateStr) => (note: dummyNote, content: '# reflection\nsome content')),

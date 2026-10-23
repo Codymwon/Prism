@@ -16,8 +16,7 @@ import '../widgets/journal_templates_row.dart';
 import '../widgets/journal_empty_state.dart';
 import 'package:prism/l10n/l10n.dart';
 
-final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
-final focusedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
+export '../providers/journal_providers.dart' show selectedDayProvider, focusedDayProvider;
 
 class JournalScreen extends ConsumerStatefulWidget {
   const JournalScreen({super.key});

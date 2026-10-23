@@ -8,14 +8,14 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 
 class JournalCalendar extends ConsumerWidget {
   final DateTime selectedDay;
-  final StateProvider<DateTime> selectedDayProvider;
-  final StateProvider<DateTime> focusedDayProvider;
+  final dynamic selectedDayProvider;
+  final dynamic focusedDayProvider;
 
   const JournalCalendar({
     super.key,
     required this.selectedDay,
-    required this.selectedDayProvider,
-    required this.focusedDayProvider,
+    this.selectedDayProvider,
+    this.focusedDayProvider,
   });
 
   @override

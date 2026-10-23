@@ -1,9 +1,45 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/database/database_providers.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../notes/data/note_model.dart';
 import '../../../notes/data/note_repository.dart';
 import '../../data/journal_repository.dart';
+
+part 'journal_providers.g.dart';
+
+@riverpod
+class SelectedDay extends _$SelectedDay {
+  final DateTime? _initialDate;
+  SelectedDay([this._initialDate]);
+
+  @override
+  DateTime build() => _initialDate ?? DateTime.now();
+
+  void setDate(DateTime date) => state = date;
+
+  @override
+  DateTime get state => super.state;
+
+  @override
+  set state(DateTime value) => super.state = value;
+}
+
+@riverpod
+class FocusedDay extends _$FocusedDay {
+  final DateTime? _initialDate;
+  FocusedDay([this._initialDate]);
+
+  @override
+  DateTime build() => _initialDate ?? DateTime.now();
+
+  void setDate(DateTime date) => state = date;
+
+  @override
+  DateTime get state => super.state;
+
+  @override
+  set state(DateTime value) => super.state = value;
+}
 
 final allDailyDatesProvider = FutureProvider.autoDispose<Set<String>>((ref) async {
   await ref.watch(databaseProvider.future);

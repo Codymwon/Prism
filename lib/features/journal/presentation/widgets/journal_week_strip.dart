@@ -5,7 +5,6 @@ import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/widgets/tactile_wrapper.dart';
 import '../../../../core/utils/utils.dart';
 import '../providers/journal_providers.dart';
-import '../screens/journal_screen.dart';
 
 class JournalWeekStrip extends ConsumerWidget {
   const JournalWeekStrip({super.key});
