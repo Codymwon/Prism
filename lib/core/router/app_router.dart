@@ -68,35 +68,51 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      ShellRoute(
-        builder: (context, state, child) => AppShell(
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AppShell(
           currentPath: state.uri.path,
-          child: child,
+          navigationShell: navigationShell,
         ),
-        routes: [
-          GoRoute(
-            path: '/notes',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: NotesListScreen(),
-            ),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/notes',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: NotesListScreen(),
+                ),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/journal',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: JournalScreen(),
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/journal',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: JournalScreen(),
+                ),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/graph',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: GraphScreen(),
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/graph',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: GraphScreen(),
+                ),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/settings',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SettingsScreen(),
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: SettingsScreen(),
+                ),
+              ),
+            ],
           ),
         ],
       ),

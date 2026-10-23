@@ -23,19 +23,25 @@ import 'dynamic_island_state.dart';
 import 'workspace_selector_deck.dart';
 import 'tag_cloud_deck.dart';
 import 'create_folder_deck.dart';
-import '../../core/services/vault_service.dart';
 
 
 
 class AppShell extends ConsumerStatefulWidget {
-  final Widget child;
+  final Widget? child;
+  final StatefulNavigationShell? navigationShell;
   final String currentPath;
 
-  const AppShell({super.key, required this.child, required this.currentPath});
+  const AppShell({
+    super.key,
+    this.child,
+    this.navigationShell,
+    required this.currentPath,
+  });
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
 }
+
 
 class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMixin {
   static const _kSpringBloomCurve = Cubic(0.34, 1.56, 0.64, 1.0);
@@ -153,7 +159,19 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
       curve: const Interval(0.2, 0.9, curve: Curves.easeOutBack),
       reverseCurve: Curves.easeInCubic,
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!ref.read(tutorialStateProvider) && _currentIndex != 0) {
+        if (widget.navigationShell != null) {
+          widget.navigationShell!.goBranch(0);
+        } else {
+          context.go('/notes');
+        }
+      }
+    });
   }
+
 
   @override
   void didChangeDependencies() {
@@ -199,6 +217,9 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
   }
 
   int get _currentIndex {
+    if (widget.navigationShell != null) {
+      return widget.navigationShell!.currentIndex;
+    }
     final path = widget.currentPath;
     final index = _tabs.indexWhere((tab) => path.startsWith(tab.path));
     return index == -1 ? 0 : index;
@@ -228,9 +249,17 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
 
   void _onTabTap(int index) {
     ref.read(dynamicIslandControllerProvider.notifier).dismiss();
+    if (widget.navigationShell != null) {
+      widget.navigationShell!.goBranch(
+        index,
+        initialLocation: index == widget.navigationShell!.currentIndex,
+      );
+      return;
+    }
     if (index == _currentIndex) return;
     context.go(_tabs[index].path);
   }
+
 
   Widget _buildUpperShelf(
     BuildContext context,
@@ -862,33 +891,64 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
 
   // ─── Mobile scaffold (original, untouched) ─────────────────────────────────
   Widget _buildMobileScaffold(BuildContext context, ColorScheme colorScheme) {
+    final islandState = ref.watch(dynamicIslandControllerProvider);
+    final toastData = islandState is DynamicIslandToast ? islandState.toast : null;
+    final menuData = islandState is DynamicIslandMenu ? islandState.menu : null;
+    final qcData = islandState is DynamicIslandQuickCapture ? islandState.qcState : const QuickCaptureState();
+    final isVaultHubOpen = islandState is DynamicIslandVaultHub;
+    final isRecording = qcData.mode == QuickCaptureMode.recording;
+    final targetQcHeight = isRecording ? 104.0 : 116.0;
+
+    double targetHubDeckHeight = 128.0;
+    if (islandState is DynamicIslandVaultHub) {
+      switch (islandState.subDeck) {
+        case VaultHubSubDeck.workspaceSelector:
+          targetHubDeckHeight = 200.0;
+          break;
+        case VaultHubSubDeck.tags:
+          targetHubDeckHeight = 200.0;
+          break;
+        case VaultHubSubDeck.createFolder:
+          targetHubDeckHeight = 210.0;
+          break;
+        case VaultHubSubDeck.tools:
+          targetHubDeckHeight = 128.0;
+          break;
+      }
+    }
+
     return Scaffold(
       extendBody: true,
       body: Stack(
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            switchInCurve: Curves.easeInOutCubic,
-            switchOutCurve: Curves.easeInOutCubic,
-            layoutBuilder: (currentChild, previousChildren) =>
-                currentChild ?? const SizedBox.shrink(),
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.0, 0.015),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              );
-            },
-            child: Container(
-              key: ValueKey(_currentIndex),
-              child: widget.child,
-            ),
-          ),
+          if (widget.navigationShell != null)
+            widget.navigationShell!
+          else if (widget.child != null)
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeInOutCubic,
+              switchOutCurve: Curves.easeInOutCubic,
+              layoutBuilder: (currentChild, previousChildren) =>
+                  currentChild ?? const SizedBox.shrink(),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.0, 0.015),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                key: ValueKey(_currentIndex),
+                child: widget.child!,
+              ),
+            )
+          else
+            const SizedBox.shrink(),
           AnimatedBuilder(
             animation: Listenable.merge(
                 [_menuExpansionController, _quickCaptureController, _vaultHubController]),
@@ -941,35 +1001,12 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
                   final qcExp = qcExpansion.clamp(0.0, 1.0);
                   final vaultHubExp = vaultHubExpansion.clamp(0.0, 1.0);
 
-                  final qcData = ref.watch(quickCaptureNotifierProvider);
-                  final isRecording =
-                      qcData.mode == QuickCaptureMode.recording;
-                  final targetQcHeight = isRecording ? 104.0 : 116.0;
-
                   final toastHeight =
                       48.0 * (toastExpansion < 0.0 ? 0.0 : toastExpansion);
                   final menuHeight =
                       116.0 * (menuExpansion < 0.0 ? 0.0 : menuExpansion);
                   final qcHeight =
                       targetQcHeight * (qcExpansion < 0.0 ? 0.0 : qcExpansion);
-                  final islandState = ref.watch(dynamicIslandControllerProvider);
-                  double targetHubDeckHeight = 128.0;
-                  if (islandState is DynamicIslandVaultHub) {
-                    switch (islandState.subDeck) {
-                      case VaultHubSubDeck.workspaceSelector:
-                        targetHubDeckHeight = 200.0;
-                        break;
-                      case VaultHubSubDeck.tags:
-                        targetHubDeckHeight = 200.0;
-                        break;
-                      case VaultHubSubDeck.createFolder:
-                        targetHubDeckHeight = 210.0;
-                        break;
-                      case VaultHubSubDeck.tools:
-                        targetHubDeckHeight = 128.0;
-                        break;
-                    }
-                  }
                   final vaultHubHeight =
                       targetHubDeckHeight * (vaultHubExpansion < 0.0 ? 0.0 : vaultHubExpansion);
                   final currentHeight =
@@ -985,14 +1022,12 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
                       (28.0 - (4.0 * activeExpansion)).clamp(20.0, 28.0);
                   final isDark =
                       Theme.of(context).brightness == Brightness.dark;
-                  final toastData = ref.watch(islandToastNotifierProvider);
-                  final menuData = ref.watch(islandMenuNotifierProvider);
-                  final isVaultHubOpen = ref.watch(vaultHubNotifierProvider);
 
                   final isSettings = _currentIndex == 3;
 
                   // FAB dimensions and transitions
                   final dockExp = [menuExp, vaultHubExp, qcExp].reduce(math.max);
+
                   final fabWidth = isSettings ? 0.0 : 56.0;
 
                   // Universal Fusion: All 3 active decks (Menu, Vault Hub, Quick Capture) expand
@@ -1335,9 +1370,18 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
       }
     });
 
-    ref.watch(dynamicIslandControllerProvider);
-    ref.watch(availableVaultsProvider);
+    ref.listen<bool>(tutorialStateProvider, (previous, next) {
+      if (!next && _currentIndex != 0) {
+        if (widget.navigationShell != null) {
+          widget.navigationShell!.goBranch(0);
+        } else {
+          context.go('/notes');
+        }
+      }
+    });
+
     final colorScheme = Theme.of(context).colorScheme;
+
     final hasCompletedTutorial = ref.watch(tutorialStateProvider);
     final hasCompletedJournalTutorial = ref.watch(journalTutorialStateProvider);
 
@@ -1425,14 +1469,8 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
       return mainScaffold;
     }
 
-    // Force index back to 0 (Notes page) so that elements are exactly where spotlight expects them to be!
-    if (_currentIndex != 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.go('/notes');
-      });
-    }
-
     final tutorialSteps = [
+
       TutorialStep(
         title: context.l10n.shared_app_shell_tutorial_notes_nav_title,
         description: context.l10n.shared_app_shell_tutorial_notes_nav_desc,

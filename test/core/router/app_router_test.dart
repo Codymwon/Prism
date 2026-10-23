@@ -114,3 +114,4 @@ void main() {
     expect(find.byType(EditFolderScreen), findsOneWidget);
   });
 }
+
