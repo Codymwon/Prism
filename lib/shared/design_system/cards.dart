@@ -31,6 +31,7 @@ class DesignNoteCard extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = backgroundColor ?? DesignColors.surface(context);
     final border = DesignColors.border(context);
+    final tags = ref.watch(allNoteTagsMapProvider.select((asyncMap) => asyncMap.valueOrNull?[note.id] ?? const <String>[]));
 
     return TactileWrapper(
       onTap: onTap,
@@ -111,63 +112,46 @@ class DesignNoteCard extends ConsumerWidget {
                 ],
               ),
 
-              // Rich note details from Riverpod (Snippet & Tags)
-              ...ref.watch(noteDetailsProvider(note.id)).maybeWhen(
-                data: (details) => [
-                  if (details.snippet.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      details.snippet,
-                      style: DesignTypography.body(
-                        context,
-                        fontSize: 12,
-                        color: DesignColors.textSecondary(context),
-                        height: 1.45,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (details.tags.isNotEmpty)
-                        Expanded(
-                          child: SingleChildScrollView(
-                            // PageStorageKey prevents key collision with the
-                            // parent ExpansionTile, which also writes to
-                            // PageStorage (as bool). Without this, the scroll
-                            // view reads the tile's bool as double? → crash.
-                            key: PageStorageKey<String>('tags_${note.id}'),
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            child: Row(
-                              children: details.tags.map((t) => _buildTagBadge(context, t)).toList(),
-                            ),
-                          ),
-                        )
-                      else
-                        const Spacer(),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_formatDate(note.updatedAt)}${note.wordCount > 0 ? " • ${note.wordCount} words" : ""}',
-                        style: DesignTypography.metadata(context),
-                      ),
-                    ],
+              // Rich note details (Snippet from Note & Tags from batched allNoteTagsMapProvider)
+              if (note.snippet.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  note.snippet,
+                  style: DesignTypography.body(
+                    context,
+                    fontSize: 12,
+                    color: DesignColors.textSecondary(context),
+                    height: 1.45,
                   ),
-                ],
-                orElse: () => [
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Spacer(),
-                      Text(
-                        '${_formatDate(note.updatedAt)}${note.wordCount > 0 ? " • ${note.wordCount} words" : ""}',
-                        style: DesignTypography.metadata(context),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (tags.isNotEmpty)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        // PageStorageKey prevents key collision with the
+                        // parent ExpansionTile, which also writes to
+                        // PageStorage (as bool). Without this, the scroll
+                        // view reads the tile's bool as double? → crash.
+                        key: PageStorageKey<String>('tags_${note.id}'),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: tags.map((t) => _buildTagBadge(context, t)).toList(),
+                        ),
                       ),
-                    ],
+                    )
+                  else
+                    const Spacer(),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_formatDate(note.updatedAt)}${note.wordCount > 0 ? " • ${note.wordCount} words" : ""}',
+                    style: DesignTypography.metadata(context),
                   ),
                 ],
               ),

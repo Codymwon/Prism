@@ -220,14 +220,18 @@ AsyncValue<HomeScreenData> homeScreenData(HomeScreenDataRef ref) {
 }
 
 @riverpod
-Future<({List<String> tags, String snippet})> noteDetails(NoteDetailsRef ref, String noteId) async {
+Future<Map<String, List<String>>> allNoteTagsMap(AllNoteTagsMapRef ref) async {
   await ref.watch(databaseProvider.future);
   ref.watch(notesVersionProvider);
   final repo = ref.watch(noteRepositoryProvider);
-  
+  return repo.batchGetTagsForAllNotes();
+}
+
+@riverpod
+Future<({List<String> tags, String snippet})> noteDetails(NoteDetailsRef ref, String noteId) async {
+  final tagsMap = await ref.watch(allNoteTagsMapProvider.future);
+  final tags = tagsMap[noteId] ?? const <String>[];
+  final repo = ref.watch(noteRepositoryProvider);
   final note = await repo.getNoteById(noteId);
-  final snippet = note?.snippet ?? '';
-  final tags = await repo.getTagsForNote(noteId);
-  
-  return (tags: tags, snippet: snippet);
+  return (tags: tags, snippet: note?.snippet ?? '');
 }

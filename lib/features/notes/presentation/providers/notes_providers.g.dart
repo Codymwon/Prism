@@ -490,7 +490,26 @@ final homeScreenDataProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HomeScreenDataRef = AutoDisposeProviderRef<AsyncValue<HomeScreenData>>;
-String _$noteDetailsHash() => r'e7c5f7193943d097eb030a1bd9beb9ec2bdadec2';
+String _$allNoteTagsMapHash() => r'638f6fa055e933781b222b0fc012e4aba05360dd';
+
+/// See also [allNoteTagsMap].
+@ProviderFor(allNoteTagsMap)
+final allNoteTagsMapProvider =
+    AutoDisposeFutureProvider<Map<String, List<String>>>.internal(
+      allNoteTagsMap,
+      name: r'allNoteTagsMapProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$allNoteTagsMapHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AllNoteTagsMapRef =
+    AutoDisposeFutureProviderRef<Map<String, List<String>>>;
+String _$noteDetailsHash() => r'001aa8ce6ed7f11a660e3dd9411d3d247cbeff29';
 
 /// See also [noteDetails].
 @ProviderFor(noteDetails)

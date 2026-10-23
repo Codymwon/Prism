@@ -31,6 +31,7 @@ void main() {
   }) {
     return ProviderScope(
       overrides: [
+        allNoteTagsMapProvider.overrideWith((ref) async => {}),
         noteDetailsProvider('note-1').overrideWith((ref) async {
           return (tags: <String>[], snippet: '');
         }),

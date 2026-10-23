@@ -37,6 +37,13 @@ void main() {
               snippet TEXT DEFAULT ''
             )
           ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS note_tags (
+              note_id TEXT NOT NULL,
+              tag TEXT NOT NULL,
+              PRIMARY KEY (note_id, tag)
+            )
+          ''');
         },
       ),
     );
@@ -388,5 +395,30 @@ void main() {
 
     // Verify it saved in SharedPreferences
     expect(prefs.getInt('note_sort_preference'), equals(NoteSort.created.index));
+  });
+
+  test('allNoteTagsMapProvider returns batched tags map for all notes and updates on version bump', () async {
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWith((ref) async => db),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // Insert tags for multiple notes
+    await db.insert('note_tags', {'note_id': 'note-batch-1', 'tag': 'dev'});
+    await db.insert('note_tags', {'note_id': 'note-batch-1', 'tag': 'flutter'});
+    await db.insert('note_tags', {'note_id': 'note-batch-2', 'tag': 'design'});
+
+    final tagsMap = await container.read(allNoteTagsMapProvider.future);
+    expect(tagsMap['note-batch-1'], containsAll(['dev', 'flutter']));
+    expect(tagsMap['note-batch-2'], containsAll(['design']));
+
+    // Insert another tag and invalidate via version bump
+    await db.insert('note_tags', {'note_id': 'note-batch-2', 'tag': 'ui'});
+    container.read(notesVersionProvider.notifier).state++;
+
+    final updatedTagsMap = await container.read(allNoteTagsMapProvider.future);
+    expect(updatedTagsMap['note-batch-2'], containsAll(['design', 'ui']));
   });
 }
