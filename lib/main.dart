@@ -16,6 +16,7 @@ import 'core/services/note_ingestion_service.dart';
 import 'features/onboarding/data/onboarding_provider.dart';
 import 'core/services/analytics_service.dart';
 import 'l10n/l10n.dart';
+import 'features/folders/data/virtual_folder_sync_helper.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -40,10 +41,13 @@ void main() async {
   AnalyticsService.initialize(prefs);
   final vaultType = prefs.getString('vaultType') ?? 'sandbox';
 
+  bool isFirebaseInitialized = false;
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    isFirebaseInitialized = true;
 
     // On a fresh install, analyticsEnabled is not yet set. We write false
     // immediately so Firebase initialises with collection DISABLED — no events
@@ -58,26 +62,45 @@ void main() async {
     final analyticsEnabled = prefs.getBool('analyticsEnabled') ?? false;
     await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(analyticsEnabled);
     await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(analyticsEnabled);
-
-    // Catch all unhandled library/framework errors
-    FlutterError.onError = (errorDetails) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    };
-
-    // Catch all unhandled platform/asynchronous errors
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
   } catch (e) {
     debugPrint('Firebase failed to initialize (expected in tests/mock setups): $e');
   }
 
+  // Catch all unhandled library/framework errors unconditionally
+  FlutterError.onError = (errorDetails) {
+    debugPrint('Global FlutterError: ${errorDetails.exceptionAsString()}');
+    AnalyticsService.logError(errorDetails.exception, errorDetails.stack, fatal: true);
+    if (isFirebaseInitialized) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    }
+  };
+
+  // Catch all unhandled platform/asynchronous errors unconditionally
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Global PlatformDispatcher error: $error');
+    AnalyticsService.logError(error, stack, fatal: true);
+    if (isFirebaseInitialized) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
+    return true;
+  };
+
+
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
+      noteSyncedCallbackProvider.overrideWithValue((noteId, filePath, txn) async {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        await VirtualFolderSyncHelper.handleNoteSync(
+          txn: txn,
+          noteId: noteId,
+          filePath: filePath,
+          nowMs: nowMs,
+        );
+      }),
     ],
   );
+
 
   if (AppConfig.enableExternalStorage && vaultType == 'custom') {
     // Check if we have Android Scoped Storage (All Files Access) permission

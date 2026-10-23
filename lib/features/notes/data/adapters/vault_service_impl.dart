@@ -7,7 +7,6 @@ import '../metadata_indexer.dart';
 import 'sqlite_metadata_indexer.dart';
 import '../vault_storage.dart';
 import '../note_model.dart';
-import '../../../folders/data/virtual_folder_sync_helper.dart';
 import '../../../../core/services/note_ingestion_service.dart';
 
 class NoteIngestionServiceImpl implements NoteIngestionService {
@@ -24,18 +23,9 @@ class NoteIngestionServiceImpl implements NoteIngestionService {
     required this.parser,
     required this.indexer,
     required this.getVaultPath,
-    this.onNoteSynced = _defaultOnNoteSynced,
+    this.onNoteSynced,
   });
 
-  static Future<void> _defaultOnNoteSynced(String noteId, String filePath, DatabaseExecutor txn) async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await VirtualFolderSyncHelper.handleNoteSync(
-      txn: txn,
-      noteId: noteId,
-      filePath: filePath,
-      nowMs: nowMs,
-    );
-  }
 
   @override
   Future<Note> createNote({

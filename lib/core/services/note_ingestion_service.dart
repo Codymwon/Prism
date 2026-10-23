@@ -7,7 +7,7 @@ import '../../features/notes/data/vault_storage.dart';
 import '../../features/notes/data/adapters/vault_service_impl.dart';
 import '../../features/notes/data/adapters/markdown_content_parser.dart';
 import '../../features/notes/data/adapters/sqlite_metadata_indexer.dart';
-import '../../features/folders/data/virtual_folder_sync_helper.dart';
+typedef NoteSyncedCallback = Future<void> Function(String noteId, String filePath, DatabaseExecutor txn);
 
 abstract class NoteIngestionService {
   Future<Note> createNote({
@@ -31,6 +31,9 @@ abstract class NoteIngestionService {
   Future<bool> syncVault(String vaultPath, {Database? db, bool force = false});
 }
 
+/// Optional callback hook for post-sync folder mapping.
+final noteSyncedCallbackProvider = Provider<NoteSyncedCallback?>((ref) => null);
+
 final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
   return NoteIngestionServiceImpl(
     getDb: () => ref.read(databaseProvider.future),
@@ -38,14 +41,7 @@ final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
     parser: MarkdownContentParser(),
     indexer: SqliteMetadataIndexer(),
     getVaultPath: () => ref.read(activeVaultPathProvider.future),
-    onNoteSynced: (noteId, filePath, txn) async {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      await VirtualFolderSyncHelper.handleNoteSync(
-        txn: txn,
-        noteId: noteId,
-        filePath: filePath,
-        nowMs: nowMs,
-      );
-    },
+    onNoteSynced: ref.watch(noteSyncedCallbackProvider),
   );
 });
+

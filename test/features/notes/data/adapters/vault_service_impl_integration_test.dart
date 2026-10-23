@@ -6,6 +6,7 @@ import 'package:prism/features/notes/data/adapters/vault_service_impl.dart';
 import 'package:prism/features/notes/data/adapters/local_vault_storage.dart';
 import 'package:prism/features/notes/data/adapters/markdown_content_parser.dart';
 import 'package:prism/features/notes/data/adapters/sqlite_metadata_indexer.dart';
+import 'package:prism/features/folders/data/virtual_folder_sync_helper.dart';
 
 void main() {
   // Initialize FFI for local tests
@@ -90,6 +91,15 @@ void main() {
       parser: MarkdownContentParser(),
       indexer: SqliteMetadataIndexer(),
       getVaultPath: () async => tempDir.path,
+      onNoteSynced: (noteId, filePath, txn) async {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        await VirtualFolderSyncHelper.handleNoteSync(
+          txn: txn,
+          noteId: noteId,
+          filePath: filePath,
+          nowMs: nowMs,
+        );
+      },
     );
   });
 
