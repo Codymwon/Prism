@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
@@ -53,16 +54,19 @@ class SyncEncryptionService {
     required List<int> salt,
   }) async {
     try {
-      final pbkdf2 = Pbkdf2(
-        macAlgorithm: Hmac.sha256(),
-        iterations: pbkdf2Iterations,
-        bits: pbkdf2KeyLengthBits,
-      );
-      final key = await pbkdf2.deriveKeyFromPassword(
-        password: passphrase,
-        nonce: salt,
-      );
-      return Right(key);
+      final keyBytes = await Isolate.run(() async {
+        final pbkdf2 = Pbkdf2(
+          macAlgorithm: Hmac.sha256(),
+          iterations: pbkdf2Iterations,
+          bits: pbkdf2KeyLengthBits,
+        );
+        final key = await pbkdf2.deriveKeyFromPassword(
+          password: passphrase,
+          nonce: salt,
+        );
+        return await key.extractBytes();
+      });
+      return Right(SecretKey(keyBytes));
     } catch (e) {
       return Left(KeyDerivationFailure('Failed to derive key: $e'));
     }

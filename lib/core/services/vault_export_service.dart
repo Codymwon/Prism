@@ -265,20 +265,18 @@ class VaultExportServiceImpl implements VaultExportService {
 
     onProgress(0.2, 'Building archive…');
 
-    // Read file bytes on main isolate (filesystem access), then build ZIP in isolate.
-    final fileEntries = <({String relPath, List<int> bytes})>[];
-    for (final path in filePaths) {
-      final bytes = await File(path).readAsBytes();
-      final relPath = p.relative(path, from: vaultPath).replaceAll('\\', '/');
-      fileEntries.add((relPath: relPath, bytes: bytes));
-    }
-
     onProgress(0.5, 'Compressing…');
 
+    // Offload both file reading and ZIP archiving to worker isolate
+    // to prevent duplicating raw audio/attachment buffers across the isolate boundary.
     final zipBytes = await Isolate.run(() {
       final archive = Archive();
-      for (final entry in fileEntries) {
-        archive.addFile(ArchiveFile(entry.relPath, entry.bytes.length, entry.bytes));
+      for (final path in filePaths) {
+        final file = File(path);
+        if (!file.existsSync()) continue;
+        final bytes = file.readAsBytesSync();
+        final relPath = p.relative(path, from: vaultPath).replaceAll('\\', '/');
+        archive.addFile(ArchiveFile(relPath, bytes.length, bytes));
       }
       return ZipEncoder().encode(archive);
     });

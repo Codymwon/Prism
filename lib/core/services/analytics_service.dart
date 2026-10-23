@@ -10,6 +10,8 @@ class AnalyticsService {
     _prefs = prefs;
   }
 
+  static const int maxLoggedItems = 200;
+
   // Test visibility properties to inspect logged events in unit tests
   @visibleForTesting
   static final List<Map<String, dynamic>> loggedEvents = [];
@@ -35,7 +37,10 @@ class AnalyticsService {
       debugPrint('Analytics: event logged -> $name with params: $parameters');
     }
 
-    // Cache locally for test inspections
+    // Cache locally for test inspections (capped at maxLoggedItems)
+    if (loggedEvents.length >= maxLoggedItems) {
+      loggedEvents.removeAt(0);
+    }
     loggedEvents.add({
       'name': name,
       'parameters': parameters,
@@ -56,6 +61,10 @@ class AnalyticsService {
       debugPrint('Analytics: error logged -> $exception');
     }
 
+    // Cache locally for test inspections (capped at maxLoggedItems)
+    if (loggedErrors.length >= maxLoggedItems) {
+      loggedErrors.removeAt(0);
+    }
     loggedErrors.add({
       'exception': exception,
       'stack': stack,
