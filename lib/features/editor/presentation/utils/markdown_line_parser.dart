@@ -60,11 +60,36 @@ class ParsedLine {
     required this.inlineSpans,
   });
 
+  ParsedLine copyWith({
+    int? lineIndex,
+    String? rawText,
+    MarkdownLineType? type,
+    int? headingLevel,
+    List<InlineSpanInfo>? inlineSpans,
+  }) {
+    return ParsedLine(
+      lineIndex: lineIndex ?? this.lineIndex,
+      rawText: rawText ?? this.rawText,
+      type: type ?? this.type,
+      headingLevel: headingLevel ?? this.headingLevel,
+      inlineSpans: inlineSpans ?? this.inlineSpans,
+    );
+  }
+
   @override
   String toString() => 'ParsedLine(index: $lineIndex, type: $type, spans: ${inlineSpans.length})';
 }
 
 class MarkdownLineParser {
+  static final Map<String, ParsedLine> _lineParseCache = {};
+  static const int _maxLineParseCacheSize = 5000;
+
+  static void clearCache() {
+    _lineParseCache.clear();
+  }
+
+  static int get cacheSize => _lineParseCache.length;
+
   static final RegExp _headingRegex = RegExp(r'^(#{1,6})(\s+)(.*)$');
   static final RegExp checklistRegex = RegExp(r'^(\s*[-*+]\s+\[)([ xX])(\])(\s+)(.*)$');
   static final RegExp _bulletRegex = RegExp(r'^(\s*[-*+])(\s+)(.*)$');
@@ -88,6 +113,189 @@ class MarkdownLineParser {
     r'|((?<!\w)#[a-zA-Z][a-zA-Z0-9_]*)' // 10. Hashtag
     r'|(\[\d{1,2}:\d{2}(?:\s*-[^\]]+)?\])' // 11. Timestamp tag
   );
+
+  static ParsedLine _parseSingleLine(String line) {
+    final trimmed = line.trim();
+
+    // Empty Line
+    if (line.isEmpty) {
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.empty,
+        inlineSpans: [],
+      );
+    }
+
+    // Horizontal Rule
+    if (_hrRegex.hasMatch(line)) {
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.horizontalRule,
+        inlineSpans: [InlineSpanInfo(text: line, type: InlineType.plain, isSyntaxChar: true)],
+      );
+    }
+
+    // Audio Link
+    final audioMatch = audioRegex.firstMatch(trimmed);
+    if (audioMatch != null) {
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.audioLink,
+        inlineSpans: [
+          InlineSpanInfo(text: '[', type: InlineType.plain, isSyntaxChar: true),
+          InlineSpanInfo(text: audioMatch.group(1)!, type: InlineType.plain),
+          InlineSpanInfo(text: ']', type: InlineType.plain, isSyntaxChar: true),
+          InlineSpanInfo(text: '(${audioMatch.group(2)!})', type: InlineType.plain, isSyntaxChar: true),
+        ],
+      );
+    }
+
+    // Image Link
+    final imageMatch = imageRegex.firstMatch(trimmed);
+    if (imageMatch != null) {
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.image,
+        inlineSpans: [
+          InlineSpanInfo(text: '![', type: InlineType.plain, isSyntaxChar: true),
+          InlineSpanInfo(text: imageMatch.group(1)!, type: InlineType.plain),
+          InlineSpanInfo(text: ']', type: InlineType.plain, isSyntaxChar: true),
+          InlineSpanInfo(text: '(${imageMatch.group(2)!})', type: InlineType.plain, isSyntaxChar: true),
+        ],
+      );
+    }
+
+    // Table Separator
+    if (_tableSepRegex.hasMatch(line)) {
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.tableSeparator,
+        inlineSpans: [InlineSpanInfo(text: line, type: InlineType.plain)],
+      );
+    }
+
+    // Table Row
+    if (_tableRowRegex.hasMatch(line)) {
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.tableRow,
+        inlineSpans: [InlineSpanInfo(text: line, type: InlineType.plain)],
+      );
+    }
+
+    // Heading
+    final headingMatch = _headingRegex.firstMatch(line);
+    if (headingMatch != null) {
+      final hashes = headingMatch.group(1)!;
+      final spaces = headingMatch.group(2)!;
+      final headingText = headingMatch.group(3)!;
+
+      final spans = <InlineSpanInfo>[
+        InlineSpanInfo(text: hashes, type: InlineType.plain, isSyntaxChar: true),
+        InlineSpanInfo(text: spaces, type: InlineType.plain),
+        ..._parseInline(headingText),
+      ];
+
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.heading,
+        headingLevel: hashes.length,
+        inlineSpans: spans,
+      );
+    }
+
+    // Checklist
+    final checklistMatch = checklistRegex.firstMatch(line);
+    if (checklistMatch != null) {
+      final prefix = checklistMatch.group(1)!;
+      final status = checklistMatch.group(2)!;
+      final suffixBracket = checklistMatch.group(3)!;
+      final spaceAfter = checklistMatch.group(4)!;
+      final taskText = checklistMatch.group(5)!;
+
+      final spans = <InlineSpanInfo>[
+        InlineSpanInfo(text: '$prefix$status$suffixBracket', type: InlineType.plain, isSyntaxChar: true),
+        InlineSpanInfo(text: spaceAfter, type: InlineType.plain),
+        ..._parseInline(taskText),
+      ];
+
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.checklist,
+        inlineSpans: spans,
+      );
+    }
+
+    // Bullet List
+    final bulletMatch = _bulletRegex.firstMatch(line);
+    if (bulletMatch != null) {
+      final symbol = bulletMatch.group(1)!;
+      final spaces = bulletMatch.group(2)!;
+      final bulletText = bulletMatch.group(3)!;
+
+      final spans = <InlineSpanInfo>[
+        InlineSpanInfo(text: symbol, type: InlineType.plain, isSyntaxChar: true),
+        InlineSpanInfo(text: spaces, type: InlineType.plain),
+        ..._parseInline(bulletText),
+      ];
+
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.bullet,
+        inlineSpans: spans,
+      );
+    }
+
+    // Blockquote
+    final blockquoteMatch = _blockquoteRegex.firstMatch(line);
+    if (blockquoteMatch != null) {
+      final prefix = blockquoteMatch.group(1)!;
+      final quoteText = blockquoteMatch.group(2)!;
+
+      final spans = <InlineSpanInfo>[
+        InlineSpanInfo(text: prefix, type: InlineType.plain, isSyntaxChar: true),
+        ..._parseInline(quoteText),
+      ];
+
+      return ParsedLine(
+        lineIndex: 0,
+        rawText: line,
+        type: MarkdownLineType.blockquote,
+        inlineSpans: spans,
+      );
+    }
+
+    // Standard Paragraph
+    return ParsedLine(
+      lineIndex: 0,
+      rawText: line,
+      type: MarkdownLineType.paragraph,
+      inlineSpans: _parseInline(line),
+    );
+  }
+
+  static ParsedLine _getOrParseLine(String line) {
+    final cached = _lineParseCache.remove(line);
+    if (cached != null) {
+      _lineParseCache[line] = cached; // re-insert at end for LRU
+      return cached;
+    }
+    final parsed = _parseSingleLine(line);
+    if (_lineParseCache.length >= _maxLineParseCacheSize) {
+      _lineParseCache.remove(_lineParseCache.keys.first);
+    }
+    _lineParseCache[line] = parsed;
+    return parsed;
+  }
 
   static List<ParsedLine> parse(String text) {
     final lines = text.split('\n');
@@ -130,180 +338,8 @@ class MarkdownLineParser {
         continue;
       }
 
-      // Empty Line
-      if (line.isEmpty) {
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.empty,
-          inlineSpans: [],
-        ));
-        continue;
-      }
-
-      // Horizontal Rule
-      if (_hrRegex.hasMatch(line)) {
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.horizontalRule,
-          inlineSpans: [InlineSpanInfo(text: line, type: InlineType.plain, isSyntaxChar: true)],
-        ));
-        continue;
-      }
-
-      // Audio Link
-      final audioMatch = audioRegex.firstMatch(trimmed);
-      if (audioMatch != null) {
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.audioLink,
-          inlineSpans: [
-            InlineSpanInfo(text: '[', type: InlineType.plain, isSyntaxChar: true),
-            InlineSpanInfo(text: audioMatch.group(1)!, type: InlineType.plain),
-            InlineSpanInfo(text: ']', type: InlineType.plain, isSyntaxChar: true),
-            InlineSpanInfo(text: '(${audioMatch.group(2)!})', type: InlineType.plain, isSyntaxChar: true),
-          ],
-        ));
-        continue;
-      }
-
-      // Image Link
-      final imageMatch = imageRegex.firstMatch(trimmed);
-      if (imageMatch != null) {
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.image,
-          inlineSpans: [
-            InlineSpanInfo(text: '![', type: InlineType.plain, isSyntaxChar: true),
-            InlineSpanInfo(text: imageMatch.group(1)!, type: InlineType.plain),
-            InlineSpanInfo(text: ']', type: InlineType.plain, isSyntaxChar: true),
-            InlineSpanInfo(text: '(${imageMatch.group(2)!})', type: InlineType.plain, isSyntaxChar: true),
-          ],
-        ));
-        continue;
-      }
-
-      // Table Separator
-      if (_tableSepRegex.hasMatch(line)) {
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.tableSeparator,
-          inlineSpans: [InlineSpanInfo(text: line, type: InlineType.plain)],
-        ));
-        continue;
-      }
-
-      // Table Row
-      if (_tableRowRegex.hasMatch(line)) {
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.tableRow,
-          inlineSpans: [InlineSpanInfo(text: line, type: InlineType.plain)],
-        ));
-        continue;
-      }
-
-      // Heading
-      final headingMatch = _headingRegex.firstMatch(line);
-      if (headingMatch != null) {
-        final hashes = headingMatch.group(1)!;
-        final spaces = headingMatch.group(2)!;
-        final headingText = headingMatch.group(3)!;
-
-        final spans = <InlineSpanInfo>[
-          InlineSpanInfo(text: hashes, type: InlineType.plain, isSyntaxChar: true),
-          InlineSpanInfo(text: spaces, type: InlineType.plain),
-          ..._parseInline(headingText),
-        ];
-
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.heading,
-          headingLevel: hashes.length,
-          inlineSpans: spans,
-        ));
-        continue;
-      }
-
-      // Checklist
-      final checklistMatch = checklistRegex.firstMatch(line);
-      if (checklistMatch != null) {
-        final prefix = checklistMatch.group(1)!;
-        final status = checklistMatch.group(2)!;
-        final suffixBracket = checklistMatch.group(3)!;
-        final spaceAfter = checklistMatch.group(4)!;
-        final taskText = checklistMatch.group(5)!;
-
-        final spans = <InlineSpanInfo>[
-          InlineSpanInfo(text: '$prefix$status$suffixBracket', type: InlineType.plain, isSyntaxChar: true),
-          InlineSpanInfo(text: spaceAfter, type: InlineType.plain),
-          ..._parseInline(taskText),
-        ];
-
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.checklist,
-          inlineSpans: spans,
-        ));
-        continue;
-      }
-
-      // Bullet List
-      final bulletMatch = _bulletRegex.firstMatch(line);
-      if (bulletMatch != null) {
-        final symbol = bulletMatch.group(1)!;
-        final spaces = bulletMatch.group(2)!;
-        final bulletText = bulletMatch.group(3)!;
-
-        final spans = <InlineSpanInfo>[
-          InlineSpanInfo(text: symbol, type: InlineType.plain, isSyntaxChar: true),
-          InlineSpanInfo(text: spaces, type: InlineType.plain),
-          ..._parseInline(bulletText),
-        ];
-
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.bullet,
-          inlineSpans: spans,
-        ));
-        continue;
-      }
-
-      // Blockquote
-      final blockquoteMatch = _blockquoteRegex.firstMatch(line);
-      if (blockquoteMatch != null) {
-        final prefix = blockquoteMatch.group(1)!;
-        final quoteText = blockquoteMatch.group(2)!;
-
-        final spans = <InlineSpanInfo>[
-          InlineSpanInfo(text: prefix, type: InlineType.plain, isSyntaxChar: true),
-          ..._parseInline(quoteText),
-        ];
-
-        result.add(ParsedLine(
-          lineIndex: i,
-          rawText: line,
-          type: MarkdownLineType.blockquote,
-          inlineSpans: spans,
-        ));
-        continue;
-      }
-
-      // Standard Paragraph
-      result.add(ParsedLine(
-        lineIndex: i,
-        rawText: line,
-        type: MarkdownLineType.paragraph,
-        inlineSpans: _parseInline(line),
-      ));
+      final cached = _getOrParseLine(line);
+      result.add(cached.copyWith(lineIndex: i));
     }
 
     return result;

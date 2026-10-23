@@ -5,6 +5,58 @@ import '../../../../shared/design_system/design_system.dart';
 import '../providers/editor_controller.dart';
 import '../utils/markdown_line_parser.dart';
 
+class _LineSpanCacheKey {
+  final String lineText;
+  final MarkdownLineType lineType;
+  final bool isCursorOnLine;
+  final bool isInActiveTable;
+  final bool isInActiveCodeBlock;
+  final bool isSourceMode;
+  final bool isLastLine;
+  final int styleHashCode;
+  final int lineIndex;
+
+  const _LineSpanCacheKey({
+    required this.lineText,
+    required this.lineType,
+    required this.isCursorOnLine,
+    required this.isInActiveTable,
+    required this.isInActiveCodeBlock,
+    required this.isSourceMode,
+    required this.isLastLine,
+    required this.styleHashCode,
+    required this.lineIndex,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _LineSpanCacheKey &&
+          runtimeType == other.runtimeType &&
+          lineText == other.lineText &&
+          lineType == other.lineType &&
+          isCursorOnLine == other.isCursorOnLine &&
+          isInActiveTable == other.isInActiveTable &&
+          isInActiveCodeBlock == other.isInActiveCodeBlock &&
+          isSourceMode == other.isSourceMode &&
+          isLastLine == other.isLastLine &&
+          styleHashCode == other.styleHashCode &&
+          lineIndex == other.lineIndex;
+
+  @override
+  int get hashCode => Object.hash(
+        lineText,
+        lineType,
+        isCursorOnLine,
+        isInActiveTable,
+        isInActiveCodeBlock,
+        isSourceMode,
+        isLastLine,
+        styleHashCode,
+        lineIndex,
+      );
+}
+
 class LivePreviewController extends TextEditingController {
   final String noteId;
   EditorMode mode;
@@ -15,6 +67,21 @@ class LivePreviewController extends TextEditingController {
   final Widget Function(List<String> tableLines)? tableBuilder;
   final Widget Function(int lineIndex, bool checked)? checkboxBuilder;
   final void Function(Duration position)? onTimestampTap;
+
+  final Map<_LineSpanCacheKey, InlineSpan> _lineSpanCache = {};
+  static const int _maxLineSpanCacheSize = 5000;
+
+  void clearSpanCache() {
+    _lineSpanCache.clear();
+  }
+
+  int get spanCacheSize => _lineSpanCache.length;
+
+  @override
+  void dispose() {
+    _lineSpanCache.clear();
+    super.dispose();
+  }
 
   LivePreviewController({
     required this.noteId,
@@ -65,12 +132,46 @@ class LivePreviewController extends TextEditingController {
     final tableBlocks = _identifyTableBlocks(parsedLines);
     final codeBlocks = _identifyCodeBlocks(parsedLines);
 
+    // Pre-calculate active table and code blocks containing the cursor (O(B) once)
+    final activeTableBlock = cursorLineIndex >= 0
+        ? tableBlocks.where((b) => b.contains(cursorLineIndex)).firstOrNull
+        : null;
+    final activeCodeBlock = cursorLineIndex >= 0
+        ? codeBlocks.where((b) => b.contains(cursorLineIndex)).firstOrNull
+        : null;
+
+    // Fast O(1) index mappings for table and code blocks
+    final lineToTableBlock = <int, List<int>>{};
+    for (final block in tableBlocks) {
+      for (final idx in block) {
+        lineToTableBlock[idx] = block;
+      }
+    }
+
+    final lineToCodeBlock = <int, List<int>>{};
+    for (final block in codeBlocks) {
+      for (final idx in block) {
+        lineToCodeBlock[idx] = block;
+      }
+    }
+
+    final styleHashCode = Object.hash(
+      defaultStyle.color,
+      defaultStyle.fontSize,
+      defaultStyle.fontFamily,
+      Theme.of(context).brightness,
+    );
+
     for (int i = 0; i < parsedLines.length; i++) {
       final line = parsedLines[i];
 
-      // Determine if this line belongs to a table or code block that contains the cursor
-      final isInActiveTable = tableBlocks.any((block) => block.contains(i) && block.contains(cursorLineIndex));
-      final isInActiveCodeBlock = codeBlocks.any((block) => block.contains(i) && block.contains(cursorLineIndex));
+      // O(1) range comparison against pre-calculated active blocks
+      final isInActiveTable = activeTableBlock != null &&
+          i >= activeTableBlock.first &&
+          i <= activeTableBlock.last;
+      final isInActiveCodeBlock = activeCodeBlock != null &&
+          i >= activeCodeBlock.first &&
+          i <= activeCodeBlock.last;
 
       final isCursorLine = i == cursorLineIndex;
       final isSourceMode = mode == EditorMode.source;
@@ -84,7 +185,7 @@ class LivePreviewController extends TextEditingController {
           (mode == EditorMode.livePreview && (isCursorLine || isInActiveTable || isInActiveCodeBlock));
 
       // Handle table rendering (non-active table)
-      final tableBlock = tableBlocks.firstWhere((block) => block.contains(i), orElse: () => []);
+      final tableBlock = lineToTableBlock[i] ?? const [];
       if (tableBlock.isNotEmpty && !isRawLine) {
         // If this is the first line of the table, render the entire table widget
         if (tableBlock.first == i) {
@@ -105,7 +206,7 @@ class LivePreviewController extends TextEditingController {
       }
 
       // Handle code block fence rendering (non-active code block)
-      final codeBlock = codeBlocks.firstWhere((block) => block.contains(i), orElse: () => []);
+      final codeBlock = lineToCodeBlock[i] ?? const [];
       if (codeBlock.isNotEmpty && !isRawLine) {
         // Hide the opening and closing fence lines
         if (line.type == MarkdownLineType.codeFenceStart || line.type == MarkdownLineType.codeFenceEnd) {
@@ -164,6 +265,26 @@ class LivePreviewController extends TextEditingController {
           }
           continue;
         }
+      }
+
+      final isLastLine = i == parsedLines.length - 1;
+      final cacheKey = _LineSpanCacheKey(
+        lineText: line.rawText,
+        lineType: line.type,
+        isCursorOnLine: isCursorLine,
+        isInActiveTable: isInActiveTable,
+        isInActiveCodeBlock: isInActiveCodeBlock,
+        isSourceMode: isSourceMode,
+        isLastLine: isLastLine,
+        styleHashCode: styleHashCode,
+        lineIndex: line.lineIndex,
+      );
+
+      final cachedSpan = _lineSpanCache.remove(cacheKey);
+      if (cachedSpan != null) {
+        _lineSpanCache[cacheKey] = cachedSpan;
+        lineSpans.add(cachedSpan);
+        continue;
       }
 
       final spansOnLine = <InlineSpan>[];
@@ -288,7 +409,12 @@ class LivePreviewController extends TextEditingController {
         spansOnLine.add(TextSpan(text: '\n', style: defaultStyle));
       }
 
-      lineSpans.add(TextSpan(children: spansOnLine));
+      final builtLineSpan = TextSpan(children: spansOnLine);
+      if (_lineSpanCache.length >= _maxLineSpanCacheSize) {
+        _lineSpanCache.remove(_lineSpanCache.keys.first);
+      }
+      _lineSpanCache[cacheKey] = builtLineSpan;
+      lineSpans.add(builtLineSpan);
     }
 
     return TextSpan(children: lineSpans, style: defaultStyle);

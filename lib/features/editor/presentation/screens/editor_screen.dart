@@ -99,7 +99,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     
     _controller = LivePreviewController(
       noteId: widget.noteId,
-      mode: EditorMode.livePreview,
+      mode: ref.read(editorControllerProvider(widget.noteId)).editorMode,
       audioPlayerBuilder: (path, label) {
         return InlineAudioWaveformPlayer(
           key: ValueKey('audio_waveform_$path'),
@@ -281,7 +281,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     final audioRecordState = ref.watch(audioRecordControllerProvider(widget.noteId));
 
-    _controller.mode = mode;
+    ref.listen<EditorMode>(
+      editorControllerProvider(widget.noteId).select((s) => s.editorMode),
+      (previous, next) {
+        if (_controller.mode != next) {
+          _controller.mode = next;
+        }
+      },
+    );
 
     // StateNotifier — watch synchronously
     final fontFamily = ref.watch(fontFamilyProvider);
