@@ -32,16 +32,20 @@ Future<Database> database(DatabaseRef ref) async {
   if (isDisposed) throw Exception('Provider disposed during seedWelcomeNotes');
 
   Database? db;
-  ref.onDispose(() async {
-    if (db != null) {
-      await DatabaseHelper.instance.closeDatabaseConnection(db);
-      debugPrint('Database connection reactively closed for: $vaultPath');
+  ref.onDispose(() {
+    final activeDb = db;
+    if (activeDb != null) {
+      DatabaseHelper.instance.closeDatabaseConnection(activeDb).then((_) {
+        debugPrint('Database connection reactively closed for: $vaultPath');
+      }).catchError((e) {
+        debugPrint('Error closing database reactively for $vaultPath: $e');
+      });
     }
   });
 
   db = await DatabaseHelper.instance.openDatabaseForPath(vaultPath);
   if (isDisposed) {
-    await DatabaseHelper.instance.closeDatabaseConnection(db);
+    DatabaseHelper.instance.closeDatabaseConnection(db).catchError((_) {});
     throw Exception('Provider disposed during openDatabaseForPath');
   }
 
@@ -58,20 +62,32 @@ Future<Database> database(DatabaseRef ref) async {
 
 /// Helper to trigger vault file synchronization asynchronously in the background.
 /// Increments notesVersionProvider upon completion to reactively refresh note listings.
-void _triggerBackgroundSync(Database db, String vaultPath, DatabaseRef ref, bool Function() isDisposedFn) {
+void _triggerBackgroundSync(Database db, String vaultPath, DatabaseRef ref, bool Function() isDisposedFn) async {
   if (isDisposedFn()) return;
   final keepAliveLink = ref.keepAlive();
-  ref.read(noteIngestionServiceProvider).syncVault(vaultPath, db: db).then((hasChanges) {
+  try {
+    bool forceReindex = false;
+    try {
+      final ftsRows = await db.rawQuery("SELECT COUNT(*) as c FROM notes_fts WHERE body IS NOT NULL AND body != ''");
+      final noteRows = await db.rawQuery("SELECT COUNT(*) as c FROM notes WHERE is_ghost = 0");
+      final ftsCount = (ftsRows.firstOrNull?['c'] as int?) ?? 0;
+      final noteCount = (noteRows.firstOrNull?['c'] as int?) ?? 0;
+      if (ftsCount < noteCount) {
+        forceReindex = true;
+      }
+    } catch (_) {}
+
+    final hasChanges = await ref.read(noteIngestionServiceProvider).syncVault(vaultPath, db: db, force: forceReindex);
     if (hasChanges && !isDisposedFn()) {
       ref.read(notesVersionProvider.notifier).update((state) => state + 1);
       ref.read(foldersVersionProvider.notifier).update((state) => state + 1);
     }
-    debugPrint('Background physical files sync completed for vault: $vaultPath (hasChanges: $hasChanges)');
-  }).catchError((e) {
+    debugPrint('Background physical files sync completed for vault: $vaultPath (hasChanges: $hasChanges, forced: $forceReindex)');
+  } catch (e) {
     debugPrint('Error during background files sync: $e');
-  }).whenComplete(() {
+  } finally {
     keepAliveLink.close();
-  });
+  }
 }
 
 // ─── Centralized Data Version State Providers ──────────────────────────────────

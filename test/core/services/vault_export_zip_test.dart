@@ -14,7 +14,11 @@ import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
 class _FakeNoteRepository implements NoteRepository {
   @override
-  Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) async => [];
+  Future<List<Note>> getAllNotes({
+    NoteSort sort = NoteSort.updated,
+    int? limit,
+    int? offset,
+  }) async => [];
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

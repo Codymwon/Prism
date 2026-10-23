@@ -18,7 +18,11 @@ class MockNoteRepository implements NoteRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
-  Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) async => notes;
+  Future<List<Note>> getAllNotes({
+    NoteSort sort = NoteSort.updated,
+    int? limit,
+    int? offset,
+  }) async => notes;
 }
 
 void main() {

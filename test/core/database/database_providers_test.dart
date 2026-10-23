@@ -13,7 +13,7 @@ class StubNoteIngestionService implements NoteIngestionService {
   bool syncVaultCalled = false;
 
   @override
-  Future<bool> syncVault(String vaultPath, {Database? db}) async {
+  Future<bool> syncVault(String vaultPath, {Database? db, bool force = false}) async {
     syncVaultCalled = true;
     return true;
   }

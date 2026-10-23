@@ -42,7 +42,11 @@ class FakeNoteRepository extends Fake implements NoteRepository {
             ];
 
   @override
-  Future<List<Note>> getAllNotes({NoteSort sort = NoteSort.updated}) async =>
+  Future<List<Note>> getAllNotes({
+    NoteSort sort = NoteSort.updated,
+    int? limit,
+    int? offset,
+  }) async =>
       notes;
 
   @override
