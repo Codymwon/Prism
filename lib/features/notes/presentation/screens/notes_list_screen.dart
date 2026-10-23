@@ -44,8 +44,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Pre-warm available vaults list cache so the selector bottom sheet loads instantly
-    ref.watch(availableVaultsProvider);
+    // Pre-warm available vaults list cache without triggering full-screen rebuilds
+    ref.listen(availableVaultsProvider, (_, _) {});
 
     final colorScheme = Theme.of(context).colorScheme;
     final selectedFolderId = ref.watch(selectedFolderIdProvider);

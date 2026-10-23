@@ -67,8 +67,18 @@ class QuickCaptureNotifier extends Notifier<QuickCaptureState> {
     ref.onDispose(() {
       _timer?.cancel();
     });
+    ref.listen<DynamicIslandState>(dynamicIslandControllerProvider, (previous, next) {
+      if (next is! DynamicIslandQuickCapture && state.isOpen) {
+        _timer?.cancel();
+        if (state.mode == QuickCaptureMode.recording && state.audioPath != null) {
+          _discardRecording();
+        }
+        state = const QuickCaptureState(isOpen: false);
+      }
+    });
     return const QuickCaptureState();
   }
+
 
   @override
   set state(QuickCaptureState value) {

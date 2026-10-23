@@ -73,16 +73,10 @@ class DynamicIslandNotifier extends Notifier<DynamicIslandState> {
   DynamicIslandState build() => const DynamicIslandResting();
 
   void showToast(IslandToastData toast) {
-    if (state is DynamicIslandQuickCapture) {
-      ref.read(quickCaptureNotifierProvider.notifier).dismiss();
-    }
     state = DynamicIslandToast(toast);
   }
 
   void showMenu(IslandMenuData menu) {
-    if (state is DynamicIslandQuickCapture) {
-      ref.read(quickCaptureNotifierProvider.notifier).dismiss();
-    }
     state = DynamicIslandMenu(menu);
   }
 
@@ -106,9 +100,6 @@ class DynamicIslandNotifier extends Notifier<DynamicIslandState> {
   }
 
   void openVaultHub([VaultHubSubDeck subDeck = VaultHubSubDeck.tools]) {
-    if (state is DynamicIslandQuickCapture) {
-      ref.read(quickCaptureNotifierProvider.notifier).dismiss();
-    }
     state = DynamicIslandVaultHub(subDeck: subDeck);
   }
 
@@ -146,12 +137,10 @@ class DynamicIslandNotifier extends Notifier<DynamicIslandState> {
   }
 
   void dismiss() {
-    if (state is DynamicIslandQuickCapture) {
-      ref.read(quickCaptureNotifierProvider.notifier).dismiss();
-    }
     state = const DynamicIslandResting();
   }
 }
+
 
 final dynamicIslandControllerProvider =
     NotifierProvider<DynamicIslandNotifier, DynamicIslandState>(
