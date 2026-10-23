@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite/sqflite.dart';
+import '../../../core/database/database_service.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import 'note_model.dart';
@@ -42,7 +42,7 @@ class NoteRepository {
 
   NoteRepository(this._ref);
 
-  Future<Database> get _db => _ref.read(databaseProvider.future);
+  Future<DatabaseService> get _db => _ref.read(databaseServiceProvider.future);
 
   NoteIngestionService get _vaultService => _ref.read(noteIngestionServiceProvider);
 
@@ -67,6 +67,9 @@ class NoteRepository {
       'is_daily': isDaily,
       'content_length': initialContent.length,
     });
+    _ref.read(databaseServiceProvider).whenData((db) {
+      db.notifyTablesChanged({DbTable.notes, DbTable.noteLinks});
+    });
     _ref.read(notesVersionProvider.notifier).state++;
     return note;
   }
@@ -74,6 +77,9 @@ class NoteRepository {
   /// Creates a "ghost note" — a placeholder note from a wikilink before actual content.
   Future<Note> createGhostNote(String title) async {
     final note = await _vaultService.createGhostNote(title);
+    _ref.read(databaseServiceProvider).whenData((db) {
+      db.notifyTablesChanged({DbTable.notes, DbTable.noteLinks});
+    });
     _ref.read(notesVersionProvider.notifier).state++;
     return note;
   }
@@ -310,6 +316,9 @@ class NoteRepository {
   Future<void> deleteNote(String id) async {
     await _vaultService.deleteNote(id);
     AnalyticsService.logEvent('delete_note');
+    _ref.read(databaseServiceProvider).whenData((db) {
+      db.notifyTablesChanged({DbTable.notes, DbTable.noteTags, DbTable.noteLinks});
+    });
     _ref.read(notesVersionProvider.notifier).state++;
   }
 
@@ -321,6 +330,9 @@ class NoteRepository {
       dailyDate: note.dailyDate,
     );
     AnalyticsService.logEvent('restore_note');
+    _ref.read(databaseServiceProvider).whenData((db) {
+      db.notifyTablesChanged({DbTable.notes, DbTable.noteTags, DbTable.noteLinks});
+    });
     _ref.read(notesVersionProvider.notifier).state++;
     return restored;
   }

@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/database/database_providers.dart';
+import '../../../../core/database/database_service.dart';
 import '../../data/note_model.dart';
 import '../../data/note_repository.dart';
 import '../../../folders/presentation/providers/folders_providers.dart';
@@ -94,7 +95,7 @@ Future<List<Note>> recentNotes(RecentNotesRef ref) async {
 @riverpod
 Future<List<String>> uniqueTags(UniqueTagsRef ref) async {
   await ref.watch(databaseProvider.future);
-  ref.watch(notesVersionProvider);
+  ref.watch(tableVersionProvider(DbTable.noteTags));
   final repo = ref.watch(noteRepositoryProvider);
   return repo.getUniqueTags();
 }
@@ -222,13 +223,14 @@ AsyncValue<HomeScreenData> homeScreenData(HomeScreenDataRef ref) {
 @riverpod
 Future<Map<String, List<String>>> allNoteTagsMap(AllNoteTagsMapRef ref) async {
   await ref.watch(databaseProvider.future);
-  ref.watch(notesVersionProvider);
+  ref.watch(tableVersionProvider(DbTable.noteTags));
   final repo = ref.watch(noteRepositoryProvider);
   return repo.batchGetTagsForAllNotes();
 }
 
 @riverpod
 Future<({List<String> tags, String snippet})> noteDetails(NoteDetailsRef ref, String noteId) async {
+  ref.watch(notesVersionProvider);
   final tagsMap = await ref.watch(allNoteTagsMapProvider.future);
   final tags = tagsMap[noteId] ?? const <String>[];
   final repo = ref.watch(noteRepositoryProvider);

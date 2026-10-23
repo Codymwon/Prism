@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite/sqflite.dart';
-import '../../../../core/database/database_providers.dart';
+import '../../../../core/database/database_service.dart';
 
 final journalRepositoryProvider = Provider<JournalRepository>((ref) {
   return JournalRepository(ref);
@@ -11,7 +10,7 @@ class JournalRepository {
 
   JournalRepository(this._ref);
 
-  Future<Database> get _db => _ref.read(databaseProvider.future);
+  Future<DatabaseService> get _db => _ref.read(databaseServiceProvider.future);
 
   Future<Set<String>> getAllDailyDates() async {
     final db = await _db;

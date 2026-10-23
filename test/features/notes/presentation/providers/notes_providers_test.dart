@@ -6,6 +6,7 @@ import 'package:prism/features/journal/presentation/providers/journal_providers.
 import 'package:prism/features/notes/presentation/providers/notes_providers.dart';
 import 'package:prism/features/notes/data/note_model.dart';
 import 'package:prism/core/database/database_providers.dart';
+import 'package:prism/core/database/database_service.dart';
 import 'package:prism/core/utils/utils.dart';
 import 'package:prism/features/onboarding/data/onboarding_provider.dart';
 
@@ -261,6 +262,7 @@ void main() {
 
     // Bump version to invalidate cache
     container.read(notesVersionProvider.notifier).state++;
+    container.read(tableVersionProvider(DbTable.noteTags).notifier).increment();
 
     // Read provider again - should have updated snippet and tags
     var detailsUpdated = await container.read(noteDetailsProvider('note-abc').future);

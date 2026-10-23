@@ -40,7 +40,7 @@ final recentNotesProvider = AutoDisposeFutureProvider<List<Note>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RecentNotesRef = AutoDisposeFutureProviderRef<List<Note>>;
-String _$uniqueTagsHash() => r'c3e83713f4f61815506fff9d5d549666b90bcbf6';
+String _$uniqueTagsHash() => r'35bfc288a23133a120b7b625974de00b5e41e968';
 
 /// See also [uniqueTags].
 @ProviderFor(uniqueTags)
@@ -490,7 +490,7 @@ final homeScreenDataProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HomeScreenDataRef = AutoDisposeProviderRef<AsyncValue<HomeScreenData>>;
-String _$allNoteTagsMapHash() => r'638f6fa055e933781b222b0fc012e4aba05360dd';
+String _$allNoteTagsMapHash() => r'0e9d67c563f5cd58f37f29efa8796a65fc3fda56';
 
 /// See also [allNoteTagsMap].
 @ProviderFor(allNoteTagsMap)

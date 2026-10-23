@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite/sqflite.dart';
+import '../database/database_service.dart';
 import '../database/database_providers.dart';
 import '../database/vault_providers.dart';
 import '../../features/notes/data/note_model.dart';
@@ -39,7 +39,13 @@ final noteIngestionServiceProvider = Provider<NoteIngestionService>((ref) {
     getDb: () => ref.read(databaseProvider.future),
     storage: ref.read(vaultStorageProvider),
     parser: MarkdownContentParser(),
-    indexer: SqliteMetadataIndexer(),
+    indexer: SqliteMetadataIndexer(
+      onTablesChanged: (tables) {
+        ref.read(databaseServiceProvider).whenData((db) {
+          db.notifyTablesChanged(tables);
+        });
+      },
+    ),
     getVaultPath: () => ref.read(activeVaultPathProvider.future),
     onNoteSynced: ref.watch(noteSyncedCallbackProvider),
   );

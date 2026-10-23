@@ -5,7 +5,8 @@ import '../../../../core/utils/utils.dart';
 import '../../data/audio_bookmark_model.dart';
 import '../../data/audio_bookmark_repository.dart';
 
-import '../../../../core/database/database_providers.dart';
+import '../../../../core/database/database_service.dart';
+import '../../../../core/database/vault_providers.dart';
 
 part 'audio_bookmark_providers.freezed.dart';
 part 'audio_bookmark_providers.g.dart';
@@ -13,7 +14,10 @@ part 'audio_bookmark_providers.g.dart';
 /// Provider for the [AudioBookmarkRepository] singleton.
 @riverpod
 AudioBookmarkRepository audioBookmarkRepository(AudioBookmarkRepositoryRef ref) {
-  return AudioBookmarkRepository(() => ref.read(databaseProvider.future));
+  return AudioBookmarkRepository(
+    () => ref.read(databaseServiceProvider.future),
+    () => ref.read(activeVaultPathProvider.future),
+  );
 }
 
 // ── State for a specific (noteId, attachmentPath) pair ───────────────────────

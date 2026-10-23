@@ -7,7 +7,7 @@ part of 'audio_bookmark_providers.dart';
 // **************************************************************************
 
 String _$audioBookmarkRepositoryHash() =>
-    r'd8d10ac47b66517575430993e214d0a6ace1433e';
+    r'468125f7bee838a4fe32920e376da50144ee6e4c';
 
 /// Provider for the [AudioBookmarkRepository] singleton.
 ///

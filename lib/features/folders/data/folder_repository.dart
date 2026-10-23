@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_service.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/utils.dart';
@@ -104,6 +103,7 @@ class FolderRepository {
     );
 
     await db.insert('virtual_folders', folder.toMap());
+    db.notifyTableChanged(DbTable.virtualFolders);
     _ref.read(foldersVersionProvider.notifier).state++;
     await _flush(db);
     return folder;
@@ -122,6 +122,7 @@ class FolderRepository {
       where: 'id = ?',
       whereArgs: [id],
     );
+    db.notifyTableChanged(DbTable.virtualFolders);
     _ref.read(foldersVersionProvider.notifier).state++;
     await _flush(db);
   }
@@ -130,6 +131,7 @@ class FolderRepository {
   Future<void> deleteFolder(String id) async {
     final db = await _db;
     await db.delete('virtual_folders', where: 'id = ?', whereArgs: [id]);
+    db.notifyTableChanged(DbTable.virtualFolders);
     _ref.read(foldersVersionProvider.notifier).state++;
     await _flush(db);
   }
@@ -142,6 +144,7 @@ class FolderRepository {
       {'note_id': noteId, 'folder_id': folderId},
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
+    db.notifyTableChanged(DbTable.noteFolders);
     _ref.read(foldersVersionProvider.notifier).state++;
     await _flush(db);
   }
@@ -153,6 +156,7 @@ class FolderRepository {
       where: 'note_id = ? AND folder_id = ?',
       whereArgs: [noteId, folderId],
     );
+    db.notifyTableChanged(DbTable.noteFolders);
     _ref.read(foldersVersionProvider.notifier).state++;
     await _flush(db);
   }
@@ -169,6 +173,7 @@ class FolderRepository {
         );
       }
     });
+    db.notifyTableChanged(DbTable.noteFolders);
     _ref.read(foldersVersionProvider.notifier).state++;
     await _flush(db);
   }

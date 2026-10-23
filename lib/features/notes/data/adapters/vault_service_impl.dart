@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:sqflite/sqflite.dart';
+import '../../../../core/database/database_service.dart';
 import 'package:path/path.dart' as p;
 import '../../../../core/utils/utils.dart' as utils;
 import '../note_content_parser.dart';

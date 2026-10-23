@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
+import '../../../core/database/database_service.dart';
 import '../../../../core/utils/utils.dart' as utils;
 
 class VirtualFolderSyncHelper {

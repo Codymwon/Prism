@@ -1,7 +1,24 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_providers.dart';
 import 'prism_metadata_store.dart';
+
+export 'package:sqflite/sqflite.dart'
+    show ConflictAlgorithm, DatabaseExecutor, Database, Transaction, Batch;
+
+// ─── Table Change Tracking ───────────────────────────────────────────────────
+
+/// Distinct database tables for fine-grained reactivity.
+enum DbTable {
+  notes,
+  noteTags,
+  noteLinks,
+  virtualFolders,
+  noteFolders,
+  graphPositions,
+  audioBookmarks,
+}
 
 // ─── Abstract Interface ────────────────────────────────────────────────────────
 
@@ -11,17 +28,33 @@ import 'prism_metadata_store.dart';
 /// importing [Database] directly. This makes every repository unit-testable
 /// without hitting the file system.
 abstract class DatabaseService {
+  /// Stream emitting sets of tables that have changed.
+  Stream<Set<DbTable>> get tableChanges;
+
+  /// Returns a stream that emits whenever any of [tables] change.
+  Stream<Set<DbTable>> watchTables(Set<DbTable> tables);
+
+  /// Notifies listeners that [tables] have changed.
+  void notifyTablesChanged(Set<DbTable> tables);
+
+  /// Notifies listeners that a single [table] has changed.
+  void notifyTableChanged(DbTable table);
+
   /// Executes a raw SQL statement (DDL or DML) with optional [arguments].
   Future<void> execute(String sql, [List<Object?>? arguments]);
 
   /// Runs a structured query on [table] with optional filtering/ordering.
   Future<List<Map<String, Object?>>> query(
     String table, {
+    bool? distinct,
     List<String>? columns,
     String? where,
     List<Object?>? whereArgs,
+    String? groupBy,
+    String? having,
     String? orderBy,
     int? limit,
+    int? offset,
   });
 
   /// Executes a raw SQL SELECT query with optional [arguments].
@@ -52,6 +85,9 @@ abstract class DatabaseService {
     List<Object?>? whereArgs,
   });
 
+  /// Creates a batch operation on this database.
+  Batch batch();
+
   /// Runs [action] inside a database transaction.
   ///
   /// If [action] throws, the transaction is automatically rolled back.
@@ -59,7 +95,7 @@ abstract class DatabaseService {
   /// so callers do not need to hold a reference to the raw [Transaction].
   Future<T> transaction<T>(Future<T> Function(DatabaseService txn) action);
 
-  /// Atomically serialises the five app-only metadata tables to the sidecar
+  /// Atomically serialises the app-only metadata tables to the sidecar
   /// JSON file at [vaultPath].  No-op if [vaultPath] is empty.
   Future<void> flushMetadata(String vaultPath);
 }
@@ -69,8 +105,38 @@ abstract class DatabaseService {
 /// Production adapter that wraps a sqflite [Database] (or [Transaction]).
 class SqliteDatabaseService implements DatabaseService {
   final DatabaseExecutor _db;
+  final StreamController<Set<DbTable>> _tableChangesController;
 
-  const SqliteDatabaseService(this._db);
+  SqliteDatabaseService(
+    this._db, {
+    StreamController<Set<DbTable>>? tableChangesController,
+  }) : _tableChangesController =
+            tableChangesController ?? StreamController<Set<DbTable>>.broadcast();
+
+  @override
+  Stream<Set<DbTable>> get tableChanges => _tableChangesController.stream;
+
+  @override
+  Stream<Set<DbTable>> watchTables(Set<DbTable> tables) {
+    return _tableChangesController.stream.where(
+      (changed) => changed.any(tables.contains),
+    );
+  }
+
+  @override
+  void notifyTablesChanged(Set<DbTable> tables) {
+    if (tables.isNotEmpty && !_tableChangesController.isClosed) {
+      _tableChangesController.add(tables);
+    }
+  }
+
+  @override
+  void notifyTableChanged(DbTable table) {
+    notifyTablesChanged({table});
+  }
+
+  @override
+  Batch batch() => _db.batch();
 
   @override
   Future<void> execute(String sql, [List<Object?>? arguments]) {
@@ -80,19 +146,27 @@ class SqliteDatabaseService implements DatabaseService {
   @override
   Future<List<Map<String, Object?>>> query(
     String table, {
+    bool? distinct,
     List<String>? columns,
     String? where,
     List<Object?>? whereArgs,
+    String? groupBy,
+    String? having,
     String? orderBy,
     int? limit,
+    int? offset,
   }) {
     return _db.query(
       table,
+      distinct: distinct,
       columns: columns,
       where: where,
       whereArgs: whereArgs,
+      groupBy: groupBy,
+      having: having,
       orderBy: orderBy,
       limit: limit,
+      offset: offset,
     );
   }
 
@@ -140,7 +214,10 @@ class SqliteDatabaseService implements DatabaseService {
       return action(this);
     }
     return (_db as Database).transaction<T>((txn) {
-      return action(SqliteDatabaseService(txn));
+      return action(SqliteDatabaseService(
+        txn,
+        tableChangesController: _tableChangesController,
+      ));
     });
   }
 
@@ -162,5 +239,7 @@ class SqliteDatabaseService implements DatabaseService {
 /// [Database].  Automatically invalidated when the vault changes.
 final databaseServiceProvider = FutureProvider<DatabaseService>((ref) async {
   final db = await ref.watch(databaseProvider.future);
-  return SqliteDatabaseService(db);
+  final controller = StreamController<Set<DbTable>>.broadcast();
+  ref.onDispose(() => controller.close());
+  return SqliteDatabaseService(db, tableChangesController: controller);
 });

@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_service.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/database/vault_providers.dart';
@@ -238,6 +237,7 @@ class GraphNodeRepository {
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+      db.notifyTableChanged(DbTable.graphPositions);
       _ref.read(notesVersionProvider.notifier).state++;
       await _flush(db);
     } catch (e) {
@@ -256,6 +256,7 @@ class GraphNodeRepository {
         where: 'note_id = ?',
         whereArgs: [nodeId],
       );
+      db.notifyTableChanged(DbTable.graphPositions);
       _ref.read(notesVersionProvider.notifier).state++;
       await _flush(db);
     } catch (e) {

@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:sqflite/sqflite.dart';
 import 'database_helper.dart';
 import 'prism_metadata_store.dart';
 import '../utils/utils.dart';
 import 'vault_providers.dart';
 import '../services/note_ingestion_service.dart';
+import 'database_service.dart';
 
 part 'database_providers.g.dart';
 
@@ -115,6 +115,29 @@ class FoldersVersion extends _$FoldersVersion {
   void update(int Function(int state) cb) {
     state = cb(state);
   }
+
+  @override
+  int get state => super.state;
+
+  @override
+  set state(int value) => super.state = value;
+}
+
+@riverpod
+class TableVersion extends _$TableVersion {
+  @override
+  int build(DbTable table) {
+    final dbAsync = ref.watch(databaseServiceProvider);
+    dbAsync.whenData((db) {
+      final sub = db.watchTables({table}).listen((_) {
+        state++;
+      });
+      ref.onDispose(() => sub.cancel());
+    });
+    return 0;
+  }
+
+  void increment() => state++;
 
   @override
   int get state => super.state;

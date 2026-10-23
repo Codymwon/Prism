@@ -1,3 +1,4 @@
+import '../../../../core/database/database_service.dart';
 import 'note_content_parser.dart';
 
 abstract class DbExecutor {
@@ -31,7 +32,7 @@ abstract class DbExecutor {
 }
 
 abstract class MetadataIndexer {
-  Future<void> indexNote(
+  Future<Set<DbTable>> indexNote(
     DbExecutor executor, {
     required String id,
     required String title,
@@ -45,5 +46,5 @@ abstract class MetadataIndexer {
     required NoteMetadata metadata,
   });
   
-  Future<void> removeNoteIndex(DbExecutor executor, String id);
+  Future<Set<DbTable>> removeNoteIndex(DbExecutor executor, String id);
 }
