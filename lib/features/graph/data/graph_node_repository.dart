@@ -34,12 +34,15 @@ class GraphNodeRepository {
 
     final noteMaps = await db.rawQuery('''
       SELECT n.id, n.title, n.is_daily, n.daily_date, n.is_ghost, n.created_at,
-        (SELECT COUNT(*) FROM (
-          SELECT 1 FROM note_links WHERE source_id = n.id
-          UNION ALL
-          SELECT 1 FROM note_links WHERE target_id = n.id
-        )) as link_count
+             COALESCE(lc.cnt, 0) AS link_count
       FROM notes n
+      LEFT JOIN (
+        SELECT node_id, COUNT(*) AS cnt FROM (
+          SELECT source_id AS node_id FROM note_links
+          UNION ALL
+          SELECT target_id AS node_id FROM note_links
+        ) GROUP BY node_id
+      ) lc ON lc.node_id = n.id
     ''');
 
     final edgeMaps = await db.query('note_links');
