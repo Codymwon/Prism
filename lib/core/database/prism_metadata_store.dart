@@ -81,6 +81,20 @@ class PrismMetadataStore {
             'is_pinned': item['is_pinned'],
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
+
+        if (json.containsKey('audio_bookmarks')) {
+          await txn.delete('audio_bookmarks');
+          for (final item in _list(json, 'audio_bookmarks')) {
+            await txn.insert('audio_bookmarks', {
+              'id': item['id'],
+              'note_id': item['note_id'],
+              'attachment_path': item['attachment_path'],
+              'timestamp_ms': item['timestamp_ms'],
+              'annotation_text': item['annotation_text'],
+              'created_at': item['created_at'],
+            }, conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
       });
     } finally {
       await db.execute('PRAGMA foreign_keys = ON');
@@ -99,6 +113,7 @@ class PrismMetadataStore {
     final folders = await db.query('virtual_folders');
     final noteFolders = await db.query('note_folders');
     final graphPins = await db.query('graph_node_positions');
+    final audioBookmarks = await db.query('audio_bookmarks');
 
     final payload = <String, dynamic>{
       'version': _schemaVersion,
@@ -124,6 +139,16 @@ class PrismMetadataStore {
                 'x': gp['x'],
                 'y': gp['y'],
                 'is_pinned': gp['is_pinned'],
+              })
+          .toList(),
+      'audio_bookmarks': audioBookmarks
+          .map((ab) => {
+                'id': ab['id'],
+                'note_id': ab['note_id'],
+                'attachment_path': ab['attachment_path'],
+                'timestamp_ms': ab['timestamp_ms'],
+                'annotation_text': ab['annotation_text'],
+                'created_at': ab['created_at'],
               })
           .toList(),
     };

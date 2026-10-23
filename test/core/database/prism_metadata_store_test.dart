@@ -36,7 +36,16 @@ Future<void> _createSchema(Database db) async {
     )
   ''');
 
-
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS audio_bookmarks (
+      id TEXT PRIMARY KEY,
+      note_id TEXT NOT NULL,
+      attachment_path TEXT NOT NULL,
+      timestamp_ms INTEGER NOT NULL,
+      annotation_text TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    )
+  ''');
 }
 
 void main() {
@@ -320,6 +329,38 @@ void main() {
         store.loadIntoDatabase(db, tempDir.path),
         completes,
       );
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Cycle 11 — Audio bookmarks round-trip
+  // ══════════════════════════════════════════════════════════════════════════
+  group('Cycle 11 — Audio bookmarks round-trip', () {
+    test('audio_bookmarks survive a flush → load round-trip', () async {
+      await db.insert('audio_bookmarks', {
+        'id': 'bm-001',
+        'note_id': 'note-123',
+        'attachment_path': 'attachments/memo_2026.m4a',
+        'timestamp_ms': 42000,
+        'annotation_text': 'Key discussion on architecture',
+        'created_at': 1700000000000,
+      });
+
+      await store.flushFromDatabase(db, tempDir.path);
+      await db.delete('audio_bookmarks');
+      expect((await db.query('audio_bookmarks')).length, 0);
+
+      await store.loadIntoDatabase(db, tempDir.path);
+
+      final bookmarks = await db.query('audio_bookmarks');
+      expect(bookmarks.length, 1);
+      final bm = bookmarks.first;
+      expect(bm['id'], 'bm-001');
+      expect(bm['note_id'], 'note-123');
+      expect(bm['attachment_path'], 'attachments/memo_2026.m4a');
+      expect(bm['timestamp_ms'], 42000);
+      expect(bm['annotation_text'], 'Key discussion on architecture');
+      expect(bm['created_at'], 1700000000000);
     });
   });
 }
